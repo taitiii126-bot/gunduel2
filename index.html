@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#07080C">
 <title>GUN DUEL</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0D14'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23FFC53D' stroke-width='6'/%3E%3Ccircle cx='32' cy='32' r='4.5' fill='%23FFC53D'/%3E%3Cpath d='M32 5v12M32 47v12M5 32h12M47 32h12' stroke='%23FFC53D' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
@@ -1100,6 +1101,7 @@ function endRoundL(winner){
     var tierBefore=computeTierIndex();
     recordMatchResult(difficulty,lpWins>=3,laWins===0);
     var tierAfter=computeTierIndex();
+    if(tierAfter>tierBefore)reportTier(TIER_LADDER[tierAfter].key);   // ログイン中ならDiscordに報告
     later(function(){
       flashMsg=lpWins>=3?'YOU WIN!':'LOSE';flashTimer=9999;matchOver=true;
       if(lpWins>=3)SFX.win();else SFX.lose();
@@ -1689,6 +1691,14 @@ function drawLobby(){
   ctx.restore();
 }
 var tierUp=null;
+var tierReported='';   // Discordに報告できたティア（昇格演出に「報告しました」と出す）
+function reportTier(key){
+  if(!AUTH.token)return;
+  fetch(httpBase()+'/api/tier',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},body:JSON.stringify({tier:key})})
+    .then(function(r){return r.json();})
+    .then(function(d){if(d&&d.notified)tierReported=key;})
+    .catch(function(){});
+}
 function startTierUp(from,to){
   tierUp={from:from,to:to,t0:performance.now()};
   flashMsg='';flashTimer=0;
@@ -1780,6 +1790,7 @@ function drawTierUp(){
     ctx.font='700 14px '+FONT_UI;ctx.fillStyle='#EDEBE6';ctx.fillText(tierRequirementText(to)+'！',cx,cy+58);
     ctx.font='600 11px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.5)';
     ctx.fillText(next?('次は '+next.key+'：'+tierRequirementText(next)):'最高ティア到達！',cx,cy+80);
+    if(tierReported===to.key){ctx.font='700 11px '+FONT_UI;ctx.fillStyle='#A5B0FF';ctx.fillText('Discordに報告しました',cx,cy+100);}
   }
   ctx.restore();
   ctx.globalAlpha=1;ctx.textBaseline='alphabetic';

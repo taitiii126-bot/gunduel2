@@ -122,6 +122,14 @@ const auth = {
     touch();
   },
   isBanned(uid) { return BANNED_IDS.has(String(uid)); },
+  // Discordに報告済みの最高ティア（0=未ランク、1=LT5 … 10=HT1）
+  bestTier(uid) { const u = db.users[uid]; return u ? (u.tierBest || 0) : 0; },
+  setBestTier(uid, idx) {
+    const u = db.users[uid];
+    if (!u) return;
+    u.tierBest = idx; u.tierAt = Date.now();
+    touch();
+  },
   publicUser,
   stats() { return { users: Object.keys(db.users).length, tokens: Object.keys(db.tokens).length }; },
   _flush: flush,

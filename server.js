@@ -18,6 +18,8 @@ const PAIR_DAILY_CAP = +process.env.PAIR_DAILY_CAP || 10;        // 同じ2人�
 const REQUIRE_LOGIN = process.env.REQUIRE_LOGIN === '1';          // オンライン対戦をログイン必須にする
 const ALLOW_SAME_IP_RECORDS = process.env.ALLOW_SAME_IP_RECORDS === '1';
 const BANNED_IPS = new Set(list(process.env.BANNED_IPS));
+const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';          // 昇格を投稿するDiscordのWebhook
+const GAME_URL = process.env.GAME_URL || '';                        // 投稿にゲームへのリンクを付ける（任意）
 const MSG_PER_SEC = 120;        // 1接続あたりの受信上限（超えた分は捨てる）
 const MSG_KICK_PER_SEC = 600;   // 明らかな連打・攻撃は切断
 
@@ -43,6 +45,42 @@ function limiter(max, windowMs) {
 }
 const loginTries = limiter(20, 10 * 60 * 1000);   // ログイン：10分で20回まで
 const joinFails = limiter(10, 10 * 60 * 1000);    // 部屋番号の入力ミス：10分で10回まで（総当たり対策）
+
+// ---- ティア昇格をDiscordに投稿 ----
+// ティアはCPU戦（ブラウザ内）の結果なので検証できない。そのため、
+// ・ログイン中の本人だけ ・前に報告したティアより上のときだけ（1人最大10回） ・連投は止める に制限する
+const TIERS = ['LT5', 'HT5', 'LT4', 'HT4', 'LT3', 'HT3', 'LT2', 'HT2', 'LT1', 'HT1'];   // 添字+1 がティアの順位
+const TIER_COLORS = { LT5: 0x92400E, HT5: 0xB45309, LT4: 0x9CA3AF, HT4: 0xCBD5E1, LT3: 0xFBBF24,
+  HT3: 0xFDE047, LT2: 0x38BDF8, HT2: 0x22D3EE, LT1: 0xC084FC, HT1: 0xF472B6 };
+const TIER_DIFF = { 5: 'よわい', 4: 'ふつう', 3: 'つよい', 2: '鬼', 1: '鬼神' };
+const tierText = key => TIER_DIFF[key[2]] + (key[0] === 'H' ? 'にストレート(3-0)で勝利' : 'に勝利');
+const TIER_COOLDOWN_MS = 20 * 1000;
+const tierLastReport = new Map();
+const webhookPosts = limiter(10, 60 * 1000);   // 投稿は全体で1分10件まで
+// Discordの書式記号で表示が崩れないようにする
+const mdEscape = s => String(s).replace(/([*_~`|>\\])/g, '\\$1');
+function postTierUp(user, key) {
+  if (!WEBHOOK_URL || !webhookPosts.hit('all')) return Promise.resolve(false);
+  const next = TIERS[TIERS.indexOf(key) + 1];
+  const embed = {
+    title: 'ティア昇格',
+    description: `<@${user.id}>（${mdEscape(user.name)}）が **${key}** に昇格しました！`,
+    color: TIER_COLORS[key],
+    fields: [
+      { name: '達成条件', value: tierText(key), inline: true },
+      { name: '次の目標', value: next ? `${next}：${tierText(next)}` : '最高ティア到達！', inline: true },
+    ],
+    footer: { text: 'GUN DUEL' },
+    timestamp: new Date().toISOString(),
+  };
+  if (GAME_URL) embed.url = GAME_URL;
+  // 埋め込みの中のメンションは通知を飛ばさない（名前の表示だけ）。@everyone なども無効化
+  return fetch(WEBHOOK_URL, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }),
+  }).then(r => { if (!r.ok) log('webhook failed', r.status); return r.ok; })
+    .catch(e => { log('webhook error', e.message); return false; });
+}
 
 // ---- 戦績の記録（水増し・途中退出への対策つき）----
 const pairCounts = new Map();
@@ -188,6 +226,22 @@ const server = http.createServer((req, res) => {
     return u ? json(res, 200, { user: auth.publicUser(u) }) : json(res, 401, { error: '未ログイン' });
   }
   if (url === '/api/logout' && req.method === 'POST') { auth.logout(bearer(req)); return json(res, 200, { ok: true }); }
+  if (url === '/api/tier' && req.method === 'POST') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    return readJson(req, m => {
+      const key = m && typeof m.tier === 'string' ? m.tier : '';
+      const idx = TIERS.indexOf(key) + 1;
+      if (idx < 1) return json(res, 400, { error: 'ティアが不正です' });
+      if (idx <= auth.bestTier(u.id)) return json(res, 200, { notified: false, reason: 'already' });
+      const last = tierLastReport.get(u.id) || 0;
+      if (Date.now() - last < TIER_COOLDOWN_MS) return json(res, 429, { notified: false, reason: 'cooldown' });
+      tierLastReport.set(u.id, Date.now());
+      auth.setBestTier(u.id, idx);
+      log('tier up', u.name, 'discord=' + u.id, key);
+      postTierUp(u, key).then(ok => json(res, 200, { notified: ok }));
+    });
+  }
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('GUN DUEL server is running\n');
 });
