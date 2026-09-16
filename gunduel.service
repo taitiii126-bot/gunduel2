@@ -1,0 +1,29 @@
+[Unit]
+Description=GUN DUEL game server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+# ↓ README「4. サーバーを動かす」のコマンドを使うと、この3行は自動で書き換わります
+User=pi
+WorkingDirectory=/home/pi/gunduel/server
+ExecStart=/usr/bin/node server.js
+Environment=PORT=8080
+# Cloudflare Tunnel 経由だけで公開するので、外から直接つながらない 127.0.0.1 にしておく
+# 同じWi-Fi内から直接つないで試したいときだけ 0.0.0.0 にする
+Environment=HOST=127.0.0.1
+# アカウント情報の保存先（/var/lib/gunduel が自動で作られる）
+StateDirectory=gunduel
+# Discordのキーはこのファイルには書かず、README「6.」の別ファイル（discord.conf）に入れる
+# 自分のゲームページ以外からの接続を拒否する（カンマ区切り）。使うときは先頭の # を外す
+#Environment=ALLOWED_ORIGINS=https://あなたのユーザー名.github.io
+Restart=always
+RestartSec=3
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

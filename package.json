@@ -1,0 +1,13 @@
+{
+  "name": "gunduel-server",
+  "version": "1.0.0",
+  "description": "GUN DUEL online match server (no dependencies)",
+  "private": true,
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
