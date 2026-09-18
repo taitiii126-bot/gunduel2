@@ -1,28 +1,16 @@
 'use strict';
-// 対戦ロジック（サーバー権威）。定数と物理はクライアント(index.html)と同じ値にそろえること
-const VH = 360, WORLD_W = 1440, GND = VH - 60;
-const MAX_HP = 5, CHAR_W = 20, CHAR_H = 44, DUCK_H = 28;
-const GRAVITY = 0.55, JUMP_F = -13, SPEED = 3.4;
-const REGEN_IDLE = 120, REGEN_INT = 120;
+// 対戦ロジック（サーバー権威）。物理・武器・弾は sim.js（ブラウザと同じファイル）を使う
+const fs = require('fs');
+const path = require('path');
+// GitHubに全部同じ場所へ置いた場合（Railway）は同じフォルダ、手元の開発ではひとつ上のフォルダにある
+const SIM = require(fs.existsSync(path.join(__dirname, 'sim.js')) ? './sim.js' : '../sim.js');
+
 const WIN_ROUNDS = 3;
 const TICK_MS = 1000 / 60;
-const LOBBY_MS = +process.env.LOBBY_MS || 10500;   // クライアントの10秒カウントダウン＋画面切替0.5秒
+const LOBBY_MS = +process.env.LOBBY_MS || 13500;   // マッチング演出（VS画面）3秒＋10秒カウントダウン＋画面切替0.5秒
 const ROUND_GAP_MS = 2000, MATCH_END_MS = 1800;
 const WAIT_TIMEOUT_MS = 10 * 60 * 1000;            // 相手が来ないまま10分で部屋を閉じる
-const BUFFER_FRAMES = 6;                            // 通信のゆらぎ吸収用の先行入力受付（約0.1秒）
-const WEAPONS = {
-  1: { type: 'melee', range: 46, reload: 26, dmg: 2, spd: 0 },
-  2: { type: 'ranged', range: 240, reload: 40, dmg: 1, spd: 10 },
-  3: { type: 'ranged', range: 620, reload: 115, dmg: 2, spd: 18 },
-};
-// オンライン対戦はクラシックステージ固定（クライアントと同じ）
-const PLATFORMS = [
-  { x: 0, y: GND, w: WORLD_W, h: 60 },
-  { x: 130, y: GND - 80, w: 100, h: 12 }, { x: 290, y: GND - 155, w: 110, h: 12 }, { x: 90, y: GND - 230, w: 90, h: 12 },
-  { x: 550, y: GND - 90, w: 130, h: 12 }, { x: 480, y: GND - 180, w: 100, h: 12 }, { x: 660, y: GND - 180, w: 100, h: 12 },
-  { x: 570, y: GND - 260, w: 110, h: 12 }, { x: 950, y: GND - 80, w: 110, h: 12 }, { x: 1100, y: GND - 155, w: 100, h: 12 },
-  { x: 880, y: GND - 220, w: 90, h: 12 }, { x: 1200, y: GND - 230, w: 100, h: 12 }, { x: 1050, y: GND - 295, w: 120, h: 12 },
-];
+const STAGE = 'classic';                            // オンライン対戦はクラシックステージ（クライアントと同じ）
 
 // ---- 自動操作（BOT・マクロ）の検知基準 ----
 // どれも「人間には続けて出せない数字」を、十分な回数そろったときだけ疑う（誤検知を避けるため厳しめ）
@@ -40,28 +28,48 @@ const DODGE_MIN_COUNT = 6;         // 瞬間回避がこの回数以上
 const DODGE_RATIO = 0.6;           // かつ、狙われた弾の6割以上を瞬間回避
 
 const SLOTS = ['a', 'b'];
-// 相手に見せる名前とティアは、そのまま信用せず長さと文字種を落とす
+// 相手に見せる名前とティアは、そのまま信用せず長さと文字種を落とす（見えない制御文字は取り除く）
 function cleanName(v) {
-  const n = String(v == null ? '' : v).replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, 12);
+  let n = '';
+  for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
+  n = n.trim().slice(0, 12);
   return n || 'プレイヤー';
 }
+// 相手のカードに出す項目。自己申告なので、形と長さだけ整えて中身は信用しない
+// 称号：オンライン戦績・フレンド数などが足りないものは使えない（ログインしていない人は、それらの称号は使えない）
+function cleanTitle(v, acc) {
+  const s = String(v == null ? '' : v);
+  const ctx = acc ? { w: acc.wins || 0, l: acc.losses || 0, friends: acc.friends || 0, pioneer: !!acc.pioneer } : null;
+  return SIM.titleOk(s, ctx) ? s : 'rookie';
+}
+function cleanBio(v) {
+  let n = '';
+  for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
+  return n.trim().slice(0, 40);
+}
+function cleanBg(v) { const n = Math.floor(+v); return n >= 0 && n <= 10 ? n : null; }
+function cleanCount(v) { const n = Math.floor(+v); return n >= 0 && n < 1e6 ? n : 0; }
 function cleanTier(v) {
   return String(v == null ? '' : v).replace(/[^A-Za-z0-9ぁ-んァ-ヶ一-龠]/g, '').slice(0, 5);
 }
 const other = s => (s === 'a' ? 'b' : 'a');
 const r1 = v => Math.round(v * 10) / 10;
-
-function mkChar(x, dir) {
-  return { x, y: GND - CHAR_H, vx: 0, vy: 0, dir, hp: MAX_HP, hpFrac: MAX_HP, hit: 0, dead: false,
-    ducking: false, onGround: false, weapon: 2, shootCool: 0, idle: 0, regen: 0, healUsed: false };
-}
-function hits(b, c) {
-  const ph = c.ducking ? DUCK_H : CHAR_H, top = c.ducking ? c.y + (CHAR_H - DUCK_H) : c.y;
-  return b.x > c.x - 6 && b.x < c.x + CHAR_W + 6 && b.y > top - 4 && b.y < top + ph + 4;
-}
-function damage(c, dmg) {
-  c.hp = Math.max(0, c.hp - dmg); c.hpFrac = c.hp; c.hit = 14; c.idle = 0; c.regen = 0;
-  if (c.hp <= 0) c.dead = true;
+// 画面の演出に使う出来事だけを、必要な項目にしぼって送る
+function packFx(ev) {
+  const out = [];
+  for (const e of ev) {
+    switch (e.t) {
+      case 'fire': out.push(e.beam ? { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, x2: r1(e.x2), beam: true } : { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir }); break;
+      case 'melee': out.push({ t: 'melee', who: e.who, x: r1(e.x), y: r1(e.y), dir: e.dir }); break;
+      case 'charge': out.push({ t: 'charge', who: e.who, wid: e.wid }); break;
+      case 'hit': out.push({ t: 'hit', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), sid: e.sid }); break;
+      case 'dead': out.push({ t: 'dead', who: e.who, x: r1(e.x), y: r1(e.y), dir: e.dir, duck: !!e.duck }); break;
+      case 'boom': out.push({ t: 'boom', who: e.who, x: r1(e.x), y: r1(e.y), r: e.r }); break;
+      case 'spark': out.push({ t: 'spark', x: r1(e.x), y: r1(e.y), own: e.own }); break;
+      case 'heal': out.push({ t: 'heal', who: e.who, x: r1(e.x), y: r1(e.y) }); break;
+    }
+  }
+  return out;
 }
 
 class Room {
@@ -71,12 +79,12 @@ class Room {
     this.players = { a: null, b: null };
     this.phase = 'waiting';                 // waiting → lobby → playing ⇄ roundOver → ended
     this.wins = { a: 0, b: 0 };
-    this.chars = { a: mkChar(80, 1), b: mkChar(WORLD_W - 100, -1) };
-    this.bullets = []; this.frame = 0; this.timers = new Set(); this.closed = false; this.closeTimer = null;
+    this.world = SIM.newWorld(STAGE);
+    this.frame = 0; this.timers = new Set(); this.closed = false; this.closeTimer = null;
     this.matchLive = false; this.roundsDone = 0;
     this.later(() => {
       if (this.phase !== 'waiting') return;
-      this.broadcast({ type: 'error', msg: '相手が来なかったため部屋を閉じました' });
+      this.broadcast({ type: 'error', code: 'room_timeout', msg: '相手が来なかったため部屋を閉じました' });
       this.close();
     }, WAIT_TIMEOUT_MS);
   }
@@ -95,14 +103,20 @@ class Room {
     if (this.phase !== 'waiting') return null;
     const slot = !this.players.a ? 'a' : !this.players.b ? 'b' : null;
     if (!slot) return null;
-    // ログイン済みならDiscordの名前を使う（本人確認済み）。未ログインは自己申告の名前
+    // 名前はプロフィールの名前。ログイン済みの人は、なりすまし対策に Discord の名前も相手に見せる
     const acc = ws.account || null;
     this.players[slot] = {
       ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc,
-      name: acc ? cleanName(acc.name) : cleanName(info && info.name), tier: cleanTier(info && info.tier),
+      name: cleanName(info && info.name), discord: acc ? cleanName(acc.name) : '', tier: cleanTier(info && info.tier),
+      loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look),
+      title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg),
+      // 勝率：ログイン済みはサーバーが持っているオンライン戦績、ゲストは本人が送ってきたCPU戦の成績
+      rec: acc ? { w: cleanCount(acc.wins), l: cleanCount(acc.losses), kind: 'online' }
+               : { w: cleanCount(info && info.cpu && info.cpu.w), l: cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },
       srtt: -1, spingT: 0, rematch: false,
-      input: { left: false, right: false, duck: false, weapon: 2 }, jumpBuf: 0, shootBuf: 0, healReq: false,
-      alignedFrame: -1, readyFrame: -1, groundSince: -1,
+      input: { left: false, right: false, duck: false, fire: false, slot: 0 },
+      jumpReq: false, shootReq: false, healReq: false, reloadReq: false,
+      alignedFrame: -1, readyFrame: -1,
     };
     this.resetStats(this.players[slot]);
     ws.room = this; ws.slot = slot;
@@ -116,10 +130,10 @@ class Room {
 
   start() {
     this.phase = 'lobby';
-    // それぞれに相手の名前とティアを伝える
+    // それぞれに相手の名前・ティア・持ってきた武器を伝える
     for (const k of SLOTS) {
       const p = this.players[k], o = this.players[other(k)];
-      if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, tier: o.tier, verified: o.verified } });
+      if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, verified: o.verified, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
     }
     this.schedulePing();
     this.later(() => this.startRound(), LOBBY_MS);
@@ -164,19 +178,23 @@ class Room {
       this.matchLive = true; this.roundsDone = 0;
       for (const s of SLOTS) if (this.players[s]) this.resetStats(this.players[s]);
     }
-    this.chars = { a: mkChar(80, 1), b: mkChar(WORLD_W - 100, -1) };
+    const a = this.players.a, b = this.players.b;
+    this.world = SIM.newWorld(STAGE, a ? a.loadout : null, b ? b.loadout : null);
     for (const s of SLOTS) {
       const p = this.players[s];
-      if (p) { p.jumpBuf = 0; p.shootBuf = 0; p.healReq = false; p.alignedFrame = -1; p.readyFrame = -1; }
+      if (p) {
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false;
+        p.input.slot = 0; p.input.fire = false; p.alignedFrame = -1; p.readyFrame = -1;
+      }
     }
-    this.bullets = []; this.phase = 'playing';
+    this.phase = 'playing';
     this.broadcast({ type: 'round_start', state: this.state() });
   }
-  endRound(winner) {
+  endRound(winner, fx) {
     this.phase = 'roundOver';
     this.roundsDone++;
     if (winner) this.wins[winner]++;
-    this.broadcast({ type: 'round_end', winner, wins: { ...this.wins }, state: this.state() });
+    this.broadcast({ type: 'round_end', winner, wins: { ...this.wins }, state: this.state(), fx: fx || [] });
     if (winner && this.wins[winner] >= WIN_ROUNDS) {
       // 決着した瞬間に記録する（この後の演出中に抜けても結果は変わらない）
       this.matchLive = false;
@@ -195,7 +213,7 @@ class Room {
     const p = this.players[slot]; if (!p) return;
     const left = !!i.left, right = !!i.right, duck = !!i.duck;
     if (this.phase === 'playing') {
-      if (left || right || duck || i.jump || i.shoot || i.heal) p.acts++;
+      if (left || right || duck || i.jump || i.shoot || i.heal || i.reload) p.acts++;
       // 切り替えの速さを数える（マクロ検知）
       const changes = (left !== p.input.left) + (right !== p.input.right) + (duck !== p.input.duck);
       if (changes) {
@@ -208,11 +226,13 @@ class Room {
         if (p.togN > MACRO_TOGGLES_PER_SEC && p.fastSecs + 1 >= MACRO_SECONDS) this.flag(p, '入力の切り替えが人間離れした速さ（マクロの疑い）');
       }
     }
-    p.input.left = left; p.input.right = right; p.input.duck = duck;
-    if (i.weapon === 1 || i.weapon === 2 || i.weapon === 3) p.input.weapon = i.weapon;
-    if (i.jump) p.jumpBuf = BUFFER_FRAMES;
-    if (i.shoot) p.shootBuf = BUFFER_FRAMES;
+    p.input.left = left; p.input.right = right; p.input.duck = duck; p.input.fire = !!i.fire;
+    if (i.slot === 0 || i.slot === 1 || i.slot === 2) p.input.slot = i.slot;
+    else if (typeof i.weapon === 'number' && p.loadout.indexOf(i.weapon) >= 0) p.input.slot = p.loadout.indexOf(i.weapon);
+    if (i.jump) p.jumpReq = true;
+    if (i.shoot) p.shootReq = true;
     if (i.heal) p.healReq = true;
+    if (i.reload) p.reloadReq = true;
   }
   flag(p, reason) {
     if (!p || p.suspect) return;
@@ -242,42 +262,33 @@ class Room {
 
   // 相手を撃てる位置か（高さが合っていて、射程内で、相手の方を向いている）
   aimedAt(c, t) {
-    const w = WEAPONS[c.weapon];
-    return !t.dead && Math.abs(t.y - c.y) < 24 && Math.abs(t.x - c.x) <= w.range && Math.sign(t.x - c.x) === c.dir;
+    const W = SIM.weaponOf(c);
+    const reach = W.kind === 'grenade' ? 320 : W.range;
+    return !t.dead && Math.abs(t.y - c.y) < 24 && Math.abs(t.x - c.x) <= reach && Math.sign(t.x - c.x) === c.dir;
   }
-  fire(slot) {
-    const p = this.players[slot], c = this.chars[slot], t = this.chars[other(slot)], w = WEAPONS[c.weapon];
-    // BOT検知：狙いが合った瞬間（かつ撃てるようになった瞬間）から撃つまでのフレーム数
-    if (p) {
-      p.shots++;
-      if (this.aimedAt(c, t) && p.alignedFrame >= 0) {
-        p.alignedShots++;
-        if (this.frame - Math.max(p.alignedFrame, p.readyFrame) <= BOT_INSTANT_FRAMES) p.instantShots++;
-      }
-      p.readyFrame = -1;
-      if (p.shots >= BOT_MIN_SHOTS && p.alignedShots / p.shots >= BOT_ALIGNED_RATIO &&
-          p.alignedShots > 0 && p.instantShots / p.alignedShots >= BOT_INSTANT_RATIO) {
-        this.flag(p, '狙いが合った瞬間に撃ち続けている（自動射撃の疑い）');
-      }
+  // 撃った1回ぶんのBOT検知：狙いが合った瞬間（かつ撃てるようになった瞬間）から撃つまでのフレーム数
+  // 押しっぱなしの連射は「押した瞬間」ではないので数えない
+  countShot(slot, aimed) {
+    const p = this.players[slot];
+    if (!p) return;
+    p.shots++;
+    if (aimed && p.alignedFrame >= 0) {
+      p.alignedShots++;
+      if (this.frame - Math.max(p.alignedFrame, p.readyFrame) <= BOT_INSTANT_FRAMES) p.instantShots++;
     }
-    c.shootCool = w.reload;
-    if (w.type === 'melee') {
-      if (!t.dead && Math.abs(t.x - c.x) <= w.range && Math.abs(t.y - c.y) < 40 && Math.sign(t.x - c.x) === c.dir) damage(t, w.dmg);
-    } else {
-      // 相手が地上にいて、このままなら当たる弾は「狙われた弾」として数える（自動回避の検知用）
-      const threat = this.aimedAt(c, t) && t.onGround;
-      const tp = this.players[other(slot)];
-      if (threat && tp) tp.threats++;
-      this.bullets.push({ x: c.x + CHAR_W / 2 + c.dir * 22, y: c.y + (c.ducking ? CHAR_H - 18 : 22),
-        vx: w.spd * c.dir, own: slot, dist: 0, dmg: w.dmg, range: w.range,
-        spawn: this.frame, threat, target: other(slot), dodgeChecked: false });
+    p.readyFrame = -1;
+    if (p.shots >= BOT_MIN_SHOTS && p.alignedShots / p.shots >= BOT_ALIGNED_RATIO &&
+        p.alignedShots > 0 && p.instantShots / p.alignedShots >= BOT_INSTANT_RATIO) {
+      this.flag(p, '狙いが合った瞬間に撃ち続けている（自動射撃の疑い）');
     }
   }
   // 弾が出た瞬間に跳んで避けるのを、人間には無理な割合で続けていないか
-  checkDodge(slot, p) {
-    if (p.groundSince < 0 || this.frame - p.groundSince < DODGE_GROUNDED_FRAMES) return;
-    for (const b of this.bullets) {
-      if (b.threat && b.target === slot && !b.dodgeChecked && this.frame - b.spawn <= DODGE_INSTANT_FRAMES) {
+  checkDodge(slot, groundSince) {
+    const p = this.players[slot];
+    const f = this.world.frame;   // 着地したフレームと弾が出たフレームは、どちらも sim のフレーム番号
+    if (!p || groundSince < 0 || f - groundSince < DODGE_GROUNDED_FRAMES) return;
+    for (const b of this.world.shots) {
+      if (b.threat && b.target === slot && !b.dodgeChecked && f - b.spawn <= DODGE_INSTANT_FRAMES) {
         b.dodgeChecked = true;
         p.instantDodges++;
         if (p.threats >= DODGE_MIN_THREATS && p.instantDodges >= DODGE_MIN_COUNT && p.instantDodges / p.threats >= DODGE_RATIO) {
@@ -287,68 +298,58 @@ class Room {
       }
     }
   }
-  stepChar(slot) {
-    const p = this.players[slot], c = this.chars[slot];
-    if (c.shootCool > 0) c.shootCool--;
-    if (c.hit > 0) c.hit--;
-    if (c.dead || !p) return;
-    // BOT検知用：狙いが合い始めたフレームと、撃てるようになったフレームを覚える
-    if (this.aimedAt(c, this.chars[other(slot)])) { if (p.alignedFrame < 0) p.alignedFrame = this.frame; }
-    else p.alignedFrame = -1;
-    if (c.shootCool <= 0 && p.readyFrame < 0) p.readyFrame = this.frame;
-    const inp = p.input;
-    let shot = false;
-    c.weapon = inp.weapon;
-    if (p.healReq) {
-      p.healReq = false;
-      if (!c.healUsed) { c.healUsed = true; c.hp = MAX_HP; c.hpFrac = MAX_HP; c.idle = 0; c.regen = 0; }
-    }
-    if (p.jumpBuf > 0) { if (c.onGround) { c.vy = JUMP_F; p.jumpBuf = 0; this.checkDodge(slot, p); } else p.jumpBuf--; }
-    if (p.shootBuf > 0) { if (c.shootCool <= 0) { this.fire(slot); shot = true; p.shootBuf = 0; } else p.shootBuf--; }
-    if (inp.left) { c.vx = -SPEED; c.dir = -1; } else if (inp.right) { c.vx = SPEED; c.dir = 1; } else c.vx *= 0.5;
-    c.ducking = inp.duck;
-    // 物理（クライアントの applyPhys と同じ）
-    c.vy += GRAVITY; c.y += c.vy; c.x += c.vx; c.onGround = false;
-    const ph = c.ducking ? DUCK_H : CHAR_H;
-    for (const pf of PLATFORMS) {
-      const top = c.ducking ? c.y + (CHAR_H - DUCK_H) : c.y, bot = top + ph, prevBot = bot - c.vy;
-      if (c.x + CHAR_W > pf.x && c.x < pf.x + pf.w && prevBot <= pf.y + 2 && bot >= pf.y && c.vy >= 0) {
-        c.y = pf.y - CHAR_H; c.vy = 0; c.onGround = true; break;
-      }
-    }
-    c.x = Math.max(0, Math.min(WORLD_W - CHAR_W, c.x));
-    if (c.onGround) { if (p.groundSince < 0) p.groundSince = this.frame; } else p.groundSince = -1;
-    if (c.y > VH + 50) { c.hp = 0; c.dead = true; }
-    // 自然回復（クライアントの updateRegen と同じ）
-    if (shot || c.hit > 0) { c.idle = 0; c.regen = 0; }
-    else if (++c.idle >= REGEN_IDLE && c.hpFrac < MAX_HP && ++c.regen >= REGEN_INT) {
-      c.regen = 0; c.hpFrac = Math.min(MAX_HP, c.hpFrac + 1); c.hp = Math.floor(c.hpFrac);
-    }
-  }
   tick() {
     if (this.phase !== 'playing') return;
     this.frame++;
-    this.stepChar('a'); this.stepChar('b');
-    this.bullets = this.bullets.filter(b => {
-      b.x += b.vx; b.dist += Math.abs(b.vx);
-      if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20) return false;
-      const t = this.chars[other(b.own)];
-      if (!t.dead && hits(b, t)) { damage(t, b.dmg); return false; }
-      return true;
-    });
-    const ad = this.chars.a.dead, bd = this.chars.b.dead;
-    if (ad || bd) return this.endRound(ad && bd ? null : ad ? 'b' : 'a');
-    this.broadcast({ type: 'state', state: this.state() });   // 60Hz で配信（相手の動きの遅れを減らす）
+    const w = this.world, groundSince = {}, aimed = {};
+    for (const s of SLOTS) {
+      const p = this.players[s], c = w.chars[s];
+      if (p) {
+        const inp = p.input;
+        SIM.setInput(c, { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
+          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq });
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false;
+        // BOT検知用：狙いが合い始めたフレームと、撃てるようになったフレームを覚える
+        // 撃つ瞬間の狙い（このフレームの動きより前の位置で判定する。とどめの一撃も「狙いが合っていた」に数える）
+        aimed[s] = !c.dead && this.aimedAt(c, w.chars[other(s)]);
+        if (aimed[s]) { if (p.alignedFrame < 0) p.alignedFrame = this.frame; }
+        else p.alignedFrame = -1;
+        if (SIM.canFire(c)) { if (p.readyFrame < 0) p.readyFrame = this.frame; }
+      } else SIM.setInput(c, { left: false, right: false, duck: false, fire: false });
+      groundSince[s] = c.groundSince;
+    }
+    const ev = [];
+    SIM.step(w, ev);
+    for (const e of ev) {
+      if (e.t === 'pull' && e.edge) this.countShot(e.who, aimed[e.who]);
+      else if (e.t === 'fire' && !e.beam) {
+        // 相手が地上にいて、このままなら当たる弾は「狙われた弾」として数える（自動回避の検知用）
+        const c = w.chars[e.who], t = w.chars[other(e.who)], tp = this.players[other(e.who)];
+        const W = SIM.WEAPONS[e.wid];
+        if (W.kind !== 'bullet' && W.kind !== 'pellet') continue;
+        const threat = aimed[e.who] && t.onGround;
+        let marked = false;
+        for (const b of w.shots) {
+          if (b.sid !== e.sid) continue;
+          b.spawn = w.frame; b.target = other(e.who); b.dodgeChecked = false;
+          b.threat = threat && !marked; marked = true;
+        }
+        if (threat && tp) tp.threats++;
+      } else if (e.t === 'jump') this.checkDodge(e.who, groundSince[e.who]);
+    }
+    const fx = packFx(ev);
+    const ad = w.chars.a.dead, bd = w.chars.b.dead;
+    if (ad || bd) return this.endRound(ad && bd ? null : ad ? 'b' : 'a', fx);
+    this.broadcast(fx.length ? { type: 'state', state: this.state(), fx } : { type: 'state', state: this.state() });   // 60Hz で配信
   }
   state() {
-    const ch = c => ({ x: r1(c.x), y: r1(c.y), vx: r1(c.vx), vy: r1(c.vy), dir: c.dir, hp: c.hp, hit: c.hit,
-      dead: c.dead, ducking: c.ducking, onGround: c.onGround, weapon: c.weapon, shootCool: c.shootCool });
+    const w = this.world;
     return {
-      chars: { a: ch(this.chars.a), b: ch(this.chars.b) },
-      bullets: this.bullets.map(b => ({ x: r1(b.x), y: b.y, vx: b.vx, own: b.own, dmg: b.dmg })),
+      chars: { a: SIM.packChar(w.chars.a), b: SIM.packChar(w.chars.b) },
+      shots: SIM.packShots(w),
       wins: { ...this.wins },
     };
   }
 }
 
-module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS };
+module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM };

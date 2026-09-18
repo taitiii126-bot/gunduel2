@@ -3,8 +3,11 @@
 const http = require('http');
 const crypto = require('crypto');
 const { attach, clientIp } = require('./ws-lite');
-const { Room, TICK_MS, ACTIVE_MIN_INPUTS } = require('./game');
+const { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM } = require('./game');
 const auth = require('./auth');
+const presence = require('./presence');
+const interactions = require('./interactions');
+const { TIER_COLORS } = require('./profile');
 
 const list = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
 const PORT = +process.env.PORT || 8080;
@@ -12,7 +15,7 @@ const HOST = process.env.HOST || '0.0.0.0';
 const ALLOWED_ORIGINS = list(process.env.ALLOWED_ORIGINS);
 const MAX_ROOMS = +process.env.MAX_ROOMS || 100;
 const MAX_CONNS = +process.env.MAX_CONNS || 300;
-const MAX_CONNS_PER_IP = +process.env.MAX_CONNS_PER_IP || 8;     // 同じIPからの同時接続
+const MAX_CONNS_PER_IP = +process.env.MAX_CONNS_PER_IP || 16;    // 同じIPからの同時接続（ログイン中はタブごとに1本つなぎっぱなし）
 const MAX_ROOMS_PER_IP = +process.env.MAX_ROOMS_PER_IP || 3;     // 同じIPが同時に作れる部屋
 const PAIR_DAILY_CAP = +process.env.PAIR_DAILY_CAP || 10;        // 同じ2人の対戦を記録するのは1日この回数まで
 const REQUIRE_LOGIN = process.env.REQUIRE_LOGIN === '1';          // オンライン対戦をログイン必須にする
@@ -45,13 +48,15 @@ function limiter(max, windowMs) {
 }
 const loginTries = limiter(20, 10 * 60 * 1000);   // ログイン：10分で20回まで
 const joinFails = limiter(10, 10 * 60 * 1000);    // 部屋番号の入力ミス：10分で10回まで（総当たり対策）
+const profileSaves = limiter(30, 60 * 1000);      // プロフィールの保存：1人1分で30回まで
+const lookups = limiter(60, 60 * 1000);           // フレンドIDでの検索：1分で60回まで（総当たり対策）
+const friendOps = limiter(30, 60 * 1000);         // フレンド申請・承認など：1人1分で30回まで
+const inviteTries = limiter(12, 60 * 1000);       // 対戦の招待：1人1分で12回まで
 
 // ---- ティア昇格をDiscordに投稿 ----
 // ティアはCPU戦（ブラウザ内）の結果なので検証できない。そのため、
 // ・ログイン中の本人だけ ・前に報告したティアより上のときだけ（1人最大10回） ・連投は止める に制限する
 const TIERS = ['LT5', 'HT5', 'LT4', 'HT4', 'LT3', 'HT3', 'LT2', 'HT2', 'LT1', 'HT1'];   // 添字+1 がティアの順位
-const TIER_COLORS = { LT5: 0x92400E, HT5: 0xB45309, LT4: 0x9CA3AF, HT4: 0xCBD5E1, LT3: 0xFBBF24,
-  HT3: 0xFDE047, LT2: 0x38BDF8, HT2: 0x22D3EE, LT1: 0xC084FC, HT1: 0xF472B6 };
 const TIER_DIFF = { 5: 'よわい', 4: 'ふつう', 3: 'つよい', 2: '鬼', 1: '鬼神' };
 const tierText = key => TIER_DIFF[key[2]] + (key[0] === 'H' ? 'にストレート(3-0)で勝利' : 'に勝利');
 const TIER_COOLDOWN_MS = 20 * 1000;
@@ -101,11 +106,15 @@ function recordResult(room, winner, loser, reason) {
   if (n > PAIR_DAILY_CAP) return log(tag, 'not recorded: same pair over daily cap');
   auth.recordOnlineResult(winner.uid, true);
   auth.recordOnlineResult(loser.uid, false);
-  log(tag, 'recorded:', winner.name, 'beat', loser.name, reason === 'forfeit' ? '(opponent left)' : '');
+  // 再戦のVS画面で新しい戦績を出せるように、接続中の情報も更新しておく
+  if (winner.ws.account) winner.ws.account.wins = (winner.ws.account.wins || 0) + 1;
+  if (loser.ws.account) loser.ws.account.losses = (loser.ws.account.losses || 0) + 1;
+  winner.rec.w++; loser.rec.l++;
+  log(tag, 'recorded:', winner.discord || winner.name, 'beat', loser.discord || loser.name, reason === 'forfeit' ? '(opponent left)' : '');
 }
 // 怪しい操作は本人には知らせず、ログとアカウントに残す（BANの判断材料）
 function onSuspect(p, reason) {
-  log('SUSPECT', 'discord=' + (p.uid || '-'), 'name=' + p.name, 'ip=' + p.ip, reason);
+  log('SUSPECT', 'discord=' + (p.uid || '-'), 'name=' + p.name + (p.discord ? ' (' + p.discord + ')' : ''), 'ip=' + p.ip, reason);
   if (p.uid) auth.flag(p.uid, reason);
 }
 
@@ -113,13 +122,47 @@ function openRoom() {
   let id;
   do id = String(crypto.randomInt(100000, 1000000)); while (rooms.has(id));
   const room = new Room(id, {
-    onClose: r => { rooms.delete(r.id); log('room closed', r.id, `(rooms: ${rooms.size})`); },
+    onClose: r => {
+      rooms.delete(r.id); log('room closed', r.id, `(rooms: ${rooms.size})`);
+      cancelInvites(r.id);
+      for (const k of ['a', 'b']) if (r.players[k]) presence.changed(r.players[k].uid);
+    },
     onResult: (w, l, reason) => recordResult(room, w, l, reason),
     onSuspect,
   });
   rooms.set(id, room);
   return room;
 }
+
+// ---- フレンドへのお知らせ（ページを開いている人にだけ届く）----
+function pushTo(uid, obj) { const s = JSON.stringify(obj); for (const w of presence.sockets(uid)) w.send(s); }
+function cardOf(uid) { const u = auth.user(uid); return u ? auth.card(u, presence.statusOf(uid)) : null; }
+
+// ---- 対戦の招待 ----
+// 招待する人が部屋を作ってから、部屋番号をフレンドに届ける。受けた人はその部屋にふつうに入る
+const invites = new Map();   // 招待ID → { id, from, to, roomId }
+function cancelInvites(roomId) {
+  for (const [id, iv] of invites) if (iv.roomId === roomId) { invites.delete(id); pushTo(iv.to, { type: 'invite_cancel', id }); }
+}
+
+// オンライン状態：部屋にいる人は「対戦中」（相手待ちはオンライン扱い）
+presence.configure({
+  roomOf(uid) {
+    for (const r of rooms.values()) {
+      const a = r.players.a, b = r.players.b;
+      if ((a && a.uid === uid) || (b && b.uid === uid)) return a && b ? 'match' : 'room';
+    }
+    return '';
+  },
+  onOffline: uid => auth.seen(uid),
+  // 状態が変わったら、オンラインのフレンドに知らせる
+  onChange(uid, status) {
+    const u = auth.user(uid);
+    if (!u) return;
+    const msg = { type: 'friend_status', fid: u.fid, status, lastSeen: status === 'offline' ? (u.lastSeen || Date.now()) : 0 };
+    for (const f of auth.friendIds(uid)) pushTo(f, msg);
+  },
+});
 
 function onMessage(ws, raw) {
   if (++ws.msgs > MSG_PER_SEC) { if (ws.msgs > MSG_KICK_PER_SEC) ws.destroy(); return; }
@@ -129,11 +172,12 @@ function onMessage(ws, raw) {
   switch (m.type) {
     case 'create_room': {
       if (ws.room) return;
-      if (REQUIRE_LOGIN && !ws.account) return send(ws, { type: 'error', msg: 'オンライン対戦にはDiscordログインが必要です' });
-      if (rooms.size >= MAX_ROOMS) return send(ws, { type: 'error', msg: 'サーバーが混み合っています。少し待ってからお試しください' });
+      if (m.v !== SIM.PROTO) return send(ws, { type: 'error', code: 'reload', msg: 'ゲームが更新されました。ページを再読み込みしてください' });
+      if (REQUIRE_LOGIN && !ws.account) return send(ws, { type: 'error', code: 'login_required', msg: 'オンライン対戦にはDiscordログインが必要です' });
+      if (rooms.size >= MAX_ROOMS) return send(ws, { type: 'error', code: 'server_busy', msg: 'サーバーが混み合っています。少し待ってからお試しください' });
       let mine = 0;
       for (const r of rooms.values()) if (r.hostIp() === ws.ip) mine++;
-      if (mine >= MAX_ROOMS_PER_IP) return send(ws, { type: 'error', msg: '同時に作れる部屋の数を超えています' });
+      if (mine >= MAX_ROOMS_PER_IP) return send(ws, { type: 'error', code: 'too_many_rooms', msg: '同時に作れる部屋の数を超えています' });
       const room = openRoom();
       room.join(ws, m);
       send(ws, { type: 'room_created', roomId: room.id, slot: ws.slot });
@@ -142,17 +186,20 @@ function onMessage(ws, raw) {
     }
     case 'join_room': {
       if (ws.room) return;
-      if (REQUIRE_LOGIN && !ws.account) return send(ws, { type: 'error', msg: 'オンライン対戦にはDiscordログインが必要です' });
-      if (joinFails.blocked(ws.ip)) return send(ws, { type: 'error', msg: '部屋番号の入力ミスが多すぎます。しばらく待ってからお試しください' });
+      if (m.v !== SIM.PROTO) return send(ws, { type: 'error', code: 'reload', msg: 'ゲームが更新されました。ページを再読み込みしてください' });
+      if (REQUIRE_LOGIN && !ws.account) return send(ws, { type: 'error', code: 'login_required', msg: 'オンライン対戦にはDiscordログインが必要です' });
+      if (joinFails.blocked(ws.ip)) return send(ws, { type: 'error', code: 'too_many_fails', msg: '部屋番号の入力ミスが多すぎます。しばらく待ってからお試しください' });
       const id = String(m.roomId || '');
       const room = /^\d{6}$/.test(id) ? rooms.get(id) : null;
-      if (!room) { joinFails.hit(ws.ip); return send(ws, { type: 'error', msg: '部屋が見つかりません。番号を確認してください' }); }
+      if (!room) { joinFails.hit(ws.ip); return send(ws, { type: 'error', code: 'room_not_found', msg: '部屋が見つかりません。番号を確認してください' }); }
       const host = room.players.a;
-      if (host && host.uid && ws.account && host.uid === ws.account.uid) return send(ws, { type: 'error', msg: '同じアカウント同士では対戦できません' });
-      if (!room.join(ws, m)) return send(ws, { type: 'error', msg: 'この部屋はすでに対戦中です' });
+      if (host && host.uid && ws.account && host.uid === ws.account.uid) return send(ws, { type: 'error', code: 'same_account', msg: '同じアカウント同士では対戦できません' });
+      if (!room.join(ws, m)) return send(ws, { type: 'error', code: 'room_full', msg: 'この部屋はすでに対戦中です' });
       send(ws, { type: 'room_joined', roomId: room.id, slot: ws.slot });
       log('room joined', room.id, 'from', ws.ip, ws.account ? 'discord=' + ws.account.uid : 'guest');
       room.start();
+      cancelInvites(room.id);                // 相手が決まったので、ほかの招待は取り消す
+      for (const k of ['a', 'b']) if (room.players[k]) presence.changed(room.players[k].uid);
       break;
     }
     case 'input':
@@ -170,8 +217,58 @@ function onMessage(ws, raw) {
     case 'auth': {
       if (ws.room) return;                   // 対戦中に別人へ切り替えるのは不可
       const u = auth.verify(typeof m.token === 'string' ? m.token : '');
-      if (u) { ws.account = { uid: u.id, name: u.name }; send(ws, { type: 'auth_ok', user: auth.publicUser(u) }); }
+      if (u) {
+        ws.account = { uid: u.id, name: u.name, wins: u.online.w, losses: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer };
+        send(ws, { type: 'auth_ok', user: auth.publicUser(u) });
+      }
       else { ws.account = null; send(ws, { type: 'auth_fail' }); }
+      break;
+    }
+    // ログイン中の人がページを開いている間つないでおく接続（オンライン状態・フレンド機能に使う）
+    case 'hello': {
+      if (m.v !== SIM.PROTO) return send(ws, { type: 'hello_fail', code: 'reload' });
+      const u = auth.verify(typeof m.token === 'string' ? m.token : '');
+      presence.remove(ws);
+      if (!u) return send(ws, { type: 'hello_fail', code: 'auth' });
+      presence.add(u.id, ws, m.s);
+      auth.seen(u.id);
+      send(ws, { type: 'hello_ok', user: auth.publicUser(u) });
+      break;
+    }
+    case 'status':                           // CPU対戦を始めた・やめた
+      if (ws.presUid) presence.setStatus(ws, m.s);
+      break;
+    // フレンドを対戦に招待する（招待する人は先に部屋を作っておく）
+    case 'invite': {
+      const uid = ws.presUid;
+      if (!uid) return;
+      const fail = code => send(ws, { type: 'invite_fail', fid: auth.normFid(m.fid), code });
+      const t = auth.byFid(m.fid);
+      if (!t || !auth.isFriend(uid, t.id)) return fail('not_friend');
+      if (!inviteTries.hit(uid)) return fail('too_many');
+      const room = rooms.get(String(m.roomId || ''));
+      const host = room && room.players.a;
+      if (!room || room.phase !== 'waiting' || !host || host.uid !== uid || room.players.b) return fail('no_room');
+      const st = presence.statusOf(t.id);
+      if (st === 'offline') return fail('offline');
+      if (st === 'match') return fail('busy');
+      for (const [id, iv] of invites) if (iv.from === uid && iv.to === t.id) { invites.delete(id); pushTo(t.id, { type: 'invite_cancel', id }); }
+      const id = crypto.randomBytes(6).toString('hex');
+      invites.set(id, { id, from: uid, to: t.id, roomId: room.id });
+      pushTo(t.id, { type: 'invite', id, roomId: room.id, from: cardOf(uid) });
+      send(ws, { type: 'invite_sent', fid: t.fid, status: st });
+      log('invite', room.id, 'discord=' + uid, '->', 'discord=' + t.id, '(' + st + ')');
+      break;
+    }
+    // 招待への返事（参加するときは、このあと部屋番号でふつうに入ってくる）
+    case 'invite_reply': {
+      const uid = ws.presUid;
+      const iv = uid && invites.get(String(m.id || ''));
+      if (!iv || iv.to !== uid) return;
+      invites.delete(iv.id);
+      const me = auth.user(uid);
+      pushTo(iv.from, { type: m.ok ? 'invite_accepted' : 'invite_declined', fid: me.fid,
+        name: (me.profile && me.profile.name) || me.name, timeout: !m.ok && m.timeout === true });
       break;
     }
     // set_difficulty など、オンライン対戦で使わないメッセージは無視
@@ -205,8 +302,10 @@ const server = http.createServer((req, res) => {
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   if (BANNED_IPS.has(ip)) return json(res, 403, { error: '利用停止されています' });
   // yourIp はサーバーから見えている自分のIP（Railwayで正しく判定できているかの確認用）
-  if (url === '/health') return json(res, 200, { ok: true, rooms: rooms.size, connections: sockets.size, uptime: Math.round(process.uptime()), accounts: auth.stats().users, yourIp: ip });
-  if (url === '/api/config') return json(res, 200, { login: auth.enabled(), clientId: auth.clientId(), requireLogin: REQUIRE_LOGIN });
+  if (url === '/health') return json(res, 200, { ok: true, rooms: rooms.size, connections: sockets.size, online: presence.count(), uptime: Math.round(process.uptime()), accounts: auth.stats().users, yourIp: ip });
+  // Discord のスラッシュコマンド（/info）。署名を確かめてから答える
+  if (url === '/discord/interactions' && req.method === 'POST') return interactions.handle(req, res, log);
+  if (url === '/api/config') return json(res, 200, { login: auth.enabled(), clientId: auth.clientId(), requireLogin: REQUIRE_LOGIN, proto: SIM.PROTO });
   if (url === '/api/login' && req.method === 'POST') {
     if (!auth.enabled()) return json(res, 503, { error: 'このサーバーではログインが設定されていません' });
     if (!loginTries.hit(ip)) return json(res, 429, { error: '試行が多すぎます。しばらく待ってください' });
@@ -223,7 +322,51 @@ const server = http.createServer((req, res) => {
   }
   if (url === '/api/me') {
     const u = auth.verify(bearer(req));
-    return u ? json(res, 200, { user: auth.publicUser(u) }) : json(res, 401, { error: '未ログイン' });
+    return u ? json(res, 200, { user: auth.publicUser(u), profile: u.profile || null, rev: u.profileRev || 0 }) : json(res, 401, { error: '未ログイン' });
+  }
+  // 自分のプロフィールを保存する（ログイン中だけ）
+  if (url === '/api/profile' && req.method === 'POST') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!profileSaves.hit(u.id)) return json(res, 429, { error: '保存が多すぎます。少し待ってください' });
+    return readJson(req, m => {
+      if (!m || !m.profile || typeof m.profile !== 'object') return json(res, 400, { error: 'リクエストが不正です' });
+      json(res, 200, auth.saveProfile(u.id, m.profile, m.base));
+    });
+  }
+  // フレンドの一覧（GET）と、申請・承認・拒否・解除（POST { op, fid }）
+  if (url === '/api/friends') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (req.method === 'GET') {
+      const L = auth.friendLists(u.id), cards = ids => ids.map(cardOf).filter(Boolean);
+      return json(res, 200, { friends: cards(L.friends), incoming: cards(L.incoming), outgoing: cards(L.outgoing) });
+    }
+    if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+    if (!friendOps.hit(u.id)) return json(res, 429, { error: '操作が多すぎます。少し待ってください' });
+    return readJson(req, m => {
+      const op = m && m.op;
+      if (!['request', 'accept', 'decline', 'remove'].includes(op)) return json(res, 400, { error: 'リクエストが不正です' });
+      const t = auth.byFid(m.fid);
+      if (!t) return json(res, 404, { result: 'not_found' });
+      const r = op === 'request' ? auth.friendRequest(u.id, t.id) : op === 'accept' ? auth.friendAccept(u.id, t.id)
+        : op === 'decline' ? auth.friendDecline(u.id, t.id) : auth.friendRemove(u.id, t.id);
+      // 相手にも知らせる（一覧を読み直してもらう）
+      if (r === 'sent') pushTo(t.id, { type: 'friend_event', kind: 'request', from: cardOf(u.id) });
+      else if (r === 'accepted') pushTo(t.id, { type: 'friend_event', kind: 'accepted', from: cardOf(u.id) });
+      else if (r === 'ok') pushTo(t.id, { type: 'friend_event', kind: op === 'remove' ? 'removed' : 'declined', from: { fid: u.fid } });
+      if (r === 'sent' || r === 'accepted' || r === 'ok') log('friend', op, r, 'discord=' + u.id, '->', 'discord=' + t.id);
+      json(res, 200, { result: r, player: cardOf(t.id) });
+    });
+  }
+  // フレンドIDで他の人のカードを見る（ログイン中だけ）
+  if (url === '/api/player') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!lookups.hit(ip)) return json(res, 429, { error: '検索が多すぎます。少し待ってください' });
+    const q = new URLSearchParams((req.url || '').split('?')[1] || '');
+    const t = auth.byFid(q.get('id'));
+    return t ? json(res, 200, { player: auth.card(t, presence.statusOf(t.id)) }) : json(res, 404, { error: 'not_found' });
   }
   if (url === '/api/logout' && req.method === 'POST') { auth.logout(bearer(req)); return json(res, 200, { ok: true }); }
   if (url === '/api/tier' && req.method === 'POST') {
@@ -255,7 +398,10 @@ attach(server, ws => {
   sockets.add(ws);
   ws.room = null; ws.slot = null; ws.msgs = 0;
   ws.on('message', raw => onMessage(ws, raw));
-  ws.on('close', () => { sockets.delete(ws); if (ws.room) ws.room.leave(ws.slot); });
+  ws.on('close', () => {
+    sockets.delete(ws); presence.remove(ws);
+    if (ws.room) { ws.room.leave(ws.slot); if (ws.account) presence.changed(ws.account.uid); }
+  });
 }, { checkOrigin: origin => !ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(origin) });
 
 // 60Hz 固定ステップ（タイマーのぶれを蓄積で補正）
@@ -276,6 +422,7 @@ server.listen(PORT, HOST, () => {
   log(`GUN DUEL server listening on ${HOST}:${PORT}` +
     (ALLOWED_ORIGINS.length ? ` (origins: ${ALLOWED_ORIGINS.join(', ')})` : '') +
     (REQUIRE_LOGIN ? ' (login required)' : ''));
+  if (interactions.enabled()) interactions.register(log);   // Discord に /info を登録
 });
 function shutdown(sig) {
   log('shutting down', sig);
