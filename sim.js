@@ -888,15 +888,22 @@ function think(b, w, side) {
 var TITLES = [
   { id: 'rookie' },
   { id: 'regular' }, { id: 'bodyguard' }, { id: 'demon_hunter' }, { id: 'godslayer', rare: true }, { id: 'legend', rare: true },
-  { id: 'veteran10' }, { id: 'veteran50' }, { id: 'veteran100', rare: true }, { id: 'fall30' }, { id: 'fall100' },
+  { id: 'veteran10' }, { id: 'veteran50' }, { id: 'veteran100', rare: true }, { id: 'fall30' }, { id: 'fall100', rare: true },
   { id: 'debut', gate: { w: 1 } }, { id: 'wanted', gate: { w: 10 } }, { id: 'bounty_hunter', gate: { w: 50 } },
   { id: 'duel_king', rare: true, gate: { w: 100 } }, { id: 'unbeaten', rare: true, gate: { n: 30, rate: 0.7 } },
   { id: 'partner', gate: { friends: 1 } }, { id: 'magnificent7', gate: { friends: 7 } },
-  { id: 'shadow_blade' }, { id: 'far_sight' }, { id: 'point_blank' }, { id: 'bomber' }, { id: 'railgun_child' }, { id: 'hive_maker' },
   { id: 'one_pistol', rare: true },
   { id: 'untouched' }, { id: 'close_call' }, { id: 'unstoppable' }, { id: 'precision' }, { id: 'pit_drop' }, { id: 'wanderer', rare: true },
-  { id: 'short_sleeper' }, { id: 'first_steps' }, { id: 'pioneer', rare: true, gate: { pioneer: true } }, { id: 'rule_breaker' }
+  { id: 'short_sleeper', rare: true }, { id: 'first_steps' }, { id: 'pioneer', rare: true, gate: { pioneer: true } }, { id: 'rule_breaker' }
 ];
+// 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
+// 前からある6つ（影の刃・千里眼・至近距離の鬼・蜂の巣職人・爆弾魔・電磁砲の申し子）は id をそのまま使う
+var KILL_STEPS = [10, 50, 100];
+var KILL_TITLE_OLD = { knife50: 'shadow_blade', sniper50: 'far_sight', shotgun50: 'point_blank', smg50: 'hive_maker', grenade10: 'bomber', railgun10: 'railgun_child' };
+WEAPON_IDS.forEach(function (wid) {
+  var key = WEAPONS[wid].key;
+  KILL_STEPS.forEach(function (n) { TITLES.push({ id: KILL_TITLE_OLD[key + n] || 'kill_' + key + '_' + n, kill: { w: wid, n: n }, rare: n >= 100 }); });
+});
 // その称号を使ってよいか。ctx = { w, l, friends, pioneer }（オンライン戦績・フレンド数・開拓者か。ログインしていなければ null）
 function titleOk(id, ctx) {
   for (var i = 0; i < TITLES.length; i++) {
