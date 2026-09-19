@@ -7,8 +7,8 @@ const DIFFS = ['easy', 'normal', 'hard', 'pro', 'god'];
 const TIER_KEYS = ['', 'LT5', 'HT5', 'LT4', 'HT4', 'LT3', 'HT3', 'LT2', 'HT2', 'LT1', 'HT1'];
 const MAX_TIER = TIER_KEYS.length - 1;
 // Discord に出すときのティアの色（ゲームのティアの色と同じ）
-const TIER_COLORS = { LT5: 0x92400E, HT5: 0xB45309, LT4: 0x9CA3AF, HT4: 0xCBD5E1, LT3: 0xFBBF24,
-  HT3: 0xFDE047, LT2: 0x38BDF8, HT2: 0x22D3EE, LT1: 0xC084FC, HT1: 0xF472B6 };
+const TIER_COLORS = { LT5: 0x8A919B, HT5: 0xC07A45, LT4: 0xB8C2CE, HT4: 0xE3E8EE, LT3: 0xD9A331,
+  HT3: 0xF5C84C, LT2: 0xC81E3A, HT2: 0xE0314B, LT1: 0xE8C66A, HT1: 0xFFF4D6 };
 
 // 見えない制御文字を落として、文字数（絵文字も1文字）で切る
 function text(v, max) {

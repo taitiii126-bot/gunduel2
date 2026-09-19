@@ -60,7 +60,8 @@ function packFx(ev) {
   for (const e of ev) {
     switch (e.t) {
       case 'fire': out.push(e.beam ? { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, x2: r1(e.x2), beam: true } : { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir }); break;
-      case 'melee': out.push({ t: 'melee', who: e.who, x: r1(e.x), y: r1(e.y), dir: e.dir }); break;
+      case 'melee': out.push({ t: 'melee', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, hit: !!e.hit, reach: e.reach }); break;
+      case 'windup': out.push({ t: 'windup', who: e.who, wid: e.wid }); break;
       case 'charge': out.push({ t: 'charge', who: e.who, wid: e.wid }); break;
       case 'hit': out.push({ t: 'hit', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), sid: e.sid }); break;
       case 'dead': out.push({ t: 'dead', who: e.who, x: r1(e.x), y: r1(e.y), dir: e.dir, duck: !!e.duck }); break;
