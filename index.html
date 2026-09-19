@@ -21,6 +21,7 @@
   --f-ui:'Chakra Petch','Zen Kaku Gothic New',system-ui,sans-serif;
   --f-jp:'Zen Kaku Gothic New','Chakra Petch',system-ui,sans-serif;
   --f-disp:'Dela Gothic One','Zen Kaku Gothic New',sans-serif;
+  --f-neon:'Dela Gothic One','Zen Kaku Gothic New',sans-serif;
   --ease:cubic-bezier(.2,.8,.2,1);
 }
 *{box-sizing:border-box;margin:0;padding:0;}
@@ -519,16 +520,15 @@ body.demo #bg-shade{opacity:1;}
 .title-chip{padding:8px 16px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);font-size:13px;font-weight:900;color:var(--tx-2);transition:.15s;}
 .title-chip:hover{color:var(--tx);}
 .title-chip.sel{border-color:var(--gold);color:var(--gold);background:rgba(255,197,61,.1);box-shadow:0 0 18px -6px rgba(255,197,61,.6);}
-/* 二つ名（レアの称号）：太い字の青いネオン。明るさがゆっくりゆれて、ときどき一瞬ちらつく */
-.title-chip.rare,.fr-info .nt,.hb-title.nt{font-family:var(--f-disp);font-weight:400;letter-spacing:.06em;color:#F0FBFF;
-  text-shadow:0 0 1px #fff,0 0 4px #7DD3FC,0 0 10px #38BDF8,0 0 20px #0EA5E9,0 0 34px rgba(14,165,233,.75);
-  animation:neon-flick 6.2s linear infinite,neon-breathe 2.6s ease-in-out infinite;}
-.title-chip.rare{padding:7px 16px;font-size:15px;border-color:rgba(56,189,248,.6);box-shadow:0 0 12px -4px rgba(56,189,248,.8),inset 0 0 10px -6px rgba(56,189,248,.9);}
-.title-chip.rare:hover{border-color:#7DD3FC;}
-.title-chip.rare.sel{border-color:#BAE6FD;background:rgba(56,189,248,.22);box-shadow:0 0 24px -2px rgba(56,189,248,1),inset 0 0 16px -4px rgba(56,189,248,1);}
-@keyframes neon-flick{0%,64%,65.2%,66.4%,100%{opacity:1}64.6%{opacity:.35}65.8%{opacity:.55}}
-@keyframes neon-breathe{0%,100%{filter:brightness(1)}50%{filter:brightness(1.25)}}
-.hb-title.nt,.fr-info .nt{font-size:14px;animation:neon-flick 6.2s linear infinite;text-shadow:0 0 1px #fff,0 0 4px #38BDF8,0 0 10px rgba(14,165,233,.85),0 0 18px rgba(14,165,233,.45);}   /* 小さい字は、にじみを控えめにして読みやすく */
+/* 二つ名（レアの称号）：中が暗い文字を、細い光の管でふち取る（後ろに帯は敷かない）。光は控えめ、ときどき一瞬ちらつく */
+.title-chip.rare,.fr-info .nt,.hb-title.nt{font-family:var(--f-neon);font-weight:400;letter-spacing:.05em;color:rgba(8,10,40,.8);
+  -webkit-text-stroke:.9px #CBD2FF;text-shadow:0 0 3px rgba(120,130,255,.95),0 0 7px rgba(99,102,241,.45);
+  animation:neon-flick 6.2s linear infinite;}
+.title-chip.rare{padding:7px 16px;font-size:16px;border-color:rgba(160,150,255,.45);}
+.title-chip.rare:hover{border-color:#B9B2FF;}
+.title-chip.rare.sel{background:rgba(255,255,255,.03);border-color:#E4E0FF;box-shadow:0 0 0 1px rgba(210,205,255,.6),0 0 14px -4px rgba(120,110,255,.9);}
+@keyframes neon-flick{0%,64%,65.2%,66.4%,100%{opacity:1}64.6%{opacity:.6}65.8%{opacity:.75}}
+.hb-title.nt,.fr-info .nt{font-size:14px;-webkit-text-stroke:.7px #CBD2FF;}
 .title-count{width:100%;font-family:var(--f-ui);font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--tx-3);}
 
 .bg-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(52px,1fr));gap:8px;}
@@ -3820,23 +3820,22 @@ function wrapLines(g,text,maxW,maxLines){
   if(lines.length===maxLines&&lines.join('').length<text.length){var last=lines[maxLines-1];lines[maxLines-1]=last.slice(0,Math.max(0,last.length-1))+'…';}
   return lines;
 }
-// 二つ名のネオン：明るさのゆっくりしたゆれ＋数秒に一度の一瞬のちらつき（CSS の neon-flick と同じ間隔）
-function neonTitleLevel(tm){
-  var p=(tm||0)%6.2,f=(p>3.97&&p<4.05)||(p>4.07&&p<4.12)?.4:1;
-  return f*(.86+.14*Math.sin((tm||0)*2.4));
-}
-// 太い字を、青いネオン管のように光らせる：外側の強いにじみ（2重）→ 管のふち → 白い芯
+// 二つ名のネオン：数秒に一度、一瞬だけ少し暗くなる（CSS の neon-flick と同じ間隔）
+var FONT_NEON="'Dela Gothic One','Zen Kaku Gothic New',sans-serif";
+function neonTitleLevel(tm){var p=(tm||0)%6.2;return(p>3.97&&p<4.05)?.6:(p>4.07&&p<4.12)?.75:1;}
+// キャンバスで使う字は、先に読み込ませておく（日本語の字体は、使う字の分だけあとから届くため）
+var NEON_FONT_ASKED={};
+function askNeonFont(text){if(NEON_FONT_ASKED[text]||!document.fonts||!document.fonts.load)return;NEON_FONT_ASKED[text]=1;document.fonts.load('400 24px "Dela Gothic One"',text).catch(function(){});}
+// 中が暗い文字を、細い光の管でふち取る（光は控えめ。後ろに帯は敷かない）。font は呼ぶ前に FONT_NEON で決めておく
 function drawNeonTitle(g,text,x,y,size,tm){
+  askNeonFont(text);
   var k=ctxScale(g),lv=neonTitleLevel(tm);
-  g.save();g.lineJoin='round';
-  g.shadowColor='rgba(14,165,233,'+lv.toFixed(3)+')';
-  g.fillStyle='rgba(56,189,248,'+(.9*lv).toFixed(3)+')';
-  g.shadowBlur=size*1.5*k;g.fillText(text,x,y);
-  g.shadowBlur=size*.8*k;g.fillText(text,x,y);
-  g.shadowBlur=size*.35*k;g.fillText(text,x,y);
-  g.shadowColor='rgba(125,211,252,'+lv.toFixed(3)+')';g.shadowBlur=size*.18*k;
-  g.lineWidth=Math.max(1,size*.1);g.strokeStyle='rgba(125,211,252,'+(.9*lv).toFixed(3)+')';g.strokeText(text,x,y);
-  g.shadowBlur=size*.1*k;g.shadowColor='#E0F7FF';g.fillStyle=lv<.6?'#A5E4FB':'#F4FCFF';g.fillText(text,x,y);
+  g.save();
+  g.fillStyle='rgba(8,10,40,.78)';g.fillText(text,x,y);   // 中は暗く
+  g.globalAlpha*=lv;g.lineJoin='round';
+  g.shadowColor='rgba(120,130,255,.9)';g.shadowBlur=size*.22*k;
+  g.lineWidth=Math.max(1,size*.042);g.strokeStyle='#CBD2FF';g.strokeText(text,x,y);   // 光の管
+  g.shadowBlur=0;g.lineWidth=Math.max(.5,size*.018);g.strokeStyle='rgba(255,255,255,.9)';g.strokeText(text,x,y);   // 芯
   g.restore();
 }
 function drawProfileCard(g,P,x,y,w,h,tm){
@@ -3861,10 +3860,10 @@ function drawProfileCard(g,P,x,y,w,h,tm){
   var pad=w*.06,iconW=w*.12,icons=P.loadout?P.loadout.length:0,textMax=w-pad*2-(icons?iconW*1.02*icons+w*.02:0);
   g.textAlign='left';g.textBaseline='alphabetic';
   var titleText=P.title||'',ty=top+ch-pad*.95,nameY=ty-w*.065;
-  if(P.titleRare){   // 二つ名（レアの称号）：太い字の青いネオン
-    var ts=fitFont(g,titleText,textMax,Math.round(w*.068),'400',FONT_DISP);
+  if(P.titleRare){   // 二つ名（レアの称号）：光の管のネオン
+    var ts=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
     drawNeonTitle(g,titleText,x+pad,ty,ts,tm);
-    nameY=ty-ts*1.2;
+    nameY=ty-ts*1.22;
   }else{fitFont(g,titleText,textMax,Math.round(w*.048),'900',FONT_JP);g.fillStyle='#FFC53D';g.fillText(titleText,x+pad,ty);}
   fitFont(g,P.name||'',textMax,Math.round(w*.085),'400',FONT_DISP);
   g.lineWidth=w*.012;g.strokeStyle='rgba(0,0,0,.65)';g.lineJoin='round';
