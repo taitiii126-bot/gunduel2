@@ -108,7 +108,9 @@ class Room {
     const acc = ws.account || null;
     this.players[slot] = {
       ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc,
-      name: cleanName(info && info.name), discord: acc ? cleanName(acc.name) : '', tier: cleanTier(info && info.tier),
+      name: cleanName(info && info.name), discord: acc ? cleanName(acc.name) : '', 
+      // ティアとレートは、ログイン中ならサーバーが持っている本物（ゲストだけ自己申告）
+      tier: acc && acc.tierKey ? acc.tierKey : cleanTier(info && info.tier), rate: acc ? acc.rate : 0,
       loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look),
       title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg),
       // 勝率：ログイン済みはサーバーが持っているオンライン戦績、ゲストは本人が送ってきたCPU戦の成績
@@ -123,6 +125,28 @@ class Room {
     ws.room = this; ws.slot = slot;
     return slot;
   }
+  // BOT を相手として入れる（bots.js が作ったプロフィールを、人と同じ形で入れる）。
+  // つなぎ先のない ws を渡すので、この相手に送るものはすべて捨てられる
+  joinBot(bot) {
+    const slot = this.join({ send() {}, ip: '', account: null }, { name: bot.name, loadout: bot.loadout, look: bot.look, bio: bot.bio, bg: bot.bg });
+    if (!slot) return null;
+    const p = this.players[slot];
+    p.bot = true; p.brain = SIM.newBrain(bot.cfg); p.rate = bot.rate; p.tier = bot.tierKey;
+    p.title = bot.title; p.discord = bot.name; p.verified = true;
+    p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
+    p.srtt = 16 + Math.floor(Math.random() * 46);   // 通信の速さ（人と同じように相手の画面に出る）
+    return slot;
+  }
+  // BOT の操作（人が押すかわりに、考えた結果を入れる）
+  botInput(p, slot) {
+    const inp = SIM.think(p.brain, this.world, slot);
+    p.input = { left: !!inp.left, right: !!inp.right, duck: !!inp.duck, fire: !!inp.fire, slot: inp.slot | 0 };
+    if (inp.jump) p.jumpReq = true;
+    if (inp.shoot) p.shootReq = true;
+    if (inp.heal) p.healReq = true;
+    if (inp.reload) p.reloadReq = true;
+    p.acts++;
+  }
   resetStats(p) {
     Object.assign(p, { acts: 0, shots: 0, alignedShots: 0, instantShots: 0, togSec: 0, togN: 0, fastSecs: 0,
       threats: 0, instantDodges: 0, suspect: '' });
@@ -134,7 +158,7 @@ class Room {
     // それぞれに相手の名前・ティア・持ってきた武器を伝える
     for (const k of SLOTS) {
       const p = this.players[k], o = this.players[other(k)];
-      if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, verified: o.verified, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
+      if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
     }
     this.schedulePing();
     this.later(() => this.startRound(), LOBBY_MS);
@@ -145,7 +169,12 @@ class Room {
   schedulePing() {
     this.later(() => {
       const t = Date.now();
-      for (const s of SLOTS) { const p = this.players[s]; if (p) { p.spingT = t; this.send(p, { type: 'sping', t }); } }
+      for (const s of SLOTS) {
+        const p = this.players[s];
+        if (!p) continue;
+        if (p.bot) { p.srtt = Math.max(9, Math.min(90, p.srtt + Math.round((Math.random() - 0.5) * 12))); continue; }   // BOTは少しだけゆらす
+        p.spingT = t; this.send(p, { type: 'sping', t });
+      }
       this.schedulePing();
     }, 2000);
   }
@@ -161,6 +190,8 @@ class Room {
 
   // 両者が希望したら、同じ部屋のまま次の試合へ
   rematch(slot) {
+    const bo = this.players[other(slot)];
+    if (bo && bo.bot) bo.rematch = true;
     const p = this.players[slot];
     if (!p || this.phase !== 'ended') return;
     p.rematch = true;
@@ -236,7 +267,7 @@ class Room {
     if (i.reload) p.reloadReq = true;
   }
   flag(p, reason) {
-    if (!p || p.suspect) return;
+    if (!p || p.bot || p.suspect) return;
     p.suspect = reason;
     if (this.hooks.onSuspect) this.hooks.onSuspect(p, reason);
   }
@@ -306,6 +337,7 @@ class Room {
     for (const s of SLOTS) {
       const p = this.players[s], c = w.chars[s];
       if (p) {
+        if (p.bot) this.botInput(p, s);
         const inp = p.input;
         SIM.setInput(c, { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
           jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq });

@@ -127,7 +127,8 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .play-btn.primary small{color:rgba(26,18,4,.7);}
 .play-btn.online{animation-delay:.06s;}
 .play-btn.online .pb-ic{color:#B9A2FF;border-color:rgba(157,116,255,.35);background:rgba(157,116,255,.1);}
-.sub-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px;}
+.sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
+@media (max-width:560px){.sub-grid{grid-template-columns:1fr 1fr;}}
 .sub-btn{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px 10px;border-radius:13px;background:var(--panel);border:1px solid var(--line);color:var(--tx-2);font-size:14px;font-weight:900;letter-spacing:.04em;transition:.18s var(--ease);animation:item-in .5s var(--ease) both;animation-delay:.12s;}
 .sub-btn:hover{color:var(--tx);border-color:var(--line-2);transform:translateY(-1px);}
 .sub-btn svg.i{width:18px;height:18px;}
@@ -320,7 +321,26 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 #tier-badge::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(180deg,rgba(255,255,255,.4),rgba(255,255,255,0) 55%,rgba(0,0,0,.14));}
 #tier-badge::before{content:"";position:absolute;top:0;bottom:0;width:56px;left:-70px;z-index:-1;background:linear-gradient(100deg,rgba(255,255,255,0),rgba(255,255,255,.55),rgba(255,255,255,0));animation:badge-shine 3.6s ease-in-out infinite;}
 @keyframes badge-shine{0%{left:-70px}55%,100%{left:100%}}
+.mm-card .mm-btn{display:flex;flex-direction:column;align-items:center;gap:2px;margin-bottom:8px;padding:12px;}
+.mm-card .mm-btn b{font-family:var(--f-disp);font-size:15px;letter-spacing:.02em;}
+.mm-card .mm-btn small{font-size:10.5px;font-weight:600;color:var(--tx-3);}
+.mm-card .mm-btn.alt{background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.12);color:var(--tx-1);}
+.mm-card .mm-cancel{margin-top:10px;background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.14);color:var(--tx-2);}
+#mm-wait{text-align:center;}
+#mm-wait-main{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--tx-2);}
+#mm-wait-time{margin-top:2px;font-family:var(--f-disp);font-size:26px;line-height:1.1;color:var(--tx-1);}
+#mm-wait-sub{margin-top:4px;font-size:11.5px;color:var(--tx-3);}
+.mm-radar{position:relative;height:38px;}
+.mm-radar span{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:1.5px solid var(--acc);border-radius:99px;opacity:0;animation:mm-ping 2.4s ease-out infinite;}
+.mm-radar span:nth-child(2){animation-delay:.8s}
+.mm-radar span:nth-child(3){animation-delay:1.6s}
+@keyframes mm-ping{0%{transform:scale(.4);opacity:.9}100%{transform:scale(4.2);opacity:0}}
 #tier-score{margin-bottom:12px;font-size:12px;color:var(--tx-2);}
+#tier-score .rate-now{font-size:12px;}
+#tier-score .rate-now b{margin-left:6px;font-family:var(--f-disp);font-size:22px;color:var(--tx-1);vertical-align:-2px;}
+#tier-score .rate-tier{margin-left:10px;font-size:11.5px;color:var(--tx-3);}
+#tier-score .rate-note{margin-top:6px;font-size:11px;color:var(--tx-3);}
+#hb-rate{display:block;margin-top:1px;font-family:var(--f-disp);font-size:13px;line-height:1;color:var(--tx-2);}
 #tier-progress-wrap{height:6px;margin-bottom:8px;border-radius:99px;background:rgba(255,255,255,.07);overflow:hidden;}
 #tier-progress-bar{height:100%;width:0%;border-radius:99px;box-shadow:0 0 12px currentColor;transition:width .6s var(--ease);}
 #tier-next{font-size:11.5px;color:var(--tx-3);}
@@ -330,6 +350,32 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .tier-row.current{background:rgba(255,197,61,.07);border-color:rgba(255,197,61,.45);color:var(--tx);}
 .tier-row.current>span:first-child{color:var(--tx);}
 .tier-dot{display:inline-block;width:8px;height:8px;margin-right:10px;border-radius:2px;transform:rotate(45deg);}
+
+/* ---------- ランキング ---------- */
+#rank-screen{max-width:680px;margin:0 auto;}
+.rk-row{display:grid;grid-template-columns:38px 1fr 54px 62px 52px;align-items:center;gap:8px;padding:8px 10px;border:1px solid transparent;border-radius:10px;font-size:12.5px;color:var(--tx-2);}
+.rk-row+.rk-row{margin-top:4px;}
+.rk-head{padding:4px 10px;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--tx-3);}
+#rank-list .rk-row{background:rgba(255,255,255,.025);}
+#rank-list .rk-row:nth-child(odd){background:rgba(255,255,255,.045);}
+.rk-no{font-family:var(--f-disp);font-size:15px;color:var(--tx-3);text-align:center;}
+.rk-who{display:flex;align-items:center;gap:8px;min-width:0;}
+.rk-who b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--tx-1);}
+.rk-who small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--tx-3);}
+.rk-who .rk-col{display:flex;flex-direction:column;min-width:0;line-height:1.25;}
+.rk-tier{font-family:var(--f-ui);font-weight:800;font-size:11px;letter-spacing:.06em;text-align:center;}
+.rk-rate{font-family:var(--f-disp);font-size:15px;color:var(--tx-1);text-align:right;}
+.rk-wr{font-size:11.5px;color:var(--tx-3);text-align:right;}
+.rk-row canvas{width:26px;height:26px;flex:0 0 26px;}
+.rk-1,.rk-2,.rk-3{border-color:rgba(255,255,255,.14);}
+.rk-1{background:linear-gradient(90deg,rgba(255,197,61,.22),rgba(255,197,61,.05))!important;border-color:rgba(255,197,61,.55);box-shadow:0 0 18px -8px rgba(255,197,61,.9);}
+.rk-2{background:linear-gradient(90deg,rgba(214,222,232,.18),rgba(214,222,232,.04))!important;border-color:rgba(214,222,232,.45);}
+.rk-3{background:linear-gradient(90deg,rgba(192,122,69,.2),rgba(192,122,69,.04))!important;border-color:rgba(192,122,69,.5);}
+.rk-1 .rk-no,.rk-2 .rk-no,.rk-3 .rk-no{font-size:17px;color:var(--tx-1);}
+.rk-1 canvas,.rk-2 canvas,.rk-3 canvas{width:34px;height:34px;flex:0 0 34px;}
+.rk-me{margin-top:10px;border-color:rgba(183,148,255,.5)!important;background:rgba(183,148,255,.1)!important;}
+.rk-empty{padding:22px 10px;text-align:center;font-size:12px;color:var(--tx-3);}
+#rank-note{margin-top:8px;}
 
 /* ---------- ステージ選択（1つずつ大きく） ---------- */
 #stage-screen{max-width:1060px;margin:0 auto;}
@@ -606,7 +652,7 @@ body.demo #bg-shade{opacity:1;}
     <button class="home-bar" onclick="showProfileScreen()" data-i18n-title="home.barHint">
       <canvas class="hb-av" id="hb-av" width="104" height="104"></canvas>
       <span class="hb-who"><b class="hb-name" id="hb-name"></b><small class="hb-title" id="hb-title"></small></span>
-      <span class="hb-tier"><canvas id="hb-tier" width="96" height="96"></canvas><span id="hb-tier-name"></span></span>
+      <span class="hb-tier"><canvas id="hb-tier" width="96" height="96"></canvas><span id="hb-tier-name"></span><small id="hb-rate"></small></span>
       <svg class="i hb-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
     </button>
     <div class="home-main">
@@ -631,6 +677,7 @@ body.demo #bg-shade{opacity:1;}
       <div class="sub-grid">
         <button class="sub-btn" onclick="showLoadoutScreen('mode')"><svg class="i" viewBox="0 0 24 24"><path d="M3 10h13l2-2h3v4h-3l-1 1H9l-1 5H5l1-5H3z"/><path d="M11 13v2"/></svg><span data-i18n="menu.loadout"></span></button>
         <button class="sub-btn" onclick="showFriendsScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.2A5.5 5.5 0 0 1 21.5 20"/></svg><span class="mb-badge" id="fr-badge" style="display:none;"></span></span><span data-i18n="menu.friends"></span></button>
+        <button class="sub-btn" onclick="showRankScreen()"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg><span data-i18n="menu.rank"></span></button>
       </div>
       <div id="login-bar" style="display:none;">
         <button id="login-btn" class="login-btn" onclick="discordLogin()">
@@ -692,6 +739,20 @@ body.demo #bg-shade{opacity:1;}
       <h1 class="scr-title" data-i18n="room.title"></h1>
       <p class="pill" id="room-loadout-note"></p><button class="pill-btn" onclick="showLoadoutScreen('room')"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg><span data-i18n="cpu.change"></span></button>
     </div>
+    <div class="room-card mm-card">
+      <h3><span class="tag">MATCH</span><span data-i18n="mm.title"></span></h3>
+      <div id="mm-buttons">
+        <button class="room-btn mm-btn" onclick="startQueue('ranked')"><b data-i18n="mm.ranked"></b><small data-i18n="mm.rankedSub"></small></button>
+        <button class="room-btn mm-btn alt" onclick="startQueue('casual')"><b data-i18n="mm.casual"></b><small data-i18n="mm.casualSub"></small></button>
+      </div>
+      <div id="mm-wait" style="display:none;">
+        <div class="mm-radar"><span></span><span></span><span></span></div>
+        <div id="mm-wait-main"></div>
+        <div id="mm-wait-time"></div>
+        <div id="mm-wait-sub"></div>
+        <button class="room-btn mm-cancel" onclick="cancelQueue()" data-i18n="mm.cancel"></button>
+      </div>
+    </div>
     <div class="room-card">
       <h3><span class="tag">HOST</span><span data-i18n="room.host"></span></h3>
       <button class="room-btn" id="create-btn" onclick="createRoom()" data-i18n="room.create"></button>
@@ -704,6 +765,18 @@ body.demo #bg-shade{opacity:1;}
       <button class="room-btn" onclick="joinRoom()" data-i18n="room.join"></button>
     </div>
     <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
+  </div>
+
+  <div id="rank-screen" class="screen menu" style="display:none;">
+    <div class="scr-head">
+      <span class="kicker" data-i18n="rank.kicker"></span>
+      <h2 class="scr-title" data-i18n="rank.title"></h2>
+      <p class="pill" id="rank-note"></p>
+    </div>
+    <div id="rank-head" class="rk-row rk-head"><span class="rk-no">#</span><span class="rk-who" data-i18n="rank.player"></span><span class="rk-tier" data-i18n="rank.tier"></span><span class="rk-rate" data-i18n="rank.rate"></span><span class="rk-wr" data-i18n="rank.winrate"></span></div>
+    <div id="rank-list"></div>
+    <div id="rank-me"></div>
+    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="friends-screen" class="screen menu" style="display:none;">
@@ -893,7 +966,7 @@ body.demo #bg-shade{opacity:1;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=9"></script>
+<script src="sim.js?v=10"></script>
 <script src="lang.js?v=12"></script>
 <script>
 (function(){
@@ -1497,7 +1570,12 @@ function ensureProfileShape(){
     if(!profile.tierProgress[k])profile.tierProgress[k]={beat:false,straight:false};
   });
   profile.look=SIM.cleanLook(profile.look||LOOK_DEFAULT);
-  profile.bestTier=Math.max(+profile.bestTier||0,computeTierIndex());
+  profile.rgames=Math.max(0,Math.floor(+profile.rgames||0));       // ランクマッチの試合数
+  profile.rstreak=Math.max(0,Math.floor(+profile.rstreak||0));     // 格下に連敗した数
+  profile.rwstreak=Math.max(0,Math.floor(+profile.rwstreak||0));   // 連勝数
+  if(!profile.ranked||typeof profile.ranked!=='object')profile.ranked={w:0,l:0};
+  profile.ranked.w=Math.max(0,Math.floor(+profile.ranked.w||0));profile.ranked.l=Math.max(0,Math.floor(+profile.ranked.l||0));
+  syncRate();
   if(profile.bg!=null&&!(profile.bg>=0&&profile.bg<=profile.bestTier))profile.bg=null;
 }
 function writeProfileLocal(){try{localStorage.setItem('gunduel_profile',JSON.stringify(profile));}catch(e){}}
@@ -1513,10 +1591,25 @@ function recordMatchResult(diff,win,straight){
   }else{
     profile.stats[diff].l++;
   }
-  var before=profile.bestTier;
-  profile.bestTier=Math.max(profile.bestTier,computeTierIndex());
-  if(profile.bestTier>before&&profile.bg==null){}   // 背景を自分で選んでいなければ、新しいティアの背景に自動で変わる
+  syncRate();   // CPU戦で上のティアに届いたら、ランクマッチを始めるまでのレートの下限が上がる
   saveProfile();
+}
+// ランクマッチの結果（サーバーが計算したもの）を当てはめる。rateFx はリザルト画面で見せる増減
+var rateFx=null;
+function applyRateResult(r){
+  if(!r||typeof r.rate!=='number')return;
+  ensureProfileShape();
+  var before=typeof r.before==='number'?r.before:myRate(),tb=typeof r.tierBefore==='number'?r.tierBefore:computeTierIndex();
+  profile.rate=Math.max(SIM.RATE_FLOOR,Math.round(r.rate));
+  profile.tier=typeof r.tier==='number'?r.tier:SIM.tierOfRate(profile.rate,tb);
+  profile.rgames=Math.max(profile.rgames+1,+r.games||0);
+  profile.rstreak=Math.max(0,+r.streak||0);profile.rwstreak=Math.max(0,+r.wstreak||0);
+  if(r.win)profile.ranked.w++;else profile.ranked.l++;
+  profile.bestTier=Math.max(+profile.bestTier||0,profile.tier);
+  saveProfile();
+  rateFx={before:before,after:profile.rate,delta:profile.rate-before,tierBefore:tb,tierAfter:profile.tier};
+  if(profile.tier>tb)reportTier(TIER_LADDER[profile.tier].key);
+  renderHomeBar();
 }
 function bgIndex(){return profile.bg==null?profile.bestTier:profile.bg;}
 function titleText(id){return t('title.'+(id||'rookie'));}
@@ -1664,45 +1757,69 @@ function resetProfile(){
 }
 
 // ============================================================
-// ティア（倒したCPUの強さで決まるランク）
+// ティア（レートで決まるランク）
 // ============================================================
-// 各CPUレベルを1勝すればLT、3-0のストレート勝ちすればHTに昇格。
-// 下から：LT5<HT5<LT4<HT4<LT3<HT3<LT2<HT2<LT1<HT1（例：鬼神にストレート勝利＝HT1）
+// ティアはレートの数値で決まる（区切りは sim.js の TIER_MIN）。レートが動くのはランクマッチだけ。
+// CPU戦の到達度は「ランクマッチを始めるまでのレートの下限」と、称号・背景の解放に使う。
+// 下から：LT5<HT5<LT4<HT4<LT3<HT3<LT2<HT2<LT1<HT1
 // color は画面の差し色（進み具合のバー・丸いアイコンの背景・Discord）。紋章の素材は TIER_STYLE
 var TIER_LADDER=[
-  {key:'',   diff:null,    straight:false,color:'#4B5563'},
-  {key:'LT5',diff:'easy',  straight:false,color:'#8A919B'},   // 鉄
-  {key:'HT5',diff:'easy',  straight:true, color:'#C07A45'},   // 銅
-  {key:'LT4',diff:'normal',straight:false,color:'#B8C2CE'},   // 銀
-  {key:'HT4',diff:'normal',straight:true, color:'#E3E8EE'},   // 銀＋金
-  {key:'LT3',diff:'hard',  straight:false,color:'#D9A331'},   // 金
-  {key:'HT3',diff:'hard',  straight:true, color:'#F5C84C'},   // 金＋ルビー
-  {key:'LT2',diff:'pro',   straight:false,color:'#C81E3A'},   // 深紅＋銀
-  {key:'HT2',diff:'pro',   straight:true, color:'#E0314B'},   // 深紅＋金
-  {key:'LT1',diff:'god',   straight:false,color:'#E8C66A'},   // 黒＋金
-  {key:'HT1',diff:'god',   straight:true, color:'#FFF4D6'}    // 白金
+  {key:'',   color:'#4B5563'},
+  {key:'LT5',color:'#8A919B'},   // 鉄
+  {key:'HT5',color:'#C07A45'},   // 銅
+  {key:'LT4',color:'#B8C2CE'},   // 銀
+  {key:'HT4',color:'#E3E8EE'},   // 銀＋金
+  {key:'LT3',color:'#D9A331'},   // 金
+  {key:'HT3',color:'#F5C84C'},   // 金＋ルビー
+  {key:'LT2',color:'#C81E3A'},   // 深紅＋銀
+  {key:'HT2',color:'#E0314B'},   // 深紅＋金
+  {key:'LT1',color:'#E8C66A'},   // 黒＋金
+  {key:'HT1',color:'#FFF4D6'}    // 白金
 ];
-function computeTierIndex(){
+// CPU戦の到達度（0〜10）。称号・背景の解放と、ランクマッチを始めるまでのレートの下限に使う
+function cpuTierIndex(){
   var idx=0,tp=profile&&profile.tierProgress;
   if(!tp)return 0;
   DIFF_ORDER.forEach(function(d,i){var p=tp[d];if(p&&p.beat)idx=1+i*2+(p.straight?1:0);});
   return idx;
 }
-function tierRequirementText(entry){
-  if(!entry.diff)return t('tier.req0');
-  return t(entry.straight?'tier.reqS':'tier.req',{diff:diffName(entry.diff)});
+// CPU戦で到達したティアの下限＝最初のレート（ランクマッチを1戦でもしたら、もう上がらない）
+function baseRate(){return SIM.TIER_MIN[cpuTierIndex()]||SIM.RATE_START;}
+function myRate(){return +profile.rate||SIM.RATE_START;}
+// レートからティアを決め直す（降格には少し猶予がある）。背景の解放に使う bestTier もここで上げる
+function syncRate(){
+  if(typeof profile.rate!=='number'||!isFinite(profile.rate))profile.rate=baseRate();
+  if(!profile.rgames)profile.rate=Math.max(profile.rate,baseRate());
+  profile.rate=Math.max(SIM.RATE_FLOOR,Math.round(profile.rate));
+  profile.tier=SIM.tierOfRate(profile.rate,+profile.tier||0);
+  profile.bestTier=Math.max(+profile.bestTier||0,profile.tier);
+}
+function computeTierIndex(){return +profile.tier||0;}
+// そのティアのレートの範囲（文字）
+function tierRangeText(i){
+  var lo=SIM.TIER_MIN[i],hi=SIM.TIER_MIN[i+1];
+  if(i<=0)return t('tier.rangeLow',{n:SIM.TIER_MIN[1]});
+  return hi?t('tier.range',{lo:lo,hi:hi-1}):t('tier.rangeTop',{n:lo});
 }
 function renderTierUI(){
-  var idx=computeTierIndex(),tier=TIER_LADDER[idx],next=TIER_LADDER[idx+1];
-  var descEl=document.getElementById('tier-score');if(descEl)descEl.textContent=idx?t('tier.got',{req:tierRequirementText(tier)}):tierRequirementText(tier);
+  ensureProfileShape();
+  var idx=computeTierIndex(),tier=TIER_LADDER[idx],next=TIER_LADDER[idx+1],rate=myRate();
+  var descEl=document.getElementById('tier-score');
+  if(descEl)descEl.innerHTML='<span class="rate-now">'+esc(t('tier.rateNow'))+'<b>'+rate+'</b></span>'+
+    (idx?' <span class="rate-tier">'+esc(tierName(idx))+' · '+esc(tierRangeText(idx))+'</span>':' <span class="rate-tier">'+esc(tierRangeText(0))+'</span>')+
+    (profile.rgames?'':'<div class="rate-note">'+esc(t('tier.cpuNote'))+'</div>');
   var barEl=document.getElementById('tier-progress-bar'),nextEl=document.getElementById('tier-next');
-  if(barEl){barEl.style.width=(idx/(TIER_LADDER.length-1)*100)+'%';barEl.style.background=tier.color;barEl.style.color=tier.color;}
-  if(nextEl)nextEl.textContent=next?t('tier.next',{tier:next.key,req:tierRequirementText(next)}):t('tier.max');
+  var lo=idx<=0?SIM.RATE_FLOOR:SIM.TIER_MIN[idx],hi=SIM.TIER_MIN[idx+1];
+  if(barEl){
+    barEl.style.width=(hi?Math.max(2,Math.min(100,(rate-lo)/(hi-lo)*100)):100)+'%';
+    barEl.style.background=tier.color;barEl.style.color=tier.color;
+  }
+  if(nextEl)nextEl.textContent=next?t('tier.nextRate',{tier:next.key,n:Math.max(1,SIM.TIER_MIN[idx+1]-rate)}):t('tier.max');
   var ladderEl=document.getElementById('tier-ladder');
   if(ladderEl){
     var html='';
     for(var i=TIER_LADDER.length-1;i>=0;i--){
-      html+='<div class="tier-row'+(i===idx?' current':'')+'"><span><canvas class="tier-mk" data-mk="'+i+'" width="72" height="72"></canvas>'+esc(tierName(i))+'</span><span>'+esc(tierRequirementText(TIER_LADDER[i]))+'</span></div>';
+      html+='<div class="tier-row'+(i===idx?' current':'')+'"><span><canvas class="tier-mk" data-mk="'+i+'" width="72" height="72"></canvas>'+esc(tierName(i))+'</span><span>'+esc(tierRangeText(i))+'</span></div>';
     }
     ladderEl.innerHTML=html;
     ladderEl.querySelectorAll('canvas[data-mk]').forEach(function(cv){var g=cv.getContext('2d');drawTierIcon(g,+cv.getAttribute('data-mk'),36,36,70,70,0);});
@@ -1857,6 +1974,7 @@ function adoptProfile(p){
 }
 // ログインしたとき・ページを開いたとき：サーバーのプロフィールと手元を合わせる
 function syncOnLogin(d){
+  adoptRate(d&&d.user);
   var acc=d&&d.user&&d.user.fid||'';if(!acc)return;
   var rev=+d.rev||0;
   if(SYNC.acc!==acc){                   // この端末で初めてのアカウント：サーバーにあればそれを使い、なければ手元の分を上げる
@@ -1866,6 +1984,18 @@ function syncOnLogin(d){
   else if(!SYNC.dirty&&rev>SYNC.rev){adoptProfile(d.profile);SYNC.rev=rev;}
   saveSyncMeta();
   if(SYNC.dirty)pushProfileSoon(0);else setSyncState('saved');
+}
+// レートはサーバーが本物。ログイン中はサーバーの値に合わせる（手元の値は上書きされる）
+function adoptRate(u){
+  if(!u||typeof u.rate!=='number')return;
+  ensureProfileShape();
+  profile.rate=Math.max(SIM.RATE_FLOOR,Math.round(u.rate));
+  profile.tier=typeof u.tier==='number'?u.tier:SIM.tierOfRate(profile.rate);
+  profile.rgames=Math.max(0,+u.rgames||0);
+  profile.rstreak=Math.max(0,+u.rstreak||0);profile.rwstreak=Math.max(0,+u.rwstreak||0);
+  if(u.ranked)profile.ranked={w:Math.max(0,+u.ranked.w||0),l:Math.max(0,+u.ranked.l||0)};
+  profile.bestTier=Math.max(+profile.bestTier||0,profile.tier);
+  writeProfileLocal();renderHomeBar();
 }
 function setSyncState(st){SYNC.state=st;renderSyncState();}
 function renderSyncState(){
@@ -2025,6 +2155,40 @@ function setFrMsg(m,k){
   var el=document.getElementById('fr-msg');if(!el)return;
   el.textContent=FR.msg;el.className='fr-msg'+(FR.msgKind?' '+FR.msgKind:'');
 }
+// ---- ランキング（レート順。サーバーが集計したものをそのまま出す）----
+var RANK={at:0,data:null,busy:false};
+function showRankScreen(){showScreen('rank-screen');renderRanking();loadRanking();}
+function loadRanking(){
+  if(RANK.busy)return;
+  RANK.busy=true;
+  var h={};if(AUTH.token)h.Authorization='Bearer '+AUTH.token;
+  fetch(httpBase()+'/api/ranking',{headers:h}).then(function(r){return r.json();}).then(function(d){
+    RANK.busy=false;
+    if(!d||!Array.isArray(d.top))return;
+    RANK.data=d;RANK.at=Date.now();renderRanking();
+  }).catch(function(){RANK.busy=false;RANK.data=RANK.data||null;renderRanking(true);});
+}
+function rankRowHtml(p,me){
+  var cls='rk-row'+(p.rank<=3?' rk-'+p.rank:'')+(me?' rk-me':'');
+  var games=(+p.w||0)+(+p.l||0),wr=games?Math.round(p.w/games*100):0;
+  var tier=+p.tier||0,col=(TIER_LADDER[tier]||TIER_LADDER[0]).color;
+  return '<div class="'+cls+'"><span class="rk-no">'+p.rank+'</span>'+
+    '<span class="rk-who">'+(p.rank<=3?'<canvas class="rk-mk" data-mk="'+tier+'" width="68" height="68"></canvas>':'')+
+    '<span class="rk-col"><b>'+esc(p.name)+'</b><small'+(isRareTitle(p.title)?' class="nt"':'')+'>'+esc(titleText(p.title))+'</small></span></span>'+
+    '<span class="rk-tier" style="color:'+col+'">'+esc(tierName(tier))+'</span>'+
+    '<span class="rk-rate">'+(+p.rate||0)+'</span>'+
+    '<span class="rk-wr">'+(games?wr+'%':'-')+'</span></div>';
+}
+function renderRanking(failed){
+  var list=document.getElementById('rank-list'),meEl=document.getElementById('rank-me'),note=document.getElementById('rank-note');
+  if(!list)return;
+  var d=RANK.data;
+  if(!d){list.innerHTML='<div class="rk-empty">'+esc(t(failed?'rank.failed':'rank.loading'))+'</div>';meEl.innerHTML='';note.textContent='';return;}
+  list.innerHTML=d.top.length?d.top.map(function(p){return rankRowHtml(p,false);}).join(''):'<div class="rk-empty">'+esc(t('rank.empty'))+'</div>';
+  list.querySelectorAll('canvas[data-mk]').forEach(function(cv){var g=cv.getContext('2d');drawTierIcon(g,+cv.getAttribute('data-mk'),34,34,66,66,0);});
+  meEl.innerHTML=d.me?rankRowHtml(d.me,true):(AUTH.user?'<div class="rk-empty">'+esc(t('rank.meNone'))+'</div>':'<div class="rk-empty">'+esc(t('rank.needLogin'))+'</div>');
+  note.textContent=t('rank.note',{n:d.total,min:Math.max(1,Math.round((d.ttl||300000)/60000))});
+}
 function showFriendsScreen(){setFrMsg('','');showScreen('friends-screen');renderFriends();loadFriends();}
 function sendFriendRequest(){
   if(!AUTH.user)return;
@@ -2179,7 +2343,7 @@ function renderPresDot(){
 // ============================================================
 // 画面遷移
 // ============================================================
-var SCREENS=['tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen'];
+var SCREENS=['tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen'];
 var currentScreen='';
 function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
@@ -2204,6 +2368,7 @@ function renderHomeBar(){
   nm.textContent=profile.name;
   tl.textContent=titleText(profile.title);tl.className='hb-title'+(isRareTitle(profile.title)?' nt':'');
   document.getElementById('hb-tier-name').textContent=tierName(tier);
+  document.getElementById('hb-rate').textContent=myRate();
   var av=document.getElementById('hb-av');if(av)drawMiniAvatar(av,{tier:tier,look:profile.look});
   drawHomeBarTier(0);
 }
@@ -2235,7 +2400,7 @@ function initAuth(){
   handleOAuthReturn();
   loadAuthConfig();
 }
-function showRoomScreen(){INVITING=null;showScreen('room-screen');document.getElementById('room-number-display').style.display='none';setRoomStatusText('');document.getElementById('create-btn').style.display='';renderLoadoutNotes();}
+function showRoomScreen(){INVITING=null;QUEUE.on=false;renderQueue();showScreen('room-screen');document.getElementById('room-number-display').style.display='none';setRoomStatusText('');document.getElementById('create-btn').style.display='';renderLoadoutNotes();}
 function showSettingsScreen(){if(currentScreen==='game-screen')return;showScreen('settings-screen');renderKbUI();renderSettingsUI();renderLangSegs();}
 function showProfileScreen(){showScreen('profile-screen');renderProfileUI();renderLoginUI();if(AUTH.token)refreshMe();}
 function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
@@ -2343,7 +2508,7 @@ function connectWS(onOpen){
 // ============================================================
 // 共通状態
 // ============================================================
-var gameMode='ai',difficulty='normal';
+var gameMode='ai',difficulty='normal',RANKED=false;   // RANKED=レートが動く試合か
 var loopRunning=false,frame=0,camX=0;
 var flashMsg='',flashTimer=0;
 var lobbyPhase=false,lobbyCount=10,lobbyTimer=null;
@@ -2704,6 +2869,10 @@ function handleOnlineMsg(msg){
     if(INVITING)sendInviteNow(msg.roomId);      // フレンドを招待するために作った部屋
   }
   else if(mt==='room_joined'){mySlot=msg.slot;setRoomStatus('room.joined',true);}
+  else if(mt==='queued'){QUEUE.on=true;QUEUE.mode=msg.mode==='ranked'?'ranked':'casual';renderQueue();}
+  else if(mt==='queue_status'){QUEUE.waited=Math.max(0,+msg.waited||0);QUEUE.range=Math.max(0,+msg.range||0);QUEUE.n=Math.max(1,+msg.n||1);renderQueue();}
+  else if(mt==='queue_left'){QUEUE.on=false;renderQueue();}
+  else if(mt==='match_found'){QUEUE.on=false;renderQueue();mySlot=msg.slot;RANKED=!!msg.ranked;setRoomStatus('mm.found',true);}
   else if(mt==='both_ready'){
     if(msg.opp)oppInfo={name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),look:SIM.cleanLook(msg.opp.look),
       title:String(msg.opp.title||'rookie'),bio:String(msg.opp.bio||'').slice(0,40),bg:msg.opp.bg>=0&&msg.opp.bg<=10?Math.floor(msg.opp.bg):null,
@@ -2745,9 +2914,14 @@ function handleOnlineMsg(msg){
     flashMsg=(msg.winner===mySlot)?'YOU WIN!':'LOSE';flashTimer=9999;
     if(msg.winner===mySlot)SFX.win();else SFX.lose();
     achMatchDone(msg.winner===mySlot);
+    if(rateFx&&rateFx.tierAfter!==rateFx.tierBefore){   // 昇格・降格の演出は、レートの増減を見せたあとで
+      var tb=rateFx.tierBefore,ta=rateFx.tierAfter;
+      later(function(){if(ta>tb)startTierUp(tb,ta);else startTierDown(tb,ta);},3400);
+    }
     setTimeout(function(){if(AUTH.token)refreshMe();},900);   // オンライン戦績（称号の条件）を読み直す
   }
-  else if(mt==='auth_ok'){AUTH.user=msg.user;renderLoginUI();}
+  else if(mt==='rate'){applyRateResult(msg);}   // ランクマッチのレートの増減（サーバーが決める）
+  else if(mt==='auth_ok'){AUTH.user=msg.user;adoptRate(msg.user);renderLoginUI();}
   else if(mt==='auth_fail'){AUTH.token='';AUTH.user=null;try{localStorage.removeItem('gunduel_token');}catch(e){}renderLoginUI();}
   else if(mt==='rematch_state'){rematchMine=!!msg[mySlot];rematchOpp=!!msg[oppSlotOf()];}
   else if(mt==='sping'){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'spong',t:msg.t}));}   // サーバーが相手に見せるPINGを測る
@@ -2759,7 +2933,7 @@ function handleOnlineMsg(msg){
     olRoundOver=true;matchOver=true;rematchMine=false;rematchOpp=false;
     flashMsg=msg.after?t('c.oppLeft'):t('c.oppLeftWin')+'\nVICTORY!';flashTimer=9999;
   }
-  else if(mt==='error'){var em=msg.code&&t('err.'+msg.code)!=='err.'+msg.code?t('err.'+msg.code):String(msg.msg||'');setRoomStatusText(t('room.error',{msg:em}));}
+  else if(mt==='error'){var em=msg.code&&t('err.'+msg.code)!=='err.'+msg.code?t('err.'+msg.code):String(msg.msg||'');setRoomStatusText(t('room.error',{msg:em}));QUEUE.on=false;renderQueue();}
 }
 
 function heldInput(){return{left:!!keys.left,right:!!keys.right,duck:!!keys.duck,fire:!!keys.attack,slot:playerSlot};}
@@ -2773,7 +2947,7 @@ setInterval(function(){if(gameMode==='online'&&ws&&ws.readyState===1&&!olRoundOv
 function startAI(){
   clearGameTimers();
   useStage(selectedStage);
-  gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;matchShots=0;matchHits=0;hitSids={};keys={};
+  gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};keys={};
   cpuLoad=SIM.cpuLoadout();cpuLook=SIM.randomLook();
   presenceStatus('cpu');achMatchStart();
   if(INV.cur){INV.queue.unshift(INV.cur);INV.cur=null;hideInviteToast();}   // 表示中の招待は試合のあとで出し直す
@@ -2782,7 +2956,7 @@ function startAI(){
   startLoop();
 }
 function myTierKey(){return TIER_LADDER[computeTierIndex()].key;}
-function resetOnlineState(){matchOver=false;rematchMine=false;rematchOpp=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
+function resetOnlineState(){RANKED=false;matchOver=false;rematchMine=false;rematchOpp=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
 function startPingLoop(){
   if(pingTimer)clearInterval(pingTimer);
   pingTimer=setInterval(function(){
@@ -2793,6 +2967,34 @@ function startPingLoop(){
 function serverTooOld(){
   if(AUTH.proto&&AUTH.proto<SIM.PROTO){setRoomStatus('room.oldServer',false);return true;}
   return false;
+}
+// ---- ランダムマッチ ----
+// ランク＝レートが動く（近いレートの相手を探す）／アンランク＝動かない（誰とでも）
+var QUEUE={on:false,mode:'',waited:0,range:0,n:1};
+function startQueue(mode){
+  if(serverTooOld())return;
+  if(mode==='ranked'&&!AUTH.user){setRoomStatusText(t('mm.needLogin'));return;}
+  useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
+  QUEUE={on:true,mode:mode,waited:0,range:0,n:1};renderQueue();
+  setRoomStatusText('');
+  connectWS(function(){ws.send(JSON.stringify({type:'queue',mode:mode,v:SIM.PROTO,name:profile.name,tier:myTierKey(),loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
+}
+function cancelQueue(){
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'queue_cancel'}));
+  QUEUE.on=false;renderQueue();
+}
+function renderQueue(){
+  var wrap=document.getElementById('mm-wait'),btns=document.getElementById('mm-buttons');
+  if(!wrap||!btns)return;
+  wrap.style.display=QUEUE.on?'':'none';btns.style.display=QUEUE.on?'none':'';
+  if(!QUEUE.on)return;
+  var nm=t(QUEUE.mode==='ranked'?'mm.ranked':'mm.casual');
+  document.getElementById('mm-wait-main').textContent=t('mm.searching',{mode:nm});
+  document.getElementById('mm-wait-time').textContent=t('mm.waited',{sec:QUEUE.waited});
+  document.getElementById('mm-wait-sub').textContent=
+    QUEUE.mode!=='ranked'?t('mm.anyRange'):
+    QUEUE.range>=9999?t('mm.wideRange'):
+    t('mm.range',{lo:Math.max(0,myRate()-QUEUE.range),hi:myRate()+QUEUE.range});
 }
 function createRoom(){
   if(serverTooOld())return;
@@ -2808,7 +3010,7 @@ function joinRoom(id){
   useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
   connectWS(function(){ws.send(JSON.stringify({type:'join_room',v:SIM.PROTO,roomId:roomId,name:profile.name,tier:myTierKey(),loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
 }
-function startOnlineLoop(){flashMsg='';flashTimer=0;olRoundOver=false;matchOver=false;olState=null;olW=null;olMe=null;olOpp=null;matchShots=0;matchHits=0;hitSids={};startLoop();}
+function startOnlineLoop(){flashMsg='';flashTimer=0;olRoundOver=false;matchOver=false;rateFx=null;olState=null;olW=null;olMe=null;olOpp=null;matchShots=0;matchHits=0;hitSids={};startLoop();}
 
 // ============================================================
 // 入力ハンドラ
@@ -4507,18 +4709,43 @@ function drawMatchResult(lines){
   ctx.textAlign='right';ctx.fillStyle='#B794FF';ctx.fillText(profile.name,cx-52,cy+23);
   ctx.textAlign='left';ctx.fillStyle='#FF4D5E';ctx.fillText(gameMode==='ai'?('CPU '+diffName(difficulty)):(oppInfo.name||t('c.opp')),cx+52,cy+23);
   ctx.textAlign='center';
+  var ry=cy+52;
+  if(rateFx){drawRateFx(cx,cy+62,a);ry=cy+102;}   // レートの増減（ランクマッチのみ）
   if(matchShots>0&&!(gameMode==='online'&&(rematchMine||rematchOpp))){
     ctx.font='600 11px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.5)';
-    ctx.fillText(t('c.accuracy',{p:Math.min(100,Math.round(matchHits/matchShots*100)),n:matchShots}),cx,cy+52);
+    ctx.fillText(t('c.accuracy',{p:Math.min(100,Math.round(matchHits/matchShots*100)),n:matchShots}),cx,ry);
   }
   // 再戦の状況（オンライン）
   if(gameMode==='online'&&(rematchMine||rematchOpp)){
     ctx.font='700 11px '+FONT_UI;ctx.fillStyle=rematchMine&&rematchOpp?'#34D399':'#FFC53D';
-    ctx.fillText(rematchMine&&rematchOpp?t('c.rematchSoon'):(rematchMine?t('c.rematchWait'):t('c.rematchAsk')),cx,cy+52);
+    ctx.fillText(rematchMine&&rematchOpp?t('c.rematchSoon'):(rematchMine?t('c.rematchWait'):t('c.rematchAsk')),cx,ry);
   }
-  if(isTouch)drawKeyHints([['TAP',t('c.again')]],cx,cy+84);
-  else drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')]],cx,cy+84);
+  if(isTouch)drawKeyHints([['TAP',t('c.again')]],cx,ry+32);
+  else drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')]],cx,ry+32);
   ctx.restore();
+}
+// リザルトのレート表示：数字が動いて増減し、ティアの中のどこにいるかが棒で分かる
+function drawRateFx(cx,y,a){
+  var T=Math.max(0,(flashAge-26)/60),p=Math.min(1,T/1.1),e=1-Math.pow(1-p,3);
+  var cur=Math.round(rateFx.before+(rateFx.after-rateFx.before)*e);
+  var up=rateFx.delta>=0,col=up?'#34D399':'#FF6B6B',num=String(cur),dtx=(up?'+':'')+rateFx.delta;
+  ctx.save();ctx.globalAlpha=a*Math.min(1,T*5);ctx.textBaseline='middle';
+  ctx.textAlign='center';ctx.font='700 10px '+FONT_UI;setLS(4);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(t('c.rate'),cx,y-20);setLS(0);
+  ctx.font='700 27px '+FONT_UI;var w1=ctx.measureText(num).width;
+  ctx.font='700 15px '+FONT_UI;var w2=ctx.measureText(dtx).width,x0=cx-(w1+10+w2)/2;
+  ctx.textAlign='left';
+  ctx.font='700 27px '+FONT_UI;ctx.fillStyle='#EDEBE6';ctx.fillText(num,x0,y);
+  ctx.font='700 15px '+FONT_UI;ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=12*Math.max(0,1-T*.8);
+  ctx.fillText(dtx,x0+w1+10,y-1);ctx.shadowBlur=0;
+  // ティアの中の位置（またぐと棒が切り替わる）。下限を割っているときは、降格までの余裕を見せる
+  var ti=SIM.tierOfRate(cur,rateFx.tierBefore),lo=ti<=0?SIM.RATE_FLOOR:SIM.TIER_MIN[ti],hi=SIM.TIER_MIN[ti+1];
+  var grace=cur<lo,fr=grace?Math.max(0,Math.min(1,(cur-(lo-SIM.TIER_GRACE))/SIM.TIER_GRACE)):hi?Math.max(0,Math.min(1,(cur-lo)/(hi-lo))):1;
+  var bw=190,bx=cx-bw/2,by=y+20;
+  ctx.fillStyle='rgba(255,255,255,.12)';rrect(bx,by,bw,4,2);ctx.fill();
+  ctx.fillStyle=grace?'#FF6B6B':TIER_LADDER[ti].color;rrect(bx,by,Math.max(3,bw*fr),4,2);ctx.fill();
+  ctx.textAlign='center';ctx.font='700 9px '+FONT_UI;setLS(3);ctx.fillStyle=grace?'rgba(255,140,140,.75)':'rgba(255,255,255,.4)';
+  ctx.fillText(tierName(ti)+'   '+(grace?t('c.rateGrace',{n:cur-(lo-SIM.TIER_GRACE)+1}):hi?cur+' / '+hi:''),cx,by+14);setLS(0);
+  ctx.restore();ctx.textBaseline='alphabetic';
 }
 function drawLobby(){
   var cx=VW/2,cy=VH/2-2,cr=52,c=lobbyCount,col=c<=3?'#FF4D5E':c<=6?'#FBBF24':'#34D399';
@@ -4554,15 +4781,22 @@ function reportTier(key){
     .catch(function(){});
 }
 function startTierUp(from,to){
-  tierUp={from:from,to:to,t0:performance.now()};
+  tierUp={from:from,to:to,t0:performance.now(),down:false};
   flashMsg='';flashTimer=0;
   SFX.tierUp();
+}
+// 降格：同じ流れで、色を落として静かに見せる（紙吹雪なし・光条なし）
+function startTierDown(from,to){
+  tierUp={from:from,to:to,t0:performance.now(),down:true};
+  flashMsg='';flashTimer=0;
+  SFX.lose();
 }
 // ティア昇格演出（時間ベースなので120Hz画面でも速さが変わらない）：前の紋章 → 新しい紋章が弾んで出てくる
 function drawTierUp(){
   var T=(performance.now()-tierUp.t0)/1000;
   if(T>6.4){tierUp=null;return;}
-  var toI=tierUp.to,to=TIER_LADDER[toI],next=TIER_LADDER[toI+1],col=tierStyle(toI).glow,cx=VW/2,cy=VH/2+4,fade=T>5.8?Math.max(0,(6.4-T)/.6):1;
+  var down=!!tierUp.down;
+  var toI=tierUp.to,to=TIER_LADDER[toI],next=TIER_LADDER[toI+1],col=down?'#8A919B':tierStyle(toI).glow,cx=VW/2,cy=VH/2+4,fade=T>5.8?Math.max(0,(6.4-T)/.6):1;
   // 並び：前の紋章(幅60)・すき間・矢印・すき間・新しい紋章(幅130) を中央にそろえる
   var OLD_W=60,NEW_W=130,GAP=40,total=OLD_W+GAP+NEW_W,left=cx-total/2;
   var oldX=left+OLD_W/2,arrowX=left+OLD_W+GAP/2,newX=left+OLD_W+GAP+NEW_W/2,badgeY=cy+2;
@@ -4571,16 +4805,18 @@ function drawTierUp(){
   var sh=T<.75?(.75-T)/.75:0;
   if(sh>0)ctx.translate(Math.sin(T*95)*9*sh,Math.cos(T*78)*7*sh);
   // 新しい紋章の後ろで回る光条
-  ctx.save();ctx.translate(newX,badgeY);ctx.globalAlpha=fade*.16*Math.min(1,T/.5);ctx.fillStyle=col;
-  for(var i=0;i<16;i++){var a=T*.3+i*(Math.PI*2/16);ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,470,a-.045,a+.045);ctx.closePath();ctx.fill();}
-  ctx.restore();
+  if(!down){
+    ctx.save();ctx.translate(newX,badgeY);ctx.globalAlpha=fade*.16*Math.min(1,T/.5);ctx.fillStyle=col;
+    for(var i=0;i<16;i++){var a=T*.3+i*(Math.PI*2/16);ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,470,a-.045,a+.045);ctx.closePath();ctx.fill();}
+    ctx.restore();
+  }
   // 衝撃波
-  for(var r=0;r<3;r++){
+  for(var r=0;r<(down?0:3);r++){
     var rt=T-(.4+r*.15);
     if(rt>0&&rt<.95){var p=rt/.95;ctx.globalAlpha=fade*(1-p)*.75;ctx.strokeStyle=r===1?'#FFE7A0':col;ctx.lineWidth=(1-p)*7+.5;ctx.beginPath();ctx.arc(newX,badgeY,24+p*330,0,Math.PI*2);ctx.stroke();}
   }
   // 紙吹雪（白・金・ティアの光の色）
-  for(var k=0;k<52;k++){
+  for(var k=0;k<(down?0:52);k++){
     var pt=T-.45-(k%8)*.015;
     if(pt<=0||pt>2.6)continue;
     var ang=(k*137.5)*Math.PI/180,spd=110+((k*53)%130);
@@ -4595,10 +4831,10 @@ function drawTierUp(){
   if(T>.3){
     var ap=Math.min(1,(T-.3)/.2),nudge=Math.sin(T*6)*2;
     ctx.strokeStyle='#FFFFFF';ctx.lineWidth=2.6;ctx.lineCap='round';ctx.lineJoin='round';
-    for(var c2=0;c2<2;c2++){
-      var ax=arrowX-6+c2*9+nudge;
+    for(var c2=0;c2<2;c2++){   // 左の「前のティア」から右の「今のティア」へ。降格のときは下向きに傾ける
+      var ax=arrowX-6+c2*9+nudge,ay=badgeY+(down?4:0);
       ctx.globalAlpha=fade*ap*(c2===0?.55:1);
-      ctx.beginPath();ctx.moveTo(ax-4,badgeY-7);ctx.lineTo(ax+3,badgeY);ctx.lineTo(ax-4,badgeY+7);ctx.stroke();
+      ctx.beginPath();ctx.moveTo(ax-4,ay-7);ctx.lineTo(ax+3,ay);ctx.lineTo(ax-4,ay+7);ctx.stroke();
     }
     ctx.lineCap='butt';ctx.lineJoin='miter';
   }
@@ -4610,23 +4846,23 @@ function drawTierUp(){
   }
   ctx.globalAlpha=fade;
   // 着地の白フラッシュ
-  if(T>.42&&T<.66){
+  if(T>.42&&T<.66&&!down){
     ctx.globalAlpha=fade*(1-(T-.42)/.24)*.85;ctx.fillStyle='#fff';ctx.fillRect(-40,-40,VW+80,VH+80);ctx.globalAlpha=fade;
   }
   if(T>.5){
     var tp=Math.min(1,(T-.5)/.3),ts=1+.9*Math.pow(1-tp,3);
     ctx.save();ctx.translate(cx,cy-80);ctx.scale(ts,ts);
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='italic 700 40px '+FONT_UI;setLS(4);
-    ctx.shadowColor=col;ctx.shadowBlur=24;ctx.fillStyle='#FFF7DF';ctx.fillText('TIER UP!',0,0);
+    ctx.shadowColor=col;ctx.shadowBlur=24;ctx.fillStyle=down?'#D6D9E0':'#FFF7DF';ctx.fillText(down?'TIER DOWN':'TIER UP!',0,0);
     ctx.shadowBlur=0;setLS(0);ctx.restore();
   }
   if(T>.9){
     ctx.globalAlpha=fade*Math.min(1,(T-.9)/.4);
     ctx.textAlign='center';ctx.textBaseline='middle';
-    ctx.font='700 14px '+FONT_UI;ctx.fillStyle='#EDEBE6';ctx.fillText(tierRequirementText(to)+(SETTINGS.lang==='ja'?'！':'!'),cx,cy+64);
+    ctx.font='700 14px '+FONT_UI;ctx.fillStyle='#EDEBE6';ctx.fillText(t(down?'c.tierDownTo':'c.tierUpTo',{tier:tierName(toI),range:tierRangeText(toI)}),cx,cy+64);
     ctx.font='600 11px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.5)';
-    ctx.fillText(next?t('c.tierNext',{tier:next.key,req:tierRequirementText(next)}):t('c.tierMax'),cx,cy+85);
-    if(tierReported===to.key){ctx.font='700 11px '+FONT_UI;ctx.fillStyle='#A5B0FF';ctx.fillText(t('c.discordReported'),cx,cy+104);}
+    ctx.fillText(next?t('c.tierNext2',{tier:next.key,n:SIM.TIER_MIN[toI+1]}):t('c.tierMax'),cx,cy+85);
+    if(!down&&tierReported===to.key){ctx.font='700 11px '+FONT_UI;ctx.fillStyle='#A5B0FF';ctx.fillText(t('c.discordReported'),cx,cy+104);}
   }
   ctx.restore();
   ctx.globalAlpha=1;ctx.textBaseline='alphabetic';
@@ -4876,7 +5112,7 @@ function drawBgFx(tm){
 }
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
-[toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,discordLogin,doLogout,
+[toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,discordLogin,doLogout,
  doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,resetProfile,editProfileText,pickTitle,pickBg,pickLookTab,pickLook,hoverLook,randomizeLook,setLang,setVolume,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,

@@ -455,6 +455,31 @@ var AI_LEVELS = {
   pro:    { react: 9,  see: 255, mvI: 10, dodge: 0.58, jumpF: 130, wMin: 22, wMax: 50,  hTol: 20, whiff: 0.10, hpT: 40, hCh: 0.85, strafe: 0.75, cover: 0.75, smart: 0.95, melee: 0.30 },
   god:    { react: 7,  see: 300, mvI: 7,  dodge: 0.76, jumpF: 170, wMin: 10,  wMax: 24,  hTol: 14, whiff: 0.04, hpT: 40, hCh: 0.95, strafe: 0.85, cover: 0.90, smart: 1.00, melee: 0.45 }
 };
+// ---- レートに合わせた強さ ----
+// 5段階のあいだを、レートで少しずつ変える。下は「よわい」より弱く、上は「鬼神」より強くできる
+var AI_ANCHORS = [
+  { react: 40, see: 70, mvI: 34, dodge: 0.00, jumpF: 40, wMin: 200, wMax: 340, hTol: 60, whiff: 0.80, hpT: 15, hCh: 0.15, strafe: 0.10, cover: 0.00, smart: 0.15, melee: 0.00 },
+  AI_LEVELS.easy, AI_LEVELS.normal, AI_LEVELS.hard, AI_LEVELS.pro, AI_LEVELS.god,
+  { react: 5, see: 340, mvI: 6, dodge: 0.92, jumpF: 190, wMin: 6, wMax: 16, hTol: 11, whiff: 0.01, hpT: 40, hCh: 1.00, strafe: 0.90, cover: 0.95, smart: 1.00, melee: 0.50 }
+];
+// レート → AI_ANCHORS のどこか（0=いちばん弱い … 6=いちばん強い）。
+// BOT同士を実際に戦わせて「レート差200＝勝率76%」になるように測った目盛り（scratchpad/calib-bot.js）
+var RATE_T = [[640, 0], [720, 0.5], [1200, 1], [1258, 1.5], [1420, 2], [1606, 2.5], [1902, 3], [2042, 3.5], [2204, 4], [2414, 4.5], [2600, 5], [2810, 5.5], [3000, 6]];
+var AI_KEYS = ['react', 'see', 'mvI', 'dodge', 'jumpF', 'wMin', 'wMax', 'hTol', 'whiff', 'hpT', 'hCh', 'strafe', 'cover', 'smart', 'melee'];
+var AI_INT = { react: 1, see: 1, mvI: 1, jumpF: 1, wMin: 1, wMax: 1, hTol: 1 };   // フレーム数・距離は整数にする
+function aiForRate(rate) {
+  var r = +rate || RATE_START, t = RATE_T[RATE_T.length - 1][1], i;
+  if (r <= RATE_T[0][0]) t = RATE_T[0][1];
+  else for (i = 1; i < RATE_T.length; i++) {
+    if (r <= RATE_T[i][0]) { var p = RATE_T[i - 1], q = RATE_T[i]; t = p[1] + (q[1] - p[1]) * (r - p[0]) / (q[0] - p[0]); break; }
+  }
+  var j = Math.min(Math.floor(t), AI_ANCHORS.length - 2), f = t - j, cfg = {};
+  for (var k = 0; k < AI_KEYS.length; k++) {
+    var key = AI_KEYS[k], v = AI_ANCHORS[j][key] + (AI_ANCHORS[j + 1][key] - AI_ANCHORS[j][key]) * f;
+    cfg[key] = AI_INT[key] ? Math.round(v) : Math.round(v * 1000) / 1000;
+  }
+  return cfg;
+}
 var CPU_LOADOUTS = [[2, 3, 1], [4, 6, 3], [5, 8, 11], [7, 4, 10], [9, 2, 1], [6, 5, 3], [8, 11, 4], [7, 10, 5], [2, 6, 1], [3, 8, 5],
   [6, 3, 12], [7, 2, 13], [4, 8, 14], [9, 11, 12], [2, 5, 13], [3, 6, 14]];
 function cpuLoadout(rnd) { var r = rnd || Math.random; return CPU_LOADOUTS[Math.floor(r() * CPU_LOADOUTS.length)].slice(); }
@@ -566,10 +591,11 @@ function airTarget(A, me) {
   return clamp(me.x + d * 12, lo + inset, hi - inset);
 }
 
+// level は 'normal' のような段階の名前か、aiForRate が作った数値の組
 function newBrain(level, rnd) {
-  return { cfg: AI_LEVELS[level] || AI_LEVELS.normal, rnd: rnd || Math.random, moveT: 999, jumpT: 0, duckT: 0,
+  return { cfg: (level && typeof level === 'object') ? level : (AI_LEVELS[level] || AI_LEVELS.normal), rnd: rnd || Math.random, moveT: 999, jumpT: 0, duckT: 0,
     wait: -1, spray: 0, seen: {}, seenN: 0, seenChg: false, dodgeCd: 0, meleeOk: false, wantSlot: 0, weaponT: 0,
-    node: null, edge: null, air: null, goalX: null, strafeT: 0, strafeOff: 0, lastX: -1, stuckT: 0, evadeT: 0, evadeDir: 0, mode: 'fight',
+    node: null, edge: null, air: null, goalX: null, strafeT: 0, strafeOff: 0, lastX: -1, stuckT: 0, evadeT: 0, evadeDir: 0, evadeGren: false, evadeJump: 0, mode: 'fight',
     prefer: 0, preferW: 0, preferUntil: 0, coverUntil: 0, rlSeen: false, lowSeen: false, walkDir: 0, holdT: 0 };
 }
 
@@ -701,6 +727,44 @@ function predictGrenade(w, me, dir, W, press) {
   return { x: x, y: y };
 }
 
+// 飛んでいるグレネードが、どこで爆発するかを最後までたどる（当たり方は stepGrenade と同じ）。
+// f=何フレーム後か、direct=me に直接ぶつかる。null=穴に落ちて消える
+function grenadePath(w, sh, me) {
+  var x = sh.x, y = sh.y, vx = sh.vx, vy = sh.vy, life = Math.min(sh.life, 180), i, j, p, py;
+  for (i = 1; i <= life; i++) {
+    py = y; vy += GREN_G; x += vx; y += vy;
+    if (y > VH + 30) return null;
+    if (x < 0 || x > WORLD_W) return { x: clamp(x, 0, WORLD_W), y: y, f: i };
+    if (me && !me.dead && x > me.x - 4 && x < me.x + CHAR_W + 4 && inBoxY(y, me)) return { x: x, y: y, f: i, direct: true };
+    if (vy > 0) {
+      for (j = 0; j < w.plats.length; j++) {
+        p = w.plats[j];
+        if (x >= p.x && x <= p.x + p.w && py <= p.y && y >= p.y) return { x: x, y: p.y, f: i };
+      }
+    }
+    if (blockAt(w, x, y)) return { x: x, y: y, f: i };
+  }
+  return { x: x, y: y, f: i };
+}
+// 爆発の中心から、その人の体までの距離（explode と同じ測り方）。これが splash より大きければ無傷
+function blastDist(x, y, c) {
+  var nx = clamp(x, c.x, c.x + CHAR_W), ny = clamp(y, boxTop(c), c.y + CHAR_H);
+  return Math.sqrt((x - nx) * (x - nx) + (y - ny) * (y - ny));
+}
+// 爆発からの逃げ方を決める：爆風の外まで走る。走っても間に合わない／逃げ場がないときは跳ぶ
+// （足元で爆発しても、跳んで体を離せば爆風は届かない）
+function evadeBlast(b, w, me, lp, need) {
+  var nav = w.nav || (w.nav = buildNav(w)), node = b.node || nodeUnder(nav, me);
+  var lo = node ? node.lo : 0, hi = node ? node.hi : WORLD_W - CHAR_W;
+  var dir = me.x + CHAR_W / 2 <= lp.x ? -1 : 1;
+  var room = function (d) { return d < 0 ? me.x - lo : hi - me.x; };
+  if (room(dir) < need && room(-dir) > room(dir) + 20) dir = -dir;   // 逃げ場がない側なら、相手のいる側でも反対へ
+  var runT = need / SPEED;                                           // 走って逃げ切るのにかかるフレーム
+  b.evadeDir = dir; b.evadeGren = true;
+  b.evadeT = clamp(Math.ceil(runT) + 8, 12, 45);
+  b.evadeJump = (room(dir) < need || lp.f < runT) ? w.frame + Math.max(0, lp.f - 10) : 0;
+}
+
 // 今撃てば当たりそうか
 function aimOk(b, w, me, op, W, dist, dy, toOp) {
   var cfg = b.cfg;
@@ -760,10 +824,16 @@ function think(b, w, side) {
     var sh = w.shots[i];
     if (sh.own === side || sh.age < cfg.react || b.seen[sh.sid]) continue;
     if (sh.k === 'g') {
-      if (sh.vy > 0 && Math.abs(sh.x + sh.vx * 8 - mx) < 70) {
-        b.seen[sh.sid] = 1; b.seenN++; b.dodgeCd = cfg.react;
-        if (R() < cfg.dodge) { b.evadeT = 20; b.evadeDir = sh.x + sh.vx * 8 < mx ? 1 : -1; }
-      }
+      // グレネードは弧を描いて飛び、落ちた場所で爆発する。上りも下りも含めて最後までたどり、
+      // 爆風（splash）が自分に届くかどうかで決める。まだ危なくない弾は覚えず、近づいたらまた見る
+      if (Math.abs(sh.x - mx) > 420) continue;
+      var lp = grenadePath(w, sh, me);
+      if (!lp) continue;
+      var sp = sh.splash || 55, need = sp + 14 - blastDist(lp.x, lp.y, me);   // あと何px離れれば爆風の外か
+      if (!lp.direct && need <= 0) continue;
+      b.seen[sh.sid] = 1; b.seenN++; b.dodgeCd = cfg.react;
+      // 爆発は見てすぐ分かるので、弾より少し気づきやすい（レベルの差はそのまま残す）
+      if (R() < Math.min(1, cfg.dodge * 1.25 + 0.1)) evadeBlast(b, w, me, lp, Math.max(need, 30));
       continue;
     }
     if (Math.abs(sh.y - (me.y + CHAR_H / 2)) < 30 && Math.abs(sh.x - mx) < cfg.see && sign(sh.vx) === sign(mx - sh.x)) {
@@ -809,7 +879,7 @@ function think(b, w, side) {
     tx = clamp(b.goalX + (b.mode === 'fight' ? b.strafeOff : 0), b.node ? b.node.lo : 0, b.node ? b.node.hi : WORLD_W - CHAR_W);
     loose = true;
   }
-  if (b.evadeT > 0) { b.evadeT--; tx = me.x + b.evadeDir * 40; if (b.node) tx = clamp(tx, b.node.lo, b.node.hi); loose = false; }
+  if (b.evadeT > 0) { if (--b.evadeT <= 0) b.evadeGren = false; tx = me.x + b.evadeDir * 40; if (b.node) tx = clamp(tx, b.node.lo, b.node.hi); loose = false; }
   // 撃った直後は少しその場で構える（撃つ→背を向けて離れる→また振り向く、の往復を防ぐ）
   if (b.holdT > 0) { b.holdT--; if (loose && tx !== null && Math.abs(tx - me.x) < 70) tx = null; }
   if (tx !== null) {
@@ -820,6 +890,10 @@ function think(b, w, side) {
     if (b.walkDir < 0) inp.left = true; else if (b.walkDir > 0) inp.right = true;
   } else b.walkDir = 0;
   if (jumpNow) inp.jump = true;
+  // 爆発の少し前に踏み切る（跳び上がっていれば、足元で爆発しても爆風が届かない）
+  if (b.evadeJump) {
+    if (w.frame >= b.evadeJump) { if (me.onGround) { inp.jump = true; b.evadeJump = 0; } else if (w.frame > b.evadeJump + 24) b.evadeJump = 0; }
+  }
   // 壁に引っかかったら跳ぶ
   var moving = inp.left || inp.right;
   if (moving && me.onGround && Math.abs(me.x - b.lastX) < 0.2) { if (++b.stuckT > 8) { inp.jump = true; b.stuckT = 0; } }
@@ -830,11 +904,11 @@ function think(b, w, side) {
   if (b.duckT > 0) { b.duckT--; inp.duck = true; }
 
   // 射撃
-  var ready = canFire(me), faceOp = false, press = false;
+  var ready = canFire(me) && !b.evadeGren, faceOp = false, press = false;   // 爆風から逃げている間は撃たない（撃つと足が止まる）
   if (!ready) { if (me.cool > 0 || me.rl > 0 || me.chg > 0) b.wait = -1; }
   else if (b.wait < 0) b.wait = cfg.wMin + Math.floor(R() * (cfg.wMax - cfg.wMin));
   if (b.spray > 0) {                                // 連射武器は少しのあいだ押し続ける
-    if (me.rl <= 0 && dy <= cfg.hTol && dist <= W.range) { b.spray--; inp.fire = true; faceOp = true; }
+    if (me.rl <= 0 && !b.evadeGren && dy <= cfg.hTol && dist <= W.range) { b.spray--; inp.fire = true; faceOp = true; }
     else b.spray = 0;
   }
   // ナイフで詰めてくる相手には迷わず撃つ
@@ -850,15 +924,16 @@ function think(b, w, side) {
       }
     }
   }
-  if (W.kind === 'melee' && dist < Math.max(90, W.range + 40) && dy < 40 && b.meleeOk) {
+  if (W.kind === 'melee' && !b.evadeGren && dist < Math.max(90, W.range + 40) && dy < 40 && b.meleeOk) {
     if (dist > W.range * 0.55) press = true;                                       // 届く距離まで詰める
     else { inp.left = false; inp.right = false; if (me.dir !== toOp) faceOp = true; }   // 届いたら止まって相手の方を向く（走り抜けない）
   }
   // 端に追い詰められてナイフで迫られたら、相手の頭上を跳び越えて逃げる
   if (W.kind !== 'melee' && WEAPONS[op.load[op.slot]].kind === 'melee' && dist < 70 && me.onGround &&
-      (me.x < 40 || me.x > WORLD_W - CHAR_W - 40 || b.stuckT > 3) && R() < cfg.dodge) { inp.jump = true; b.evadeT = 30; b.evadeDir = toOp; }
+      (me.x < 40 || me.x > WORLD_W - CHAR_W - 40 || b.stuckT > 3) && R() < cfg.dodge) { inp.jump = true; b.evadeT = 30; b.evadeDir = toOp; b.evadeGren = false; b.evadeJump = 0; }
   if (me.burst > 0) faceOp = true;                  // 3連射の途中で振り向かない
-  if (Math.abs(dx) < 8 && dy < 40) {               // 相手と重なっている：向きを毎フレーム入れかえず、今向いている方へ抜けてから振り向く
+  if (b.evadeGren) { /* 爆風から逃げている間は、向きを合わせるより逃げるのが先 */ }
+  else if (Math.abs(dx) < 8 && dy < 40) {          // 相手と重なっている：向きを毎フレーム入れかえず、今向いている方へ抜けてから振り向く
     inp.left = me.dir < 0; inp.right = me.dir > 0;
   }
   else if (press || (faceOp && me.dir !== toOp)) { inp.left = toOp < 0; inp.right = toOp > 0; }   // 相手の方を向く
@@ -880,6 +955,64 @@ function think(b, w, side) {
     if (d2 && !(inp.jump && b.air) && !toTakeoff && pitAhead(nav, me, d2, inp.jump ? 80 : 4)) { inp.left = false; inp.right = false; }
   }
   return inp;
+}
+
+// ---- レート ----
+// ティアはレートの数値で決まる。TIER_MIN[i] = そのティアになる最低レート（0番は「まだティアなし」）
+// 下から：（なし）<LT5<HT5<LT4<HT4<LT3<HT3<LT2<HT2<LT1<HT1
+var RATE_START = 1000;            // 始まりのレート（＝LT5）
+var RATE_FLOOR = 800;             // これより下がらない
+var TIER_GRACE = 60;              // 降格の猶予：ティアの下限より少し下まではティアを保つ
+var TIER_MIN = [0, 1000, 1100, 1200, 1350, 1500, 1650, 1800, 2000, 2250, 2550];
+var BOT_TIER_CAP = 9;             // BOT戦だけで行けるのは LT1 の下限（2250）まで。HT1 は本物に勝った人だけ
+// レートからティアを出す。cur を渡すと、下がるときだけ TIER_GRACE ぶんの猶予をみる（すぐには落ちない）
+function tierOfRate(rate, cur) {
+  var i = 0, k;
+  for (k = TIER_MIN.length - 1; k >= 1; k--) if (rate >= TIER_MIN[k]) { i = k; break; }
+  if (cur > i && cur < TIER_MIN.length && rate >= TIER_MIN[cur] - TIER_GRACE) i = cur;
+  return i;
+}
+// Elo の期待勝率（相手より 400 高ければ 10回中9回勝つ見込み）
+function rateExpect(mine, theirs) { return 1 / (1 + Math.pow(10, (theirs - mine) / 400)); }
+// 1試合ぶんのレートの増減。
+// o = { mine, theirs, win, games(これまでのランクマッチ数), streak(格下に連敗した数), wstreak(連勝数), myTier, opTier }
+function rateChange(o) {
+  var mine = +o.mine || RATE_START, theirs = +o.theirs || RATE_START, win = !!o.win, g = +o.games || 0;
+  var K = g < 10 ? 48 : g < 30 ? 32 : 24;                    // 始めのうちは大きく動かして、早く実力の位置へ
+  var d = K * ((win ? 1 : 0) - rateExpect(mine, theirs));
+  if (win) {
+    // 格上に勝ったときのボーナス：ティア差が大きいほど大きい（最大 +60）
+    var myT = o.myTier == null ? tierOfRate(mine) : o.myTier, opT = o.opTier == null ? tierOfRate(theirs) : o.opTier;
+    d += Math.min(60, Math.max(0, opT - myT) * 15);
+    // 連勝しているうちは上がり方を速くする（実力よりレートが低い人が、早く自分の位置まで上がれるように）
+    var ws = (+o.wstreak || 0) + 1;
+    d *= ws >= 8 ? 2 : ws >= 5 ? 1.6 : ws >= 3 ? 1.3 : 1;
+  } else {
+    if (theirs < mine) {                                     // 格下に連敗したら、2敗目から下がり幅を増やす
+      var st = (+o.streak || 0) + 1;
+      d *= st >= 4 ? 1.7 : st === 3 ? 1.5 : st === 2 ? 1.2 : 1;
+    }
+    d *= mine >= 2250 ? 1.45 : mine >= 2000 ? 1.3 : mine >= 1800 ? 1.15 : 1;   // 上位ほど落ちやすい
+  }
+  var v = Math.round(d);
+  return win ? Math.max(1, v) : Math.min(-1, v);             // 勝てば必ず上がり、負ければ必ず下がる
+}
+// 1試合ぶんを当てはめた結果（レート・ティア・連敗数の新しい値）
+// cap を渡すと、そのティアの下限までしか上がらない（BOT戦の上限に使う）
+function applyRate(st, o) {
+  var rate = +st.rate || RATE_START, tier = +st.tier || tierOfRate(rate), games = +st.games || 0;
+  var streak = +st.streak || 0, wstreak = +st.wstreak || 0;
+  var d = rateChange({ mine: rate, theirs: o.theirs, win: o.win, games: games, streak: streak, wstreak: wstreak, myTier: tier, opTier: o.opTier });
+  var next = Math.max(RATE_FLOOR, rate + d);
+  if (o.cap != null && next > rate) next = Math.max(rate, Math.min(next, TIER_MIN[o.cap] || next));
+  d = next - rate;
+  return {
+    rate: next, delta: d, before: rate,
+    tier: tierOfRate(next, tier), tierBefore: tier,
+    games: games + 1,
+    streak: (!o.win && +o.theirs < rate) ? streak + 1 : 0,  // 格下に負けた連続回数（勝つか、格上に負ければ 0 に戻る）
+    wstreak: o.win ? wstreak + 1 : 0                        // 連勝数（負けたら 0 に戻る）
+  };
 }
 
 // ---- 称号（二つ名） ----
@@ -930,7 +1063,9 @@ var api = {
   cleanLoadout: cleanLoadout, newWorld: newWorld, newChar: newChar, setInput: setInput, step: step,
   stepChar: stepChar, stepShots: stepShots, physics: physics, canFire: canFire, weaponOf: weaponOf, muzzleY: muzzleY,
   packChar: packChar, packShots: packShots, blockAt: blockAt,
-  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout,
+  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, aiForRate: aiForRate,
+  RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_GRACE: TIER_GRACE, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
+  tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
   TITLES: deepFreeze(TITLES), titleOk: titleOk
 };
 return Object.freeze(api);

@@ -39,8 +39,8 @@ function cleanAch(a) {
 // 使えない称号（オンライン戦績などが足りない）は初期の称号に戻す
 const validTitle = (id, ctx) => (typeof id === 'string' && SIM.titleOk(id, ctx) ? id : 'rookie');
 
-// ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）
-function clean(v, ctx) {
+// ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
+function clean(v, ctx, rtier) {
   v = v && typeof v === 'object' ? v : {};
   const stats = {}, prog = {};
   for (const d of DIFFS) {
@@ -48,7 +48,7 @@ function clean(v, ctx) {
     stats[d] = { w: int(s.w, 0, 999999, 0), l: int(s.l, 0, 999999, 0) };
     prog[d] = { beat: p.beat === true, straight: p.beat === true && p.straight === true };
   }
-  const best = Math.max(tierIndex(prog), int(v.bestTier, 0, MAX_TIER, 0));
+  const best = Math.max(tierIndex(prog), int(v.bestTier, 0, MAX_TIER, 0), int(rtier, 0, MAX_TIER, 0));
   return {
     name: text(v.name, 12) || 'プレイヤー',
     bio: text(v.bio, 40),

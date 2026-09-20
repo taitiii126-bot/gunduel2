@@ -4,6 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const P = require('./profile');
+const { SIM } = require('./game');
 
 // systemd の StateDirectory=gunduel があれば /var/lib/gunduel に保存する
 const DATA_DIR = process.env.DATA_DIR || process.env.STATE_DIRECTORY || __dirname;
@@ -48,6 +49,28 @@ Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slic
   .forEach(u => { if (!u.pioneer) { u.pioneer = true; dirty = true; } });
 // 称号の確認に使う本人の情報
 const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer });
+
+// ---- レート ----
+// ティアはレートで決まる。最初のレートは、CPU戦で到達したティアの下限（ランクマッチを1戦でもしたら、もう上がらない）
+function rateState(u) {
+  const best = Math.max(u.tierBest || 0, u.profile ? P.tierIndex(u.profile.tierProgress) : 0);
+  const base = SIM.TIER_MIN[best] || SIM.RATE_START;
+  if (typeof u.rate !== 'number' || !isFinite(u.rate)) { u.rate = base; u.rgames = 0; touch(); }
+  if (!u.rgames && u.rate < base) { u.rate = base; touch(); }
+  if (typeof u.rtier !== 'number') { u.rtier = SIM.tierOfRate(u.rate); touch(); }
+  const t2 = SIM.tierOfRate(u.rate, u.rtier);   // レートが動いたらティアも合わせ直す（下がるときは猶予つき）
+  if (t2 !== u.rtier) { u.rtier = t2; touch(); }
+  if (!u.ranked) { u.ranked = { w: 0, l: 0 }; touch(); }
+  return { rate: u.rate, tier: u.rtier, games: u.rgames || 0, streak: u.rstreak || 0, wstreak: u.rwstreak || 0,
+    w: u.ranked.w, l: u.ranked.l, peak: u.rpeak || u.rate };
+}
+function writeRate(u, r, win) {
+  u.rate = r.rate; u.rtier = r.tier; u.rgames = r.games; u.rstreak = r.streak; u.rwstreak = r.wstreak;
+  u.rpeak = Math.max(u.rpeak || 0, r.rate);
+  if (!u.ranked) u.ranked = { w: 0, l: 0 };
+  if (win) u.ranked.w++; else u.ranked.l++;
+  touch();
+}
 function flush() {
   if (!dirty) return;
   dirty = false;
@@ -67,7 +90,9 @@ function cleanName(v) {
   return n || 'プレイヤー';
 }
 function publicUser(u) {
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer };
+  const r = rateState(u);
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer,
+    rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak };
 }
 function cleanupTokens() {
   const now = Date.now();
@@ -144,6 +169,38 @@ const auth = {
     touch();
   },
 
+  // 今のレート（無ければ CPU戦の到達度から作る）
+  rating(uid) { const u = db.users[uid]; return u ? rateState(u) : null; },
+  // ランクマッチの結果をレートに当てはめて、両方の結果を返す。
+  // capWin：勝った側がここまでしか上がれない（BOT戦の上限）。二人ぶんとも、試合前の値から計算する
+  applyRanked(winUid, loseUid, opt) {
+    const a = db.users[winUid], b = db.users[loseUid];
+    if (!a || !b) return null;
+    const ra = rateState(a), rb = rateState(b);
+    const A2 = SIM.applyRate(ra, { theirs: rb.rate, opTier: rb.tier, win: true, cap: (opt && opt.capWin) || null });
+    const B2 = SIM.applyRate(rb, { theirs: ra.rate, opTier: ra.tier, win: false, cap: null });
+    writeRate(a, A2, true); writeRate(b, B2, false);
+    return { win: A2, lose: B2 };
+  },
+
+  // BOT戦：人の側だけレートを動かす。勝っても cap のティアの下限より上には行かない
+  applyVsBot(uid, botRate, win, cap) {
+    const u = db.users[uid];
+    if (!u) return null;
+    const st = rateState(u);
+    const r = SIM.applyRate(st, { theirs: botRate, opTier: SIM.tierOfRate(botRate), win: !!win, cap: win ? cap : null });
+    writeRate(u, r, !!win);
+    return r;
+  },
+
+  // ランキングに出す1行（BOTはアカウントを持たないので、そもそも入らない）
+  rankRow(u) {
+    if (!u || BANNED_IDS.has(String(u.id))) return null;
+    const r = rateState(u), p = u.profile || null;
+    return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie',
+      tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games };
+  },
+
   // 怪しいプレイを検知した回数をアカウントに残す（BANするかの判断材料）
   flag(uid, reason) {
     const u = db.users[uid];
@@ -168,9 +225,10 @@ const auth = {
   saveProfile(uid, raw, base) {
     const u = db.users[uid];
     if (!u) return null;
-    const ctx = titleCtx(u), inc = P.clean(raw, ctx), rev = u.profileRev || 0;
+    const rt = rateState(u).tier;
+    const ctx = titleCtx(u), inc = P.clean(raw, ctx, rt), rev = u.profileRev || 0;
     const merged = !!u.profile && Math.floor(+base) !== rev;
-    u.profile = merged ? P.merge(P.clean(u.profile, ctx), inc) : inc;
+    u.profile = merged ? P.merge(P.clean(u.profile, ctx, rt), inc) : inc;
     u.profileRev = rev + 1; u.profileAt = Date.now();
     touch();
     return { rev: u.profileRev, merged, profile: u.profile };
@@ -235,12 +293,12 @@ const auth = {
   seen(uid) { const u = db.users[uid]; if (u) { u.lastSeen = Date.now(); touch(); } },
   // 他の人に見せるカード（DiscordのユーザーIDは出さない）
   card(u, status) {
-    const p = u.profile || null, tier = p ? P.tierIndex(p.tierProgress) : 0;
+    const p = u.profile || null, rs = rateState(u), tier = rs.tier;
     return {
       fid: u.fid, name: p ? p.name : u.name, discord: u.name,
       title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie', bio: p ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
       tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
-      online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p),
+      online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },
       status, lastSeen: status === 'offline' ? (u.lastSeen || 0) : 0,
     };
   },
