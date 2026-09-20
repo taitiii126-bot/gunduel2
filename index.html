@@ -2156,17 +2156,19 @@ function setFrMsg(m,k){
   el.textContent=FR.msg;el.className='fr-msg'+(FR.msgKind?' '+FR.msgKind:'');
 }
 // ---- ランキング（レート順。サーバーが集計したものをそのまま出す）----
-var RANK={at:0,data:null,busy:false};
+var RANK={at:0,data:null,busy:false,err:''};
 function showRankScreen(){showScreen('rank-screen');renderRanking();loadRanking();}
 function loadRanking(){
   if(RANK.busy)return;
   RANK.busy=true;
   var h={};if(AUTH.token)h.Authorization='Bearer '+AUTH.token;
-  fetch(httpBase()+'/api/ranking',{headers:h}).then(function(r){return r.json();}).then(function(d){
+  // 返事が JSON でなければ「サーバーが古い」、そもそも届かなければ「つながらない」
+  fetch(httpBase()+'/api/ranking',{headers:h}).then(function(r){return r.text();}).then(function(tx){
     RANK.busy=false;
-    if(!d||!Array.isArray(d.top))return;
-    RANK.data=d;RANK.at=Date.now();renderRanking();
-  }).catch(function(){RANK.busy=false;RANK.data=RANK.data||null;renderRanking(true);});
+    var d=null;try{d=JSON.parse(tx);}catch(e){}
+    if(d&&Array.isArray(d.top)){RANK.err='';RANK.data=d;RANK.at=Date.now();renderRanking();return;}
+    RANK.err='old';renderRanking(true);
+  }).catch(function(){RANK.busy=false;RANK.err='net';renderRanking(true);});
 }
 function rankRowHtml(p,me){
   var cls='rk-row'+(p.rank<=3?' rk-'+p.rank:'')+(me?' rk-me':'');
@@ -2183,7 +2185,10 @@ function renderRanking(failed){
   var list=document.getElementById('rank-list'),meEl=document.getElementById('rank-me'),note=document.getElementById('rank-note');
   if(!list)return;
   var d=RANK.data;
-  if(!d){list.innerHTML='<div class="rk-empty">'+esc(t(failed?'rank.failed':'rank.loading'))+'</div>';meEl.innerHTML='';note.textContent='';return;}
+  if(!d){
+    var msg=!failed?t('rank.loading'):RANK.err==='net'?t('rank.errNet',{url:httpBase()}):RANK.err==='old'?t('rank.errOld'):t('rank.failed');
+    list.innerHTML='<div class="rk-empty">'+esc(msg)+'</div>';meEl.innerHTML='';note.textContent='';return;
+  }
   list.innerHTML=d.top.length?d.top.map(function(p){return rankRowHtml(p,false);}).join(''):'<div class="rk-empty">'+esc(t('rank.empty'))+'</div>';
   list.querySelectorAll('canvas[data-mk]').forEach(function(cv){var g=cv.getContext('2d');drawTierIcon(g,+cv.getAttribute('data-mk'),34,34,66,66,0);});
   meEl.innerHTML=d.me?rankRowHtml(d.me,true):(AUTH.user?'<div class="rk-empty">'+esc(t('rank.meNone'))+'</div>':'<div class="rk-empty">'+esc(t('rank.needLogin'))+'</div>');
