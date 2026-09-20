@@ -6,7 +6,9 @@ const { attach, clientIp } = require('./ws-lite');
 const { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM } = require('./game');
 const auth = require('./auth');
 const presence = require('./presence');
-const bots = require('./bots');
+// bots.js が無くても動くようにする（上げ忘れてもサーバー全体が止まらないように）
+let bots = null;
+try { bots = require('./bots'); } catch (e) { console.error('bots.js を読み込めませんでした。BOTの相手は出ません:', e.message); }
 const interactions = require('./interactions');
 const { TIER_COLORS, TIER_KEYS } = require('./profile');
 
@@ -229,7 +231,7 @@ function queueTick() {
       if (pairUp(A, B, mode)) i++;   // 組んだ2人は飛ばす
     }
   }
-  if (!BOT_OFF) for (const [ws, q] of queue) if (queueSec(q) >= botWaitFor(q)) startBotMatch(ws, q);
+  if (bots && !BOT_OFF) for (const [ws, q] of queue) if (queueSec(q) >= botWaitFor(q)) startBotMatch(ws, q);
   for (const [ws, q] of queue) {
     const sec = queueSec(q);
     send(ws, { type: 'queue_status', waited: sec, range: q.mode === 'ranked' ? searchRange(sec) : 0, n: queue.size, rate: q.rate });
@@ -254,7 +256,7 @@ function botWaitFor(q) {
   return q.botWait;
 }
 function startBotMatch(ws, q) {
-  if (rooms.size >= MAX_ROOMS) return false;
+  if (!bots || rooms.size >= MAX_ROOMS) return false;
   queue.delete(ws);
   const room = openRoom();
   room.ranked = q.mode === 'ranked';
