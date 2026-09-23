@@ -39,6 +39,12 @@ function cleanAch(a) {
 // 使えない称号（オンライン戦績などが足りない）は初期の称号に戻す
 const validTitle = (id, ctx) => (typeof id === 'string' && SIM.titleOk(id, ctx) ? id : 'rookie');
 
+// 隠しボス「鬼帝」の成績（勝ち・負け・一度でも勝ったか・一覧で見たか）
+function cleanEmperor(e) {
+  e = e && typeof e === 'object' ? e : {};
+  return { w: int(e.w, 0, 999999, 0), l: int(e.l, 0, 999999, 0), beat: e.beat === true, seen: e.seen === true };
+}
+
 // ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
 function clean(v, ctx, rtier) {
   v = v && typeof v === 'object' ? v : {};
@@ -48,17 +54,22 @@ function clean(v, ctx, rtier) {
     stats[d] = { w: int(s.w, 0, 999999, 0), l: int(s.l, 0, 999999, 0) };
     prog[d] = { beat: p.beat === true, straight: p.beat === true && p.straight === true };
   }
-  const best = Math.max(tierIndex(prog), int(v.bestTier, 0, MAX_TIER, 0), int(rtier, 0, MAX_TIER, 0));
+  // 解放済みの背景：これまでに届いた一番上のティア（CPU戦ではティアは上がらないので、レートのティアと前の記録だけ）
+  const best = Math.max(int(v.bestTier, 0, MAX_TIER, 0), int(rtier, 0, MAX_TIER, 0));
+  const ach = cleanAch(v.ach), emperor = cleanEmperor(v.emperor);
+  // 鬼帝の背景（'emperor'）は、鬼帝に勝った人だけ
+  const slain = emperor.beat || !!ach.got.emperor_slayer;
+  const bg = v.bg === 'emperor' ? (slain ? 'emperor' : null) : v.bg == null ? null : int(v.bg, 0, best, null);
   return {
     name: text(v.name, 12) || 'プレイヤー',
     bio: text(v.bio, 40),
     title: validTitle(v.title, ctx),
     look: SIM.cleanLook(v.look),
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
-    bg: v.bg == null ? null : int(v.bg, 0, best, null),   // 解放していない背景は選べない
+    bg,   // 解放していない背景は選べない
     bestTier: best,
     stats, tierProgress: prog,
-    ach: cleanAch(v.ach),
+    ach, emperor,
   };
 }
 
@@ -71,18 +82,22 @@ function merge(old, inc) {
     const beat = pa.beat || pb.beat;
     out.tierProgress[d] = { beat, straight: beat && (pa.straight || pb.straight) };
   }
-  out.bestTier = Math.max(old.bestTier, inc.bestTier, tierIndex(out.tierProgress));
+  out.bestTier = Math.max(old.bestTier, inc.bestTier);
   // 称号の記録：獲得済みは合わせ、数は大きい方
   const oa = old.ach, ia = inc.ach, got = Object.assign({}, oa.got, ia.got), kills = {}, stages = {};
   for (const k of Object.keys(ia.kills)) kills[k] = Math.max(oa.kills[k] || 0, ia.kills[k]);
   for (const k of Object.keys(ia.stages)) stages[k] = Math.max(oa.stages[k] || 0, ia.stages[k]);
   out.ach = { got, kills, stages, streak: ia.streak, best: Math.max(oa.best, ia.best) };
+  // 鬼帝の成績：大きい方（前の版で保存したプロフィールには無いので、0 として扱う）
+  const oe = cleanEmperor(old.emperor), ie = cleanEmperor(inc.emperor);
+  out.emperor = { w: Math.max(oe.w, ie.w), l: Math.max(oe.l, ie.l), beat: oe.beat || ie.beat, seen: oe.seen || ie.seen };
   return out;
 }
 
 function cpuTotals(p) {
   let w = 0, l = 0;
   if (p) for (const d of DIFFS) { w += p.stats[d].w; l += p.stats[d].l; }
+  if (p && p.emperor) { w += +p.emperor.w || 0; l += +p.emperor.l || 0; }
   return { w, l };
 }
 

@@ -18,7 +18,7 @@ var SWAP_FRAMES = 10;      // 持ち替えてから撃てるまで
 var BUFFER_FRAMES = 6;     // 押した入力を少しだけ覚えておく（押し損ね・通信のゆらぎの吸収）
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 4;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）
+var PROTO = 5;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -188,6 +188,70 @@ function newWorld(stage, loadA, loadB) {
   w.chars.b = newChar('b', sp[1].x, sp[1].y - CHAR_H, -1, loadB);
   return w;
 }
+// ---- 射撃場 ----
+// 的は人と同じ大きさの箱（倒れない）。当たると 'hit'（who=的のid）が出る。patrol=[左端,右端] なら左右に動く
+// 射撃場の世界は、プレイヤー（chars.a）と的だけ。chars.b は置かない
+function newTarget(id, x, y, patrol, speed) {
+  return { side: id, target: true, x: x, y: y, vx: patrol ? (speed || 1.5) : 0, vy: 0, hp: 1e9, hpFrac: 1e9, hit: 0,
+    dead: false, ducking: false, onGround: true, patrol: patrol || null, kbT: 0 };
+}
+function newRangeWorld(stage, load, targets) {
+  var st = (stage && typeof stage === 'object') ? stage : (STAGES[stage] || STAGES.flat);
+  var sp = st.spawn || [{ x: 80, y: GND }];
+  var w = { plats: st.platforms, solids: st.solids || [], frame: 0, sid: 0, shots: [], chars: {}, nav: null, targets: targets || [] };
+  w.chars.a = newChar('a', sp[0].x, sp[0].y - CHAR_H, 1, load);
+  return w;
+}
+function stepRange(w, ev) {
+  w.frame++;
+  for (var i = 0; i < w.targets.length; i++) {
+    var tg = w.targets[i];
+    if (tg.hit > 0) tg.hit--;
+    tg.hp = 1e9; tg.hpFrac = 1e9;   // 的は壊れない
+    if (tg.patrol) { tg.x += tg.vx; if (tg.x <= tg.patrol[0] || tg.x >= tg.patrol[1]) { tg.x = clamp(tg.x, tg.patrol[0], tg.patrol[1]); tg.vx = -tg.vx; } }
+  }
+  stepChar(w, w.chars.a, null, ev, false);
+  stepShots(w, ev, false);
+}
+// ---- 2v2（チーム戦）----
+// 4人：a と c が左のチーム（0）、b と d が右のチーム（1）。味方の弾・近接・爆風は当たらない（すり抜ける）
+var TEAM_SLOTS = ['a', 'b', 'c', 'd'];
+function teamOf(side) { return side === 'a' || side === 'c' ? 0 : 1; }
+function newTeamWorld(stage, loads) {
+  var st = (stage && typeof stage === 'object') ? stage : (STAGES[stage] || STAGES.classic);
+  var w = { plats: st.platforms, solids: st.solids || [], frame: 0, sid: 0, shots: [], chars: {}, nav: null, teams: true };
+  var L = loads || {}, xs = { a: 80, b: WORLD_W - 100, c: 170, d: WORLD_W - 190 };
+  for (var i = 0; i < 4; i++) {
+    var k = TEAM_SLOTS[i];
+    w.chars[k] = newChar(k, xs[k], GND - CHAR_H, teamOf(k) === 0 ? 1 : -1, L[k]);
+  }
+  return w;
+}
+function stepTeam(w, ev) {
+  w.frame++;
+  for (var i = 0; i < 4; i++) { var c = w.chars[TEAM_SLOTS[i]]; if (c) stepChar(w, c, null, ev, false); }
+  stepShots(w, ev, false);
+}
+// その人の敵：射撃場なら全部の的、チーム戦なら相手チームの2人、1対1なら相手ひとり
+function foes(w, side) {
+  if (w.targets) return w.targets;
+  if (w.teams) {
+    var out = [];
+    for (var i = 0; i < 4; i++) { var k = TEAM_SLOTS[i], c = w.chars[k]; if (c && teamOf(k) !== teamOf(side)) out.push(c); }
+    return out;
+  }
+  var o = w.chars[other(side)];
+  return o ? [o] : [];
+}
+// その弾・攻撃が当たりうる相手（side＝撃った人）。1対1は渡された相手ひとり
+function victims(w, t, side) { return w.targets || (w.teams ? foes(w, side) : (t ? [t] : [])); }
+// 片方のチームが全員倒れたか（null＝まだ）。両方同時なら 'draw'
+function teamResult(w) {
+  var dead = [true, true];
+  for (var i = 0; i < 4; i++) { var k = TEAM_SLOTS[i], c = w.chars[k]; if (c && !c.dead) dead[teamOf(k)] = false; }
+  return dead[0] && dead[1] ? 'draw' : dead[0] ? 1 : dead[1] ? 0 : null;
+}
+
 // 1フレーム進める。ev に起きたこと（発射・命中・爆発など）が入る
 function step(w, ev) {
   w.frame++;
@@ -245,7 +309,11 @@ function stepChar(w, c, t, ev, vis) {
     c.shootBuf = 0;
     trigger(w, c, t, W, ev, vis, edge);
     shot = true;
-  } else if (c.shootBuf > 0) c.shootBuf--;
+  } else if (c.shootBuf > 0) {
+    // 弾切れで撃とうとした：「カチッ」と知らせて、R でのリロードを促す
+    if (W.mag > 0 && c.ammo[c.slot] <= 0 && c.rl <= 0 && c.cool <= 0 && c.burst <= 0) { c.shootBuf = 0; ev.push({ t: 'dry', who: c.side }); }
+    else c.shootBuf--;
+  }
   physics(w, c, ev);
   if (c.onGround) { if (c.groundSince < 0) c.groundSince = w.frame; } else c.groundSince = -1;
   // 自然回復
@@ -282,24 +350,33 @@ function trigger(w, c, t, W, ev, vis, edge) {
   if (W.burst && c.ammo[c.slot] > 0 && c.rl <= 0) { c.burst = W.burst - 1; c.burstT = W.gap; }
 }
 function meleeHit(w, c, t, W, ev, vis) {
-  var sid = ++w.sid;
-  var hit = !t.dead && Math.abs(t.x - c.x) <= W.range && Math.abs(t.y - c.y) < 40 && sign(t.x - c.x) === c.dir;
-  ev.push({ t: 'melee', who: c.side, wid: c.load[c.slot], x: c.x + CHAR_W / 2 + c.dir * 18, y: c.y + 22, dir: c.dir, hit: hit, sid: sid, reach: W.range });
-  if (!hit) return;
-  damage(w, t, W.dmg, c.side, ev, vis, t.x + CHAR_W / 2 - c.dir * 6, c.y + 22, c.dir, sid);
-  if (W.kb && !vis && !t.dead) {                    // 吹き飛ばす（しばらく操作できない）
-    t.vx = c.dir * W.kb; t.vy = Math.min(t.vy, -W.kbUp); t.kbT = W.kbT; t.onGround = false;
-    t.swT = 0; t.recT = 0; t.chg = 0; t.burst = 0;
+  var sid = ++w.sid, list = victims(w, t, c.side), got = [];
+  for (var i = 0; i < list.length; i++) {
+    var v = list[i];
+    if (!v.dead && Math.abs(v.x - c.x) <= W.range && Math.abs(v.y - c.y) < 40 && sign(v.x - c.x) === c.dir) got.push(v);
+  }
+  ev.push({ t: 'melee', who: c.side, wid: c.load[c.slot], x: c.x + CHAR_W / 2 + c.dir * 18, y: c.y + 22, dir: c.dir, hit: got.length > 0, sid: sid, reach: W.range });
+  for (var j = 0; j < got.length; j++) {
+    var u = got[j];
+    damage(w, u, W.dmg, c.side, ev, vis, u.x + CHAR_W / 2 - c.dir * 6, c.y + 22, c.dir, sid);
+    if (W.kb && !vis && !u.dead && !u.target) {      // 吹き飛ばす（しばらく操作できない）。射撃場の的は動かない
+      u.vx = c.dir * W.kb; u.vy = Math.min(u.vy, -W.kbUp); u.kbT = W.kbT; u.onGround = false;
+      u.swT = 0; u.recT = 0; u.chg = 0; u.burst = 0;
+    }
   }
 }
 function fireRound(w, c, W, ev, t, vis) {
   var wid = c.load[c.slot], dir = c.dir, my = muzzleY(c), cx = c.x + CHAR_W / 2, mx = cx + dir * 22, sid = ++w.sid;
   // 銃口より手前（密着）にいる相手には、弾を出さずにその場で当てる（くっつくと撃てない、をなくす）
-  var close = t && !t.dead && t.x + CHAR_W + 6 > Math.min(cx, mx) && t.x - 6 < Math.max(cx, mx) && inBoxY(my, t);
+  var list = victims(w, t, c.side), close = null;
+  for (var i0 = 0; i0 < list.length && !close; i0++) {
+    var v0 = list[i0];
+    if (!v0.dead && v0.x + CHAR_W + 6 > Math.min(cx, mx) && v0.x - 6 < Math.max(cx, mx) && inBoxY(my, v0)) close = v0;
+  }
   if (close) {
     ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid });
-    if (W.kind === 'grenade') explode(w, { own: c.side, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, sid: sid }, t, ev, vis, t.x + CHAR_W / 2, my, true);
-    else damage(w, t, W.kind === 'pellet' ? W.dmg * W.pellets : W.dmg, c.side, ev, vis, t.x + CHAR_W / 2, my, dir, sid);
+    if (W.kind === 'grenade') explode(w, { own: c.side, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, sid: sid }, close, ev, vis, close.x + CHAR_W / 2, my, true);
+    else damage(w, close, W.kind === 'pellet' ? W.dmg * W.pellets : W.dmg, c.side, ev, vis, close.x + CHAR_W / 2, my, dir, sid);
   } else if (W.kind === 'bullet') {
     w.shots.push({ k: 'b', w: wid, x: mx, y: my, vx: W.spd * dir, vy: 0, own: c.side, dist: 0, range: W.range, dmg: W.dmg, age: 0, sid: sid });
   } else if (W.kind === 'pellet') {
@@ -310,15 +387,19 @@ function fireRound(w, c, W, ev, t, vis) {
     w.shots.push({ k: 'g', w: wid, x: c.x + CHAR_W / 2 + dir * 14, y: my - 6, vx: W.spd * dir + c.vx * 0.5, vy: GREN_VY, own: c.side, life: GREN_LIFE, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, age: 0, sid: sid });
   }
   if (!close) ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid });
-  if (--c.ammo[c.slot] <= 0) { c.burst = 0; startReload(c, ev); }
+  if (--c.ammo[c.slot] <= 0) c.burst = 0;   // 弾が切れても自動ではリロードしない（R で）
 }
 function fireBeam(w, c, t, W, ev, vis) {
   var wid = c.load[c.slot], dir = c.bdir || c.dir, y = c.by || muzzleY(c), x1 = c.bx || (c.x + CHAR_W / 2 + dir * 22), sid = ++w.sid;
-  var x2 = clamp(x1 + dir * W.range, 0, WORLD_W), tc = t.x + CHAR_W / 2;
-  var hit = !t.dead && (tc - x1) * dir >= -10 && Math.abs(tc - x1) <= W.range && inBoxY(y, t);
-  ev.push({ t: 'fire', who: c.side, wid: wid, x: x1, y: y, dir: dir, x2: hit ? tc : x2, beam: true, sid: sid });
-  if (hit) damage(w, t, W.dmg, c.side, ev, vis, tc, y, dir, sid);
-  if (--c.ammo[c.slot] <= 0) startReload(c, ev);
+  var x2 = clamp(x1 + dir * W.range, 0, WORLD_W), list = victims(w, t, c.side), got = [];
+  for (var i = 0; i < list.length; i++) {
+    var v = list[i], vc = v.x + CHAR_W / 2;
+    if (!v.dead && (vc - x1) * dir >= -10 && Math.abs(vc - x1) <= W.range && inBoxY(y, v)) got.push(v);
+  }
+  var end = got.length && !w.targets && !w.teams ? got[0].x + CHAR_W / 2 : x2;   // 1対1では相手のところで止めて見せる（射撃場・チーム戦は貫いて見せる）
+  ev.push({ t: 'fire', who: c.side, wid: wid, x: x1, y: y, dir: dir, x2: end, beam: true, sid: sid });
+  for (var j = 0; j < got.length; j++) damage(w, got[j], W.dmg, c.side, ev, vis, got[j].x + CHAR_W / 2, y, dir, sid);
+  --c.ammo[c.slot];   // 自動ではリロードしない
 }
 function damage(w, t, dmg, by, ev, vis, x, y, kdir, sid) {
   if (vis) { ev.push({ t: 'vhit', who: t.side, x: x, y: y }); return; }
@@ -349,13 +430,20 @@ function stepShots(w, ev, vis, only) {
   for (var i = 0; i < w.shots.length; i++) {
     var b = w.shots[i];
     if (only && b.own !== only) { out.push(b); continue; }
-    var t = w.chars[other(b.own)];
+    var t = w.targets || w.teams ? null : w.chars[other(b.own)];
     b.age++;
     if (b.k === 'g') { if (stepGrenade(w, b, t, ev, vis)) out.push(b); continue; }
     b.x += b.vx; b.y += b.vy; b.dist += Math.abs(b.vx);
     if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20 || b.y < -60 || b.y > VH + 20) continue;
     if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
+    if (w.targets || w.teams) {                        // 射撃場・チーム戦：いちばん先に触れた相手に当たる（味方はすり抜ける）
+      var fl = foes(w, b.own);
+      for (var k = 0; k < fl.length && !t; k++) if (!fl[k].dead && hits(b, fl[k])) t = fl[k];
+    }
     if (t && !t.dead && hits(b, t)) {
+      // オンラインの先読み（w.ghost）：当たったかどうかはサーバーが決めるので、ここでは通り抜けさせる
+      // （古い位置の相手に当てて火花を出すと、「当たったのに効かない」ように見えてしまう）
+      if (vis && w.ghost) { out.push(b); continue; }
       var d = b.k === 'p' ? Math.max(1, Math.round(b.dmg * (1 - 0.5 * b.dist / b.range))) : b.dmg;
       damage(w, t, d, b.own, ev, vis, b.x, b.y, sign(b.vx), b.sid);
       continue;
@@ -369,7 +457,11 @@ function stepGrenade(w, b, t, ev, vis) {
   b.vy += GREN_G; b.x += b.vx; b.y += b.vy; b.life--;
   if (b.y > VH + 30) return false;                                  // 穴に落ちたら消える
   if (b.x < 0 || b.x > WORLD_W) { explode(w, b, t, ev, vis, clamp(b.x, 0, WORLD_W), b.y); return false; }   // 端の壁で爆発
-  if (t && !t.dead && b.x > t.x - 4 && b.x < t.x + CHAR_W + 4 && inBoxY(b.y, t)) { explode(w, b, t, ev, vis, b.x, b.y, true); return false; }
+  var list = victims(w, t, b.own);
+  for (var i0 = 0; i0 < list.length; i0++) {
+    var v0 = list[i0];
+    if (!v0.dead && b.x > v0.x - 4 && b.x < v0.x + CHAR_W + 4 && inBoxY(b.y, v0)) { explode(w, b, v0, ev, vis, b.x, b.y, true); return false; }
+  }
   if (b.vy > 0) {
     for (var i = 0; i < w.plats.length; i++) {
       var p = w.plats[i];
@@ -383,11 +475,15 @@ function stepGrenade(w, b, t, ev, vis) {
 // direct=相手に直接当たった（直撃のダメージ）。それ以外は爆風（中心から離れるほど弱い）
 function explode(w, b, t, ev, vis, x, y, direct) {
   ev.push({ t: 'boom', who: b.own, x: x, y: y, r: b.splash });
-  if (!t || t.dead) return;
-  var top = boxTop(t), bot = t.y + CHAR_H;
-  var nx = clamp(x, t.x, t.x + CHAR_W), ny = clamp(y, top, bot), d = Math.sqrt((x - nx) * (x - nx) + (y - ny) * (y - ny));
-  var dmg = direct ? b.dmg : d <= b.splash ? Math.max(1, Math.round((b.sdmg || b.dmg) * (1 - 0.55 * d / b.splash))) : 0;
-  if (dmg > 0) damage(w, t, dmg, b.own, ev, vis, nx, ny, sign(t.x + CHAR_W / 2 - x) || 1, b.sid);
+  var list = w.targets || (w.teams ? foes(w, b.own) : [t]);
+  for (var i = 0; i < list.length; i++) {
+    var v = list[i];
+    if (!v || v.dead) continue;
+    var top = boxTop(v), bot = v.y + CHAR_H;
+    var nx = clamp(x, v.x, v.x + CHAR_W), ny = clamp(y, top, bot), d = Math.sqrt((x - nx) * (x - nx) + (y - ny) * (y - ny));
+    var dmg = direct && v === t ? b.dmg : d <= b.splash ? Math.max(1, Math.round((b.sdmg || b.dmg) * (1 - 0.55 * d / b.splash))) : 0;
+    if (dmg > 0) damage(w, v, dmg, b.own, ev, vis, nx, ny, sign(v.x + CHAR_W / 2 - x) || 1, b.sid);
+  }
 }
 
 // ---- 物理（足場は上からだけ乗れる。遮蔽物は横からぶつかる）----
@@ -453,7 +549,10 @@ var AI_LEVELS = {
   normal: { react: 16, see: 175, mvI: 16, dodge: 0.35, jumpF: 80,  wMin: 46, wMax: 96,   hTol: 32, whiff: 0.33, hpT: 40, hCh: 0.55, strafe: 0.50, cover: 0.40, smart: 0.70, melee: 0.12 },
   hard:   { react: 12, see: 215, mvI: 12, dodge: 0.50, jumpF: 100, wMin: 32, wMax: 66,  hTol: 26, whiff: 0.22, hpT: 40, hCh: 0.70, strafe: 0.65, cover: 0.60, smart: 0.85, melee: 0.25 },
   pro:    { react: 9,  see: 255, mvI: 10, dodge: 0.58, jumpF: 130, wMin: 22, wMax: 50,  hTol: 20, whiff: 0.10, hpT: 40, hCh: 0.85, strafe: 0.75, cover: 0.75, smart: 0.95, melee: 0.30 },
-  god:    { react: 7,  see: 300, mvI: 7,  dodge: 0.76, jumpF: 170, wMin: 10,  wMax: 24,  hTol: 14, whiff: 0.04, hpT: 40, hCh: 0.95, strafe: 0.85, cover: 0.90, smart: 1.00, melee: 0.45 }
+  god:    { react: 7,  see: 300, mvI: 7,  dodge: 0.76, jumpF: 170, wMin: 10,  wMax: 24,  hTol: 14, whiff: 0.04, hpT: 40, hCh: 0.95, strafe: 0.85, cover: 0.90, smart: 1.00, melee: 0.45 },
+  // 隠しボス「鬼帝」：反応・精度・回避・判断をすべて最高に。体力・無敵・壁抜けなどのルールは人と同じ。
+  // boss：弾が届く瞬間を計算してよけ、相手の移動先を読んで撃つ。lapse：ごくまれに判断が遅れる（1フレームあたりの確率と長さ）
+  emperor: { react: 3, see: 520, mvI: 5, dodge: 1.00, jumpF: 240, wMin: 2, wMax: 5, hTol: 8, whiff: 0, hpT: 45, hCh: 1.00, strafe: 0.90, cover: 1.00, smart: 1.00, melee: 0.50, boss: true, lapse: 1 / 5400, lapseLen: 36 }
 };
 // ---- レートに合わせた強さ ----
 // 5段階のあいだを、レートで少しずつ変える。下は「よわい」より弱く、上は「鬼神」より強くできる
@@ -463,8 +562,8 @@ var AI_ANCHORS = [
   { react: 5, see: 340, mvI: 6, dodge: 0.92, jumpF: 190, wMin: 6, wMax: 16, hTol: 11, whiff: 0.01, hpT: 40, hCh: 1.00, strafe: 0.90, cover: 0.95, smart: 1.00, melee: 0.50 }
 ];
 // レート → AI_ANCHORS のどこか（0=いちばん弱い … 6=いちばん強い）。
-// BOT同士を実際に戦わせて「レート差200＝勝率76%」になるように測った目盛り（scratchpad/calib-bot.js）
-var RATE_T = [[640, 0], [720, 0.5], [1200, 1], [1258, 1.5], [1420, 2], [1606, 2.5], [1902, 3], [2042, 3.5], [2204, 4], [2414, 4.5], [2600, 5], [2810, 5.5], [3000, 6]];
+// BOT同士を実際に戦わせて「レート差200＝勝率76%」になるように測った目盛り（scratchpad/calib-bot.js。第4弾Eの新しい思考で測り直し）
+var RATE_T = [[841, 0], [917, 0.5], [1200, 1], [1395, 1.5], [1536, 2], [1694, 2.5], [1977, 3], [2022, 3.5], [2281, 4], [2405, 4.5], [2600, 5], [2776, 5.5], [2791, 6]];
 var AI_KEYS = ['react', 'see', 'mvI', 'dodge', 'jumpF', 'wMin', 'wMax', 'hTol', 'whiff', 'hpT', 'hCh', 'strafe', 'cover', 'smart', 'melee'];
 var AI_INT = { react: 1, see: 1, mvI: 1, jumpF: 1, wMin: 1, wMax: 1, hTol: 1 };   // フレーム数・距離は整数にする
 function aiForRate(rate) {
@@ -483,6 +582,9 @@ function aiForRate(rate) {
 var CPU_LOADOUTS = [[2, 3, 1], [4, 6, 3], [5, 8, 11], [7, 4, 10], [9, 2, 1], [6, 5, 3], [8, 11, 4], [7, 10, 5], [2, 6, 1], [3, 8, 5],
   [6, 3, 12], [7, 2, 13], [4, 8, 14], [9, 11, 12], [2, 5, 13], [3, 6, 14]];
 function cpuLoadout(rnd) { var r = rnd || Math.random; return CPU_LOADOUTS[Math.floor(r() * CPU_LOADOUTS.length)].slice(); }
+// 鬼帝の武器：どの相手にも強かった組み合わせ（リボルバー・SMG・ナイフ／SMG・ナイフ・レールガン／ピストル・AR・ナイフ）から選ぶ
+var EMPEROR_LOADOUTS = [[8, 4, 1], [4, 1, 11], [2, 6, 1]];
+function emperorLoadout(rnd) { var r = rnd || Math.random; return EMPEROR_LOADOUTS[Math.floor(r() * EMPEROR_LOADOUTS.length)].slice(); }
 
 // ---- 足場のつながり（どこからどこへ移れるか）----
 function buildNav(w) {
@@ -506,6 +608,13 @@ function buildNav(w) {
     if (x < r.x2) seg(x, r.x2, wallL, false);
   });
   nodes.raw = raw;
+  // 立って待つ場所は、下が穴になっている端から少し内側まで（端ぎりぎりに立つと、止まるときのすべりで落ちる）
+  var floorAt = function (x, y) { return raw.some(function (r) { return x + CHAR_W > r.x1 && x < r.x2 && r.y >= y - 2; }); };
+  nodes.forEach(function (n) {
+    var mid = (n.lo + n.hi) / 2;
+    n.slo = !n.wallL && !floorAt(n.lo - 8, n.y) ? Math.min(n.lo + 12, mid) : n.lo;
+    n.shi = !n.wallR && !floorAt(n.hi + 8, n.y) ? Math.max(n.hi - 12, mid) : n.hi;
+  });
   for (i = 0; i < nodes.length; i++) nodes[i].id = i;
   for (i = 0; i < nodes.length; i++) {
     nodes[i].out = [];
@@ -579,6 +688,31 @@ function navPath(nav, from, isGoal) {
   return null;
 }
 
+// 空中で、これから d の向き（-1/0/1）に押し続けたら、どの足場に着地するか（physics と同じ当たり方）。null＝穴に落ちる
+function landing(w, c, d) {
+  var sp = SPEED * (weaponOf(c).move || 1) * (c.chg > 0 ? 0.4 : 1), x = c.x, y = c.y, vx = c.vx, vy = c.vy, i, s;
+  for (var k = 0; k < 120; k++) {
+    if (c.kbT - k > 0) vx *= 0.9; else if (d) vx = sp * d; else vx *= 0.5;
+    vy += GRAVITY; x = clamp(x + vx, 0, WORLD_W - CHAR_W);
+    var prevBot = y + CHAR_H; y += vy;
+    var bot = y + CHAR_H;
+    if (vy >= 0) {
+      for (i = 0; i < w.plats.length; i++) { s = w.plats[i]; if (x + CHAR_W > s.x && x < s.x + s.w && prevBot <= s.y + 2 && bot >= s.y) return s; }
+      for (i = 0; i < w.solids.length; i++) { s = w.solids[i]; if (x + CHAR_W > s.x && x < s.x + s.w && prevBot <= s.y + 2 && bot >= s.y) return s; }
+    }
+    if (y > VH + 50) return null;
+  }
+  return null;
+}
+
+// 振りかぶり・硬直のある近接武器やレールガンの溜めは、その間ほとんど動けない。
+// 空中なら「何もしなくても足場に着地できる」、地上なら「すべっても端から落ちない」ときだけ使う
+function canCommit(w, me) {
+  if (!me.onGround) return !!landing(w, me, 0);
+  var nav = w.nav || (w.nav = buildNav(w)), sd = me.vx > 0.1 ? 1 : me.vx < -0.1 ? -1 : 0;
+  return !(sd && pitAhead(nav, me, sd, Math.abs(me.vx) * 2 + 2));
+}
+
 // 跳び移る先（または降りる先）の足場の上で、どこへ寄せるか。
 // 足場の外なら内側へ。小さい足場は真ん中へ。大きい足場（地面など）は今の向きのまま少しだけ進む
 // （大きい足場の真ん中へ戻ろうとすると、降りたばかりの段にまた戻って往復してしまう）
@@ -596,7 +730,8 @@ function newBrain(level, rnd) {
   return { cfg: (level && typeof level === 'object') ? level : (AI_LEVELS[level] || AI_LEVELS.normal), rnd: rnd || Math.random, moveT: 999, jumpT: 0, duckT: 0,
     wait: -1, spray: 0, seen: {}, seenN: 0, seenChg: false, dodgeCd: 0, meleeOk: false, wantSlot: 0, weaponT: 0,
     node: null, edge: null, air: null, goalX: null, strafeT: 0, strafeOff: 0, lastX: -1, stuckT: 0, evadeT: 0, evadeDir: 0, evadeGren: false, evadeJump: 0, mode: 'fight',
-    prefer: 0, preferW: 0, preferUntil: 0, coverUntil: 0, rlSeen: false, lowSeen: false, walkDir: 0, holdT: 0 };
+    prefer: 0, preferW: 0, preferUntil: 0, coverUntil: 0, rlSeen: false, lowSeen: false, walkDir: 0, holdT: 0,
+    tac: 'fight', tacT: 0, tacT0: 20, preferTac: '', blockedT: 0, aggr: false, lapseT: 0, lapses: 0, lastInp: null };
 }
 
 // その足場の上で、相手との距離が lo〜hi になる位置（prefer の距離に近いほどよい。自分のいる側を優先）
@@ -605,7 +740,7 @@ function standX(node, me, op, lo, hi, prefer) {
   for (var k = 0; k < 2; k++) {
     var side = k === 0 ? mySide : -mySide;
     var a = side < 0 ? ox - hi : ox + lo, z = side < 0 ? ox - lo : ox + hi;
-    a = Math.max(a, node.lo); z = Math.min(z, node.hi);
+    a = Math.max(a, node.slo); z = Math.min(z, node.shi);
     if (a > z) continue;
     var x = clamp(ox + side * prefer, a, z);
     var sc = Math.abs(x - me.x) + (k === 0 ? 0 : 220);
@@ -643,13 +778,14 @@ function plan(b, w, me, op, W) {
   if (me.rl > 50 && !b.rlSeen) { b.rlSeen = true; if (R() < cfg.cover) b.coverUntil = w.frame + me.rl; }
   if (me.rl <= 0) b.rlSeen = false;
   if (me.hp <= 40 && me.healUsed && !b.lowSeen) { b.lowSeen = true; if (R() < cfg.cover * 0.5) b.coverUntil = w.frame + 240; }
-  var cover = w.frame < b.coverUntil;
+  var cover = w.frame < b.coverUntil || b.tac === 'retreat' || b.tac === 'reload';
   b.mode = cover ? 'cover' : 'fight';
+  band = tacBand(b, W, op);
   var isGoal;
   if (cover) {
     isGoal = function (n) {
       if (Math.abs(n.y - opNode.y) > 40) {
-        var x = clamp(me.x, n.lo, n.hi);
+        var x = clamp(me.x, n.slo, n.shi);
         if (Math.abs(x - op.x) > 60) { goalX[n.id] = x; return true; }
         return false;
       }
@@ -658,7 +794,7 @@ function plan(b, w, me, op, W) {
         var s = w.solids[i];
         if (s.y > n.y - 30 || s.y + s.h < n.y - 2) continue;
         var x2 = op.x > s.x ? s.x - CHAR_W - 3 : s.x + s.w + 3;
-        if (x2 >= n.lo && x2 <= n.hi && coverBetween(w, n, x2, op)) { goalX[n.id] = x2; return true; }
+        if (x2 >= n.slo && x2 <= n.shi && coverBetween(w, n, x2, op)) { goalX[n.id] = x2; return true; }
       }
       return false;
     };
@@ -673,15 +809,17 @@ function plan(b, w, me, op, W) {
       goalX[n.id] = x; return true;
     };
   } else {
-    if (b.preferW !== W.id || w.frame >= b.preferUntil) {   // 立ちたい距離は数秒ごとにだけ選び直す
+    if (b.preferW !== W.id || b.preferTac !== b.tac || w.frame >= b.preferUntil) {   // 立ちたい距離は数秒ごと（か戦術が変わったとき）にだけ選び直す
       b.prefer = band[0] + (band[1] - band[0]) * (0.3 + 0.4 * R());
-      b.preferW = W.id; b.preferUntil = w.frame + 150 + Math.floor(R() * 150);
+      b.preferW = W.id; b.preferTac = b.tac; b.preferUntil = w.frame + 150 + Math.floor(R() * 150);
     }
     var prefer = b.prefer;
-    isGoal = function (n) {                         // 同じ高さで、武器に合う距離
+    var flank = b.tac === 'flank';
+    isGoal = function (n) {                         // 同じ高さで、武器に合う距離（回り込むときは、間に遮蔽物がない所）
       if (Math.abs(n.y - opNode.y) > 6) return false;
       var x = standX(n, me, op, band[0], band[1], prefer);
       if (x === null) return false;
+      if (flank && coverBetween(w, n, x, op)) return false;
       goalX[n.id] = x; return true;
     };
   }
@@ -700,7 +838,7 @@ function plan(b, w, me, op, W) {
     b.edge = null;
     var dx = op.x - me.x, dist = Math.abs(dx), dir = dx >= 0 ? 1 : -1;
     var want = dist > band[1] ? me.x + dir * 60 : dist < band[0] ? me.x - dir * 60 : me.x;
-    b.goalX = clamp(want, b.node.lo, b.node.hi);
+    b.goalX = clamp(want, b.node.slo, b.node.shi);
     return;
   }
   if (!path.length) { b.edge = null; b.goalX = goalX[b.node.id]; return; }
@@ -715,8 +853,8 @@ function predictGrenade(w, me, dir, W, press) {
   for (var i = 0; i < GREN_LIFE; i++) {
     var py = y; vy += GREN_G; x += vx; y += vy;
     if (y > VH) return null;
-    if (x < 0 || x > WORLD_W) return { x: clamp(x, 0, WORLD_W), y: y };
-    if (blockAt(w, x, y)) return { x: x, y: y };
+    if (x < 0 || x > WORLD_W) return { x: clamp(x, 0, WORLD_W), y: y, t: i };
+    if (blockAt(w, x, y)) return { x: x, y: y, t: i };
     if (vy > 0) {
       for (var j = 0; j < w.plats.length; j++) {
         var p = w.plats[j];
@@ -724,7 +862,65 @@ function predictGrenade(w, me, dir, W, press) {
       }
     }
   }
-  return { x: x, y: y };
+  return { x: x, y: y, t: GREN_LIFE };
+}
+
+// ---- 鬼帝のよけ方 ----
+// 自分がこれからどう動くか（jumpAt フレーム後に跳ぶ／跳ばない=-1、しゃがむか）を決めたとき、
+// 飛んでくる弾がどれだけ当たるか（ダメージの合計）を、1フレームずつ先まで計算する。当たり方は stepShots と同じ
+function bossHits(w, me, side, jumpAt, duck, react) {
+  var total = 0, gy = me.onGround ? me.y : null, K = 50;
+  for (var i = 0; i < w.shots.length; i++) {
+    var sh = w.shots[i];
+    if (mine(w, side, sh.own) || sh.k === 'g' || sh.age < react) continue;
+    if (sign(sh.vx) !== sign(me.x + CHAR_W / 2 - sh.x) || Math.abs(sh.x - me.x) > 600) continue;
+    var y = me.y, vy = me.onGround ? 0 : me.vy, ground = me.onGround, bx = sh.x, by = sh.y, dist = sh.dist;
+    for (var k = 1; k <= K; k++) {
+      if (k - 1 === jumpAt && ground) { vy = JUMP_F; ground = false; }
+      if (!ground) { vy += GRAVITY; y += vy; if (gy !== null && vy > 0 && y >= gy) { y = gy; vy = 0; ground = true; } }
+      bx += sh.vx; by += sh.vy; dist += Math.abs(sh.vx);
+      if (dist > sh.range || blockAt(w, bx, by)) break;
+      var top = duck ? y + (CHAR_H - DUCK_H) : y, h = duck ? DUCK_H : CHAR_H;
+      if (bx > me.x - 6 && bx < me.x + CHAR_W + 6 && by > top - 4 && by < top + h + 4) {
+        total += sh.k === 'p' ? Math.max(1, Math.round(sh.dmg * (1 - 0.5 * dist / sh.range))) : sh.dmg;
+        break;
+      }
+    }
+  }
+  return total;
+}
+// レールガンの溜め：撃たれる瞬間（op.chg フレーム後）に、ビームの高さに自分の体があるか
+function beamHitsMe(op, me, jumpNow) {
+  if (op.chg <= 0) return false;
+  var W = weaponOf(op), x1 = op.bx, dir = op.bdir || op.dir, tc = me.x + CHAR_W / 2;
+  if ((tc - x1) * dir < -10 || Math.abs(tc - x1) > W.range) return false;
+  var y = me.y, vy = me.onGround ? (jumpNow ? JUMP_F : 0) : me.vy, ground = me.onGround && !jumpNow, gy = me.onGround ? me.y : null;
+  for (var k = 0; k < op.chg; k++) if (!ground) { vy += GRAVITY; y += vy; if (gy !== null && vy > 0 && y >= gy) { y = gy; vy = 0; ground = true; } }
+  var top = y, h = CHAR_H;
+  return op.by > top - 4 && op.by < top + h + 4;
+}
+// 弾を見てから判断するまでに react フレームかかる（見えていない弾は計算に入れない）。
+// 何もしなければ当たるなら、跳ぶ・しゃがむのうち一番当たらない方を選ぶ。跳ぶのは「今跳ばないと間に合わない」瞬間まで待つ
+function bossDodge(b, w, me, op, side, inp) {
+  if (b.dodgeCd > 0) return;
+  var seenAny = false;
+  for (var i = 0; i < w.shots.length; i++) { var sh = w.shots[i]; if (!mine(w, side, sh.own) && sh.k !== 'g' && sh.age >= b.cfg.react) { seenAny = true; break; } }
+  if (seenAny) {
+    var rc = b.cfg.react, base = bossHits(w, me, side, -1, false, rc);
+    if (base > 0) {
+      var duck = bossHits(w, me, side, -1, true, rc);
+      if (me.onGround) {
+        var now = bossHits(w, me, side, 0, false, rc), later = bossHits(w, me, side, 3, false, rc);
+        if (now < base && now <= duck && now < later) { inp.jump = true; b.duckT = 0; b.dodgeCd = 2; return; }
+        if (duck < base && duck <= now) { b.duckT = 6; return; }
+      } else if (duck < base) { b.duckT = 4; return; }
+    }
+  }
+  if (op.chg > 0 && me.onGround && beamHitsMe(op, me, false) && !beamHitsMe(op, me, true)) { inp.jump = true; b.dodgeCd = 2; return; }
+  // 振りかぶり（槍・ハンマー）：当たる瞬間に高さが 40 以上離れていれば当たらない。4フレームあれば跳んで間に合う
+  var mW = weaponOf(op);
+  if (op.swT >= 4 && mW.kind === 'melee' && me.onGround && Math.abs(op.y - me.y) < 40 &&
+      Math.abs(me.x - op.x) <= mW.range + 10 && sign(me.x - op.x) === op.dir) { inp.jump = true; b.dodgeCd = 2; }
 }
 
 // 飛んでいるグレネードが、どこで爆発するかを最後までたどる（当たり方は stepGrenade と同じ）。
@@ -765,6 +961,78 @@ function evadeBlast(b, w, me, lp, need) {
   b.evadeJump = (room(dir) < need || lp.f < runT) ? w.frame + Math.max(0, lp.f - 10) : 0;
 }
 
+// ---- 戦術：状況を見て「どう戦うか」を選ぶ（数百ミリ秒ごと。選んだらしばらく続けて、細かく揺れないようにする）----
+// 判断の材料：両者の体力、両者の武器の得意な距離、相手のリロード・弾切れ、自分の弾、遮蔽物と高さ
+function decideTactic(b, w, me, op, dist, dy) {
+  var cfg = b.cfg, R = b.rnd;
+  var W = weaponOf(me), opW = WEAPONS[op.load[op.slot]];
+  var myEmpty = W.mag > 0 && me.ammo[me.slot] <= 0;
+  var myLow = W.mag > 2 && me.ammo[me.slot] <= Math.ceil(W.mag * 0.25);
+  var opReloading = op.rl > 20, opEmpty = opW.mag > 0 && op.ammo[op.slot] <= 0 && op.rl <= 0;
+  var spare = false;                                   // 弾のある別の武器（ナイフ等も含む）を持っているか
+  for (var k = 0; k < 3; k++) if (k !== me.slot) { var Wk = WEAPONS[me.load[k]]; if (Wk.mag === 0 || me.ammo[k] > 0) spare = true; }
+  var opShort = opW.kind === 'melee' || opW.kind === 'pellet';
+  var myFar = W.kind !== 'melee' && W.kind !== 'pellet' && W.band[1] >= 160;
+  var sameLevel = dy < 30, blocked = sameLevel && W.kind !== 'beam' && W.kind !== 'grenade' && blockedLine(w, me.x + CHAR_W / 2, op.x + CHAR_W / 2, muzzleY(me));
+  b.blockedT = blocked ? b.blockedT + b.tacT0 : 0;
+  var sc = { fight: 1.0, push: 0, kite: 0, retreat: 0, reload: 0, flank: 0 };
+  var shortMe = W.kind === 'melee' || W.kind === 'pellet', needClose = dist > W.band[1] + 20;
+  // 相手が撃てない間・弱っているときは、迷わず撃つ（攻め気）
+  b.aggr = opReloading || opEmpty || op.hp <= 30;
+  // 詰めて倒しにいく：自分が近い武器か、今の距離が遠すぎるときだけ（近距離武器の相手に自分から近づかない）
+  if (op.hp <= 30 && (shortMe || needClose) && !(opShort && !shortMe)) sc.push += 1.3;
+  if ((opReloading || opEmpty) && (shortMe || needClose)) sc.push += 1.6;
+  if (me.hp > op.hp + 30 && (shortMe || needClose) && !(opShort && !shortMe)) sc.push += 0.5;
+  // 自分の体力が少ない → 下がって隠れる。ただし近距離武器で迫ってくる相手には、背を向けずに撃ち合う
+  if (me.hp <= 35 && !(opShort && dist < 240)) sc.retreat += 1.2 + (op.hp > me.hp ? 0.6 : 0) + (me.healUsed ? 0 : 0.4);
+  // 弾切れで、持ち替えられる武器もない → 安全な所でリロード。残りわずかで離れているときも
+  if (myEmpty && !spare) sc.reload += 2.2;
+  else if (myLow && (dist > 260 || dy > 40)) sc.reload += 0.9;
+  // 相手が近距離の武器（ナイフ・ショットガン等）で、自分は離れて戦える → 近づかせない
+  if (opShort && myFar) sc.kite += 1.3 + (dist < 140 ? 0.5 : 0);
+  // 同じ高さなのに遮蔽物で撃てない状態が続いている → 回り込む
+  if (b.blockedT > 60) sc.flank += 1.4;
+  // 判断の正確さ：賢くないほど、別の手を選んでしまうことがある
+  var best = 'fight', bestS = -1e9;
+  for (var key in sc) { var v = sc[key] + (1 - cfg.smart) * R() * 1.8; if (v > bestS) { bestS = v; best = key; } }
+  b.tac = best;
+  b.tacT0 = Math.round(18 + (1 - cfg.smart) * 30 + R() * 12);   // 0.3〜1秒ほど、この戦術を続ける
+  b.tacT = b.tacT0;
+}
+// 相手が持ち替えられる武器（3つ）のうち、近づかれると危ないもの（近接・散弾）が届く距離。なければ 0
+function shortThreat(op) {
+  var t = 0;
+  for (var k = 0; k < 3; k++) { var Wk = WEAPONS[op.load[k]]; if (Wk.kind === 'melee') t = Math.max(t, Wk.range + 64); else if (Wk.kind === 'pellet') t = Math.max(t, Wk.range + 36); }
+  return t;
+}
+// 戦術に合わせて、立ちたい距離の範囲を変える
+function tacBand(b, W, op) {
+  var lo = W.band[0], hi = W.band[1];
+  // 鬼帝：自分が離れて撃てる武器なら、相手の近接・散弾（持ち替え先も含む）が届く距離には入らない
+  if (b.cfg.boss && W.kind !== 'melee' && W.kind !== 'pellet') {
+    var th = shortThreat(op);
+    if (th > lo) { lo = Math.min(th, W.range * 0.8); hi = Math.max(hi, Math.min(lo + 60, W.range * 0.95)); }
+  }
+  if (b.tac === 'push') { hi = lo + (hi - lo) * 0.45; lo = W.kind === 'melee' ? 0 : Math.max(24, lo * 0.7); }
+  else if (b.tac === 'kite') {
+    var opW = WEAPONS[op.load[op.slot]], keep = (opW.kind === 'melee' ? opW.range : opW.range * 0.75) + 70;
+    lo = Math.max(lo, keep); hi = Math.min(Math.max(hi, lo + 90), W.range * 0.95);
+    if (lo > hi) lo = Math.max(W.band[0], hi - 40);
+  }
+  return [lo, hi];
+}
+// 相手が今から t フレーム後にいる高さ（空中なら、落ちてくる先まで読む）
+function predictTopY(w, c, t) {
+  if (c.onGround || t <= 0) return c.y;
+  var y = c.y, vy = c.vy, floor = GND;
+  for (var i = 0; i < w.plats.length; i++) {
+    var p = w.plats[i];
+    if (c.x + CHAR_W > p.x && c.x < p.x + p.w && p.y >= c.y + CHAR_H - 2 && p.y < floor) floor = p.y;
+  }
+  for (var k = 0; k < t && k < 90; k++) { vy += GRAVITY; y += vy; if (vy > 0 && y + CHAR_H >= floor) return floor - CHAR_H; }
+  return y;
+}
+
 // 今撃てば当たりそうか
 function aimOk(b, w, me, op, W, dist, dy, toOp) {
   var cfg = b.cfg;
@@ -777,19 +1045,57 @@ function aimOk(b, w, me, op, W, dist, dy, toOp) {
     var R = W.splash * 0.7, oc = op.y + CHAR_H / 2;
     for (var k = 0; k < 2; k++) {
       var p = predictGrenade(w, me, toOp, W, k === 1);
-      if (p && Math.abs(p.x - (op.x + CHAR_W / 2)) < R && Math.abs(p.y - oc) < 40) return k === 1 ? 'press' : true;
+      var lead = cfg.boss && p ? clamp(op.vx * p.t * 0.7, -90, 90) : 0;   // 鬼帝：落ちるまでに相手が歩いて動く先を読む
+      if (p && Math.abs(p.x - (op.x + CHAR_W / 2 + lead)) < R && Math.abs(p.y - oc) < 40) return k === 1 ? 'press' : true;
     }
     return false;
   }
-  if (dy > cfg.hTol || dist > W.range * (W.kind === 'pellet' ? 0.85 : 0.95)) return false;
+  if (dist > W.range * (W.kind === 'pellet' ? 0.85 : 0.95)) return false;
+  if (cfg.boss && W.kind === 'beam') {
+    // 鬼帝のレールガン：溜め終わる瞬間（W.charge フレーム後）に、相手の体がビームの高さにあるかを読む
+    var bt = predictTopY(w, op, W.charge), btop = bt + (op.ducking ? CHAR_H - DUCK_H : 0), by0 = muzzleY(me);
+    if (by0 < btop - 4 || by0 > bt + CHAR_H + 4) return false;
+  } else if (cfg.smart >= 0.85 && W.kind !== 'beam' && W.spd > 0) {
+    // 読み撃ち：弾が届くまでの間に相手がどこへ動くか（ジャンプの落ち先）を読んで、届く高さなら撃つ
+    var tt = Math.round(dist / W.spd), py = predictTopY(w, op, tt), top = py + (op.ducking ? CHAR_H - DUCK_H : 0);
+    var myY = muzzleY(me);
+    if (myY < top - 4 || myY > py + CHAR_H + 4) return false;
+  } else if (dy > cfg.hTol) return false;
   if (W.kind !== 'beam' && blockedLine(w, me.x + CHAR_W / 2, op.x + CHAR_W / 2, muzzleY(me))) return false;
   return true;
 }
 
+// チーム戦：ねらう相手を決める。今の相手より 90 以上近い敵がいるときだけ乗りかえる
+function pickFoe(b, w, side, me) {
+  var list = foes(w, side), cur = b.foe ? w.chars[b.foe] : null, best = null, bd = 1e9;
+  for (var i = 0; i < list.length; i++) {
+    var c = list[i];
+    if (c.dead) continue;
+    var d = Math.abs(c.x - me.x) + Math.abs(c.y - me.y) * 1.5 - (c === cur ? 90 : 0);
+    if (d < bd) { bd = d; best = c; }
+  }
+  b.foe = best ? best.side : null;
+  return best;
+}
+function mine(w, side, own) { return own === side || (w.teams && teamOf(own) === teamOf(side)); }   // 自分か味方の弾
 function think(b, w, side) {
-  var cfg = b.cfg, R = b.rnd, me = w.chars[side], op = w.chars[other(side)];
+  var cfg = b.cfg, R = b.rnd, me = w.chars[side], op = w.teams ? pickFoe(b, w, side, me) : w.chars[other(side)];
+  if (!op) return { left: false, right: false, duck: false, fire: false, slot: b.wantSlot };
   var inp = { left: false, right: false, duck: false, fire: false, slot: b.wantSlot };
   if (me.dead || op.dead) return inp;
+  // 鬼帝：ごくまれに判断が遅れる瞬間がある（その間は新しい判断をせず、それまでの歩きを続けるだけ。撃たない・よけない）
+  if (cfg.lapse) {
+    if (b.lapseT <= 0 && R() < cfg.lapse) { b.lapseT = cfg.lapseLen; b.lapses++; }
+    if (b.lapseT > 0) {
+      b.lapseT--;
+      var li = b.lastInp || inp, nv = w.nav || (w.nav = buildNav(w));
+      inp.left = !!li.left; inp.right = !!li.right;
+      var d0 = inp.left ? -1 : inp.right ? 1 : 0;
+      if (d0 && me.onGround && pitAhead(nv, me, d0, 40)) { inp.left = false; inp.right = false; }   // 穴の近くでは足を止める（落ちるほどの失敗はしない）
+      keepFooting(b, w, me, inp);
+      return inp;
+    }
+  }
   var mx = me.x + CHAR_W / 2, ox = op.x + CHAR_W / 2, dx = ox - mx, dist = Math.abs(dx), toOp = dx >= 0 ? 1 : -1;
   var dy = Math.abs((me.y + CHAR_H / 2) - (op.y + CHAR_H / 2));
 
@@ -815,14 +1121,25 @@ function think(b, w, side) {
     }
     inp.slot = b.wantSlot;
   }
-  var W = weaponOf(me);
+  var W = weaponOf(me), opW = WEAPONS[op.load[op.slot]];
+  // 戦術を決め直す（決めたらしばらく続ける）
+  if (--b.tacT <= 0) decideTactic(b, w, me, op, dist, dy);
+  // リロード：弾が切れたら（撃てないので）すぐ。残りが少ないときは、安全なうちに（賢いCPUほど）
+  if (W.mag > 0 && me.ammo[me.slot] < W.mag && me.rl <= 0 && me.burst <= 0 && me.chg <= 0 && b.spray <= 0) {
+    var threat = (opW.kind === 'melee' || opW.kind === 'pellet') ? 360 : opW.range + 80;   // 突っ込んでくる武器は遠くても危ない
+    var safe = dy > 40 || dist > threat || b.tac === 'reload';
+    if (me.ammo[me.slot] <= 0) inp.reload = true;
+    else if (safe && W.mag > 2 && me.ammo[me.slot] <= W.mag * 0.5 && R() < cfg.smart * 0.05) inp.reload = true;
+  }
+  // 下がっているとき：体力が少なく、回復が残っていれば、弾の届かない所で使う
+  if (b.tac === 'retreat' && !me.healUsed && me.hp <= 55 && (dy > 40 || dist > 300) && R() < cfg.hCh * 0.08) inp.heal = true;
 
   // 回避：向かってくる弾・溜め中のレールガン・近くに落ちるグレネード
   if (b.seenN > 60) { b.seen = {}; b.seenN = 0; }
   if (b.dodgeCd > 0) b.dodgeCd--;
   for (var i = 0; i < w.shots.length && b.dodgeCd <= 0; i++) {
     var sh = w.shots[i];
-    if (sh.own === side || sh.age < cfg.react || b.seen[sh.sid]) continue;
+    if (mine(w, side, sh.own) || sh.age < cfg.react || b.seen[sh.sid]) continue;
     if (sh.k === 'g') {
       // グレネードは弧を描いて飛び、落ちた場所で爆発する。上りも下りも含めて最後までたどり、
       // 爆風（splash）が自分に届くかどうかで決める。まだ危なくない弾は覚えず、近づいたらまた見る
@@ -836,6 +1153,7 @@ function think(b, w, side) {
       if (R() < Math.min(1, cfg.dodge * 1.25 + 0.1)) evadeBlast(b, w, me, lp, Math.max(need, 30));
       continue;
     }
+    if (cfg.boss) continue;                          // 鬼帝は下の bossDodge で、届く瞬間を計算してよける
     if (Math.abs(sh.y - (me.y + CHAR_H / 2)) < 30 && Math.abs(sh.x - mx) < cfg.see && sign(sh.vx) === sign(mx - sh.x)) {
       b.seen[sh.sid] = 1; b.seenN++; b.dodgeCd = cfg.react;   // 判断したら、次の判断まで反応時間ぶん空く
       if (R() < cfg.dodge) {
@@ -844,8 +1162,13 @@ function think(b, w, side) {
       }
     }
   }
+  // 撃たれそうな瞬間：同じ高さで相手がこちらを向き、今すぐ撃てる → ときどき跳んで射線を外す（賢いCPUほど）
+  if (cfg.boss) bossDodge(b, w, me, op, side, inp);
+  var opWn = WEAPONS[op.load[op.slot]];
+  if (cfg.smart >= 0.85 && !cfg.boss && me.onGround && dy < 26 && op.dir === -toOp && canFire(op) && opWn.kind !== 'melee' &&
+      dist < opWn.range && dist > 60 && b.dodgeCd <= 0 && R() < 0.035 * cfg.dodge) { inp.jump = true; b.dodgeCd = cfg.react; }
   if (op.chg > 0) {
-    if (!b.seenChg && op.chg <= 14 && dy < 30 && op.dir === -toOp) {
+    if (!b.seenChg && !cfg.boss && op.chg <= 14 && dy < 30 && op.dir === -toOp) {
       b.seenChg = true;
       if (R() < cfg.dodge && me.onGround) inp.jump = true;
     }
@@ -876,7 +1199,7 @@ function think(b, w, side) {
       else { b.edge = null; b.moveT = 999; }
     }
   } else if (b.goalX !== null && b.goalX !== undefined) {
-    tx = clamp(b.goalX + (b.mode === 'fight' ? b.strafeOff : 0), b.node ? b.node.lo : 0, b.node ? b.node.hi : WORLD_W - CHAR_W);
+    tx = clamp(b.goalX + (b.mode === 'fight' ? b.strafeOff : 0), b.node ? b.node.slo : 0, b.node ? b.node.shi : WORLD_W - CHAR_W);
     loose = true;
   }
   if (b.evadeT > 0) { if (--b.evadeT <= 0) b.evadeGren = false; tx = me.x + b.evadeDir * 40; if (b.node) tx = clamp(tx, b.node.lo, b.node.hi); loose = false; }
@@ -906,7 +1229,7 @@ function think(b, w, side) {
   // 射撃
   var ready = canFire(me) && !b.evadeGren, faceOp = false, press = false;   // 爆風から逃げている間は撃たない（撃つと足が止まる）
   if (!ready) { if (me.cool > 0 || me.rl > 0 || me.chg > 0) b.wait = -1; }
-  else if (b.wait < 0) b.wait = cfg.wMin + Math.floor(R() * (cfg.wMax - cfg.wMin));
+  else if (b.wait < 0) b.wait = Math.round((cfg.wMin + Math.floor(R() * (cfg.wMax - cfg.wMin))) * (b.tac === 'push' || b.aggr ? 0.55 : 1));   // 詰めるとき・相手が撃てないときは、撃つまでの迷いが少ない
   if (b.spray > 0) {                                // 連射武器は少しのあいだ押し続ける
     if (me.rl <= 0 && !b.evadeGren && dy <= cfg.hTol && dist <= W.range) { b.spray--; inp.fire = true; faceOp = true; }
     else b.spray = 0;
@@ -917,6 +1240,7 @@ function think(b, w, side) {
     if (b.wait > 0) b.wait--;
     else {
       var ok = aimOk(b, w, me, op, W, dist, dy, toOp);
+      if (ok && (W.wind || W.rec || W.charge) && !canCommit(w, me)) ok = false;
       if (ok) {
         inp.shoot = true; b.wait = -1; faceOp = true; press = ok === 'press'; b.holdT = 12 + Math.floor(R() * 14);
         if (W.kind === 'melee' && R() < cfg.whiff) { inp.shoot = false; b.wait = 6 + Math.floor(R() * 10); }   // 振るタイミングを迷う
@@ -938,7 +1262,13 @@ function think(b, w, side) {
   }
   else if (press || (faceOp && me.dir !== toOp)) { inp.left = toOp < 0; inp.right = toOp > 0; }   // 相手の方を向く
   else if (faceOp && ((inp.left && toOp > 0) || (inp.right && toOp < 0))) { inp.left = false; inp.right = false; }   // 背を向けずに止まって撃つ
-  // ---- 落ちないための最後の確認 ----
+  keepFooting(b, w, me, inp);
+  b.lastInp = inp;
+  return inp;
+}
+
+// ---- 落ちないための最後の確認（入力を直す）----
+function keepFooting(b, w, me, inp) {
   var nav = w.nav || (w.nav = buildNav(w));
   if (b.air && !me.onGround) {               // 跳び移っている途中は、着地したい足場へ寄せることだけする
     var ax = airTarget(b.air, me);
@@ -952,9 +1282,22 @@ function think(b, w, side) {
   } else {                                   // 地上：穴に向かって歩いたり跳んだりしない（跳び移る予定のときを除く）
     var d2 = inp.left ? -1 : inp.right ? 1 : 0;
     var toTakeoff = !inp.jump && b.edge && (d2 < 0) === (b.edgeX < me.x);   // 跳び移る場所へ歩いているところ
-    if (d2 && !(inp.jump && b.air) && !toTakeoff && pitAhead(nav, me, d2, inp.jump ? 80 : 4)) { inp.left = false; inp.right = false; }
+    // 止まってもすぐには止まれない（1歩＋すべり）。そのぶん先まで見る
+    if (d2 && !(inp.jump && b.air) && !toTakeoff && pitAhead(nav, me, d2, inp.jump ? 80 : SPEED * 2 + 2)) { inp.left = false; inp.right = false; d2 = 0; }
+    // 止まったあとのすべりで端から落ちそうなら、反対へ一歩もどす
+    var sd = me.vx > 0.1 ? 1 : me.vx < -0.1 ? -1 : 0;
+    if (!d2 && sd && !toTakeoff && pitAhead(nav, me, sd, Math.abs(me.vx) * 2 + 1)) { inp.left = sd > 0; inp.right = sd < 0; }
   }
-  return inp;
+  // 空中：このまま落ちると穴なら、着地できる向きへ寄せる（予定の足場に届かないときも、まず落ちないことを優先）
+  if (!me.onGround && !me.dead) {
+    var cur = inp.left ? -1 : inp.right ? 1 : 0;
+    if (!landing(w, me, cur)) {
+      var alt = [-cur || -1, cur ? 0 : 1, cur || 1];
+      for (var ai = 0; ai < alt.length; ai++) {
+        if (alt[ai] !== cur && landing(w, me, alt[ai])) { inp.left = alt[ai] < 0; inp.right = alt[ai] > 0; break; }
+      }
+    }
+  }
 }
 
 // ---- レート ----
@@ -962,28 +1305,24 @@ function think(b, w, side) {
 // 下から：（なし）<LT5<HT5<LT4<HT4<LT3<HT3<LT2<HT2<LT1<HT1
 var RATE_START = 1000;            // 始まりのレート（＝LT5）
 var RATE_FLOOR = 800;             // これより下がらない
-var TIER_GRACE = 60;              // 降格の猶予：ティアの下限より少し下まではティアを保つ
 var TIER_MIN = [0, 1000, 1100, 1200, 1350, 1500, 1650, 1800, 2000, 2250, 2550];
 var BOT_TIER_CAP = 9;             // BOT戦だけで行けるのは LT1 の下限（2250）まで。HT1 は本物に勝った人だけ
-// レートからティアを出す。cur を渡すと、下がるときだけ TIER_GRACE ぶんの猶予をみる（すぐには落ちない）
-function tierOfRate(rate, cur) {
-  var i = 0, k;
-  for (k = TIER_MIN.length - 1; k >= 1; k--) if (rate >= TIER_MIN[k]) { i = k; break; }
-  if (cur > i && cur < TIER_MIN.length && rate >= TIER_MIN[cur] - TIER_GRACE) i = cur;
-  return i;
+// レートからティアを出す（レートの数値だけで決まる。猶予や飛び級はない）
+function tierOfRate(rate) {
+  for (var k = TIER_MIN.length - 1; k >= 1; k--) if (rate >= TIER_MIN[k]) return k;
+  return 0;
 }
 // Elo の期待勝率（相手より 400 高ければ 10回中9回勝つ見込み）
 function rateExpect(mine, theirs) { return 1 / (1 + Math.pow(10, (theirs - mine) / 400)); }
 // 1試合ぶんのレートの増減。
-// o = { mine, theirs, win, games(これまでのランクマッチ数), streak(格下に連敗した数), wstreak(連勝数), myTier, opTier }
+// o = { mine, theirs, win, games(これまでのランクマッチ数), streak(格下に連敗した数), wstreak(連勝数) }
 function rateChange(o) {
   var mine = +o.mine || RATE_START, theirs = +o.theirs || RATE_START, win = !!o.win, g = +o.games || 0;
   var K = g < 10 ? 48 : g < 30 ? 32 : 24;                    // 始めのうちは大きく動かして、早く実力の位置へ
   var d = K * ((win ? 1 : 0) - rateExpect(mine, theirs));
   if (win) {
-    // 格上に勝ったときのボーナス：ティア差が大きいほど大きい（最大 +60）
-    var myT = o.myTier == null ? tierOfRate(mine) : o.myTier, opT = o.opTier == null ? tierOfRate(theirs) : o.opTier;
-    d += Math.min(60, Math.max(0, opT - myT) * 15);
+    // 格上に勝つほど大きく上がる：相手が上の分だけ倍率をかける（400上で2倍、800上で3倍）
+    d *= 1 + Math.max(0, theirs - mine) / 400;
     // 連勝しているうちは上がり方を速くする（実力よりレートが低い人が、早く自分の位置まで上がれるように）
     var ws = (+o.wstreak || 0) + 1;
     d *= ws >= 8 ? 2 : ws >= 5 ? 1.6 : ws >= 3 ? 1.3 : 1;
@@ -1000,23 +1339,25 @@ function rateChange(o) {
 // 1試合ぶんを当てはめた結果（レート・ティア・連敗数の新しい値）
 // cap を渡すと、そのティアの下限までしか上がらない（BOT戦の上限に使う）
 function applyRate(st, o) {
-  var rate = +st.rate || RATE_START, tier = +st.tier || tierOfRate(rate), games = +st.games || 0;
+  var rate = +st.rate || RATE_START, games = +st.games || 0;
   var streak = +st.streak || 0, wstreak = +st.wstreak || 0;
-  var d = rateChange({ mine: rate, theirs: o.theirs, win: o.win, games: games, streak: streak, wstreak: wstreak, myTier: tier, opTier: o.opTier });
+  var base = o.mine != null ? +o.mine : rate;   // 2v2：チームの平均
+  var d = rateChange({ mine: base, theirs: o.theirs, win: o.win, games: games, streak: streak, wstreak: wstreak });
   var next = Math.max(RATE_FLOOR, rate + d);
   if (o.cap != null && next > rate) next = Math.max(rate, Math.min(next, TIER_MIN[o.cap] || next));
   d = next - rate;
   return {
     rate: next, delta: d, before: rate,
-    tier: tierOfRate(next, tier), tierBefore: tier,
+    tier: tierOfRate(next), tierBefore: tierOfRate(rate),
     games: games + 1,
-    streak: (!o.win && +o.theirs < rate) ? streak + 1 : 0,  // 格下に負けた連続回数（勝つか、格上に負ければ 0 に戻る）
+    streak: (!o.win && +o.theirs < base) ? streak + 1 : 0,  // 格下に負けた連続回数（勝つか、格上に負ければ 0 に戻る）
     wstreak: o.win ? wstreak + 1 : 0                        // 連勝数（負けたら 0 に戻る）
   };
 }
 
 // ---- 称号（二つ名） ----
-// id と、レア（カードで青いネオンに光る）かどうか。gate はサーバーが確かめる条件（オンライン戦績・フレンド数・開拓者）。
+// id と、見た目（rare＝青いネオン／gift＝緑のネオン＝開発者から贈られた称号／mythic＝黒と金）。
+// gate はサーバーが確かめる条件（オンライン戦績・フレンド数・開拓者・贈られた人）。
 // gate のない称号は CPU 戦などの手元の記録で決まる。名前と取り方の説明は lang.js の title.〇〇 / tcond.〇〇
 var TITLES = [
   { id: 'rookie' },
@@ -1027,7 +1368,10 @@ var TITLES = [
   { id: 'partner', gate: { friends: 1 } }, { id: 'magnificent7', gate: { friends: 7 } },
   { id: 'one_pistol', rare: true },
   { id: 'untouched' }, { id: 'close_call' }, { id: 'unstoppable' }, { id: 'precision' }, { id: 'pit_drop' }, { id: 'wanderer', rare: true },
-  { id: 'short_sleeper', rare: true }, { id: 'first_steps' }, { id: 'pioneer', rare: true, gate: { pioneer: true } }, { id: 'rule_breaker' }
+  { id: 'short_sleeper', rare: true }, { id: 'first_steps' }, { id: 'pioneer', rare: true, gate: { pioneer: true } }, { id: 'first_ten', rare: true, gate: { pioneer10: true } }, { id: 'rule_breaker' },
+  { id: 'emperor_slayer', rare: true, mythic: true },   // 隠しボス「鬼帝」に勝つ（mythic：黒と金の特別な見た目）
+  // 開発者が贈る称号（gift：緑のネオン）。サーバーが「贈られた人」と認めた人だけ使える。自力では取れない
+  { id: 'trusted_hacker', gift: true, gate: { hacker: true } }
 ];
 // 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
 // 前からある6つ（影の刃・千里眼・至近距離の鬼・蜂の巣職人・爆弾魔・電磁砲の申し子）は id をそのまま使う
@@ -1037,7 +1381,8 @@ WEAPON_IDS.forEach(function (wid) {
   var key = WEAPONS[wid].key;
   KILL_STEPS.forEach(function (n) { TITLES.push({ id: KILL_TITLE_OLD[key + n] || 'kill_' + key + '_' + n, kill: { w: wid, n: n }, rare: n >= 100 }); });
 });
-// その称号を使ってよいか。ctx = { w, l, friends, pioneer }（オンライン戦績・フレンド数・開拓者か。ログインしていなければ null）
+// その称号を使ってよいか。ctx = { w, l, friends, pioneer, pioneer10, hacker }
+// （オンライン戦績・フレンド数・開拓者か・最初の10人か・贈られた人か。ログインしていなければ null）
 function titleOk(id, ctx) {
   for (var i = 0; i < TITLES.length; i++) {
     if (TITLES[i].id !== id) continue;
@@ -1049,6 +1394,8 @@ function titleOk(id, ctx) {
     if (g.n && (n < g.n || w / n < g.rate)) return false;
     if (g.friends && (ctx.friends || 0) < g.friends) return false;
     if (g.pioneer && !ctx.pioneer) return false;
+    if (g.pioneer10 && !ctx.pioneer10) return false;
+    if (g.hacker && !ctx.hacker) return false;
     return true;
   }
   return false;
@@ -1060,11 +1407,12 @@ var api = {
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), cleanLook: cleanLook, randomLook: randomLook,
-  cleanLoadout: cleanLoadout, newWorld: newWorld, newChar: newChar, setInput: setInput, step: step,
+  cleanLoadout: cleanLoadout, newWorld: newWorld, newRangeWorld: newRangeWorld,
+  TEAM_SLOTS: deepFreeze(TEAM_SLOTS.slice()), teamOf: teamOf, newTeamWorld: newTeamWorld, stepTeam: stepTeam, teamResult: teamResult, foes: foes, newTarget: newTarget, stepRange: stepRange, newChar: newChar, setInput: setInput, step: step,
   stepChar: stepChar, stepShots: stepShots, physics: physics, canFire: canFire, weaponOf: weaponOf, muzzleY: muzzleY,
   packChar: packChar, packShots: packShots, blockAt: blockAt,
-  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, aiForRate: aiForRate,
-  RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_GRACE: TIER_GRACE, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
+  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, decideTactic: decideTactic,
+  RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
   TITLES: deepFreeze(TITLES), titleOk: titleOk
 };

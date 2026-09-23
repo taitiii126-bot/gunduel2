@@ -15,11 +15,16 @@ const CLIENT_ID = process.env.DISCORD_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
 // 利用停止するDiscordのユーザーID（カンマ区切り）。ログインもトークンも使えなくなる
 const BANNED_IDS = new Set((process.env.BANNED_DISCORD_IDS || '').split(',').map(s => s.trim()).filter(Boolean));
+// 称号「信頼のハッカー」を贈る人。フレンドコード（8文字）か Discord の ID をカンマ区切りで環境変数に書く。
+// 例: GIFT_HACKER_IDS=ABCD2345 　書けば付き、消せば外れる（コードには誰も書かない）
+const GIFT_HACKER = new Set((process.env.GIFT_HACKER_IDS || '').split(',').map(s => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean));
+const isGiftHacker = u => GIFT_HACKER.has(String(u.fid || '').toUpperCase()) || GIFT_HACKER.has(String(u.id || ''));
+const setGift = u => { const g = isGiftHacker(u); if (g === !!u.hacker) return false; if (g) u.hacker = true; else delete u.hacker; return true; };
 
-let db = { users: {}, tokens: {} };
+let db = { users: {}, tokens: {}, meta: {} };
 try {
   const loaded = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-  if (loaded && typeof loaded === 'object') db = { users: loaded.users || {}, tokens: loaded.tokens || {} };
+  if (loaded && typeof loaded === 'object') db = { users: loaded.users || {}, tokens: loaded.tokens || {}, meta: loaded.meta || {} };
 } catch (e) { /* 初回は存在しない */ }
 
 // フレンドID：英数字8桁（見間違えやすい 0/O・1/I/L は使わない）。アカウントごとに1つ、変わらない
@@ -43,26 +48,50 @@ const normFid = v => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]
 let dirty = false;
 const touch = () => { dirty = true; };
 for (const u of Object.values(db.users)) giveFid(u);   // 前からいる人にも配る
+for (const u of Object.values(db.users)) if (setGift(u)) dirty = true;   // 贈られた称号（環境変数のとおりに付け外し）
+// 完全レート制に切りかえたので、全員のレートを1000からやり直す（1回だけ）。
+// 戦績（オンラインの勝敗）・称号・見た目・解放済みの背景は消さない
+if ((db.meta.rateEpoch || 0) < 2) {
+  for (const u of Object.values(db.users)) {
+    u.rate = SIM.RATE_START; u.rtier = SIM.tierOfRate(SIM.RATE_START); u.rgames = 0; u.rstreak = 0; u.rwstreak = 0;
+    u.rpeak = SIM.RATE_START; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
+  }
+  db.meta.rateEpoch = 2; dirty = true;
+}
 // 開拓者：最初の100人のアカウント（あとから外れることはない）
 const PIONEERS = 100;
 Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, PIONEERS)
   .forEach(u => { if (!u.pioneer) { u.pioneer = true; dirty = true; } });
+// 超古参プレイヤー：いちばん最初の10人のアカウント（あとから外れることはない）
+const FIRST_TEN = 10;
+Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, FIRST_TEN)
+  .forEach(u => { if (!u.pioneer10) { u.pioneer10 = true; dirty = true; } });
 // 称号の確認に使う本人の情報
-const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer });
+const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker });
 
 // ---- レート ----
-// ティアはレートで決まる。最初のレートは、CPU戦で到達したティアの下限（ランクマッチを1戦でもしたら、もう上がらない）
+// ティアはレートの数値だけで決まる。最初は全員1000。レートが動くのはランクマッチだけ（CPU戦では動かない）
 function rateState(u) {
-  const best = Math.max(u.tierBest || 0, u.profile ? P.tierIndex(u.profile.tierProgress) : 0);
-  const base = SIM.TIER_MIN[best] || SIM.RATE_START;
-  if (typeof u.rate !== 'number' || !isFinite(u.rate)) { u.rate = base; u.rgames = 0; touch(); }
-  if (!u.rgames && u.rate < base) { u.rate = base; touch(); }
-  if (typeof u.rtier !== 'number') { u.rtier = SIM.tierOfRate(u.rate); touch(); }
-  const t2 = SIM.tierOfRate(u.rate, u.rtier);   // レートが動いたらティアも合わせ直す（下がるときは猶予つき）
-  if (t2 !== u.rtier) { u.rtier = t2; touch(); }
+  if (typeof u.rate !== 'number' || !isFinite(u.rate)) { u.rate = SIM.RATE_START; u.rgames = 0; touch(); }   // 全員1000から
+  const t2 = SIM.tierOfRate(u.rate);   // ティアはレートの数値だけで決まる
+  if (u.rtier !== t2) { u.rtier = t2; touch(); }
   if (!u.ranked) { u.ranked = { w: 0, l: 0 }; touch(); }
   return { rate: u.rate, tier: u.rtier, games: u.rgames || 0, streak: u.rstreak || 0, wstreak: u.rwstreak || 0,
     w: u.ranked.w, l: u.ranked.l, peak: u.rpeak || u.rate };
+}
+// ---- 2v2 のレート（1v1 とは完全に別。1000 から、ティアの区切りは同じ）----
+function rateState2(u) {
+  if (typeof u.rate2 !== 'number' || !isFinite(u.rate2)) { u.rate2 = SIM.RATE_START; u.rgames2 = 0; touch(); }
+  if (!u.ranked2) { u.ranked2 = { w: 0, l: 0 }; touch(); }
+  return { rate: u.rate2, tier: SIM.tierOfRate(u.rate2), games: u.rgames2 || 0, streak: u.rstreak2 || 0, wstreak: u.rwstreak2 || 0,
+    w: u.ranked2.w, l: u.ranked2.l, peak: u.rpeak2 || u.rate2 };
+}
+function writeRate2(u, r, win) {
+  u.rate2 = r.rate; u.rgames2 = r.games; u.rstreak2 = r.streak; u.rwstreak2 = r.wstreak;
+  u.rpeak2 = Math.max(u.rpeak2 || 0, r.rate);
+  if (!u.ranked2) u.ranked2 = { w: 0, l: 0 };
+  if (win) u.ranked2.w++; else u.ranked2.l++;
+  touch();
 }
 function writeRate(u, r, win) {
   u.rate = r.rate; u.rtier = r.tier; u.rgames = r.games; u.rstreak = r.streak; u.rwstreak = r.wstreak;
@@ -90,9 +119,10 @@ function cleanName(v) {
   return n || 'プレイヤー';
 }
 function publicUser(u) {
-  const r = rateState(u);
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer,
-    rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak };
+  const r = rateState(u), r2 = rateState2(u);
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker,
+    rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak,
+    rate2: r2.rate, tier2: r2.tier, rgames2: r2.games, ranked2: { w: r2.w, l: r2.l }, peak2: r2.peak };
 }
 function cleanupTokens() {
   const now = Date.now();
@@ -135,8 +165,10 @@ const auth = {
       u = db.users[uid] = { id: uid, name: '', created: Date.now(), online: { w: 0, l: 0 } };
       giveFid(u);
       if (Object.keys(db.users).length <= PIONEERS) u.pioneer = true;
+      if (Object.keys(db.users).length <= FIRST_TEN) u.pioneer10 = true;
     }
     u.name = cleanName(info.name);
+    setGift(u);                                        // 贈られた称号は、入り直すたびに環境変数と合わせる
     u.lastSeen = Date.now();
     cleanupTokens();
     const token = crypto.randomBytes(32).toString('base64url');
@@ -193,6 +225,23 @@ const auth = {
     return r;
   },
 
+  // 2v2 のレート（1v1 とは別）
+  rating2(uid) { const u = db.users[uid]; return u ? rateState2(u) : null; },
+  // 2v2 のランクマッチの結果を1人ぶん当てはめる。o = { mine: 自分のチームの平均, theirs: 相手チームの平均, win, cap }
+  applyRanked2(uid, o) {
+    const u = db.users[uid];
+    if (!u) return null;
+    const st = rateState2(u);
+    const r = SIM.applyRate(st, { mine: o.mine, theirs: o.theirs, win: !!o.win, cap: o.win ? (o.cap == null ? null : o.cap) : null });
+    writeRate2(u, r, !!o.win);
+    return r;
+  },
+  rankRow2(u) {
+    if (!u || BANNED_IDS.has(String(u.id))) return null;
+    const r = rateState2(u), p = u.profile || null;
+    return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie',
+      tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games };
+  },
   // ランキングに出す1行（BOTはアカウントを持たないので、そもそも入らない）
   rankRow(u) {
     if (!u || BANNED_IDS.has(String(u.id))) return null;
@@ -293,12 +342,13 @@ const auth = {
   seen(uid) { const u = db.users[uid]; if (u) { u.lastSeen = Date.now(); touch(); } },
   // 他の人に見せるカード（DiscordのユーザーIDは出さない）
   card(u, status) {
-    const p = u.profile || null, rs = rateState(u), tier = rs.tier;
+    const p = u.profile || null, rs = rateState(u), tier = rs.tier, r2 = rateState2(u);
     return {
       fid: u.fid, name: p ? p.name : u.name, discord: u.name,
       title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie', bio: p ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
       tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },
+      rate2: r2.rate, tier2: r2.tier, ranked2: { w: r2.w, l: r2.l },
       status, lastSeen: status === 'offline' ? (u.lastSeen || 0) : 0,
     };
   },

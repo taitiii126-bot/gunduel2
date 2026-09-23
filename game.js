@@ -7,7 +7,12 @@ const SIM = require(fs.existsSync(path.join(__dirname, 'sim.js')) ? './sim.js' :
 
 const WIN_ROUNDS = 3;
 const TICK_MS = 1000 / 60;
-const LOBBY_MS = +process.env.LOBBY_MS || 13500;   // マッチング演出（VS画面）3秒＋10秒カウントダウン＋画面切替0.5秒
+// 試合前：VS画面（VS_MS）のあと、最大 PREP_MS の準備時間。両者が準備完了を押したらすぐ始める
+// （テストでは LOBBY_MS で全体を短くできる）
+const VS_MS = process.env.LOBBY_MS ? 0 : (+process.env.VS_MS || 3300);
+const PREP_MS = +process.env.LOBBY_MS || +process.env.PREP_MS || 10000;
+// ラウンド間：倒れる演出（ROUND_GAP_MS）のあと、最大 PICK_MS の武器変更。両者が「決定」を押したらすぐ次へ
+const PICK_MS = process.env.PICK_MS != null ? +process.env.PICK_MS : 10000;
 const ROUND_GAP_MS = 2000, MATCH_END_MS = 1800;
 const WAIT_TIMEOUT_MS = 10 * 60 * 1000;            // 相手が来ないまま10分で部屋を閉じる
 const STAGE = 'classic';                            // オンライン対戦はクラシックステージ（クライアントと同じ）
@@ -47,7 +52,7 @@ function cleanBio(v) {
   for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
   return n.trim().slice(0, 40);
 }
-function cleanBg(v) { const n = Math.floor(+v); return n >= 0 && n <= 10 ? n : null; }
+function cleanBg(v) { if (v === 'emperor') return 'emperor'; const n = Math.floor(+v); return n >= 0 && n <= 10 ? n : null; }   // 'emperor'＝鬼帝の背景
 function cleanCount(v) { const n = Math.floor(+v); return n >= 0 && n < 1e6 ? n : 0; }
 function cleanTier(v) {
   return String(v == null ? '' : v).replace(/[^A-Za-z0-9ぁ-んァ-ヶ一-龠]/g, '').slice(0, 5);
@@ -64,7 +69,7 @@ function packFx(ev) {
       case 'windup': out.push({ t: 'windup', who: e.who, wid: e.wid }); break;
       case 'charge': out.push({ t: 'charge', who: e.who, wid: e.wid }); break;
       case 'hit': out.push({ t: 'hit', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), sid: e.sid }); break;
-      case 'dead': out.push({ t: 'dead', who: e.who, x: r1(e.x), y: r1(e.y), dir: e.dir, duck: !!e.duck }); break;
+      case 'dead': out.push({ t: 'dead', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), dir: e.dir, duck: !!e.duck }); break;   // by：とどめを刺した人（2v2 の称号の数え方に使う）
       case 'boom': out.push({ t: 'boom', who: e.who, x: r1(e.x), y: r1(e.y), r: e.r }); break;
       case 'spark': out.push({ t: 'spark', x: r1(e.x), y: r1(e.y), own: e.own }); break;
       case 'heal': out.push({ t: 'heal', who: e.who, x: r1(e.x), y: r1(e.y) }); break;
@@ -131,7 +136,10 @@ class Room {
     const slot = this.join({ send() {}, ip: '', account: null }, { name: bot.name, loadout: bot.loadout, look: bot.look, bio: bot.bio, bg: bot.bg });
     if (!slot) return null;
     const p = this.players[slot];
-    p.bot = true; p.brain = SIM.newBrain(bot.cfg); p.rate = bot.rate; p.tier = bot.tierKey;
+    // 人は、相手の弾が自分の画面に届くまで通信のぶん遅れる。BOTはサーバーの中で撃たれた瞬間に見えてしまうので、
+    // そのぶんの遅れ（約0.1〜0.15秒）を反応に足して、人と同じ条件にする
+    const lag = 6 + Math.floor(Math.random() * 4);
+    p.bot = true; p.brain = SIM.newBrain(Object.assign({}, bot.cfg, { react: bot.cfg.react + lag })); p.rate = bot.rate; p.tier = bot.tierKey;
     p.title = bot.title; p.discord = bot.name; p.verified = true;
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     p.srtt = 16 + Math.floor(Math.random() * 46);   // 通信の速さ（人と同じように相手の画面に出る）
@@ -161,7 +169,55 @@ class Room {
       if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
     }
     this.schedulePing();
-    this.later(() => this.startRound(), LOBBY_MS);
+    this.beginWait('prep', PREP_MS, VS_MS);
+  }
+
+  // ---- 準備（試合前）と武器の選び直し（ラウンド間）----
+  // 最大 ms まで待つ。両者が準備完了を押したら、earliest（VS画面が終わる時刻）を待ってすぐ始める
+  beginWait(kind, ms, minMs) {
+    const now = Date.now();
+    this.waitState = { kind, earliest: now + (minMs || 0), until: now + (minMs || 0) + ms, ready: { a: false, b: false } };
+    this.waitTimer = this.later(() => this.endWait(), (minMs || 0) + ms);
+    // BOTは人と同じくらいの間をおいて準備完了を押す
+    for (const s of SLOTS) {
+      const p = this.players[s];
+      if (p && p.bot) this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
+    }
+    this.sendWait();
+  }
+  sendWait() {
+    const w = this.waitState;
+    if (!w) return;
+    const now = Date.now();
+    for (const s of SLOTS) {
+      const p = this.players[s], o = this.players[other(s)];
+      if (!p) continue;
+      this.send(p, { type: 'wait', kind: w.kind, ms: Math.max(0, w.until - now), vsMs: Math.max(0, w.earliest - now),
+        ready: { me: !!w.ready[s], opp: !!(o && w.ready[other(s)]) },
+        mine: p.loadout, opp: o ? o.loadout : null });
+    }
+  }
+  setReady(slot) {
+    const w = this.waitState;
+    if (!w || !this.players[slot] || w.ready[slot]) return;
+    w.ready[slot] = true;
+    this.sendWait();
+    if (SLOTS.every(s => !this.players[s] || w.ready[s])) {
+      if (this.waitTimer) { clearTimeout(this.waitTimer); this.timers.delete(this.waitTimer); }
+      this.waitTimer = this.later(() => this.endWait(), Math.max(0, w.earliest - Date.now()));
+    }
+  }
+  // ラウンド間だけ、持っていく武器を変えられる（形は必ず直す）
+  setLoadout(slot, v) {
+    const w = this.waitState, p = this.players[slot];
+    if (!w || w.kind !== 'pick' || !p || w.ready[slot]) return;
+    p.loadout = SIM.cleanLoadout(v, false);
+    this.sendWait();
+  }
+  endWait() {
+    if (!this.waitState || this.closed) return;
+    this.waitState = null; this.waitTimer = null;
+    this.startRound();
   }
 
   // ---- 通信の往復時間 ----
@@ -236,6 +292,9 @@ class Room {
         this.broadcast({ type: 'match_end', winner, wins: { ...this.wins } });
         this.closeTimer = this.later(() => this.close(), 90000);   // 再戦の相談を待つ
       }, MATCH_END_MS);
+    } else if (PICK_MS > 0) {
+      // 倒れる演出のあと、武器を選び直す時間
+      this.later(() => { if (!this.closed) { this.phase = 'pick'; this.beginWait('pick', PICK_MS, 0); } }, ROUND_GAP_MS);
     } else {
       this.later(() => this.startRound(), ROUND_GAP_MS);
     }
@@ -385,4 +444,6 @@ class Room {
   }
 }
 
-module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM };
+// 2v2（team.js）でも同じ整え方・同じ時間を使う
+module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
+  WIN_ROUNDS, VS_MS, PREP_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, STAGE };

@@ -4,6 +4,7 @@ const http = require('http');
 const crypto = require('crypto');
 const { attach, clientIp } = require('./ws-lite');
 const { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM } = require('./game');
+const { TeamRoom, SLOTS: TEAM_SLOTS, teamOf } = require('./team');   // 2v2（チーム戦）
 const auth = require('./auth');
 const presence = require('./presence');
 // bots.js が無くても動くようにする（上げ忘れてもサーバー全体が止まらないように）
@@ -182,6 +183,69 @@ function openRoom() {
   return room;
 }
 
+// ---- 2v2（チーム戦）の部屋 ----
+function openTeamRoom(opt) {
+  let id;
+  do id = String(crypto.randomInt(100000, 1000000)); while (rooms.has(id));
+  const room = new TeamRoom(id, {
+    onClose: r => {
+      rooms.delete(r.id); log('room closed', r.id, '(2v2)', `(rooms: ${rooms.size})`);
+      cancelInvites(r.id);
+      for (const p of r.allPlayers()) if (p.uid || p.uidLeft) presence.changed(p.uid || p.uidLeft);
+    },
+    onResult: (r, winTeam) => recordTeamResult(r, winTeam),
+    onLeave: (r, p) => recordTeamLeave(r, p),
+  }, opt);
+  rooms.set(id, room);
+  return room;
+}
+// チームの平均レート（試合が始まったときの値）
+function teamAvg(room, team) {
+  const r0 = room.rate0 || {}, ks = TEAM_SLOTS.filter(k => teamOf(k) === team && r0[k] != null);
+  return ks.length ? ks.reduce((a, k) => a + r0[k], 0) / ks.length : SIM.RATE_START;
+}
+function sendRate2(p, r, win) {
+  if (!p || !p.ws || p.bot) return;
+  p.ws.send(JSON.stringify({ type: 'rate', kind: '2v2', win, rate: r.rate, before: r.before, delta: r.delta,
+    tier: r.tier, tierBefore: r.tierBefore, games: r.games, streak: r.streak, wstreak: r.wstreak }));
+}
+// 2v2 の結果：人だけ記録する（BOT と、先に抜けて負けを記録した人は除く）。ランクなら 2v2 のレートを動かす
+function recordTeamResult(room, winTeam) {
+  const tag = 'room ' + room.id + ' (2v2)', avg = [teamAvg(room, 0), teamAvg(room, 1)], withBots = room.hasBots();
+  for (const k of TEAM_SLOTS) {
+    const p = room.players[k];
+    if (!p || p.done || p.bot) continue;
+    p.done = true;
+    if (!p.uid) continue;
+    if (p.suspect) { log(tag, 'not recorded: suspicious play', p.name); continue; }
+    if (p.acts < ACTIVE_MIN_INPUTS) { log(tag, 'not recorded: idle', p.name); continue; }
+    const win = teamOf(k) === winTeam;
+    auth.recordOnlineResult(p.uid, win);
+    if (p.ws.account) { if (win) p.ws.account.wins = (p.ws.account.wins || 0) + 1; else p.ws.account.losses = (p.ws.account.losses || 0) + 1; }
+    p.rec[win ? 'w' : 'l']++;
+    if (room.ranked) {
+      const r = auth.applyRanked2(p.uid, { mine: avg[teamOf(k)], theirs: avg[1 - teamOf(k)], win, cap: withBots ? SIM.BOT_TIER_CAP : null });
+      if (r) {
+        sendRate2(p, r, win);
+        p.rate = r.rate; p.tier = TIER_KEYS[r.tier] || '';
+        if (p.ws.account) { p.ws.account.rate2 = r.rate; p.ws.account.tier2 = r.tier; p.ws.account.tier2Key = TIER_KEYS[r.tier] || ''; }
+        log(tag, 'rate2:', p.name, r.before + '→' + r.rate, win ? '(win)' : '(lose)');
+      }
+    }
+  }
+}
+// 試合の途中で抜けた人：結果を待たずに負けを記録する（ランクなら 2v2 のレートも下がる）。キャラクターは BOT が引き継ぐ
+function recordTeamLeave(room, p) {
+  if (!room.matchLive || p.done || !p.uid) return;
+  p.done = true;
+  const tag = 'room ' + room.id + ' (2v2)', team = teamOf(p.slot);
+  auth.recordOnlineResult(p.uid, false);
+  if (room.ranked) {
+    const r = auth.applyRanked2(p.uid, { mine: teamAvg(room, team), theirs: teamAvg(room, 1 - team), win: false, cap: null });
+    if (r) log(tag, 'left (lose):', p.name, r.before + '→' + r.rate);
+  } else log(tag, 'left:', p.name);
+}
+
 // ---- ランキング（レート順）----
 // 人数が増えても重くならないように、一定時間ごとに1回だけ作り直して使い回す
 const RANK_TTL = +process.env.RANK_TTL_MS || 5 * 60 * 1000;
@@ -189,12 +253,22 @@ const RANK_TOP = +process.env.RANK_TOP || 100;
 const RANK_MIN_GAMES = process.env.RANK_MIN_GAMES == null ? 1 : Math.max(0, Math.floor(+process.env.RANK_MIN_GAMES) || 0);   // ランクマッチをこの回数以上した人だけ載せる（0なら全員）
 let rankCache = { at: 0, list: [] };
 function buildRanking() {
-  const list = auth.users().map(u => auth.rankRow(u)).filter(r => r && r.games >= RANK_MIN_GAMES);
+  const seen = new Set();
+  const list = auth.users().map(u => auth.rankRow(u)).filter(r => r && r.games >= RANK_MIN_GAMES && !seen.has(r.uid) && seen.add(r.uid));
   list.sort((a, b) => b.rate - a.rate || b.w - a.w || a.l - b.l || String(a.name).localeCompare(String(b.name)));
   rankCache = { at: Date.now(), list };
   return rankCache;
 }
 function ranking() { if (Date.now() - rankCache.at > RANK_TTL) buildRanking(); return rankCache; }
+let rankCache2 = { at: 0, list: [] };
+function ranking2() {
+  if (Date.now() - rankCache2.at <= RANK_TTL) return rankCache2;
+  const seen = new Set();
+  const list = auth.users().map(u => auth.rankRow2(u)).filter(r => r && r.games >= RANK_MIN_GAMES && !seen.has(r.uid) && seen.add(r.uid));
+  list.sort((a, b) => b.rate - a.rate || b.w - a.w || a.l - b.l || String(a.name).localeCompare(String(b.name)));
+  rankCache2 = { at: Date.now(), list };
+  return rankCache2;
+}
 const rankPub = (r, rank) => ({ rank, name: r.name, title: r.title, tier: r.tier, tierKey: TIER_KEYS[r.tier] || '', rate: r.rate, w: r.w, l: r.l });
 
 // ---- フレンドへのお知らせ（ページを開いている人にだけ届く）----
@@ -231,7 +305,7 @@ function queueTick() {
       if (pairUp(A, B, mode)) i++;   // 組んだ2人は飛ばす
     }
   }
-  if (bots && !BOT_OFF) for (const [ws, q] of queue) if (queueSec(q) >= botWaitFor(q)) startBotMatch(ws, q);
+  if (bots && !BOT_OFF) for (const [ws, q] of queue) if (botAllowed(q) && queueSec(q) >= botWaitFor(q)) startBotMatch(ws, q);
   for (const [ws, q] of queue) {
     const sec = queueSec(q);
     send(ws, { type: 'queue_status', waited: sec, range: q.mode === 'ranked' ? searchRange(sec) : 0, n: queue.size, rate: q.rate });
@@ -251,6 +325,8 @@ function pairUp(A, B, mode) {
   return true;
 }
 // その人を何秒待たせてから相手を出すか（毎回少しゆらして、同じ間隔にならないようにする）
+// BOTに勝ってもレートが上がらない帯（LT1の下限 2250 以上）の人には、ランクマッチでBOTを出さない（本物の相手だけ）
+function botAllowed(q) { return q.mode !== 'ranked' || q.rate < SIM.TIER_MIN[SIM.BOT_TIER_CAP]; }
 function botWaitFor(q) {
   if (q.botWait == null) q.botWait = q.rate < BOT_BELOW ? BOT_WAIT_LOW + Math.random() * 4 : BOT_WAIT + Math.random() * 10;
   return q.botWait;
@@ -273,6 +349,121 @@ function startBotMatch(ws, q) {
 }
 setInterval(queueTick, 1000);
 
+// ---- 2v2 のランダムマッチ ----
+// パーティー（フレンドと2人）はそのまま1チーム。ソロは近いレートの人と組んでチームになる。チームどうしを近いレートで組ませる。
+// 待ちすぎたら、空いている場所を BOT で埋める（ランクでも。ただしレート2250以上の人がいるときは入れない）
+const BOT_WAIT2 = +process.env.BOT_WAIT2 || 15;                // ランク：BOT で埋めるまでの秒数
+const BOT_WAIT2_CASUAL = +process.env.BOT_WAIT2_CASUAL || 8;   // アンランク
+const PARTY_JOIN_MS = 20000;                                   // パーティーの相方が列に入るのを待つ時間
+const queue2 = new Map();   // ws → { mode, info, rate, uid, party, at }
+function q2Leave(ws, why) {
+  const q = queue2.get(ws);
+  if (!q) return;
+  queue2.delete(ws);
+  if (why) send(ws, { type: 'queue_left', why });
+  // パーティーの相方も列から出す
+  if (q.party) for (const [w2, q2] of queue2) if (q2.party === q.party) { queue2.delete(w2); send(w2, { type: 'queue_left', why: 'party' }); }
+}
+function bot2Allowed(mode, list) { return mode !== 'ranked' || list.every(x => !x || x.q.rate < SIM.TIER_MIN[SIM.BOT_TIER_CAP]); }
+const avgRate = list => { const h = list.filter(Boolean); return h.length ? h.reduce((a, x) => a + x.q.rate, 0) / h.length : SIM.RATE_START; };
+const unitSec = u => Math.floor((Date.now() - u.at) / 1000);
+function queue2Tick() {
+  const now = Date.now();
+  // 相方が来ないパーティーはあきらめる
+  for (const [ws, q] of queue2) {
+    if (!q.party) continue;
+    const both = [...queue2.values()].filter(q2 => q2.party === q.party).length;
+    if (both < 2 && now - q.at > PARTY_JOIN_MS) { queue2.delete(ws); send(ws, { type: 'queue_left', why: 'party_timeout' }); }
+  }
+  for (const mode of ['ranked', 'casual']) {
+    const units = [], seenP = new Set();
+    for (const [ws, q] of queue2) {
+      if (q.mode !== mode) continue;
+      if (q.party) {
+        if (seenP.has(q.party)) continue;
+        const mem = [...queue2].filter(([, q2]) => q2.party === q.party && q2.mode === mode).map(([w2, q2]) => ({ ws: w2, q: q2 }));
+        if (mem.length < 2) continue;
+        seenP.add(q.party);
+        units.push({ list: mem.slice(0, 2), rate: avgRate(mem), at: Math.min(mem[0].q.at, mem[1].q.at) });
+      } else units.push({ list: [{ ws, q }], rate: q.rate, at: q.at });
+    }
+    const teams = units.filter(u => u.list.length === 2);
+    const solos = units.filter(u => u.list.length === 1).sort((a, b) => a.rate - b.rate);
+    for (let i = 0; i + 1 < solos.length; i++) {
+      const A = solos[i], B = solos[i + 1];
+      if (A.used || B.used) continue;
+      if (A.list[0].q.uid && A.list[0].q.uid === B.list[0].q.uid) continue;
+      if (mode === 'ranked' && Math.abs(A.rate - B.rate) > searchRange(Math.max(unitSec(A), unitSec(B)))) continue;
+      A.used = B.used = true;
+      teams.push({ list: A.list.concat(B.list), rate: (A.rate + B.rate) / 2, at: Math.min(A.at, B.at) });
+      i++;
+    }
+    teams.sort((a, b) => a.rate - b.rate);
+    for (let i = 0; i + 1 < teams.length; i++) {
+      const A = teams[i], B = teams[i + 1];
+      if (A.used || B.used) continue;
+      if (mode === 'ranked' && Math.abs(A.rate - B.rate) > searchRange(Math.max(unitSec(A), unitSec(B)))) continue;
+      if (startTeamMatch(mode, A.list, B.list)) { A.used = B.used = true; i++; }
+    }
+    if (!bots || BOT_OFF) continue;
+    const waitFor = mode === 'ranked' ? BOT_WAIT2 : BOT_WAIT2_CASUAL;
+    const restSolos = solos.filter(u => !u.used);
+    for (const T of teams) {
+      if (T.used || unitSec(T) < waitFor || !bot2Allowed(mode, T.list)) continue;
+      const S = restSolos.find(u => !u.used && bot2Allowed(mode, u.list));   // 待っている人がいれば、その人＋BOT と当てる
+      if (startTeamMatch(mode, T.list, S ? S.list.concat([null]) : [null, null])) { T.used = true; if (S) S.used = true; }
+    }
+    for (const S of restSolos) {
+      if (S.used || unitSec(S) < waitFor || !bot2Allowed(mode, S.list)) continue;
+      if (startTeamMatch(mode, S.list.concat([null]), [null, null])) S.used = true;
+    }
+  }
+  for (const [ws, q] of queue2) {
+    const sec = Math.floor((now - q.at) / 1000);
+    send(ws, { type: 'queue_status', team: true, waited: sec, range: q.mode === 'ranked' ? searchRange(sec) : 0, n: queue2.size, rate: q.rate });
+  }
+}
+// 2チーム（人 {ws,q} か、BOT の null）で部屋を作って始める。左のチームは a・c、右は b・d
+function startTeamMatch(mode, A, B) {
+  if (rooms.size >= MAX_ROOMS) return false;
+  if (!bots && (A.includes(null) || B.includes(null))) return false;
+  const humans = A.concat(B).filter(Boolean);
+  for (const x of humans) queue2.delete(x.ws);
+  const room = openTeamRoom({ private: false });
+  room.ranked = mode === 'ranked';
+  const ra = avgRate(A), rb = avgRate(B), hasA = A.some(Boolean), hasB = B.some(Boolean);
+  const jitter = r => Math.max(SIM.RATE_FLOOR, Math.min(3000, Math.round(r + (Math.random() * 60 - 30))));
+  A.forEach((x, i) => { if (x) room.join(x.ws, x.q.info, ['a', 'c'][i]); });
+  B.forEach((x, i) => { if (x) room.join(x.ws, x.q.info, ['b', 'd'][i]); });
+  A.forEach((x, i) => { if (!x) room.joinBot(bots.makeBot(jitter(hasA ? ra : rb)), ['a', 'c'][i]); });
+  B.forEach((x, i) => { if (!x) room.joinBot(bots.makeBot(jitter(hasB ? rb : ra)), ['b', 'd'][i]); });
+  for (const x of humans) send(x.ws, { type: 'match_found', roomId: room.id, slot: x.ws.slot, mode, ranked: room.ranked, team: true });
+  log('match2', room.id, mode, Math.round(ra) + ' vs ' + Math.round(rb), 'humans ' + humans.length + ' / bots ' + (4 - humans.length));
+  room.start();
+  for (const x of humans) if (x.ws.account) presence.changed(x.ws.account.uid);
+  return true;
+}
+setInterval(queue2Tick, 1000);
+
+// ---- パーティー（2v2 でフレンドと組む）----
+// 誘う → 相手が受ける → 2人のパーティー。どちらかが「さがす」を押すと、もう1人にも知らせて一緒に列に入る
+const parties = new Map();       // パーティーID → { id, a: uid, b: uid }
+const partyOf = new Map();       // uid → パーティーID
+const partyInvites = new Map();  // 誘いID → { id, from, to, at }
+function partyCard(uid) { const u = auth.user(uid); return u ? { fid: u.fid, name: (u.profile && u.profile.name) || u.name } : null; }
+function pushParty(p) {
+  const msg = { type: 'party', id: p.id, members: [partyCard(p.a), partyCard(p.b)] };
+  pushTo(p.a, msg); pushTo(p.b, msg);
+}
+function partyLeave(uid, why) {
+  const id = partyOf.get(uid);
+  if (!id) return;
+  const p = parties.get(id);
+  parties.delete(id);
+  for (const u of [p.a, p.b]) { partyOf.delete(u); pushTo(u, { type: 'party', id: null, why: why || 'left' }); }
+  for (const [ws, q] of queue2) if (q.party === id) { queue2.delete(ws); send(ws, { type: 'queue_left', why: 'party' }); }
+}
+
 // ---- 対戦の招待 ----
 // 招待する人が部屋を作ってから、部屋番号をフレンドに届ける。受けた人はその部屋にふつうに入る
 const invites = new Map();   // 招待ID → { id, from, to, roomId }
@@ -284,12 +475,13 @@ function cancelInvites(roomId) {
 presence.configure({
   roomOf(uid) {
     for (const r of rooms.values()) {
+      if (r.kind === 'team') { if (r.humans().some(p => p.uid === uid)) return r.phase === 'waiting' ? 'room' : 'match'; continue; }
       const a = r.players.a, b = r.players.b;
       if ((a && a.uid === uid) || (b && b.uid === uid)) return a && b ? 'match' : 'room';
     }
     return '';
   },
-  onOffline: uid => auth.seen(uid),
+  onOffline: uid => { auth.seen(uid); partyLeave(uid, 'offline'); },
   // 状態が変わったら、オンラインのフレンドに知らせる
   onChange(uid, status) {
     const u = auth.user(uid);
@@ -327,6 +519,15 @@ function onMessage(ws, raw) {
       const id = String(m.roomId || '');
       const room = /^\d{6}$/.test(id) ? rooms.get(id) : null;
       if (!room) { joinFails.hit(ws.ip); return send(ws, { type: 'error', code: 'room_not_found', msg: '部屋が見つかりません。番号を確認してください' }); }
+      if (room.kind === 'team') {
+        if (ws.account && room.humans().some(p => p.uid === ws.account.uid)) return send(ws, { type: 'error', code: 'same_account', msg: '同じアカウント同士では対戦できません' });
+        if (!room.join(ws, m)) return send(ws, { type: 'error', code: 'room_full', msg: 'この部屋はいっぱいか、すでに対戦中です' });
+        send(ws, { type: 'room_joined2', roomId: room.id, slot: ws.slot });
+        room.sendLobby();
+        log('room joined (2v2)', room.id, 'from', ws.ip, ws.account ? 'discord=' + ws.account.uid : 'guest');
+        for (const p of room.humans()) presence.changed(p.uid);
+        break;
+      }
       const host = room.players.a;
       if (host && host.uid && ws.account && host.uid === ws.account.uid) return send(ws, { type: 'error', code: 'same_account', msg: '同じアカウント同士では対戦できません' });
       if (!room.join(ws, m)) return send(ws, { type: 'error', code: 'room_full', msg: 'この部屋はすでに対戦中です' });
@@ -354,6 +555,99 @@ function onMessage(ws, raw) {
     }
     case 'queue_cancel':
       queueLeave(ws, 'cancel');
+      q2Leave(ws, 'cancel');
+      break;
+    // ---- 2v2 ----
+    case 'queue2': {
+      if (ws.room || queue.has(ws) || queue2.has(ws)) return;
+      if (m.v !== SIM.PROTO) return send(ws, { type: 'error', code: 'reload', msg: 'ゲームが更新されました。ページを再読み込みしてください' });
+      const mode = m.mode === 'ranked' ? 'ranked' : 'casual';
+      if ((REQUIRE_LOGIN || mode === 'ranked') && !ws.account) {
+        return send(ws, { type: 'error', code: 'login_required', msg: mode === 'ranked' ? 'ランクマッチにはDiscordログインが必要です' : 'オンライン対戦にはDiscordログインが必要です' });
+      }
+      if (queue2.size >= MAX_QUEUE || rooms.size >= MAX_ROOMS) return send(ws, { type: 'error', code: 'server_busy', msg: 'サーバーが混み合っています。少し待ってからお試しください' });
+      const acc = ws.account, uid = acc ? acc.uid : null;
+      // パーティー：ログイン中で、パーティーに入っていれば2人で並ぶ（もう1人にも知らせる）
+      const pid = m.party && uid ? partyOf.get(uid) : null;
+      queue2.set(ws, { mode, info: m, at: Date.now(), uid, party: pid || null, rate: acc && acc.rate2 ? acc.rate2 : SIM.RATE_START });
+      send(ws, { type: 'queued', mode, team: true, party: !!pid });
+      if (pid) {
+        const p = parties.get(pid), mate = p.a === uid ? p.b : p.a;
+        const mateIn = [...queue2.values()].some(q => q.party === pid && q.uid === mate);
+        if (!mateIn) pushTo(mate, { type: 'party_queue', mode });
+      }
+      log('queue2', mode, 'from', ws.ip, acc ? 'discord=' + acc.uid + ' rate2=' + acc.rate2 : 'guest', pid ? '(party)' : '', '(waiting: ' + queue2.size + ')');
+      break;
+    }
+    case 'create_room2': {
+      if (ws.room) return;
+      if (m.v !== SIM.PROTO) return send(ws, { type: 'error', code: 'reload', msg: 'ゲームが更新されました。ページを再読み込みしてください' });
+      if (REQUIRE_LOGIN && !ws.account) return send(ws, { type: 'error', code: 'login_required', msg: 'オンライン対戦にはDiscordログインが必要です' });
+      if (rooms.size >= MAX_ROOMS) return send(ws, { type: 'error', code: 'server_busy', msg: 'サーバーが混み合っています。少し待ってからお試しください' });
+      let mine = 0;
+      for (const r of rooms.values()) if (r.hostIp() === ws.ip) mine++;
+      if (mine >= MAX_ROOMS_PER_IP) return send(ws, { type: 'error', code: 'too_many_rooms', msg: '同時に作れる部屋の数を超えています' });
+      const room = openTeamRoom({ private: true });
+      room.join(ws, m);
+      send(ws, { type: 'room_created2', roomId: room.id, slot: ws.slot });
+      room.sendLobby();
+      log('room created (2v2)', room.id, 'from', ws.ip, ws.account ? 'discord=' + ws.account.uid : 'guest');
+      break;
+    }
+    case 'team_slot':                                   // 開始前に、空いている場所（チーム）へ移る
+      if (ws.room && ws.room.kind === 'team') ws.room.moveSlot(ws.slot, String(m.to || ''));
+      break;
+    case 'team_start': {                                // 部屋を作った人が開始を押す：空いている場所は BOT
+      const room = ws.room;
+      if (!room || room.kind !== 'team' || room.phase !== 'waiting' || ws.slot !== room.hostSlot) return;
+      if (!bots && !room.isFull()) return send(ws, { type: 'error', code: 'need_players', msg: '4人そろうと始められます' });
+      const hs = room.humans(), r = hs.length ? hs.reduce((a, p) => a + (p.rate || SIM.RATE_START), 0) / hs.length : SIM.RATE_START;
+      for (const k of TEAM_SLOTS) if (!room.players[k]) room.joinBot(bots.makeBot(Math.round(r + (Math.random() * 60 - 30))), k);
+      room.start();
+      cancelInvites(room.id);
+      for (const p of room.humans()) presence.changed(p.uid);
+      log('start (2v2 room)', room.id, 'humans ' + hs.length);
+      break;
+    }
+    // パーティーに誘う・返事・抜ける（ログイン中のページの接続で送る）
+    case 'party_invite': {
+      const uid = ws.presUid;
+      if (!uid) return;
+      const fail = code => send(ws, { type: 'party_fail', fid: auth.normFid(m.fid), code });
+      const t = auth.byFid(m.fid);
+      if (!t || !auth.isFriend(uid, t.id)) return fail('not_friend');
+      if (!inviteTries.hit(uid)) return fail('too_many');
+      const st = presence.statusOf(t.id);
+      if (st === 'offline') return fail('offline');
+      if (st === 'match') return fail('busy');
+      for (const [id, iv] of partyInvites) if (iv.from === uid && iv.to === t.id) partyInvites.delete(id);
+      const id = crypto.randomBytes(6).toString('hex');
+      partyInvites.set(id, { id, from: uid, to: t.id, at: Date.now() });
+      pushTo(t.id, { type: 'party_invite', id, from: cardOf(uid) });
+      send(ws, { type: 'party_sent', fid: t.fid });
+      log('party invite', 'discord=' + uid, '->', 'discord=' + t.id);
+      break;
+    }
+    case 'party_reply': {
+      const uid = ws.presUid;
+      const iv = uid && partyInvites.get(String(m.id || ''));
+      if (!iv || iv.to !== uid) return;
+      partyInvites.delete(iv.id);
+      const me = auth.user(uid);
+      if (!m.ok) { pushTo(iv.from, { type: 'party_declined', fid: me.fid, name: (me.profile && me.profile.name) || me.name, timeout: m.timeout === true }); break; }
+      if (Date.now() - iv.at > 60000 || presence.statusOf(iv.from) === 'offline') { send(ws, { type: 'party_fail', code: 'expired' }); break; }
+      partyLeave(uid, 'new'); partyLeave(iv.from, 'new');
+      const id = crypto.randomBytes(6).toString('hex'), p = { id, a: iv.from, b: uid };
+      parties.set(id, p); partyOf.set(iv.from, id); partyOf.set(uid, id);
+      pushParty(p);
+      log('party', id, 'discord=' + iv.from, '+', 'discord=' + uid);
+      break;
+    }
+    case 'party_leave':
+      if (ws.presUid) partyLeave(ws.presUid, 'left');
+      break;
+    case 'party_get':                                    // 開き直したとき、今のパーティーを教える
+      if (ws.presUid) { const id = partyOf.get(ws.presUid); if (id) pushParty(parties.get(id)); else send(ws, { type: 'party', id: null }); }
       break;
     case 'input':
       if (ws.room && m.input && typeof m.input === 'object') ws.room.input(ws.slot, m.input);
@@ -367,13 +661,20 @@ function onMessage(ws, raw) {
     case 'rematch':
       if (ws.room) ws.room.rematch(ws.slot);
       break;
+    case 'ready':                                        // 準備完了（試合前）／決定（ラウンド間）
+      if (ws.room) ws.room.setReady(ws.slot);
+      break;
+    case 'loadout':                                      // ラウンド間の武器の変更
+      if (ws.room && Array.isArray(m.loadout)) ws.room.setLoadout(ws.slot, m.loadout);
+      break;
     case 'auth': {
       if (ws.room) return;                   // 対戦中に別人へ切り替えるのは不可
       const u = auth.verify(typeof m.token === 'string' ? m.token : '');
       if (u) {
-        const ur = auth.rating(u.id) || { rate: SIM.RATE_START, tier: 1 };
-        ws.account = { uid: u.id, name: u.name, wins: u.online.w, losses: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer,
-          rate: ur.rate, tier: ur.tier, tierKey: TIER_KEYS[ur.tier] || '' };
+        const ur = auth.rating(u.id) || { rate: SIM.RATE_START, tier: 1 }, ur2 = auth.rating2(u.id) || { rate: SIM.RATE_START, tier: 1 };
+        ws.account = { uid: u.id, name: u.name, wins: u.online.w, losses: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker,
+          rate: ur.rate, tier: ur.tier, tierKey: TIER_KEYS[ur.tier] || '',
+          rate2: ur2.rate, tier2: ur2.tier, tier2Key: TIER_KEYS[ur2.tier] || '' };
         send(ws, { type: 'auth_ok', user: auth.publicUser(u) });
       }
       else { ws.account = null; send(ws, { type: 'auth_fail' }); }
@@ -402,8 +703,10 @@ function onMessage(ws, raw) {
       if (!t || !auth.isFriend(uid, t.id)) return fail('not_friend');
       if (!inviteTries.hit(uid)) return fail('too_many');
       const room = rooms.get(String(m.roomId || ''));
-      const host = room && room.players.a;
-      if (!room || room.phase !== 'waiting' || !host || host.uid !== uid || room.players.b) return fail('no_room');
+      const okRoom = room && room.phase === 'waiting' && (room.kind === 'team'
+        ? room.hostUid() === uid && !room.isFull()
+        : !!(room.players.a && room.players.a.uid === uid && !room.players.b));
+      if (!okRoom) return fail('no_room');
       const st = presence.statusOf(t.id);
       if (st === 'offline') return fail('offline');
       if (st === 'match') return fail('busy');
@@ -478,7 +781,8 @@ const server = http.createServer((req, res) => {
   // レート順のランキング。ログインしていれば、自分の順位も返す
   if (url === '/api/ranking') {
     const u = auth.verify(bearer(req));
-    const rk = ranking();
+    const kind = new URLSearchParams((req.url || '').split('?')[1] || '').get('kind');
+    const rk = kind === '2v2' ? ranking2() : ranking();
     const top = rk.list.slice(0, RANK_TOP).map((r, i) => rankPub(r, i + 1));
     let me = null;
     if (u) { const i = rk.list.findIndex(r => r.uid === u.id); if (i >= 0) me = rankPub(rk.list[i], i + 1); }
@@ -540,6 +844,9 @@ const server = http.createServer((req, res) => {
       const key = m && typeof m.tier === 'string' ? m.tier : '';
       const idx = TIERS.indexOf(key) + 1;
       if (idx < 1) return json(res, 400, { error: 'ティアが不正です' });
+      // ティアはサーバーのレートで決まる。まだ届いていないティアは報告できない
+      const rs = auth.rating(u.id);
+      if (!rs || idx > rs.tier) return json(res, 400, { error: 'ティアが不正です' });
       if (idx <= auth.bestTier(u.id)) return json(res, 200, { notified: false, reason: 'already' });
       const last = tierLastReport.get(u.id) || 0;
       if (Date.now() - last < TIER_COOLDOWN_MS) return json(res, 429, { notified: false, reason: 'cooldown' });
@@ -563,7 +870,7 @@ attach(server, ws => {
   ws.room = null; ws.slot = null; ws.msgs = 0;
   ws.on('message', raw => onMessage(ws, raw));
   ws.on('close', () => {
-    sockets.delete(ws); presence.remove(ws); queue.delete(ws);
+    sockets.delete(ws); presence.remove(ws); queue.delete(ws); q2Leave(ws, null);
     if (ws.room) { ws.room.leave(ws.slot); if (ws.account) presence.changed(ws.account.uid); }
   });
 }, { checkOrigin: origin => !ALLOWED_ORIGINS.length || ALLOWED_ORIGINS.includes(origin) });
