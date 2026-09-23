@@ -672,7 +672,7 @@ function onMessage(ws, raw) {
       const u = auth.verify(typeof m.token === 'string' ? m.token : '');
       if (u) {
         const ur = auth.rating(u.id) || { rate: SIM.RATE_START, tier: 1 }, ur2 = auth.rating2(u.id) || { rate: SIM.RATE_START, tier: 1 };
-        ws.account = { uid: u.id, name: u.name, wins: u.online.w, losses: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker,
+        ws.account = { uid: u.id, name: u.name, wins: u.online.w, losses: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, dev: !!u.dev,
           rate: ur.rate, tier: ur.tier, tierKey: TIER_KEYS[ur.tier] || '',
           rate2: ur2.rate, tier2: ur2.tier, tier2Key: TIER_KEYS[ur2.tier] || '' };
         send(ws, { type: 'auth_ok', user: auth.publicUser(u) });

@@ -1356,7 +1356,7 @@ function applyRate(st, o) {
 }
 
 // ---- 称号（二つ名） ----
-// id と、見た目（rare＝青いネオン／gift＝緑のネオン＝開発者から贈られた称号／mythic＝黒と金）。
+// id と、見た目（rare＝青いネオン／gift＝緑のネオン／prism＝明朝の白銀＋プリズム／mythic＝黒と金）。
 // gate はサーバーが確かめる条件（オンライン戦績・フレンド数・開拓者・贈られた人）。
 // gate のない称号は CPU 戦などの手元の記録で決まる。名前と取り方の説明は lang.js の title.〇〇 / tcond.〇〇
 var TITLES = [
@@ -1370,8 +1370,9 @@ var TITLES = [
   { id: 'untouched' }, { id: 'close_call' }, { id: 'unstoppable' }, { id: 'precision' }, { id: 'pit_drop' }, { id: 'wanderer', rare: true },
   { id: 'short_sleeper', rare: true }, { id: 'first_steps' }, { id: 'pioneer', rare: true, gate: { pioneer: true } }, { id: 'first_ten', rare: true, gate: { pioneer10: true } }, { id: 'rule_breaker' },
   { id: 'emperor_slayer', rare: true, mythic: true },   // 隠しボス「鬼帝」に勝つ（mythic：黒と金の特別な見た目）
-  // 開発者が贈る称号（gift：緑のネオン）。サーバーが「贈られた人」と認めた人だけ使える。自力では取れない
-  { id: 'trusted_hacker', gift: true, gate: { hacker: true } }
+  // 運営から配る称号（award：届いたときにお祝いの演出が出る）。サーバーが認めた人だけ使える。自力では取れない
+  { id: 'trusted_hacker', gift: true, award: true, gate: { hacker: true } },   // gift：緑のネオン
+  { id: 'world_author', prism: true, award: true, gate: { dev: true } }        // prism：明朝の白銀にプリズムの光
 ];
 // 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
 // 前からある6つ（影の刃・千里眼・至近距離の鬼・蜂の巣職人・爆弾魔・電磁砲の申し子）は id をそのまま使う
@@ -1381,8 +1382,8 @@ WEAPON_IDS.forEach(function (wid) {
   var key = WEAPONS[wid].key;
   KILL_STEPS.forEach(function (n) { TITLES.push({ id: KILL_TITLE_OLD[key + n] || 'kill_' + key + '_' + n, kill: { w: wid, n: n }, rare: n >= 100 }); });
 });
-// その称号を使ってよいか。ctx = { w, l, friends, pioneer, pioneer10, hacker }
-// （オンライン戦績・フレンド数・開拓者か・最初の10人か・贈られた人か。ログインしていなければ null）
+// その称号を使ってよいか。ctx = { w, l, friends, pioneer, pioneer10, hacker, dev }
+// （オンライン戦績・フレンド数・開拓者か・最初の10人か・贈られた人か・運営か。ログインしていなければ null）
 function titleOk(id, ctx) {
   for (var i = 0; i < TITLES.length; i++) {
     if (TITLES[i].id !== id) continue;
@@ -1396,6 +1397,7 @@ function titleOk(id, ctx) {
     if (g.pioneer && !ctx.pioneer) return false;
     if (g.pioneer10 && !ctx.pioneer10) return false;
     if (g.hacker && !ctx.hacker) return false;
+    if (g.dev && !ctx.dev) return false;
     return true;
   }
   return false;
