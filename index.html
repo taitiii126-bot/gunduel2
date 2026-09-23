@@ -761,6 +761,13 @@ body.demo #bg-shade{opacity:1;}
 .title-chip.gift:hover{border-color:#7FFFD4;}
 .title-chip.gift.sel{background:rgba(255,255,255,.03);border-color:#B8FFE9;box-shadow:0 0 0 1px rgba(150,255,220,.55),0 0 14px -4px rgba(16,220,160,.9);}
 .hb-title.gt,.fr-info .gt{font-size:14px;-webkit-text-stroke:.7px #9CFFD8;}
+/* 運営の印（丸に✓）：白銀の丸に濃いチェック。称号の横ではなく、名前の横に付く */
+.dev-badge{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:5px;vertical-align:-2px;flex:none;}
+.dev-badge svg{width:100%;height:100%;overflow:visible;}
+.dev-badge circle{fill:#DCE6F5;stroke:rgba(6,9,16,.7);stroke-width:1.6;}
+.dev-badge path{fill:none;stroke:#0B0E14;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;}
+.hb-name .dev-badge,.fr-info b .dev-badge,.rk-col b .dev-badge{width:14px;height:14px;margin-left:4px;}
+.acc-row .dev-badge{margin-left:4px;}
 /* この世界の創造主：明朝の白銀に、プリズム（虹）の光が流れる */
 .title-chip.prism{padding:7px 18px;font-size:16px;border-color:rgba(200,220,245,.5);background:linear-gradient(135deg,#090c12,#151c29);}
 .title-chip.prism:hover{border-color:#DCE6F5;}
@@ -1785,6 +1792,9 @@ function isRareTitle(id){var d=titleDef(id);return !!(d&&d.rare);}
 function isMythicTitle(id){var d=titleDef(id);return !!(d&&d.mythic);}
 function isGiftTitle(id){var d=titleDef(id);return !!(d&&d.gift);}
 function isPrismTitle(id){var d=titleDef(id);return !!(d&&d.prism);}
+// 運営の印（丸に✓）。称号と違って着け替えられないので、本物の証明になる
+var DEV_SVG='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.4"/><path d="M6.9 12.6l3.4 3.4 6.9-7.5"/></svg>';
+function devBadge(on){return on?'<span class="dev-badge" title="'+esc(t('badge.dev'))+'" aria-label="'+esc(t('badge.dev'))+'">'+DEV_SVG+'</span>':'';}
 // 称号の文字の見せ方（mt＝黒と金／sv＝明朝の白銀＋プリズム／gt＝贈られた称号＝緑のネオン／nt＝レア＝青いネオン）
 function titleCls(id){return isMythicTitle(id)?'mt':isPrismTitle(id)?'sv':isGiftTitle(id)?'gt':isRareTitle(id)?'nt':'';}
 // 条件を満たしているか（武器ごとの称号は、その武器でのとどめの回数で決まる）
@@ -2017,7 +2027,7 @@ function applyRateResult(r){
 function bgIndex(){return profile.bg==null?profile.bestTier:profile.bg;}
 function titleText(id){return t('title.'+(id||'rookie'));}
 function myCardData(){
-  return{name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me};
+  return{name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me};
 }
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
@@ -2331,7 +2341,7 @@ function renderLoginUI(){
   }
   var pa=document.getElementById('profile-account');
   if(pa)pa.innerHTML=on
-    ?'<div class="acc-row"><span class="acc-name">'+esc(AUTH.user.name)+'</span><span class="acc-tag">DISCORD</span><span class="acc-pres"></span></div>'+
+    ?'<div class="acc-row"><span class="acc-name">'+esc(AUTH.user.name)+'</span>'+devBadge(AUTH.user.dev)+'<span class="acc-tag">DISCORD</span><span class="acc-pres"></span></div>'+
      '<div class="acc-rec">'+esc(t('pf.accountRec',{w:AUTH.user.wins,l:AUTH.user.losses}))+'</div>'+
      (AUTH.user.fid?'<div class="acc-fid"><span>'+esc(t('pf.fid'))+'</span><b>'+esc(AUTH.user.fid)+'</b><button class="acc-copy" onclick="copyFid(this)">'+esc(t('pf.copy'))+'</button></div>':'')+
      '<div class="acc-sync" id="pf-sync"></div>'
@@ -2560,7 +2570,7 @@ function frRow(p,kind){
   var sub=(titleCls(p.title)?'<span class="'+titleCls(p.title)+'">'+esc(titleText(p.title))+'</span>':esc(titleText(p.title)))+(p.tier?' · '+esc(tierName(+p.tier)):'');
   return'<div class="fr-row'+(kind==='f'?' fr-click':'')+'"'+(kind==='f'?' onclick="openFriend(\''+f+'\')"':'')+'>'+
     '<canvas class="fr-av" data-fid="'+f+'" width="96" height="96"></canvas>'+
-    '<div class="fr-info"><b>'+esc(p.name||'')+'</b><small>'+sub+'</small>'+
+    '<div class="fr-info"><b>'+esc(p.name||'')+devBadge(p.dev)+'</b><small>'+sub+'</small>'+
     (kind==='f'?'<span class="fr-st" data-st="'+esc(p.status||'offline')+'">'+esc(statusText(p))+'</span>':'')+'</div>'+
     '<div class="fr-btns" onclick="event.stopPropagation()">'+btns+'</div></div>';
 }
@@ -2618,7 +2628,7 @@ function rankRowHtml(p,me){
   var tier=+p.tier||0,col=(TIER_LADDER[tier]||TIER_LADDER[0]).color;
   return '<div class="'+cls+'"><span class="rk-no">'+p.rank+'</span>'+
     '<span class="rk-who">'+(p.rank<=3?'<canvas class="rk-mk" data-mk="'+tier+'" width="68" height="68"></canvas>':'')+
-    '<span class="rk-col"><b>'+esc(p.name)+'</b><small'+(titleCls(p.title)?' class="'+titleCls(p.title)+'"':'')+'>'+esc(titleText(p.title))+'</small></span></span>'+
+    '<span class="rk-col"><b>'+esc(p.name)+devBadge(p.dev)+'</b><small'+(titleCls(p.title)?' class="'+titleCls(p.title)+'"':'')+'>'+esc(titleText(p.title))+'</small></span></span>'+
     '<span class="rk-tier" style="color:'+col+'">'+esc(tierName(tier))+'</span>'+
     '<span class="rk-rate">'+(+p.rate||0)+'</span>'+
     '<span class="rk-wr">'+(games?wr+'%':'-')+'</span></div>';
@@ -2660,7 +2670,7 @@ function friendOp(op,fid){
 }
 // ---- フレンドのプロフィール（自分のプロフィールと同じカード）----
 function friendCardData(p){
-  return{name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
+  return{name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
     look:SIM.cleanLook(p.look||LOOK_DEFAULT),loadout:p.loadout?SIM.cleanLoadout(p.loadout,false):null,team:TEAM.me};
 }
 function openFriend(fid){
@@ -2823,7 +2833,7 @@ function renderHomeBar(){
   var nm=document.getElementById('hb-name');if(!nm)return;
   ensureProfileShape();
   var tier=computeTierIndex(),tl=document.getElementById('hb-title');
-  nm.textContent=profile.name;
+  nm.innerHTML=esc(profile.name)+devBadge(AUTH.user&&AUTH.user.dev);
   tl.textContent=titleText(profile.title);tl.className='hb-title'+(titleCls(profile.title)?' '+titleCls(profile.title):'');
   document.getElementById('hb-tier-name').textContent=isRanked()?tierName(tier):'';
   document.getElementById('hb-rate').textContent=isRanked()?myRate()+'  ·  2v2 '+(myTier2Index()?TIER_LADDER[myTier2Index()].key+' ':'')+myRate2():t('tier.loginShort');
@@ -3489,9 +3499,9 @@ function teamNames(role){return teamSlots(role).map(function(s){return s===mySlo
 // 頭の上の名札：自分は 2v2 のティア、ほかの人はサーバーが教えたティア。名前は役割の色
 function teamLabel(s){
   var r=slotRole(s),P=TM.players[s]||{};
-  if(r==='me'){var i2=myTier2Index();return{tag:i2?TIER_LADDER[i2].key:'--',tagCol:TIER_LADDER[i2].color,tierIdx:i2,nm:profile.name,nmCol:'#FFFFFF'};}
+  if(r==='me'){var i2=myTier2Index();return{tag:i2?TIER_LADDER[i2].key:'--',tagCol:TIER_LADDER[i2].color,tierIdx:i2,nm:profile.name,nmCol:'#FFFFFF',dev:!!(AUTH.user&&AUTH.user.dev)};}
   var ti=tierIdxOf(P.tier);
-  return{tag:ti?TIER_LADDER[ti].key:(r==='ally'?'ALLY':'RIVAL'),tagCol:r==='ally'?TEAM_COL.ally:TEAM_COL.foe,tierIdx:ti,nm:(P.name||'?')+(P.left?' (BOT)':''),nmCol:TEAM_COL[r]};
+  return{tag:ti?TIER_LADDER[ti].key:(r==='ally'?'ALLY':'RIVAL'),tagCol:r==='ally'?TEAM_COL.ally:TEAM_COL.foe,tierIdx:ti,nm:(P.name||'?')+(P.left?' (BOT)':''),nmCol:TEAM_COL[r],dev:!!P.dev};
 }
 // 足元の輪（役割の色）。自分の輪は少し太く
 function drawFootMark(c,role){
@@ -3729,7 +3739,7 @@ function handleOnlineMsg(msg){
     TEAM2=true;mySlot=msg.slot;RANKED=!!msg.ranked;TM={players:{},ranked:!!msg.ranked};TLOBBY=null;
     SIM.TEAM_SLOTS.forEach(function(s){
       var p=msg.players&&msg.players[s];if(!p)return;
-      TM.players[s]={name:String(p.name||'').slice(0,12),discord:p.verified?String(p.discord||'').slice(0,32):'',tier:String(p.tier||'').slice(0,5),
+      TM.players[s]={dev:!!p.dev,name:String(p.name||'').slice(0,12),discord:p.verified?String(p.discord||'').slice(0,32):'',tier:String(p.tier||'').slice(0,5),
         loadout:SIM.cleanLoadout(p.loadout,true),look:SIM.cleanLook(p.look),title:String(p.title||'rookie'),bio:String(p.bio||'').slice(0,40),
         bg:p.bg===EMP_BG?EMP_BG:p.bg>=0&&p.bg<=10?Math.floor(p.bg):null,
         rec:p.rec&&p.rec.w>=0&&p.rec.l>=0?{w:Math.floor(p.rec.w),l:Math.floor(p.rec.l),kind:p.rec.kind==='online'?'online':'cpu'}:null};
@@ -3746,7 +3756,7 @@ function handleOnlineMsg(msg){
     if(!msg.ended)note(t('c.teamLeft',{name:msg.name||(PL&&PL.name)||'?'}));
   }
   else if(mt==='both_ready'){
-    if(msg.opp)oppInfo={name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),look:SIM.cleanLook(msg.opp.look),
+    if(msg.opp)oppInfo={dev:!!msg.opp.dev,name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),look:SIM.cleanLook(msg.opp.look),
       title:String(msg.opp.title||'rookie'),bio:String(msg.opp.bio||'').slice(0,40),bg:msg.opp.bg===EMP_BG?EMP_BG:msg.opp.bg>=0&&msg.opp.bg<=10?Math.floor(msg.opp.bg):null,
       rec:msg.opp.rec&&msg.opp.rec.w>=0&&msg.opp.rec.l>=0?{w:Math.floor(msg.opp.rec.w),l:Math.floor(msg.opp.rec.l),kind:msg.opp.rec.kind==='online'?'online':'cpu'}:null};
     startPingLoop();achMatchStart();
@@ -5166,6 +5176,16 @@ function drawPrismTitle(g,text,x,y,size,tm){
   }
   g.restore();
 }
+// 運営の印（丸に✓）を絵として描く
+function drawDevBadge(g,x,y,r){
+  g.save();
+  var gr=g.createLinearGradient(x-r,y-r,x+r,y+r);gr.addColorStop(0,'#FFFFFF');gr.addColorStop(.5,'#DCE6F5');gr.addColorStop(1,'#A9B8D0');
+  g.beginPath();g.arc(x,y,r,0,Math.PI*2);g.fillStyle=gr;g.fill();
+  g.lineWidth=Math.max(.8,r*.16);g.strokeStyle='rgba(6,9,16,.7)';g.stroke();
+  g.beginPath();g.moveTo(x-r*.44,y+r*.02);g.lineTo(x-r*.10,y+r*.36);g.lineTo(x+r*.46,y-r*.36);
+  g.lineWidth=Math.max(1,r*.30);g.strokeStyle='#0B0E14';g.lineCap='round';g.lineJoin='round';g.stroke();
+  g.restore();
+}
 function drawProfileCard(g,P,x,y,w,h,tm){
   var markR=w*.14,top=y+markR*1.62,ch=h-(top-y),rad=w*.06,lvl=tierInfo(P.tier).lvl,k=ctxScale(g);
   g.save();
@@ -5205,10 +5225,11 @@ function drawProfileCard(g,P,x,y,w,h,tm){
     drawNeonTitle(g,titleText,x+pad,ty,ts,tm);
     nameY=ty-ts*1.22;
   }else{fitFont(g,titleText,textMax,Math.round(w*.048),'900',FONT_JP);g.fillStyle='#FFC53D';g.fillText(titleText,x+pad,ty);}
-  fitFont(g,P.name||'',textMax,Math.round(w*.085),'400',FONT_DISP);
+  var nsz=fitFont(g,P.name||'',textMax,Math.round(w*.085),'400',FONT_DISP);
   g.lineWidth=w*.012;g.strokeStyle='rgba(0,0,0,.65)';g.lineJoin='round';
   g.strokeText(P.name||'',x+pad,nameY);
   g.fillStyle='#FFFFFF';g.fillText(P.name||'',x+pad,nameY);
+  if(P.dev)drawDevBadge(g,x+pad+g.measureText(P.name||'').width+nsz*.42,nameY-nsz*.31,nsz*.33);   // 名前のうしろに運営の印
   // 右下：持っている武器
   for(var i=0;i<icons;i++){
     var ix=x+w-pad-(icons-i)*iconW*1.02,iy=top+ch-pad*.8-iconW*.7,col=WEAPONS[P.loadout[i]].color;
@@ -5309,13 +5330,16 @@ function drawChar(s,isMe,o){
   else if(gameMode==='ai'){tag=isBossFight()?'BOSS':'CPU';tagCol=isBossFight()?'#E8C66A':'#FF4D5E';nm=diffName(difficulty);}
   else{var ot=tierByKey(oppInfo.tier);tag=ot&&ot.key?ot.key:'RIVAL';tagCol=ot&&ot.key?ot.color:'#FF4D5E';nm=oppInfo.name||t('c.opp');}
   ctx.font='700 9px '+FONT_UI;
-  var tw=ctx.measureText(tag).width+8,nw=ctx.measureText(nm).width+8,px0=cxm-(tw+nw)/2,py0=hy-29;
-  ctx.fillStyle='rgba(6,8,14,.8)';rrect(px0,py0,tw+nw,13,3);ctx.fill();
+  var dv=o.label?!!o.label.dev:isMe?!!(AUTH.user&&AUTH.user.dev):gameMode==='ai'?false:!!oppInfo.dev;
+  var dw=dv?12:0;
+  var tw=ctx.measureText(tag).width+8,nw=ctx.measureText(nm).width+8,px0=cxm-(tw+nw+dw)/2,py0=hy-29;
+  ctx.fillStyle='rgba(6,8,14,.8)';rrect(px0,py0,tw+nw+dw,13,3);ctx.fill();
   var tagIdx=o.label?(o.label.tierIdx||0):isMe?computeTierIndex():gameMode==='ai'?0:tierIdxOf(oppInfo.tier);
   if(tagIdx>0)drawTierPill(ctx,tagIdx,px0,py0,tw,13,tag,performance.now()/1000);   // ティアの素材の札
   else{ctx.fillStyle=tagCol;rrect(px0,py0,tw,13,3);ctx.fill();ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillStyle=inkFor(tagCol);ctx.fillText(tag,px0+4,py0+7);}
   ctx.textAlign='left';ctx.textBaseline='middle';
   ctx.fillStyle=o.label&&o.label.nmCol?o.label.nmCol:isMe?'#FFFFFF':'#FFD6DA';ctx.fillText(nm,px0+tw+4,py0+7);
+  if(dv)drawDevBadge(ctx,px0+tw+nw+2,py0+7,4.4);
   ctx.textBaseline='alphabetic';
 }
 // 2v2 のミニマップ：4人を役割の色で
@@ -6444,7 +6468,7 @@ function myRecord(){
 function tierIdxOf(key){for(var i=1;i<TIER_LADDER.length;i++)if(TIER_LADDER[i].key===key)return i;return 0;}
 function oppCardData(){
   var ti=tierIdxOf(oppInfo.tier);
-  return{name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
+  return{name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),dev:!!oppInfo.dev,bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
 }
 function drawRecPill(cx,y,rec,col){
   var total=rec?rec.w+rec.l:0;
@@ -6472,7 +6496,7 @@ function drawDiscordTag(cx,y,name){
 function teamCardData(s){
   if(s===mySlot){var m=myCardData();m.tier=myTier2Index();m.bg=bgIndex();return m;}
   var P=TM.players[s]||{},ti=tierIdxOf(P.tier);
-  return{name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
+  return{name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),dev:!!P.dev,bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
 }
 function drawVsTeam(T){
   var cw=124,ch=164,cy=(VH-ch)/2+6,e=1-Math.pow(1-Math.min(1,T/.45),3),out=T>2.65?Math.min(1,(T-2.65)/.35):0;

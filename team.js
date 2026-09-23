@@ -51,7 +51,7 @@ class TeamRoom {
     if (!s) return null;
     const acc = ws.account || null;
     this.players[s] = {
-      ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc, slot: s,
+      ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc, dev: !!(acc && acc.dev), slot: s,
       name: G.cleanName(info && info.name), discord: acc ? G.cleanName(acc.name) : '',
       // 2v2 のティアとレートは、ログイン中ならサーバーが持っている本物（ゲストは未ランク）
       tier: acc && acc.tier2Key ? acc.tier2Key : '', rate: acc ? (acc.rate2 || SIM.RATE_START) : SIM.RATE_START,
@@ -125,7 +125,7 @@ class TeamRoom {
     const info = {};
     for (const k of SLOTS) {
       const p = this.players[k];
-      if (p) info[k] = { name: p.name, discord: p.discord, tier: p.tier, rate: p.rate, verified: p.verified, loadout: p.loadout,
+      if (p) info[k] = { name: p.name, discord: p.discord, tier: p.tier, rate: p.rate, verified: p.verified, dev: !!p.dev, loadout: p.loadout,
         look: p.look, title: p.title, bio: p.bio, bg: p.bg, rec: p.rec };
     }
     for (const k of SLOTS) { const p = this.players[k]; if (p && !p.bot) this.send(p, { type: 'team_ready', slot: k, ranked: this.ranked, players: info }); }

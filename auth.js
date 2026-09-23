@@ -244,14 +244,14 @@ const auth = {
     if (!u || BANNED_IDS.has(String(u.id))) return null;
     const r = rateState2(u), p = u.profile || null;
     return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie',
-      tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games };
+      tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games, dev: !!u.dev };
   },
   // ランキングに出す1行（BOTはアカウントを持たないので、そもそも入らない）
   rankRow(u) {
     if (!u || BANNED_IDS.has(String(u.id))) return null;
     const r = rateState(u), p = u.profile || null;
     return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie',
-      tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games };
+      tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games, dev: !!u.dev };
   },
 
   // 怪しいプレイを検知した回数をアカウントに残す（BANするかの判断材料）
@@ -348,7 +348,7 @@ const auth = {
   card(u, status) {
     const p = u.profile || null, rs = rateState(u), tier = rs.tier, r2 = rateState2(u);
     return {
-      fid: u.fid, name: p ? p.name : u.name, discord: u.name,
+      fid: u.fid, name: p ? p.name : u.name, discord: u.name, dev: !!u.dev,
       title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie', bio: p ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
       tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },

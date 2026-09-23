@@ -112,7 +112,7 @@ class Room {
     // 名前はプロフィールの名前。ログイン済みの人は、なりすまし対策に Discord の名前も相手に見せる
     const acc = ws.account || null;
     this.players[slot] = {
-      ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc,
+      ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc, dev: !!(acc && acc.dev),
       name: cleanName(info && info.name), discord: acc ? cleanName(acc.name) : '', 
       // ティアとレートは、ログイン中ならサーバーが持っている本物（ゲストだけ自己申告）
       tier: acc && acc.tierKey ? acc.tierKey : cleanTier(info && info.tier), rate: acc ? acc.rate : 0,
@@ -166,7 +166,7 @@ class Room {
     // それぞれに相手の名前・ティア・持ってきた武器を伝える
     for (const k of SLOTS) {
       const p = this.players[k], o = this.players[other(k)];
-      if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
+      if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, dev: !!o.dev, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
     }
     this.schedulePing();
     this.beginWait('prep', PREP_MS, VS_MS);
