@@ -472,6 +472,15 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 #mm-wait-main{margin-top:6px;font-size:12.5px;font-weight:700;color:var(--tx-2);}
 #mm-wait-time{margin-top:2px;font-family:var(--f-disp);font-size:26px;line-height:1.1;color:var(--tx-1);}
 #mm-wait-sub{margin-top:4px;font-size:11.5px;color:var(--tx-3);}
+/* 相手をさがしている間：画面の真ん中に大きく出す（下に隠れて見えないのを直す）*/
+#room-screen.searching .ol-sec,#room-screen.searching #ol-party{display:none;}   /* さがしている間は、選び直す場所を隠す */
+#room-screen.searching #ol-go-sec{display:block;}
+.room-card.mm-card.searching{max-width:460px;margin:8vh auto 0;padding:28px 24px 22px;border-color:rgba(255,197,61,.42);
+  box-shadow:0 30px 70px -22px rgba(0,0,0,.95),0 0 70px -34px rgba(255,197,61,.9);animation:gf-fade .28s ease both;}
+.mm-card.searching #mm-wait-main{margin-top:14px;font-size:14.5px;color:var(--tx-1);}
+.mm-card.searching #mm-wait-time{font-size:38px;margin-top:4px;color:var(--gold);}
+.mm-card.searching #mm-wait-sub{margin-top:7px;font-size:12.5px;}
+.mm-card.searching .mm-cancel{margin-top:18px;padding:11px;font-size:13.5px;}
 .mm-radar{position:relative;height:38px;}
 .mm-radar span{position:absolute;left:50%;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border:1.5px solid var(--acc);border-radius:99px;opacity:0;animation:mm-ping 2.4s ease-out infinite;}
 .mm-radar span:nth-child(2){animation-delay:.8s}
@@ -593,37 +602,64 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 #c{display:block;width:100%;height:auto;border-radius:14px;background:#0B0E1A;}
 #online-hud{display:none;margin-top:6px;font-size:11px;color:var(--ok);text-align:center;}
 /* 試合前の準備・ラウンド間の武器変更（オンライン） */
-#match-panel{position:absolute;left:10px;right:10px;bottom:10px;z-index:5;display:none;padding:10px 12px;border-radius:12px;background:rgba(7,9,16,.92);border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 40px -18px rgba(0,0,0,.9);color:var(--tx-1);font-size:12px;}
+#match-panel{position:absolute;left:50%;transform:translateX(-50%);bottom:12px;width:min(660px,calc(100% - 20px));z-index:5;display:none;padding:14px 16px 13px;border-radius:16px;
+  background:linear-gradient(180deg,rgba(16,19,30,.96),rgba(7,9,16,.96));border:1px solid rgba(255,255,255,.18);box-shadow:0 24px 54px -20px rgba(0,0,0,.95);color:var(--tx-1);font-size:13px;}
 #match-panel.on{display:block;}
-#match-panel.pick{top:10px;overflow:auto;}
-@media (max-width:700px){#match-panel.pick{position:fixed;inset:0;z-index:60;border-radius:0;padding:14px;}}
-.mp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px;}
-.mp-head b{font-family:var(--f-disp);font-size:14px;letter-spacing:.02em;}
-.mp-time{font-family:var(--f-disp);font-size:22px;line-height:1;color:#FFC53D;}
+#match-panel.pick{top:12px;bottom:12px;width:min(780px,calc(100% - 20px));overflow-x:hidden;overflow-y:auto;}
+#match-panel.pick .mp-row{grid-template-columns:1fr;}   /* 武器選び直し：左右2列なので、中は縦に並べる */
+@media (max-width:700px){#match-panel{bottom:8px;padding:12px;}#match-panel.pick{position:fixed;inset:0;left:0;transform:none;width:100%;z-index:60;border-radius:0;padding:14px;}}
+.mp-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;padding-bottom:9px;border-bottom:1px solid rgba(255,255,255,.1);}
+.mp-head b{font-family:var(--f-disp);font-size:17px;letter-spacing:.02em;}
+.mp-time{font-family:var(--f-disp);font-size:28px;line-height:1;color:#FFC53D;text-shadow:0 0 18px rgba(255,197,61,.45);}
+/* ステージ投票 */
+.mp-sec{margin:0 0 11px;}
+.mp-sec>h4{display:flex;align-items:baseline;gap:9px;margin:0 0 7px;font-size:10.5px;font-weight:800;letter-spacing:.16em;color:var(--tx-3);}
+.mp-sec .mp-note{letter-spacing:.02em;font-size:10.5px;font-weight:700;color:var(--tx-3);opacity:.85;}
+.mp-sts{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.st-op{position:relative;display:block;padding:0;overflow:hidden;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .15s,transform .08s;}
+.st-op canvas{display:block;width:100%;height:64px;}
+.st-op .st-tx{display:block;padding:7px 10px 8px;}
+.st-op b{display:block;font-size:13.5px;font-weight:900;}
+.st-op small{display:block;font-size:10px;color:var(--tx-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.st-op:hover{border-color:var(--line-2);}
+.st-op:active{transform:translateY(1px);}
+.st-op.sel{border-color:var(--gold);box-shadow:0 0 0 1px rgba(255,197,61,.45),0 0 26px -10px rgba(255,197,61,.9);}
+.st-vote{position:absolute;top:7px;right:8px;display:flex;gap:4px;}
+.st-vote i{width:9px;height:9px;border-radius:50%;background:#FF8A96;box-shadow:0 0 8px rgba(255,120,140,.8);}
+.st-vote i.me{background:#B794FF;box-shadow:0 0 8px rgba(183,148,255,.9);}
+@media (max-width:700px){.st-op canvas{height:58px;}}
 .mp-cols{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 #match-panel.prep .mp-cols{grid-template-columns:1fr;}
-.mp-col h4{margin:0 0 5px;font-size:10px;font-weight:800;letter-spacing:.14em;color:var(--tx-3);}
+.mp-col h4{margin:0 0 6px;font-size:10.5px;font-weight:800;letter-spacing:.14em;color:var(--tx-3);}
+#match-panel.prep .mp-cols{gap:9px;}
+#match-panel.prep .mp-col+.mp-col{margin-top:1px;}
 .mp-col.opp h4{color:#FF8A96;}
 .mp-row{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;}
-.mp-w{display:flex;align-items:center;gap:7px;min-width:0;padding:6px 7px;border-radius:9px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);text-align:left;color:inherit;font:inherit;}
+.mp-w{display:flex;align-items:center;gap:9px;min-width:0;padding:8px 9px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);text-align:left;color:inherit;font:inherit;}
 button.mp-w{cursor:pointer;}
 .mp-w.sel{border-color:#FFC53D;background:rgba(255,197,61,.12);box-shadow:0 0 0 1px rgba(255,197,61,.35);}
 .mp-w canvas{width:58px;height:25px;flex:0 0 58px;}
 .mp-w .mw-t{min-width:0;}
-.mp-w b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;}
-.mp-w small{display:block;font-size:9.5px;line-height:1.35;color:var(--tx-3);}
-.mp-hint{margin:8px 0 4px;font-size:10.5px;color:var(--tx-3);}
-.mp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
-.mp-grid button{display:flex;flex-direction:column;align-items:center;gap:2px;padding:5px 2px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);color:var(--tx-2);font-size:9.5px;font-weight:700;cursor:pointer;}
-.mp-grid button:hover{border-color:rgba(255,255,255,.3);color:var(--tx-1);}
-.mp-grid button.eq{border-color:rgba(255,197,61,.5);color:#FFD968;}
-.mp-grid canvas{width:48px;height:21px;}
-.mp-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:9px;}
-.mp-ready{font-size:11.5px;color:var(--tx-2);}
+.mp-w b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:900;}
+.mp-w small{display:block;font-size:10px;line-height:1.4;color:var(--tx-3);}
+.mp-hint{margin:11px 0 6px;font-size:11.5px;font-weight:700;color:var(--tx-2);}
+.mp-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;}
+.mp-grid button{display:flex;flex-direction:row;align-items:center;gap:9px;padding:8px 9px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);color:var(--tx-2);text-align:left;cursor:pointer;transition:border-color .15s,background .15s,transform .08s;}
+.mp-grid button:hover{border-color:rgba(255,255,255,.34);color:var(--tx-1);background:rgba(255,255,255,.08);}
+.mp-grid button:active{transform:translateY(1px);}
+.mp-grid button.eq{border-color:rgba(255,197,61,.55);background:rgba(255,197,61,.1);}
+.mp-grid canvas{width:66px;height:28px;flex:0 0 66px;}
+.mp-grid .g-t{min-width:0;overflow:hidden;}
+.mp-grid button{min-width:0;}
+.mp-grid .g-t b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12.5px;font-weight:900;}
+.mp-grid .g-t small{display:block;font-size:10px;font-weight:700;color:var(--tx-3);}
+.mp-foot{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px;padding-top:11px;border-top:1px solid rgba(255,255,255,.1);}
+.mp-ready{font-size:12.5px;font-weight:700;color:var(--tx-2);}
 .mp-ready .ok{color:#34D399;font-weight:800;}
-.mp-ok{padding:9px 18px;border:0;border-radius:10px;background:linear-gradient(180deg,#FFD968,#F5B400);color:#1a1300;font-size:13px;font-weight:900;letter-spacing:.03em;cursor:pointer;}
+.mp-ok{padding:11px 26px;border:0;border-radius:11px;background:linear-gradient(180deg,#FFD968,#F5B400);color:#1a1300;font-size:14.5px;font-weight:900;letter-spacing:.04em;cursor:pointer;box-shadow:0 8px 20px -10px rgba(255,197,61,.9);}
+.mp-ok:active{transform:translateY(1px);}
 .mp-ok:disabled{opacity:.45;cursor:default;}
-@media (max-width:700px){.mp-grid{grid-template-columns:repeat(5,1fr);}.mp-row{grid-template-columns:1fr;}}
+@media (max-width:700px){.mp-grid{grid-template-columns:1fr 1fr;}.mp-row{grid-template-columns:1fr;}.mp-head b{font-size:15px;}.mp-time{font-size:24px;}}
 #btns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px;}
 #btns button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;padding:9px 4px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),var(--panel-solid);border:1px solid var(--line);border-bottom:3px solid rgba(0,0,0,.55);border-radius:12px;color:var(--tx-2);font-size:11.5px;font-weight:700;letter-spacing:.04em;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .08s,background .12s,color .12s;}
 #btns button:active{transform:translateY(2px);background:var(--panel-hi);color:var(--tx);}
@@ -1810,6 +1846,13 @@ function titleUnlocked(id){
   if(d.gate)return SIM.titleOk(id,myTitleCtx());
   return !!profile.ach.got[id]||titleRule(d);
 }
+// CPUの強さを変えたので、CPU戦で取れる称号と背景を1回だけやり直す（サーバー側でも同じことをしている）
+function migrateProfile(){
+  ensureProfileShape();
+  if((+profile.epoch||0)>=SIM.PROFILE_EPOCH)return;
+  SIM.resetCpuTitles(profile,computeTierIndex());
+  ensureProfileShape();saveProfile();refreshProfileViews();
+}
 // 条件を満たした称号を「獲得済み」にして、新しく取れたものをお知らせする
 function checkTitles(){
   ensureProfileShape();
@@ -2366,7 +2409,7 @@ try{var _sy=JSON.parse(localStorage.getItem('gunduel_sync')||'null');if(_sy&&typ
 function saveSyncMeta(){try{localStorage.setItem('gunduel_sync',JSON.stringify({acc:SYNC.acc,rev:SYNC.rev,dirty:SYNC.dirty}));}catch(e){}}
 function profileDoc(){
   ensureProfileShape();
-  return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor};
+  return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch};
 }
 function profileChanged(){if(!STORE_ACC)return;SYNC.dirty=true;SYNC.seq++;saveSyncMeta();pushProfileSoon(1500);}
 function pushProfileSoon(ms){
@@ -2403,7 +2446,7 @@ function pushProfile(){
 // サーバーの内容で手元を置きかえる（送り返さない）
 function adoptProfile(p){
   if(!p||typeof p!=='object')return;
-  ['name','bio','title','look','bg','bestTier','stats','tierProgress','ach','emperor'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['name','bio','title','look','bg','bestTier','stats','tierProgress','ach','emperor','epoch'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
   ensureProfileShape();writeProfileLocal();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
@@ -3134,7 +3177,8 @@ function onWaitMsg(msg){
   if(msg.team){
     var rd=msg.ready||{};
     WAIT={team:true,kind:msg.kind==='pick'?'pick':'prep',until:now+(+msg.ms||0),vsUntil:now+(+msg.vsMs||0),ready:rd,
-      meReady:!!rd[mySlot],oppReady:false,mine:SIM.cleanLoadout(msg.mine,false),opp:null,loads:msg.loads||{}};
+      meReady:!!rd[mySlot],oppReady:false,mine:SIM.cleanLoadout(msg.mine,false),opp:null,loads:msg.loads||{},
+      stages:msg.stages||null,votes:msg.votes||{},myVote:(msg.votes||{})[mySlot]||null};
     matchLoadout=WAIT.mine.slice();
     SIM.TEAM_SLOTS.forEach(function(s){if(s!==mySlot&&TM.players[s]&&WAIT.loads[s])TM.players[s].loadout=SIM.cleanLoadout(WAIT.loads[s],true);});
     renderMatchPanel();
@@ -3143,7 +3187,8 @@ function onWaitMsg(msg){
   }
   WAIT={kind:msg.kind==='pick'?'pick':'prep',until:now+(+msg.ms||0),vsUntil:now+(+msg.vsMs||0),
     meReady:!!(msg.ready&&msg.ready.me),oppReady:!!(msg.ready&&msg.ready.opp),
-    mine:SIM.cleanLoadout(msg.mine,false),opp:msg.opp?SIM.cleanLoadout(msg.opp,true):null};
+    mine:SIM.cleanLoadout(msg.mine,false),opp:msg.opp?SIM.cleanLoadout(msg.opp,true):null,
+    stages:msg.stages||null,votes:msg.votes||{},myVote:(msg.votes||{}).me||null};
   matchLoadout=WAIT.mine.slice();
   if(WAIT.opp)oppInfo.loadout=WAIT.opp.slice();
   renderMatchPanel();
@@ -3173,6 +3218,42 @@ function pickMatchWeapon(id){
   SFX.switchW();renderMatchPanel();
 }
 // 武器1つぶんの札（アイコン・名前・射程・威力・連射）
+// ステージの小さな絵：空のグラデーションと足場だけを、そのステージの色で描く
+function drawStageMini(cv,id){
+  var g=cv.getContext('2d'),W=cv.width,H=cv.height,st=SIM.STAGES[id]||SIM.STAGES.classic,th=themeOf(id);
+  var sx=W/SIM.WORLD_W,sy=H/(SIM.GND+52);
+  var sk=g.createLinearGradient(0,0,0,H);sk.addColorStop(0,th.sky[0]);sk.addColorStop(.62,th.sky[1]);sk.addColorStop(1,th.sky[2]);
+  g.fillStyle=sk;g.fillRect(0,0,W,H);
+  (st.solids||[]).forEach(function(p){
+    g.fillStyle=th.solid;g.fillRect(p.x*sx,p.y*sy,Math.max(1,p.w*sx),Math.max(1,p.h*sy));
+  });
+  (st.platforms||[]).forEach(function(p){
+    var x=p.x*sx,y=p.y*sy,w=Math.max(2,p.w*sx),h=Math.max(1.6,p.h*sy);
+    g.fillStyle=p.ground?th.ground[0]:th.plat;g.fillRect(x,y,w,h);
+    g.fillStyle=th.platHi;g.fillRect(x,y,w,Math.max(.8,h*.3));
+  });
+  var sh=g.createLinearGradient(0,H*.5,0,H);sh.addColorStop(0,'rgba(0,0,0,0)');sh.addColorStop(1,'rgba(0,0,0,.35)');
+  g.fillStyle=sh;g.fillRect(0,H*.5,W,H*.5);
+}
+// ステージに1票入れる（押し直しもできる）
+function stageVote(id){
+  if(!WAIT||WAIT.kind!=='prep'||!WAIT.stages||WAIT.stages.indexOf(id)<0)return;
+  WAIT.myVote=id;
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'stage_vote',stage:id}));
+  renderMatchPanel();
+}
+// 投票の丸（自分の票は紫）
+function voteDots(id){
+  if(!WAIT)return'';
+  var mine=WAIT.myVote===id,n=0;
+  if(WAIT.team){SIM.TEAM_SLOTS.forEach(function(s){if(s!==mySlot&&WAIT.votes[s]===id)n++;});}
+  else if(WAIT.votes&&WAIT.votes.opp===id)n++;
+  if(!mine&&!n)return'';
+  var h='<span class="st-vote">';
+  if(mine)h+='<i class="me"></i>';
+  for(var i=0;i<n;i++)h+='<i></i>';
+  return h+'</span>';
+}
 function mpCard(id,btn,sel,onclick){
   var W=WEAPONS[id],st=weaponStats(id);
   var stat=t('mp.stat',{range:W.kind==='grenade'?'~'+W.range:W.range,power:W.pellets?(W.dmg+'×'+W.pellets):W.burst?(W.dmg+'×'+W.burst):W.dmg,rate:st.rps.toFixed(1)});
@@ -3184,6 +3265,15 @@ function renderMatchPanel(){
   if(!WAIT||gameMode!=='online'||vsPhase){el.className='';el.innerHTML='';return;}   // VS画面の間は出さない
   var pick=WAIT.kind==='pick',h='';
   h+='<div class="mp-head"><b>'+esc(t(pick?'mp.pickTitle':'mp.prepTitle'))+'</b><span class="mp-time" id="mp-time">'+waitLeft()+'</span></div>';
+  if(!pick&&WAIT.stages&&WAIT.stages.length===2){
+    h+='<div class="mp-sec"><h4>'+esc(t('mp.stage'))+'<span class="mp-note">'+esc(t('mp.stageHint'))+'</span></h4><div class="mp-sts">';
+    WAIT.stages.forEach(function(sid){
+      h+='<button class="st-op'+(WAIT.myVote===sid?' sel':'')+'" onclick="stageVote(\''+sid+'\')">'+
+        '<canvas width="320" height="96" data-stage="'+sid+'"></canvas>'+voteDots(sid)+
+        '<span class="st-tx"><b>'+esc(t('stage.'+sid+'.name'))+'</b><small>'+esc(t('stage.'+sid+'.theme'))+'</small></span></button>';
+    });
+    h+='</div></div>';
+  }
   h+='<div class="mp-cols">';
   if(pick){
     h+='<div class="mp-col"><h4>'+esc(t('mp.mine'))+'</h4><div class="mp-row">';
@@ -3199,6 +3289,11 @@ function renderMatchPanel(){
     });
     h+='</div>';
   }else{
+    if(!pick){   // 準備中：自分の武器も並べる
+      h+='<div class="mp-col"><h4>'+esc(t('mp.mine'))+'</h4><div class="mp-row">';
+      (WAIT.mine||[]).forEach(function(id){h+=mpCard(id,false);});
+      h+='</div></div>';
+    }
     h+='<div class="mp-col opp"><h4>'+esc(t('mp.opp',{name:oppInfo.name||t('c.opp')}))+'</h4><div class="mp-row">';
     (WAIT.opp||oppInfo.loadout||[]).forEach(function(id){h+=mpCard(id,false);});
     h+='</div></div></div>';
@@ -3206,7 +3301,11 @@ function renderMatchPanel(){
   if(pick&&!WAIT.meReady){
     h+='<div class="mp-hint">'+esc(t('mp.pickHint',{n:pickSel+1}))+'</div><div class="mp-grid">';
     WEAPON_ORDER.forEach(function(id){
-      h+='<button class="'+(WAIT.mine.indexOf(id)>=0?'eq':'')+'" onclick="pickMatchWeapon('+id+')"><canvas width="96" height="42" data-gun="'+id+'"></canvas>'+esc(wShort(id))+'</button>';
+      var W=WEAPONS[id],st=weaponStats(id);
+      h+='<button class="'+(WAIT.mine.indexOf(id)>=0?'eq':'')+'" onclick="pickMatchWeapon('+id+')">'+
+        '<canvas width="132" height="56" data-gun="'+id+'"></canvas>'+
+        '<span class="g-t"><b style="color:'+W.color+'">'+esc(wName(id))+'</b>'+
+        '<small>'+esc(t('mp.stat',{range:W.kind==='grenade'?'~'+W.range:W.range,power:W.pellets?(W.dmg+'×'+W.pellets):W.burst?(W.dmg+'×'+W.burst):W.dmg,rate:st.rps.toFixed(1)}))+'</small></span></button>';
     });
     h+='</div>';
   }
@@ -3220,6 +3319,7 @@ function renderMatchPanel(){
   el.className='on '+(pick?'pick':'prep')+(WAIT.team?' team':'');
   el.innerHTML=h;
   el.querySelectorAll('canvas[data-gun]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);drawGunIcon(g,+cv.getAttribute('data-gun'),0,0,cv.width,cv.height);});
+  el.querySelectorAll('canvas[data-stage]').forEach(function(cv){drawStageMini(cv,cv.getAttribute('data-stage'));});
 }
 function tickMatchPanel(){
   if(!WAIT){if(waitTick){clearInterval(waitTick);waitTick=null;}return;}
@@ -3248,8 +3348,8 @@ function backToMenu(){
   clearGameTimers();endWaitUI();
   if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range');}
   loopRunning=false;lobbyPhase=false;gameMode='ai';
-  flashMsg='';flashTimer=0;tierUp=null;killCam=null;matchOver=false;vsPhase=false;bossIntro=null;unlockFx=null;slayFx=null;
-  rematchMine=false;rematchOpp=false;myPing=-1;oppPing=-1;
+  flashMsg='';flashTimer=0;tierUp=null;killCam=null;matchOver=false;vsPhase=false;bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;
+  rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;
   keys={};clearPending();clearFx();
   setInGameUI(false);exitFullscreen();
   disconnectWS();unlockDifficulty();showModeScreen();
@@ -3281,7 +3381,7 @@ var lobbyPhase=false,lobbyCount=10,lobbyTimer=null;
 var playerSlot=0,keys={};
 var pend={jump:false,shoot:false,heal:false,reload:false};   // 押した瞬間の操作（次のフレームで使う）
 var matchOver=false;                  // 試合が決着してリザルト表示中
-var rematchMine=false,rematchOpp=false;
+var rematchMine=false,rematchOpp=false,rematchOff=false;
 var myPing=-1,oppPing=-1,pingTimer=null;
 var oppInfo={name:'',tier:'',loadout:[2,3,1],look:null};    // オンラインの相手
 var matchShots=0,matchHits=0,hitSids={};              // リザルト表示用の命中率
@@ -3566,7 +3666,7 @@ function endRoundL(winner){
 function doRematch(){
   if(!matchOver)return;
   if(gameMode==='ai'){startAI();return;}
-  if(rematchMine)return;
+  if(rematchMine||rematchOff)return;
   rematchMine=true;
   if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'rematch'}));
 }
@@ -3768,9 +3868,10 @@ function handleOnlineMsg(msg){
   }
   else if(mt==='round_start'){
     if(msg.state&&msg.state.wins&&(msg.state.wins.a||msg.state.wins.b))achRoundStart();else achMatchStart();   // 0-0 なら新しい試合（再戦も）
-    lobbyPhase=false;olRoundOver=false;matchOver=false;rematchMine=false;rematchOpp=false;killCam=null;endWaitUI();
+    lobbyPhase=false;olRoundOver=false;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;killCam=null;endWaitUI();
+    tierUp=null;rematchFx=null;   // 前の試合の演出が残っていたら消す
     olState=msg.state;olStateAt=performance.now();clearFx();clearPending();
-    useStage('classic');if(TEAM2)initOlWorld2();else initOlWorld();flashMsg='FIGHT!';flashTimer=55;camX=0;setInGameUI(true);
+    useStage(msg.stage||'classic');if(TEAM2)initOlWorld2();else initOlWorld();flashMsg='FIGHT!';flashTimer=55;camX=0;setInGameUI(true);
     if(msg.state&&msg.state.wins)olWinsFrom(msg.state.wins);
     updateWeaponBar();
   }
@@ -3802,7 +3903,7 @@ function handleOnlineMsg(msg){
     later(function(){flashMsg=iWon?'WIN!':msg.winner?'LOSE...':'DRAW';flashTimer=80;},560);
     if(msg.wins)olWinsFrom(msg.wins);
   }
-  else if(mt==='match_end'){
+  else if(mt==='match_end'){rematchOff=msg.rematch===false;
     olRoundOver=true;matchOver=true;
     var mWon=TEAM2?msg.winTeam===myTeamNo():msg.winner===mySlot;
     flashMsg=mWon?'YOU WIN!':'LOSE';flashTimer=9999;
@@ -3810,7 +3911,10 @@ function handleOnlineMsg(msg){
     achMatchDone(mWon);
     if(rateFx&&rateFx.tierAfter!==rateFx.tierBefore){   // 昇格・降格の演出は、レートの増減を見せたあとで
       var tb=rateFx.tierBefore,ta=rateFx.tierAfter;
-      later(function(){if(ta>tb)startTierUp(tb,ta);else startTierDown(tb,ta);},3400);
+      later(function(){
+        if(!matchOver||currentScreen!=='game-screen'||rematchFx)return;   // もう次の試合が始まっていたら出さない
+        if(ta>tb)startTierUp(tb,ta);else startTierDown(tb,ta);
+      },3400);
     }
     setTimeout(function(){if(AUTH.token)refreshMe();},900);   // オンライン戦績（称号の条件）を読み直す
   }
@@ -3821,6 +3925,7 @@ function handleOnlineMsg(msg){
   else if(mt==='rematch_state'){
     if(msg.team){var rs=msg.ready||{};rematchMine=!!rs[mySlot];rematchOpp=SIM.TEAM_SLOTS.every(function(s){return s===mySlot||!(s in rs)||rs[s];});}
     else{rematchMine=!!msg[mySlot];rematchOpp=!!msg[oppSlotOf()];}
+    if(rematchMine&&rematchOpp&&!rematchFx)startRematchFx();   // 全員そろった：再戦の演出
   }
   else if(mt==='sping'){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'spong',t:msg.t}));}   // サーバーが相手に見せるPINGを測る
   else if(mt==='pong'){
@@ -3828,6 +3933,7 @@ function handleOnlineMsg(msg){
     if(typeof msg.opp==='number')oppPing=msg.opp;
     if(msg.pings)oppPing=-1;
   }
+  else if(mt==='rematch_off'){rematchOff=true;rematchMine=false;note(t('c.rematchOff'));}
   else if(mt==='opponent_left'){
     olRoundOver=true;matchOver=true;rematchMine=false;rematchOpp=false;
     flashMsg=msg.after?t('c.oppLeft'):t('c.oppLeftWin')+'\nVICTORY!';flashTimer=9999;
@@ -3853,7 +3959,7 @@ function startAI(){
   gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};keys={};
   var boss=difficulty===EMP;
   cpuLoad=boss?SIM.emperorLoadout():SIM.cpuLoadout();cpuLook=boss?EMPEROR_LOOK:SIM.randomLook();
-  bossIntro=null;unlockFx=null;slayFx=null;
+  bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;
   presenceStatus('cpu');achMatchStart();
   if(INV.cur){INV.queue.unshift(INV.cur);INV.cur=null;hideInviteToast();}   // 表示中の招待は試合のあとで出し直す
   showGameScreen('ai');initLocalRound();unlockDifficulty();
@@ -3861,7 +3967,7 @@ function startAI(){
   startLoop();
 }
 function myTierKey(){return TIER_LADDER[computeTierIndex()].key;}
-function resetOnlineState(){TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
+function resetOnlineState(){TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
 function startPingLoop(){
   if(pingTimer)clearInterval(pingTimer);
   pingTimer=setInterval(function(){
@@ -3896,6 +4002,11 @@ function renderQueue(){
   var sb=document.getElementById('mm-start-btn');if(sb)sb.textContent=t(two?'ol.search2':'ol.search',{mode:nm0});
   var sn=document.getElementById('mm-start-note');if(sn)sn.textContent=t(mode==='ranked'?'mm.rankedSub':'mm.casualSub');
   wrap.style.display=QUEUE.on?'':'none';btns.style.display=QUEUE.on?'none':'';
+  var card=document.getElementById('ol-queue'),scr=document.getElementById('room-screen');
+  var was=scr&&scr.classList.contains('searching');
+  if(card)card.classList.toggle('searching',!!QUEUE.on);
+  if(scr)scr.classList.toggle('searching',!!QUEUE.on);          // さがしている間は、上の選択肢を隠す
+  if(card&&QUEUE.on&&!was&&card.scrollIntoView)card.scrollIntoView({block:'center'});   // 押した直後に見える位置へ
   if(!QUEUE.on)return;
   var nm=t(QUEUE.mode==='ranked'?'mm.ranked':'mm.casual');
   document.getElementById('mm-wait-main').textContent=t(QUEUE.team?(PARTY.id?'mm.searching2p':'mm.searching2'):'mm.searching',{mode:nm});
@@ -5910,11 +6021,15 @@ function drawMatchResult(lines){
     ctx.fillText(t('c.accuracy',{p:Math.min(100,Math.round(matchHits/matchShots*100)),n:matchShots}),cx,ry);
   }
   // 再戦の状況（オンライン）
-  if(gameMode==='online'&&(rematchMine||rematchOpp)){
+  if(gameMode==='online'&&rematchOff){
+    ctx.font='700 11px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.55)';
+    ctx.fillText(t('c.rematchOff'),cx,ry);
+  }else if(gameMode==='online'&&(rematchMine||rematchOpp)){
     ctx.font='700 11px '+FONT_UI;ctx.fillStyle=rematchMine&&rematchOpp?'#34D399':'#FFC53D';
     ctx.fillText(rematchMine&&rematchOpp?t('c.rematchSoon'):(rematchMine?t('c.rematchWait'):t('c.rematchAsk')),cx,ry);
   }
-  if(isTouch)drawKeyHints([['TAP',t('c.again')]],cx,ry+32);
+  if(gameMode==='online'&&rematchOff)drawKeyHints([['ESC',t('c.toMenu')]],cx,ry+32);
+  else if(isTouch)drawKeyHints([['TAP',t('c.again')]],cx,ry+32);
   else drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')]],cx,ry+32);
   ctx.restore();
 }
@@ -5943,9 +6058,11 @@ function drawRateFx(cx,y,a){
 }
 function drawLobby(){
   if(gameMode==='online'&&WAIT)lobbyCount=waitLeft();
+  var panel=gameMode==='online'&&!!WAIT&&!vsPhase;   // 下のパネルに時間が出ているので、円は出さない
   var cx=VW/2,cy=VH/2-2-(gameMode==='online'?38:0),cr=52,c=lobbyCount,col=c<=3?'#FF4D5E':c<=6?'#FBBF24':'#34D399';
   ctx.save();
-  ctx.fillStyle='rgba(4,5,10,.8)';ctx.fillRect(0,0,VW,VH);
+  ctx.fillStyle=panel?'rgba(4,5,10,.55)':'rgba(4,5,10,.8)';ctx.fillRect(0,0,VW,VH);
+  if(panel){ctx.restore();return;}
   ctx.textAlign='center';ctx.textBaseline='alphabetic';
   ctx.font='700 10px '+FONT_UI;setLS(5);ctx.fillStyle='#FFC53D';ctx.fillText('GET READY',cx,cy-cr-48);setLS(0);
   ctx.font='700 16px '+FONT_UI;ctx.fillStyle='#EDEBE6';ctx.fillText(t('c.untilStart'),cx,cy-cr-24);
@@ -5969,7 +6086,7 @@ function drawLobby(){
 // ============================================================
 // 鬼帝の演出（登場・解放・撃破）
 // ============================================================
-var bossIntro=null,unlockFx=null,slayFx=null,BOSS_INTRO_S=4.9;
+var bossIntro=null,unlockFx=null,slayFx=null,rematchFx=null,BOSS_INTRO_S=4.9;
 function goldGrad(g,y0,y1){var gr=g.createLinearGradient(0,y0,0,y1);gr.addColorStop(0,'#FFF3C4');gr.addColorStop(.45,'#E8C66A');gr.addColorStop(.56,'#A87A24');gr.addColorStop(1,'#F5DC8A');return gr;}
 // 金の大きな文字（黒いふち・光のにじみ）。幅が maxW を超えるときは小さくする
 function goldText(text,x,y,size,maxW,font){
@@ -6164,7 +6281,7 @@ function keyIsBound(k){for(var a in keybinds)if(keybinds[a]===k)return true;retu
 function startRange(){
   clearGameTimers();endWaitUI();disconnectWS();
   gameMode='range';matchOver=false;lobbyPhase=false;vsPhase=false;killCam=null;tierUp=null;rateFx=null;flashMsg='';flashTimer=0;
-  bossIntro=null;unlockFx=null;slayFx=null;keys={};clearPending();clearFx();
+  bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;keys={};clearPending();clearFx();
   platforms=RANGE_STAGE.platforms;solids=[];stageTheme=STAGE_THEMES.night;
   var tg=RANGE_TARGETS.map(function(d){return SIM.newTarget(d.id,d.x,d.y-SIM.CHAR_H,d.patrol,d.speed);});
   RANGE={w:SIM.newRangeWorld(RANGE_STAGE,loadout.slice(),tg),stats:{},order:[],sidW:{},sidHit:{},nums:[],flash:{},idle:999,tick:0};
@@ -6458,6 +6575,37 @@ function onlineShots(){
 // マッチング演出（VS画面）：左に自分、右に相手のカードが飛び込んできて、真ん中に VS
 // ============================================================
 var vsPhase=false,vsT0=0;
+// 再戦が決まったときの演出（サーバーが次のラウンドを始めるまでの1.5秒に合わせる）
+function startRematchFx(){rematchFx={t0:performance.now()};tierUp=null;SFX.vs();}
+function drawRematchFx(){
+  var T=(performance.now()-rematchFx.t0)/1000,E=1.5;
+  if(T>E){rematchFx=null;return;}
+  var cx=VW/2,cy=VH/2,out=T>E-.35?Math.max(0,(E-T)/.35):1,inn=Math.min(1,T/.18);
+  ctx.save();ctx.globalAlpha=out;
+  ctx.fillStyle='rgba(4,5,10,'+(.82*inn).toFixed(3)+')';ctx.fillRect(-10,-10,VW+20,VH+20);
+  // 左右から走る光の帯
+  var w=VW*Math.min(1,T/.28),bh=Math.round(VH*.19);
+  var g1=ctx.createLinearGradient(0,0,VW,0);
+  g1.addColorStop(0,'rgba(157,116,255,.85)');g1.addColorStop(.5,'rgba(255,255,255,.22)');g1.addColorStop(1,'rgba(255,77,94,.85)');
+  ctx.fillStyle=g1;ctx.fillRect(cx-w/2,cy-bh/2,w,bh);
+  ctx.fillStyle='rgba(255,197,61,.9)';ctx.fillRect(cx-w/2,cy-bh/2-1.5,w,1.5);ctx.fillRect(cx-w/2,cy+bh/2,w,1.5);
+  // 文字（少し遅れて出て、ゆっくり大きくなる）
+  if(T>.22){
+    var p=Math.min(1,(T-.22)/.3),sc=1+.14*Math.pow(1-p,3);
+    ctx.save();ctx.translate(cx,cy+1);ctx.scale(sc,sc);ctx.globalAlpha=out*p;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='italic 700 '+Math.round(VH*.115)+'px '+FONT_UI;setLS(6);
+    ctx.lineWidth=Math.max(2,VH*.012);ctx.strokeStyle='rgba(0,0,0,.6)';ctx.lineJoin='round';
+    ctx.strokeText('REMATCH',0,0);ctx.fillStyle='#FFFFFF';ctx.fillText('REMATCH',0,0);
+    setLS(0);ctx.restore();
+  }
+  if(T>.55){
+    ctx.globalAlpha=out*Math.min(1,(T-.55)/.3);
+    ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='700 11px '+FONT_UI;setLS(3);
+    ctx.fillStyle='rgba(255,255,255,.75)';ctx.fillText(t('c.rematchGo'),cx,cy+Math.round(VH*.12));setLS(0);
+  }
+  ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
 function startVs(){vsPhase=true;lobbyPhase=true;vsT0=performance.now();SFX.vs();renderMatchPanel();}   // VS画面の間はパネルを隠す
 function endVs(){vsPhase=false;renderMatchPanel();}
 function cpuTotals(){var w=0,l=0;DIFF_ORDER.forEach(function(k){w+=profile.stats[k].w;l+=profile.stats[k].l;});var E=profile.emperor||{};w+=+E.w||0;l+=+E.l||0;return{w:w,l:l};}
@@ -6628,6 +6776,7 @@ function drawScene(){
   if(bossIntro)drawBossIntro();
   if(unlockFx)drawUnlockFx();
   if(slayFx)drawSlayFx();
+  if(rematchFx)drawRematchFx();
 }
 
 // ============================================================
@@ -6741,8 +6890,9 @@ function drawBgFx(tm){
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
- partyInvite,partyLeaveBtn,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx].forEach(function(f){window[f.name]=f;});
+ partyInvite,partyLeaveBtn,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote].forEach(function(f){window[f.name]=f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
+migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得
 })();
 </script>

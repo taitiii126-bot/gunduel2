@@ -15,7 +15,29 @@ const PREP_MS = +process.env.LOBBY_MS || +process.env.PREP_MS || 10000;
 const PICK_MS = process.env.PICK_MS != null ? +process.env.PICK_MS : 10000;
 const ROUND_GAP_MS = 2000, MATCH_END_MS = 1800;
 const WAIT_TIMEOUT_MS = 10 * 60 * 1000;            // 相手が来ないまま10分で部屋を閉じる
-const STAGE = 'classic';                            // オンライン対戦はクラシックステージ（クライアントと同じ）
+// ランクマッチで再戦できるレート差。これを超えたら「新しい相手をさがす」しかできない
+// （再戦はマッチングのレート差（最初は±50）を素通りしてしまうため）
+const REMATCH_GAP = +process.env.REMATCH_RATE_GAP || 200;
+const STAGE = 'classic';                            // 投票で決まらなかったときの既定
+// ---- ステージ投票 ----
+// 試合前に2つ出して、みんなで1つずつ選ぶ。多い方に決まり、割れた（同数）ときはその2つからランダム
+const STAGE_KEYS = Object.keys(SIM.STAGES);
+// ONLINE_STAGE にステージ名を入れると、投票をやめてそのステージに固定できる（不具合が出たステージを外すとき用）
+const FORCE_STAGE = SIM.STAGES[process.env.ONLINE_STAGE] ? process.env.ONLINE_STAGE : '';
+function twoStages() {
+  const a = STAGE_KEYS[Math.floor(Math.random() * STAGE_KEYS.length)];
+  let b = a;
+  while (b === a) b = STAGE_KEYS[Math.floor(Math.random() * STAGE_KEYS.length)];
+  return [a, b];
+}
+function decideStage(opts, votes) {
+  const o = Array.isArray(opts) && opts.length === 2 ? opts : [STAGE, STAGE];
+  const n = [0, 0];
+  for (const v of Object.values(votes || {})) { const i = o.indexOf(v); if (i >= 0) n[i]++; }
+  if (n[0] > n[1]) return o[0];
+  if (n[1] > n[0]) return o[1];
+  return o[Math.floor(Math.random() * 2)];          // 割れた・誰も入れなかった
+}
 
 // ---- 自動操作（BOT・マクロ）の検知基準 ----
 // どれも「人間には続けて出せない数字」を、十分な回数そろったときだけ疑う（誤検知を避けるため厳しめ）
@@ -87,6 +109,7 @@ class Room {
     this.wins = { a: 0, b: 0 };
     this.world = SIM.newWorld(STAGE);
     this.frame = 0; this.timers = new Set(); this.closed = false; this.closeTimer = null;
+    this.stage = FORCE_STAGE || STAGE; this.stagePick = FORCE_STAGE ? null : twoStages(); this.votes = {};   // ステージ投票
     this.matchLive = false; this.roundsDone = 0;
     this.later(() => {
       if (this.phase !== 'waiting') return;
@@ -169,6 +192,7 @@ class Room {
       if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, dev: !!o.dev, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
     }
     this.schedulePing();
+    this.stagePick = FORCE_STAGE ? null : twoStages(); this.votes = {};
     this.beginWait('prep', PREP_MS, VS_MS);
   }
 
@@ -181,7 +205,9 @@ class Room {
     // BOTは人と同じくらいの間をおいて準備完了を押す
     for (const s of SLOTS) {
       const p = this.players[s];
-      if (p && p.bot) this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
+      if (!p || !p.bot) continue;
+      if (kind === 'prep' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 900));
+      this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
   }
@@ -194,7 +220,9 @@ class Room {
       if (!p) continue;
       this.send(p, { type: 'wait', kind: w.kind, ms: Math.max(0, w.until - now), vsMs: Math.max(0, w.earliest - now),
         ready: { me: !!w.ready[s], opp: !!(o && w.ready[other(s)]) },
-        mine: p.loadout, opp: o ? o.loadout : null });
+        mine: p.loadout, opp: o ? o.loadout : null,
+        stages: w.kind === 'prep' ? this.stagePick : null,
+        votes: w.kind === 'prep' ? { me: this.votes[s] || null, opp: o ? (this.votes[other(s)] || null) : null } : null });
     }
   }
   setReady(slot) {
@@ -207,6 +235,13 @@ class Room {
       this.waitTimer = this.later(() => this.endWait(), Math.max(0, w.earliest - Date.now()));
     }
   }
+  // ステージに1票（準備の間だけ。押し直しもできる）
+  vote(slot, id) {
+    const w = this.waitState, p = this.players[slot];
+    if (!w || w.kind !== 'prep' || !p || !this.stagePick || this.stagePick.indexOf(id) < 0) return;
+    this.votes[slot] = id;
+    this.sendWait();
+  }
   // ラウンド間だけ、持っていく武器を変えられる（形は必ず直す）
   setLoadout(slot, v) {
     const w = this.waitState, p = this.players[slot];
@@ -216,7 +251,9 @@ class Room {
   }
   endWait() {
     if (!this.waitState || this.closed) return;
+    const prep = this.waitState.kind === 'prep';
     this.waitState = null; this.waitTimer = null;
+    if (prep) this.stage = FORCE_STAGE || decideStage(this.stagePick, this.votes);   // 試合ごとに1回決める
     this.startRound();
   }
 
@@ -244,12 +281,22 @@ class Room {
     this.send(p, { type: 'pong', t: typeof msg.t === 'number' ? msg.t : 0, opp: o && o.srtt >= 0 ? o.srtt : -1 });
   }
 
+  // 今のレート差（試合ごとに更新される p.rate で見る）
+  rateGap() {
+    const a = this.players.a, b = this.players.b;
+    if (!a || !b) return 0;
+    return Math.abs((+a.rate || 0) - (+b.rate || 0));
+  }
+  // ランクマッチは、レートが離れたら再戦できない（離れた相手と延々と続けられないように）
+  canRematch() { return !this.ranked || this.rateGap() <= REMATCH_GAP; }
+
   // 両者が希望したら、同じ部屋のまま次の試合へ
   rematch(slot) {
     const bo = this.players[other(slot)];
     if (bo && bo.bot) bo.rematch = true;
     const p = this.players[slot];
     if (!p || this.phase !== 'ended') return;
+    if (!this.canRematch()) return this.send(p, { type: 'rematch_off', gap: REMATCH_GAP });
     p.rematch = true;
     const a = this.players.a, b = this.players.b;
     this.broadcast({ type: 'rematch_state', a: !!(a && a.rematch), b: !!(b && b.rematch) });
@@ -267,7 +314,7 @@ class Room {
       for (const s of SLOTS) if (this.players[s]) this.resetStats(this.players[s]);
     }
     const a = this.players.a, b = this.players.b;
-    this.world = SIM.newWorld(STAGE, a ? a.loadout : null, b ? b.loadout : null);
+    this.world = SIM.newWorld(this.stage, a ? a.loadout : null, b ? b.loadout : null);
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p) {
@@ -276,7 +323,7 @@ class Room {
       }
     }
     this.phase = 'playing';
-    this.broadcast({ type: 'round_start', state: this.state() });
+    this.broadcast({ type: 'round_start', state: this.state(), stage: this.stage });
   }
   endRound(winner, fx) {
     this.phase = 'roundOver';
@@ -289,7 +336,7 @@ class Room {
       if (this.hooks.onResult) this.hooks.onResult(this.players[winner], this.players[other(winner)], 'match');
       this.later(() => {
         this.phase = 'ended';
-        this.broadcast({ type: 'match_end', winner, wins: { ...this.wins } });
+        this.broadcast({ type: 'match_end', winner, wins: { ...this.wins }, rematch: this.canRematch(), gap: REMATCH_GAP });
         this.closeTimer = this.later(() => this.close(), 90000);   // 再戦の相談を待つ
       }, MATCH_END_MS);
     } else if (PICK_MS > 0) {
@@ -446,4 +493,4 @@ class Room {
 
 // 2v2（team.js）でも同じ整え方・同じ時間を使う
 module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
-  WIN_ROUNDS, VS_MS, PREP_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, STAGE };
+  WIN_ROUNDS, VS_MS, PREP_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, STAGE, FORCE_STAGE, twoStages, decideStage };

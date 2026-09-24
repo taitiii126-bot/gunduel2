@@ -19,6 +19,7 @@ class TeamRoom {
     this.phase = 'waiting';                 // waiting → lobby → playing ⇄ roundOver/pick → ended
     this.wins = [0, 0];
     this.world = SIM.newTeamWorld(G.STAGE, {});
+    this.stage = G.FORCE_STAGE || G.STAGE; this.stagePick = G.FORCE_STAGE ? null : G.twoStages(); this.votes = {};   // ステージ投票
     this.frame = 0; this.timers = new Set(); this.closed = false; this.closeTimer = null;
     this.matchLive = false; this.roundsDone = 0; this.ranked = false; this.rate0 = null;
     this.later(() => {
@@ -130,6 +131,7 @@ class TeamRoom {
     }
     for (const k of SLOTS) { const p = this.players[k]; if (p && !p.bot) this.send(p, { type: 'team_ready', slot: k, ranked: this.ranked, players: info }); }
     this.schedulePing();
+    this.stagePick = G.FORCE_STAGE ? null : G.twoStages(); this.votes = {};
     this.beginWait('prep', G.PREP_MS, G.VS_MS);
   }
 
@@ -140,7 +142,9 @@ class TeamRoom {
     this.waitTimer = this.later(() => this.endWait(), (minMs || 0) + ms);
     for (const s of SLOTS) {
       const p = this.players[s];
-      if (p && p.bot) this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
+      if (!p || !p.bot) continue;
+      if (kind === 'prep' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 900));
+      this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
   }
@@ -153,7 +157,9 @@ class TeamRoom {
       const p = this.players[s];
       if (!p || p.bot) continue;
       this.send(p, { type: 'wait', team: true, kind: w.kind, ms: Math.max(0, w.until - now), vsMs: Math.max(0, w.earliest - now),
-        ready, loads, mine: p.loadout });
+        ready, loads, mine: p.loadout,
+        stages: w.kind === 'prep' ? this.stagePick : null,
+        votes: w.kind === 'prep' ? this.votes : null });
     }
   }
   setReady(slot) {
@@ -166,6 +172,13 @@ class TeamRoom {
       this.waitTimer = this.later(() => this.endWait(), Math.max(0, w.earliest - Date.now()));
     }
   }
+  // ステージに1票（準備の間だけ）
+  vote(slot, id) {
+    const w = this.waitState;
+    if (!w || w.kind !== 'prep' || !this.players[slot] || !this.stagePick || this.stagePick.indexOf(id) < 0) return;
+    this.votes[slot] = id;
+    this.sendWait();
+  }
   setLoadout(slot, v) {
     const w = this.waitState, p = this.players[slot];
     if (!w || w.kind !== 'pick' || !p || w.ready[slot]) return;
@@ -174,7 +187,9 @@ class TeamRoom {
   }
   endWait() {
     if (!this.waitState || this.closed) return;
+    const prep = this.waitState.kind === 'prep';
     this.waitState = null; this.waitTimer = null;
+    if (prep) this.stage = G.FORCE_STAGE || G.decideStage(this.stagePick, this.votes);
     this.startRound();
   }
 
@@ -202,10 +217,22 @@ class TeamRoom {
     this.send(p, { type: 'pong', t: typeof msg.t === 'number' ? msg.t : 0, pings });
   }
 
+  // 今のチーム平均レートの差（2v2 はチームの平均どうしで計算しているので、それに合わせる）
+  rateGap() {
+    const avg = [0, 1].map(t => {
+      const ps = SLOTS.filter(k => this.players[k] && teamOf(k) === t).map(k => this.players[k]);
+      return ps.length ? ps.reduce((n, o) => n + (+o.rate || SIM.RATE_START), 0) / ps.length : SIM.RATE_START;
+    });
+    return Math.abs(avg[0] - avg[1]);
+  }
+  // ランクマッチは、レートが離れたら再戦できない
+  canRematch() { return !this.ranked || this.rateGap() <= G.REMATCH_GAP; }
+
   // 全員（人だけ）が希望したら、同じ部屋のまま次の試合へ（BOT はいつでも賛成）
   rematch(slot) {
     const p = this.players[slot];
     if (!p || this.phase !== 'ended') return;
+    if (!this.canRematch()) return this.send(p, { type: 'rematch_off', gap: G.REMATCH_GAP });
     p.rematch = true;
     const st = {};
     for (const s of SLOTS) { const o = this.players[s]; if (o) st[s] = !!(o.bot || o.rematch); }
@@ -224,7 +251,7 @@ class TeamRoom {
     if (!this.matchLive) { this.matchLive = true; this.roundsDone = 0; }
     const loads = {};
     for (const s of SLOTS) { const p = this.players[s]; loads[s] = p ? p.loadout : null; }
-    this.world = SIM.newTeamWorld(G.STAGE, loads);
+    this.world = SIM.newTeamWorld(this.stage, loads);
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p) {
@@ -234,7 +261,7 @@ class TeamRoom {
       } else this.world.chars[s].dead = true;   // 誰もいない場所（ありえないが念のため）は倒れている扱い
     }
     this.phase = 'playing';
-    this.broadcast({ type: 'round_start', state: this.state() });
+    this.broadcast({ type: 'round_start', state: this.state(), stage: this.stage });
   }
   endRound(winTeam, fx) {
     this.phase = 'roundOver';
@@ -247,7 +274,7 @@ class TeamRoom {
       if (this.hooks.onResult) this.hooks.onResult(this, winTeam);
       this.later(() => {
         this.phase = 'ended';
-        this.broadcast({ type: 'match_end', winTeam, wins: this.wins.slice() });
+        this.broadcast({ type: 'match_end', winTeam, wins: this.wins.slice(), rematch: this.canRematch(), gap: G.REMATCH_GAP });
         this.closeTimer = this.later(() => this.close(), 90000);
       }, G.MATCH_END_MS);
     } else if (G.PICK_MS > 0) {

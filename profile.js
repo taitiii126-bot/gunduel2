@@ -48,6 +48,8 @@ function cleanEmperor(e) {
 // ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
 function clean(v, ctx, rtier) {
   v = v && typeof v === 'object' ? v : {};
+  // やり直しを通っていないプロフィール（古いページからの保存）は、ここで白紙に戻す
+  if ((+v.epoch || 0) < SIM.PROFILE_EPOCH) v = SIM.resetCpuTitles(JSON.parse(JSON.stringify(v)), rtier);
   const stats = {}, prog = {};
   for (const d of DIFFS) {
     const s = (v.stats && v.stats[d]) || {}, p = (v.tierProgress && v.tierProgress[d]) || {};
@@ -70,6 +72,7 @@ function clean(v, ctx, rtier) {
     bestTier: best,
     stats, tierProgress: prog,
     ach, emperor,
+    epoch: SIM.PROFILE_EPOCH,
   };
 }
 
@@ -91,6 +94,7 @@ function merge(old, inc) {
   // 鬼帝の成績：大きい方（前の版で保存したプロフィールには無いので、0 として扱う）
   const oe = cleanEmperor(old.emperor), ie = cleanEmperor(inc.emperor);
   out.emperor = { w: Math.max(oe.w, ie.w), l: Math.max(oe.l, ie.l), beat: oe.beat || ie.beat, seen: oe.seen || ie.seen };
+  out.epoch = Math.max(+old.epoch || 0, +inc.epoch || 0);
   return out;
 }
 

@@ -658,6 +658,9 @@ function onMessage(ws, raw) {
     case 'spong':
       if (ws.room) ws.room.spong(ws.slot, m);
       break;
+    case 'stage_vote':                                   // ステージ投票（試合前）
+      if (ws.room && ws.room.vote) ws.room.vote(ws.slot, String(m.stage || ''));
+      break;
     case 'rematch':
       if (ws.room) ws.room.rematch(ws.slot);
       break;

@@ -1384,6 +1384,34 @@ WEAPON_IDS.forEach(function (wid) {
 });
 // その称号を使ってよいか。ctx = { w, l, friends, pioneer, pioneer10, hacker, dev }
 // （オンライン戦績・フレンド数・開拓者か・最初の10人か・贈られた人か・運営か。ログインしていなければ null）
+// ---- プロフィールのやり直し（epoch）----
+// CPUの強さを変えたときは、CPU戦で取れる称号を全員から外して取り直してもらう。
+// ブラウザにも同じ記録が残っているので、サーバーと手元の両方でこれを通す（片方だけだと次の保存で戻ってしまう）
+var PROFILE_EPOCH = 1;
+function resetCpuTitles(p, tier) {
+  if (!p || typeof p !== 'object') return p;
+  // サーバーが確かめる称号（オンライン戦績・フレンド数・開拓者・運営から配ったもの）だけ残す
+  var got = (p.ach && typeof p.ach.got === 'object' && p.ach.got) || {}, keep = { rookie: 1 };
+  for (var i = 0; i < TITLES.length; i++) if (TITLES[i].gate && got[TITLES[i].id]) keep[TITLES[i].id] = 1;
+  if (!p.ach || typeof p.ach !== 'object') p.ach = {};
+  p.ach.got = keep;
+  p.ach.kills = {};              // 武器ごとのとどめの数（ここを0にしないと、次に開いた瞬間に称号が戻る）
+  p.ach.stages = {};             // ステージごとの勝利数
+  p.ach.streak = 0; p.ach.best = 0;
+  p.tierProgress = {};           // 難度をクリアした記録
+  p.emperor = { w: 0, l: 0, beat: false, seen: false };   // 隠しボス
+  // 背景は今のティアのものまで
+  var t = Math.max(0, Math.min(TIER_MIN.length - 1, Math.floor(+tier || 0)));
+  p.bestTier = t;
+  if (p.bg === 'emperor' || (typeof p.bg === 'number' && p.bg > t)) p.bg = null;
+  // サーバーが確かめる称号（開拓者・オンライン戦績・運営から配ったもの）は、そのまま着けていられる
+  var gated = false;
+  for (var j = 0; j < TITLES.length; j++) if (TITLES[j].id === p.title && TITLES[j].gate) gated = true;
+  if (p.title && !keep[p.title] && !gated) p.title = 'rookie';   // 使えなくなった称号を選んでいたら戻す
+  p.epoch = PROFILE_EPOCH;
+  return p;
+}
+
 function titleOk(id, ctx) {
   for (var i = 0; i < TITLES.length; i++) {
     if (TITLES[i].id !== id) continue;
@@ -1416,7 +1444,8 @@ var api = {
   newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, decideTactic: decideTactic,
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
-  TITLES: deepFreeze(TITLES), titleOk: titleOk
+  TITLES: deepFreeze(TITLES), titleOk: titleOk,
+  PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles
 };
 return Object.freeze(api);
 });
