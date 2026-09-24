@@ -36,7 +36,8 @@ function botRecord(rate, r) {
 }
 
 // レート帯に合った相手を1人作る
-function makeBot(rate, rnd) {
+// cfgRate：思考の強さだけ別のレートで作る（見せるレートは rate のまま）
+function makeBot(rate, rnd, cfgRate) {
   const r = rnd || Math.random;
   const rt = Math.max(SIM.RATE_FLOOR, Math.round(rate));
   const name = (pick(HEAD, r) + pick(TAIL, r) + pick(NUM, r)).slice(0, 12) || 'プレイヤー';
@@ -45,7 +46,7 @@ function makeBot(rate, rnd) {
   return {
     name, rate: rt, tier, tierKey: TIER_KEYS[tier] || '',
     look: SIM.randomLook(r), loadout: SIM.cpuLoadout(r), title: botTitle(rt, r), bio: pick(BIOS, r),
-    bg: tier, rec, cfg: SIM.aiForRate(rt),
+    bg: tier, rec, cfg: SIM.aiForRate(cfgRate == null ? rt : cfgRate),
   };
 }
 

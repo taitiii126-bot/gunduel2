@@ -93,7 +93,7 @@ class TeamRoom {
     if (!p || p.bot) return;
     if (p.ws) p.ws.room = null;
     p.ws = { send() {} }; p.left = true; p.uidLeft = p.uid;
-    this.makeBot(p, SIM.aiForRate(p.rate || SIM.RATE_START));
+    this.makeBot(p, SIM.aiForRate((p.rate || SIM.RATE_START) + (this.ranked ? G.BOT_BOOST_RANKED : G.BOT_SKILL_BOOST)));
     p.input = { left: false, right: false, duck: false, fire: false, slot: 0 };
     if (this.waitState) this.setReady(slot);
   }

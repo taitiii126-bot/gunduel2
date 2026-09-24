@@ -3,7 +3,8 @@
 const http = require('http');
 const crypto = require('crypto');
 const { attach, clientIp } = require('./ws-lite');
-const { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM } = require('./game');
+const G = require('./game');
+const { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM } = G;
 const { TeamRoom, SLOTS: TEAM_SLOTS, teamOf } = require('./team');   // 2v2（チーム戦）
 const auth = require('./auth');
 const presence = require('./presence');
@@ -142,8 +143,15 @@ function applyRating(room, winner, loser) {
 // BOT戦の記録：人の側だけ記録する（レートはランクマッチのときだけ動き、LT1の下限で止まる）
 function recordBotResult(room, winner, loser, reason) {
   const tag = 'room ' + room.id;
+
   const p = winner.bot ? loser : winner, bot = winner.bot ? winner : loser, win = !winner.bot;
-  if (!p || p.bot || !p.uid) return;
+  if (!p || p.bot) return;
+  // カジュアル：勝てば次のBOTが強くなる（負ければ弱くなる）。本物のレートは動かさないので、ゲストでも効く
+  if (!room.ranked && !p.suspect && p.acts >= ACTIVE_MIN_INPUTS && p.ws) {
+    const lv = setBotLevel(p.ws, botLevelFor(p.ws, bot.rate) + (win ? BOT_UP : -BOT_DOWN));
+    log(tag, 'bot level:', lv, win ? '(勝ち)' : '(負け)');
+  }
+  if (!p.uid) return;                                      // ここから先は戦績の記録（ログインした人だけ）
   if (p.suspect) return log(tag, 'not recorded: suspicious play');
   if (p.acts < ACTIVE_MIN_INPUTS) return log(tag, 'not recorded: a player was idle');
   auth.recordOnlineResult(p.uid, win);
@@ -331,18 +339,44 @@ function botWaitFor(q) {
   if (q.botWait == null) q.botWait = q.rate < BOT_BELOW ? BOT_WAIT_LOW + Math.random() * 4 : BOT_WAIT + Math.random() * 10;
   return q.botWait;
 }
+// ---- BOTの強さ ----
+// 同じレートのBOTは、人が相手だと弱く感じる（人はAIの癖を読むため）。思考だけ底上げする
+const BOT_SKILL_BOOST = G.BOT_SKILL_BOOST;
+const botBoost = ranked => (ranked ? G.BOT_BOOST_RANKED : BOT_SKILL_BOOST);
+// カジュアルは本物のレートが動かないので、その場の勝ち負けで「次のBOTの強さ」を上下させる
+const BOT_UP = +process.env.BOT_STEP_UP || 200, BOT_DOWN = +process.env.BOT_STEP_DOWN || 150;
+const BOT_MIN = SIM.RATE_FLOOR, BOT_MAX = 2900, BOT_MEM_MS = 6 * 60 * 60 * 1000;
+const botLevels = new Map();                       // ログイン中の人は、入り直しても覚えておく
+// ログイン中はアカウント、ゲストは接続元で覚える（画面を戻して入り直しても続く）
+function botKeyOf(ws) { return ws.account ? 'u' + ws.account.uid : (ws.ip ? 'i' + ws.ip : null); }
+function botLevelFor(ws, rate) {
+  const k = botKeyOf(ws), now = Date.now();
+  if (k) { const v = botLevels.get(k); if (v && now - v.at < BOT_MEM_MS) return v.rate; }
+  if (ws.botLevel != null) return ws.botLevel;
+  return rate;
+}
+function setBotLevel(ws, rate) {
+  const v = Math.max(BOT_MIN, Math.min(BOT_MAX, Math.round(rate)));
+  ws.botLevel = v;
+  const k = botKeyOf(ws);
+  if (k) botLevels.set(k, { rate: v, at: Date.now() });
+  return v;
+}
+setInterval(() => { const now = Date.now(); for (const [k, v] of botLevels) if (now - v.at > BOT_MEM_MS) botLevels.delete(k); }, 30 * 60 * 1000).unref();
+
 function startBotMatch(ws, q) {
   if (!bots || rooms.size >= MAX_ROOMS) return false;
   queue.delete(ws);
   const room = openRoom();
   room.ranked = q.mode === 'ranked';
   if (!room.join(ws, q.info)) { room.close(); return false; }
-  // 強さ・レートは本人とちょうど互角（わずかにゆらす）
-  const rate = Math.max(SIM.RATE_FLOOR, Math.min(3000, Math.round(q.rate + (Math.random() * 60 - 30))));
-  const bot = bots.makeBot(rate);
+  // ランクは本人のレート、カジュアルは「その場の強さ」（勝つほど上がる）を基準にする
+  const level = q.mode === 'ranked' ? q.rate : botLevelFor(ws, q.rate);
+  const rate = Math.max(SIM.RATE_FLOOR, Math.min(3000, Math.round(level + (Math.random() * 60 - 30))));
+  const bot = bots.makeBot(rate, null, rate + botBoost(q.mode === 'ranked'));   // 見せるレートはそのまま、思考だけ底上げ
   if (room.joinBot(bot) == null) { room.close(); return false; }
   send(ws, { type: 'match_found', roomId: room.id, slot: ws.slot, mode: q.mode, ranked: room.ranked });
-  log('match', room.id, q.mode, q.rate + ' vs bot ' + bot.rate, '(' + bot.name + ', waited ' + queueSec(q) + 's)');
+  log('match', room.id, q.mode, q.rate + ' vs bot ' + bot.rate + (q.mode === 'ranked' ? '' : ' (lv ' + Math.round(level) + ')'), '(' + bot.name + ', waited ' + queueSec(q) + 's)');
   room.start();
   if (ws.account) presence.changed(ws.account.uid);
   return true;
@@ -435,8 +469,9 @@ function startTeamMatch(mode, A, B) {
   const jitter = r => Math.max(SIM.RATE_FLOOR, Math.min(3000, Math.round(r + (Math.random() * 60 - 30))));
   A.forEach((x, i) => { if (x) room.join(x.ws, x.q.info, ['a', 'c'][i]); });
   B.forEach((x, i) => { if (x) room.join(x.ws, x.q.info, ['b', 'd'][i]); });
-  A.forEach((x, i) => { if (!x) room.joinBot(bots.makeBot(jitter(hasA ? ra : rb)), ['a', 'c'][i]); });
-  B.forEach((x, i) => { if (!x) room.joinBot(bots.makeBot(jitter(hasB ? rb : ra)), ['b', 'd'][i]); });
+  const mk = r => { const v = jitter(r); return bots.makeBot(v, null, v + botBoost(room.ranked)); };
+  A.forEach((x, i) => { if (!x) room.joinBot(mk(hasA ? ra : rb), ['a', 'c'][i]); });
+  B.forEach((x, i) => { if (!x) room.joinBot(mk(hasB ? rb : ra), ['b', 'd'][i]); });
   for (const x of humans) send(x.ws, { type: 'match_found', roomId: room.id, slot: x.ws.slot, mode, ranked: room.ranked, team: true });
   log('match2', room.id, mode, Math.round(ra) + ' vs ' + Math.round(rb), 'humans ' + humans.length + ' / bots ' + (4 - humans.length));
   room.start();
@@ -602,7 +637,7 @@ function onMessage(ws, raw) {
       if (!room || room.kind !== 'team' || room.phase !== 'waiting' || ws.slot !== room.hostSlot) return;
       if (!bots && !room.isFull()) return send(ws, { type: 'error', code: 'need_players', msg: '4人そろうと始められます' });
       const hs = room.humans(), r = hs.length ? hs.reduce((a, p) => a + (p.rate || SIM.RATE_START), 0) / hs.length : SIM.RATE_START;
-      for (const k of TEAM_SLOTS) if (!room.players[k]) room.joinBot(bots.makeBot(Math.round(r + (Math.random() * 60 - 30))), k);
+      for (const k of TEAM_SLOTS) if (!room.players[k]) { const v = Math.round(r + (Math.random() * 60 - 30)); room.joinBot(bots.makeBot(v, null, v + botBoost(room.ranked)), k); }
       room.start();
       cancelInvites(room.id);
       for (const p of room.humans()) presence.changed(p.uid);

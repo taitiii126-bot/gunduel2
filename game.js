@@ -18,6 +18,11 @@ const WAIT_TIMEOUT_MS = 10 * 60 * 1000;            // 相手が来ないまま10
 // ランクマッチで再戦できるレート差。これを超えたら「新しい相手をさがす」しかできない
 // （再戦はマッチングのレート差（最初は±50）を素通りしてしまうため）
 const REMATCH_GAP = +process.env.REMATCH_RATE_GAP || 200;
+// BOTの思考の底上げ。同じレートのBOTは、人が相手だと弱く感じる（人はAIの癖を読むため）ので、
+// 見せるレートはそのままで、中身だけこのぶん上のレート相当にする
+const BOT_SKILL_BOOST = process.env.BOT_SKILL_BOOST != null ? +process.env.BOT_SKILL_BOOST : 500;
+// ランクマッチは、見せているレートより強すぎるとレートの上下が不公平になるので、底上げは控えめ
+const BOT_BOOST_RANKED = process.env.BOT_SKILL_BOOST_RANKED != null ? +process.env.BOT_SKILL_BOOST_RANKED : Math.round(BOT_SKILL_BOOST / 2);
 const STAGE = 'classic';                            // 投票で決まらなかったときの既定
 // ---- ステージ投票 ----
 // 試合前に2つ出して、みんなで1つずつ選ぶ。多い方に決まり、割れた（同数）ときはその2つからランダム
@@ -493,4 +498,4 @@ class Room {
 
 // 2v2（team.js）でも同じ整え方・同じ時間を使う
 module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
-  WIN_ROUNDS, VS_MS, PREP_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, STAGE, FORCE_STAGE, twoStages, decideStage };
+  WIN_ROUNDS, VS_MS, PREP_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, twoStages, decideStage };
