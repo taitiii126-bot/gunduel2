@@ -105,7 +105,9 @@ function recordResult(room, winner, loser, reason) {
   if (winner.uid === loser.uid) return log(tag, 'not recorded: same account on both sides');
   if (winner.suspect || loser.suspect) return log(tag, 'not recorded: suspicious play');
   if (!ALLOW_SAME_IP_RECORDS && winner.ip && winner.ip === loser.ip) return log(tag, 'not recorded: same network', winner.ip);
-  if (winner.acts < ACTIVE_MIN_INPUTS || loser.acts < ACTIVE_MIN_INPUTS) return log(tag, 'not recorded: a player was idle');
+  // 放置の判定。ただし途中で抜けた試合は、抜けた側の操作が少なくても記録する（抜け得を防ぐ）
+  const idle = reason === 'forfeit' ? winner.acts < ACTIVE_MIN_INPUTS : (winner.acts < ACTIVE_MIN_INPUTS || loser.acts < ACTIVE_MIN_INPUTS);
+  if (idle) return log(tag, 'not recorded: a player was idle');
   const day = new Date().toISOString().slice(0, 10);
   if (day !== pairDay) { pairCounts.clear(); pairDay = day; }
   const key = [winner.uid, loser.uid].sort().join('|');

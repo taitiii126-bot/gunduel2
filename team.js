@@ -132,7 +132,8 @@ class TeamRoom {
     for (const k of SLOTS) { const p = this.players[k]; if (p && !p.bot) this.send(p, { type: 'team_ready', slot: k, ranked: this.ranked, players: info }); }
     this.schedulePing();
     this.stagePick = G.FORCE_STAGE ? null : G.twoStages(); this.votes = {};
-    this.beginWait('prep', G.PREP_MS, G.VS_MS);
+    if (this.stagePick && G.STAGE_MS > 0) this.beginWait('stage', G.STAGE_MS, G.VS_MS);
+    else this.beginWait('prep', G.PREP_MS, G.VS_MS);
   }
 
   // ---- 準備（試合前）と武器の選び直し（ラウンド間）----
@@ -143,8 +144,8 @@ class TeamRoom {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (!p || !p.bot) continue;
-      if (kind === 'prep' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 900));
-      this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
+      if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
+      else this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
   }
@@ -158,8 +159,9 @@ class TeamRoom {
       if (!p || p.bot) continue;
       this.send(p, { type: 'wait', team: true, kind: w.kind, ms: Math.max(0, w.until - now), vsMs: Math.max(0, w.earliest - now),
         ready, loads, mine: p.loadout,
-        stages: w.kind === 'prep' ? this.stagePick : null,
-        votes: w.kind === 'prep' ? this.votes : null });
+        stage: this.stage,
+        stages: w.kind === 'stage' ? this.stagePick : null,
+        votes: w.kind === 'stage' ? this.votes : null });
     }
   }
   setReady(slot) {
@@ -175,21 +177,32 @@ class TeamRoom {
   // ステージに1票（準備の間だけ）
   vote(slot, id) {
     const w = this.waitState;
-    if (!w || w.kind !== 'prep' || !this.players[slot] || !this.stagePick || this.stagePick.indexOf(id) < 0) return;
+    if (!w || w.kind !== 'stage' || !this.players[slot] || !this.stagePick || this.stagePick.indexOf(id) < 0) return;
     this.votes[slot] = id;
     this.sendWait();
+    if (SLOTS.every(k => !this.players[k] || this.votes[k])) {
+      if (this.waitTimer) { clearTimeout(this.waitTimer); this.timers.delete(this.waitTimer); }
+      this.waitTimer = this.later(() => this.endWait(), Math.max(300, w.earliest - Date.now()));
+    }
   }
   setLoadout(slot, v) {
     const w = this.waitState, p = this.players[slot];
-    if (!w || w.kind !== 'pick' || !p || w.ready[slot]) return;
+    if (!w || (w.kind !== 'pick' && w.kind !== 'prep') || !p || w.ready[slot]) return;
     p.loadout = SIM.cleanLoadout(v, false);
     this.sendWait();
   }
   endWait() {
     if (!this.waitState || this.closed) return;
-    const prep = this.waitState.kind === 'prep';
+    const kind = this.waitState.kind;
     this.waitState = null; this.waitTimer = null;
-    if (prep) this.stage = G.FORCE_STAGE || G.decideStage(this.stagePick, this.votes);
+    if (kind === 'stage') {
+      const opts = this.stagePick || [], n = [0, 0];
+      for (const v of Object.values(this.votes)) { const i = opts.indexOf(v); if (i >= 0) n[i]++; }
+      this.stage = G.FORCE_STAGE || G.decideStage(this.stagePick, this.votes);
+      this.broadcast({ type: 'stage_result', stage: this.stage, options: opts, votes: n, split: opts.length === 2 && n[0] === n[1], ms: G.STAGE_SHOW_MS });
+      this.later(() => { if (!this.closed) this.beginWait('prep', G.PREP_MS, 0); }, G.STAGE_SHOW_MS);
+      return;
+    }
     this.startRound();
   }
 

@@ -11,6 +11,9 @@ const TICK_MS = 1000 / 60;
 // （テストでは LOBBY_MS で全体を短くできる）
 const VS_MS = process.env.LOBBY_MS ? 0 : (+process.env.VS_MS || 3300);
 const PREP_MS = +process.env.LOBBY_MS || +process.env.PREP_MS || 10000;
+// 試合前のステージ投票の時間と、決まったことを見せる時間
+const STAGE_MS = process.env.STAGE_MS != null ? +process.env.STAGE_MS : 5000;
+const STAGE_SHOW_MS = process.env.STAGE_SHOW_MS != null ? +process.env.STAGE_SHOW_MS : 1800;
 // ラウンド間：倒れる演出（ROUND_GAP_MS）のあと、最大 PICK_MS の武器変更。両者が「決定」を押したらすぐ次へ
 const PICK_MS = process.env.PICK_MS != null ? +process.env.PICK_MS : 10000;
 const ROUND_GAP_MS = 2000, MATCH_END_MS = 1800;
@@ -198,7 +201,8 @@ class Room {
     }
     this.schedulePing();
     this.stagePick = FORCE_STAGE ? null : twoStages(); this.votes = {};
-    this.beginWait('prep', PREP_MS, VS_MS);
+    if (this.stagePick && STAGE_MS > 0) this.beginWait('stage', STAGE_MS, VS_MS);   // ①ステージ → ②武器
+    else this.beginWait('prep', PREP_MS, VS_MS);
   }
 
   // ---- 準備（試合前）と武器の選び直し（ラウンド間）----
@@ -211,8 +215,8 @@ class Room {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (!p || !p.bot) continue;
-      if (kind === 'prep' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 900));
-      this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
+      if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
+      else this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
   }
@@ -226,8 +230,9 @@ class Room {
       this.send(p, { type: 'wait', kind: w.kind, ms: Math.max(0, w.until - now), vsMs: Math.max(0, w.earliest - now),
         ready: { me: !!w.ready[s], opp: !!(o && w.ready[other(s)]) },
         mine: p.loadout, opp: o ? o.loadout : null,
-        stages: w.kind === 'prep' ? this.stagePick : null,
-        votes: w.kind === 'prep' ? { me: this.votes[s] || null, opp: o ? (this.votes[other(s)] || null) : null } : null });
+        stage: this.stage,
+        stages: w.kind === 'stage' ? this.stagePick : null,
+        votes: w.kind === 'stage' ? { me: this.votes[s] || null, opp: o ? (this.votes[other(s)] || null) : null } : null });
     }
   }
   setReady(slot) {
@@ -243,22 +248,35 @@ class Room {
   // ステージに1票（準備の間だけ。押し直しもできる）
   vote(slot, id) {
     const w = this.waitState, p = this.players[slot];
-    if (!w || w.kind !== 'prep' || !p || !this.stagePick || this.stagePick.indexOf(id) < 0) return;
+    if (!w || w.kind !== 'stage' || !p || !this.stagePick || this.stagePick.indexOf(id) < 0) return;
     this.votes[slot] = id;
     this.sendWait();
+    // 全員入れたら、待たずに次へ（VS画面の分だけは待つ）
+    if (SLOTS.every(k => !this.players[k] || this.votes[k])) {
+      if (this.waitTimer) { clearTimeout(this.waitTimer); this.timers.delete(this.waitTimer); }
+      this.waitTimer = this.later(() => this.endWait(), Math.max(300, w.earliest - Date.now()));
+    }
   }
   // ラウンド間だけ、持っていく武器を変えられる（形は必ず直す）
   setLoadout(slot, v) {
     const w = this.waitState, p = this.players[slot];
-    if (!w || w.kind !== 'pick' || !p || w.ready[slot]) return;
+    if (!w || (w.kind !== 'pick' && w.kind !== 'prep') || !p || w.ready[slot]) return;
     p.loadout = SIM.cleanLoadout(v, false);
     this.sendWait();
   }
   endWait() {
     if (!this.waitState || this.closed) return;
-    const prep = this.waitState.kind === 'prep';
+    const kind = this.waitState.kind;
     this.waitState = null; this.waitTimer = null;
-    if (prep) this.stage = FORCE_STAGE || decideStage(this.stagePick, this.votes);   // 試合ごとに1回決める
+    if (kind === 'stage') {
+      const opts = this.stagePick || [], n = [0, 0];
+      for (const v of Object.values(this.votes)) { const i = opts.indexOf(v); if (i >= 0) n[i]++; }
+      this.stage = FORCE_STAGE || decideStage(this.stagePick, this.votes);
+      const split = opts.length === 2 && n[0] === n[1];                    // 割れた（同数）ときはランダムで決まった
+      this.broadcast({ type: 'stage_result', stage: this.stage, options: opts, votes: n, split, ms: STAGE_SHOW_MS });
+      this.later(() => { if (!this.closed) this.beginWait('prep', PREP_MS, 0); }, STAGE_SHOW_MS);
+      return;
+    }
     this.startRound();
   }
 
@@ -387,8 +405,8 @@ class Room {
     const leaver = this.players[slot];
     if (!leaver) return;
     const o = this.players[other(slot)];
-    // 対戦の途中で抜けたら負け扱い（1ラウンド以上終わっている場合だけ）
-    if (this.matchLive && this.roundsDone >= 1 && o && this.hooks.onResult) this.hooks.onResult(o, leaver, 'forfeit');
+    // 対戦の途中で抜けたら負け扱い（1ラウンド目でも同じ）
+    if (this.matchLive && o && this.hooks.onResult) this.hooks.onResult(o, leaver, 'forfeit');
     this.players[slot] = null;
     const wasEnded = this.phase === 'ended';
     if (o) this.send(o, { type: 'opponent_left', after: wasEnded });
@@ -498,4 +516,4 @@ class Room {
 
 // 2v2（team.js）でも同じ整え方・同じ時間を使う
 module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
-  WIN_ROUNDS, VS_MS, PREP_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, twoStages, decideStage };
+  WIN_ROUNDS, VS_MS, PREP_MS, STAGE_MS, STAGE_SHOW_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, twoStages, decideStage };

@@ -30,14 +30,15 @@ const TITLE_IDS = SIM.TITLES.map(t => t.id);
 const STAGE_IDS = Object.keys(SIM.STAGES);
 function cleanAch(a) {
   a = a && typeof a === 'object' ? a : {};
-  const got = {}, kills = {}, stages = {};
+  const got = {}, kills = {}, stages = {}, evt = {};
   if (a.got && typeof a.got === 'object') for (const id of Object.keys(a.got).slice(0, 100)) if (TITLE_IDS.includes(id) && a.got[id]) got[id] = 1;
   for (const wid of SIM.WEAPON_IDS) kills[wid] = int(a.kills && a.kills[wid], 0, 999999, 0);
   for (const sid of STAGE_IDS) stages[sid] = int(a.stages && a.stages[sid], 0, 999999, 0);
-  return { got, kills, stages, streak: int(a.streak, 0, 999999, 0), best: int(a.best, 0, 999999, 0) };
+  for (const id of SIM.EVENT_TITLES) evt[id] = int(a.evt && a.evt[id], 0, 999999, 0);
+  return { got, kills, stages, evt, streak: int(a.streak, 0, 999999, 0), best: int(a.best, 0, 999999, 0) };
 }
-// 使えない称号（オンライン戦績などが足りない）は初期の称号に戻す
-const validTitle = (id, ctx) => (typeof id === 'string' && SIM.titleOk(id, ctx) ? id : 'rookie');
+// 使えない称号（記録の裏づけがない・オンライン戦績が足りない）は初期の称号に戻す
+const validTitle = (id, ctx, p) => (typeof id === 'string' && SIM.titleProof(id, p || null, ctx) ? id : 'rookie');
 
 // 隠しボス「鬼帝」の成績（勝ち・負け・一度でも勝ったか・一覧で見たか）
 function cleanEmperor(e) {
@@ -59,13 +60,19 @@ function clean(v, ctx, rtier) {
   // 解放済みの背景：これまでに届いた一番上のティア（CPU戦ではティアは上がらないので、レートのティアと前の記録だけ）
   const best = Math.max(int(v.bestTier, 0, MAX_TIER, 0), int(rtier, 0, MAX_TIER, 0));
   const ach = cleanAch(v.ach), emperor = cleanEmperor(v.emperor);
-  // 鬼帝の背景（'emperor'）は、鬼帝に勝った人だけ
+  // 記録の裏づけがない称号は落とす（ブラウザの保存領域に称号を書き足すチート対策）
+  const proofOf = { stats, tierProgress: prog, ach, emperor };
+  for (const id of Object.keys(ach.got)) if (!SIM.titleProof(id, proofOf, ctx)) delete ach.got[id];
+  // 特別な背景：鬼帝の背景は鬼帝に勝った人だけ、王者の背景はシーズン最終1位だけ
   const slain = emperor.beat || !!ach.got.emperor_slayer;
-  const bg = v.bg === 'emperor' ? (slain ? 'emperor' : null) : v.bg == null ? null : int(v.bg, 0, best, null);
+  const champ = !!(ctx && ctx.champion);
+  const bg = v.bg === 'emperor' ? (slain ? 'emperor' : null)
+    : v.bg === 'champion' ? (champ ? 'champion' : null)
+    : v.bg == null ? null : int(v.bg, 0, best, null);
   return {
     name: text(v.name, 12) || 'プレイヤー',
     bio: text(v.bio, 40),
-    title: validTitle(v.title, ctx),
+    title: validTitle(v.title, ctx, proofOf),
     look: SIM.cleanLook(v.look),
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない
@@ -90,12 +97,40 @@ function merge(old, inc) {
   const oa = old.ach, ia = inc.ach, got = Object.assign({}, oa.got, ia.got), kills = {}, stages = {};
   for (const k of Object.keys(ia.kills)) kills[k] = Math.max(oa.kills[k] || 0, ia.kills[k]);
   for (const k of Object.keys(ia.stages)) stages[k] = Math.max(oa.stages[k] || 0, ia.stages[k]);
-  out.ach = { got, kills, stages, streak: ia.streak, best: Math.max(oa.best, ia.best) };
+  const evt = {};
+  for (const k of Object.keys(ia.evt || {})) evt[k] = Math.max((oa.evt && oa.evt[k]) || 0, ia.evt[k]);
+  out.ach = { got, kills, stages, evt, streak: ia.streak, best: Math.max(oa.best, ia.best) };
   // 鬼帝の成績：大きい方（前の版で保存したプロフィールには無いので、0 として扱う）
   const oe = cleanEmperor(old.emperor), ie = cleanEmperor(inc.emperor);
   out.emperor = { w: Math.max(oe.w, ie.w), l: Math.max(oe.l, ie.l), beat: oe.beat || ie.beat, seen: oe.seen || ie.seen };
   out.epoch = Math.max(+old.epoch || 0, +inc.epoch || 0);
   return out;
+}
+
+// 一瞬で全部そろえるチート対策：前の保存からの時間で、増えていい量を決める
+// 1試合にかかる最短の秒数（余裕をもたせた値）。0 にすると、この制限を切れる
+const MIN_MATCH_SEC = process.env.PROFILE_MIN_MATCH_SEC != null ? +process.env.PROFILE_MIN_MATCH_SEC : 15;
+const PER_MATCH = { kills: 3, stages: 1, stats: 1, evt: 3, emperor: 1, best: 1 };
+function sumOf(o) { let n = 0; for (const k of Object.keys(o || {})) n += +o[k] || 0; return n; }
+function statsSum(p) { let n = 0; for (const d of DIFFS) { const s = (p.stats && p.stats[d]) || {}; n += (+s.w || 0) + (+s.l || 0); } return n; }
+// old（前に保存した分）から見て、増えすぎている記録は前の値に戻す。戻すと裏づけも消えるので称号も落ちる
+function limitGrowth(old, next, dtMs, ctx) {
+  if (!old || MIN_MATCH_SEC <= 0) return next;
+  const matches = Math.floor(Math.max(0, dtMs) / 1000 / MIN_MATCH_SEC) + 2;   // 少し余裕
+  const over = [];
+  if (sumOf(next.ach.kills) - sumOf(old.ach.kills) > matches * PER_MATCH.kills) { next.ach.kills = old.ach.kills; over.push('kills'); }
+  if (sumOf(next.ach.stages) - sumOf(old.ach.stages) > matches * PER_MATCH.stages) { next.ach.stages = old.ach.stages; over.push('stages'); }
+  if (sumOf(next.ach.evt) - sumOf(old.ach.evt) > matches * PER_MATCH.evt) { next.ach.evt = old.ach.evt; over.push('evt'); }
+  if (statsSum(next) - statsSum(old) > matches * PER_MATCH.stats) { next.stats = old.stats; next.tierProgress = old.tierProgress; over.push('stats'); }
+  if ((next.emperor.w + next.emperor.l) - (old.emperor.w + old.emperor.l) > matches * PER_MATCH.emperor) { next.emperor = old.emperor; over.push('emperor'); }
+  if (next.ach.best - old.ach.best > matches * PER_MATCH.best) { next.ach.best = old.ach.best; over.push('best'); }
+  if (!over.length) return next;
+  // 記録を戻したので、裏づけのなくなった称号も落とす
+  const proofOf = { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor };
+  for (const id of Object.keys(next.ach.got)) if (!SIM.titleProof(id, proofOf, ctx)) delete next.ach.got[id];
+  if (!SIM.titleProof(next.title, proofOf, ctx)) next.title = 'rookie';
+  next.over = over;                            // 呼んだ側がログに出せるように
+  return next;
 }
 
 function cpuTotals(p) {
@@ -105,4 +140,4 @@ function cpuTotals(p) {
   return { w, l };
 }
 
-module.exports = { DIFFS, TIER_KEYS, TIER_COLORS, text, tierIndex, clean, merge, cpuTotals, validTitle };
+module.exports = { DIFFS, TIER_KEYS, TIER_COLORS, text, tierIndex, clean, merge, cpuTotals, validTitle, limitGrowth };

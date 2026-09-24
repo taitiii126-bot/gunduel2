@@ -53,14 +53,16 @@ let dirty = false;
 const touch = () => { dirty = true; };
 for (const u of Object.values(db.users)) giveFid(u);   // 前からいる人にも配る
 for (const u of Object.values(db.users)) { if (setGift(u)) dirty = true; if (setDev(u)) dirty = true; }   // 配った称号（環境変数のとおりに付け外し）
-// 完全レート制に切りかえたので、全員のレートを1000からやり直す（1回だけ）。
-// 戦績（オンラインの勝敗）・称号・見た目・解放済みの背景は消さない
-if ((db.meta.rateEpoch || 0) < 2) {
+// レートのやり直し（1回だけ）。全員を初期のレート（＝ティア LT5）に戻す。1v1 と 2v2 の両方。
+// オンラインの通算戦績・称号・見た目は消さない（ランクマッチの勝敗数だけ0に戻る）
+if ((db.meta.rateEpoch || 0) < 3) {
   for (const u of Object.values(db.users)) {
     u.rate = SIM.RATE_START; u.rtier = SIM.tierOfRate(SIM.RATE_START); u.rgames = 0; u.rstreak = 0; u.rwstreak = 0;
     u.rpeak = SIM.RATE_START; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
+    u.rate2 = SIM.RATE_START; u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0;
+    u.rpeak2 = SIM.RATE_START; u.ranked2 = { w: 0, l: 0 };
   }
-  db.meta.rateEpoch = 2; dirty = true;
+  db.meta.rateEpoch = 3; dirty = true;
 }
 // CPUの強さを変えたので、CPU戦で取れる称号（難度クリア・武器のとどめ・試合中の出来事・鬼帝）を
 // 全員から外して取り直してもらう。背景も今のティアまでに戻す（1回だけ）。オンライン戦績とレートは消さない
@@ -72,6 +74,45 @@ if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
   }
   db.meta.titleEpoch = SIM.PROFILE_EPOCH; dirty = true;
 }
+// ---- シーズンの切りかわり（シンガポール時間で月が変わったとき）----
+// 最終1位に「天下無双」を贈り（持っていなければ）、全員のレートをティア5つ分下げたところから再開する
+function seasonTop() {
+  let best = null;
+  for (const u of Object.values(db.users)) {
+    if (BANNED_IDS.has(String(u.id))) continue;
+    const r = rateState(u);
+    if (r.games < 1) continue;                                  // ランクマッチをしていない人は対象外
+    if (!best || r.rate > best.rate || (r.rate === best.rate && r.games > best.games)) best = { u, rate: r.rate, games: r.games };
+  }
+  return best;
+}
+function rollSeason(now) {
+  const cur = SIM.seasonNo(now == null ? Date.now() : now);
+  if (db.meta.season == null) { db.meta.season = cur; dirty = true; return null; }   // 初回は記録だけ
+  if (db.meta.season >= cur) return null;
+  const top = seasonTop(), out = { season: cur, before: db.meta.season, champ: null, players: 0 };
+  if (top) {
+    out.champ = { uid: top.u.id, name: top.u.name, rate: top.rate };
+    if (!top.u.champion) { top.u.champion = true; top.u.champSeason = db.meta.season; out.champ.first = true; }
+  }
+  for (const u of Object.values(db.users)) {
+    const r = rateState(u), r2 = rateState2(u);
+    u.rate = SIM.seasonNextRate(r.rate); u.rtier = SIM.tierOfRate(u.rate);
+    u.rgames = 0; u.rstreak = 0; u.rwstreak = 0; u.rpeak = u.rate; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
+    u.rate2 = SIM.seasonNextRate(r2.rate); u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0; u.rpeak2 = u.rate2; u.ranked2 = { w: 0, l: 0 };
+    out.players++;
+  }
+  db.meta.season = cur; dirty = true;
+  return out;
+}
+function logSeason(r) {
+  if (!r) return;
+  console.log(new Date().toISOString(), 'シーズン' + r.season + 'が始まりました（' + r.players + '人のレートをやり直し）'
+    + (r.champ ? ' 最終1位: ' + r.champ.name + ' (' + r.champ.rate + ')' + (r.champ.first ? ' → 天下無双' : ' ※すでに持っている') : ''));
+}
+logSeason(rollSeason());                             // 起動したときに1回
+setInterval(() => logSeason(rollSeason()), 60 * 1000).unref();   // 月が変わる瞬間に気づくため
+
 // 開拓者：最初の100人のアカウント（あとから外れることはない）
 const PIONEERS = 100;
 Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, PIONEERS)
@@ -81,7 +122,7 @@ const FIRST_TEN = 10;
 Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, FIRST_TEN)
   .forEach(u => { if (!u.pioneer10) { u.pioneer10 = true; dirty = true; } });
 // 称号の確認に使う本人の情報
-const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, dev: !!u.dev });
+const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, dev: !!u.dev, champion: !!u.champion });
 
 // ---- レート ----
 // ティアはレートの数値だけで決まる。最初は全員1000。レートが動くのはランクマッチだけ（CPU戦では動かない）
@@ -134,7 +175,7 @@ function cleanName(v) {
 }
 function publicUser(u) {
   const r = rateState(u), r2 = rateState2(u);
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, dev: !!u.dev,
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0,
     rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak,
     rate2: r2.rate, tier2: r2.tier, rgames2: r2.games, ranked2: { w: r2.w, l: r2.l }, peak2: r2.peak };
 }
@@ -291,12 +332,18 @@ const auth = {
     const rt = rateState(u).tier;
     const ctx = titleCtx(u), inc = P.clean(raw, ctx, rt), rev = u.profileRev || 0;
     const merged = !!u.profile && Math.floor(+base) !== rev;
-    u.profile = merged ? P.merge(P.clean(u.profile, ctx, rt), inc) : inc;
+    const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
+    let next = merged ? P.merge(old, inc) : inc;
+    // 一瞬で記録がそろうのはおかしいので、増えすぎた分は前の値に戻す
+    next = P.limitGrowth(old, next, Date.now() - (u.profileAt || 0), ctx);
+    if (next.over) { console.log(new Date().toISOString(), 'profile: 増えすぎた記録を戻しました', u.id, next.over.join(',')); delete next.over; }
+    u.profile = next;
     u.profileRev = rev + 1; u.profileAt = Date.now();
     touch();
     return { rev: u.profileRev, merged, profile: u.profile };
   },
   user(uid) { return db.users[uid] || null; },
+  rollSeason, seasonTop,                              // シーズン（テストから呼べるように）
   users() { return Object.values(db.users); },
 
   // ---- フレンド ----

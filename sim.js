@@ -1308,6 +1308,29 @@ var RATE_FLOOR = 800;             // これより下がらない
 var TIER_MIN = [0, 1000, 1100, 1200, 1350, 1500, 1650, 1800, 2000, 2250, 2550];
 var BOT_TIER_CAP = 9;             // BOT戦だけで行けるのは LT1 の下限（2250）まで。HT1 は本物に勝った人だけ
 // レートからティアを出す（レートの数値だけで決まる。猶予や飛び級はない）
+// ---- シーズン（シンガポール時間 UTC+8 の1か月ごと）----
+// 月の初め（1日 0:00）に新しいシーズンが始まり、月末で終わる
+var SEASON_TZ_MIN = 8 * 60;
+var SEASON_ORIGIN = { y: 2026, m: 8 };          // 2026年9月 ＝ シーズン1（m は 0 から数える）
+var SEASON_DROP = 5;                            // 次のシーズンは、ティアをこれだけ下げたところから（HT1 → LT3）
+function seasonMonthOf(ms) {
+  var d = new Date((ms == null ? Date.now() : ms) + SEASON_TZ_MIN * 60000);
+  return { y: d.getUTCFullYear(), m: d.getUTCMonth() };
+}
+function seasonNo(ms) {                          // 表示するシーズン番号（1から）
+  var o = seasonMonthOf(ms);
+  return (o.y - SEASON_ORIGIN.y) * 12 + (o.m - SEASON_ORIGIN.m) + 1;
+}
+function seasonStart(ms) { var o = seasonMonthOf(ms); return Date.UTC(o.y, o.m, 1) - SEASON_TZ_MIN * 60000; }
+function seasonEnd(ms) { var o = seasonMonthOf(ms); return Date.UTC(o.y, o.m + 1, 1) - SEASON_TZ_MIN * 60000; }
+function seasonLeftMs(ms) { return Math.max(0, seasonEnd(ms) - (ms == null ? Date.now() : ms)); }
+function seasonLeftDays(ms) { return Math.ceil(seasonLeftMs(ms) / 86400000); }
+// シーズンが終わったときの次のレート（今のティアから SEASON_DROP 下のティアの下限。上がることはない）
+function seasonNextRate(rate) {
+  var t = tierOfRate(rate), nt = Math.max(1, t - SEASON_DROP);
+  return Math.min(+rate || RATE_START, TIER_MIN[nt]);
+}
+
 function tierOfRate(rate) {
   for (var k = TIER_MIN.length - 1; k >= 1; k--) if (rate >= TIER_MIN[k]) return k;
   return 0;
@@ -1367,12 +1390,17 @@ var TITLES = [
   { id: 'duel_king', rare: true, gate: { w: 100 } }, { id: 'unbeaten', rare: true, gate: { n: 30, rate: 0.7 } },
   { id: 'partner', gate: { friends: 1 } }, { id: 'magnificent7', gate: { friends: 7 } },
   { id: 'one_pistol', rare: true },
-  { id: 'untouched' }, { id: 'close_call' }, { id: 'unstoppable' }, { id: 'precision' }, { id: 'pit_drop' }, { id: 'wanderer', rare: true },
+  { id: 'untouched' }, { id: 'close_call' },
+  // 連勝（ach.best を見る）。100連勝は黒と金
+  { id: 'streak3' }, { id: 'unstoppable' }, { id: 'streak10' }, { id: 'streak20' },
+  { id: 'streak30', rare: true }, { id: 'streak100', rare: true, mythic: true }, { id: 'precision' }, { id: 'pit_drop' }, { id: 'wanderer', rare: true },
   { id: 'short_sleeper', rare: true }, { id: 'first_steps' }, { id: 'pioneer', rare: true, gate: { pioneer: true } }, { id: 'first_ten', rare: true, gate: { pioneer10: true } }, { id: 'rule_breaker' },
   { id: 'emperor_slayer', rare: true, mythic: true },   // 隠しボス「鬼帝」に勝つ（mythic：黒と金の特別な見た目）
   // 運営から配る称号（award：届いたときにお祝いの演出が出る）。サーバーが認めた人だけ使える。自力では取れない
   { id: 'trusted_hacker', gift: true, award: true, gate: { hacker: true } },   // gift：緑のネオン
-  { id: 'world_author', prism: true, award: true, gate: { dev: true } }        // prism：明朝の白銀にプリズムの光
+  { id: 'world_author', prism: true, award: true, gate: { dev: true } },       // prism：明朝の白銀にプリズムの光
+  // シーズンの最終1位（crown：赤と金）。一度もらったら、また1位になっても増えない
+  { id: 'unrivaled', crown: true, award: true, gate: { champion: true } }
 ];
 // 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
 // 前からある6つ（影の刃・千里眼・至近距離の鬼・蜂の巣職人・爆弾魔・電磁砲の申し子）は id をそのまま使う
@@ -1397,6 +1425,7 @@ function resetCpuTitles(p, tier) {
   p.ach.got = keep;
   p.ach.kills = {};              // 武器ごとのとどめの数（ここを0にしないと、次に開いた瞬間に称号が戻る）
   p.ach.stages = {};             // ステージごとの勝利数
+  p.ach.evt = {};                // 試合中の出来事（称号の裏づけ）
   p.ach.streak = 0; p.ach.best = 0;
   p.tierProgress = {};           // 難度をクリアした記録
   p.emperor = { w: 0, l: 0, beat: false, seen: false };   // 隠しボス
@@ -1410,6 +1439,47 @@ function resetCpuTitles(p, tier) {
   if (p.title && !keep[p.title] && !gated) p.title = 'rookie';   // 使えなくなった称号を選んでいたら戻す
   p.epoch = PROFILE_EPOCH;
   return p;
+}
+
+// 試合の中の一瞬の出来事で取る称号（あとから確かめられる記録が残らないので、起きた回数を数えておく）
+var EVENT_TITLES = ['one_pistol', 'untouched', 'close_call', 'precision', 'pit_drop', 'short_sleeper', 'first_steps', 'rule_breaker'];
+// その称号を本当に取れているか、その人の記録から確かめる。
+// CPU戦の記録はブラウザからの自己申告だが、「称号だけ書き換える」チートはこれで弾ける
+// p = プロフィール（stats / tierProgress / ach / emperor）、ctx = サーバーが持っている情報
+function titleProof(id, p, ctx) {
+  var d = null, i;
+  for (i = 0; i < TITLES.length; i++) if (TITLES[i].id === id) { d = TITLES[i]; break; }
+  if (!d) return false;
+  if (d.gate) return titleOk(id, ctx);                  // サーバーが確かめる称号
+  p = p || {};
+  var ach = p.ach || {}, kills = ach.kills || {}, stages = ach.stages || {}, evt = ach.evt || {};
+  var prog = p.tierProgress || {}, stats = p.stats || {}, emp = p.emperor || {};
+  if (d.kill) return (+kills[d.kill.w] || 0) >= d.kill.n;
+  var beat = function (k) { return !!(prog[k] && prog[k].beat); };
+  var totW = (+emp.w || 0) + ((ctx && +ctx.w) || 0), totL = (+emp.l || 0) + ((ctx && +ctx.l) || 0), k;
+  for (k in stats) { totW += (stats[k] && +stats[k].w) || 0; totL += (stats[k] && +stats[k].l) || 0; }
+  switch (id) {
+    case 'rookie': return true;
+    case 'regular': return beat('normal');
+    case 'bodyguard': return beat('hard');
+    case 'demon_hunter': return beat('pro');
+    case 'godslayer': return beat('god');
+    case 'legend': return !!(prog.god && prog.god.straight);
+    case 'veteran10': return totW >= 10;
+    case 'veteran50': return totW >= 50;
+    case 'veteran100': return totW >= 100;
+    case 'fall30': return totL >= 30;
+    case 'fall100': return totL >= 100;
+    case 'streak3': return (+ach.best || 0) >= 3;
+    case 'unstoppable': return (+ach.best || 0) >= 5;
+    case 'streak10': return (+ach.best || 0) >= 10;
+    case 'streak20': return (+ach.best || 0) >= 20;
+    case 'streak30': return (+ach.best || 0) >= 30;
+    case 'streak100': return (+ach.best || 0) >= 100;
+    case 'wanderer': { var n = 0, sk; for (sk in STAGES) if ((+stages[sk] || 0) > 0) n++; return n >= Object.keys(STAGES).length; }
+    case 'emperor_slayer': return emp.beat === true;
+    default: return (+evt[id] || 0) > 0;                // 出来事の称号：起きた回数が要る
+  }
 }
 
 function titleOk(id, ctx) {
@@ -1426,6 +1496,7 @@ function titleOk(id, ctx) {
     if (g.pioneer10 && !ctx.pioneer10) return false;
     if (g.hacker && !ctx.hacker) return false;
     if (g.dev && !ctx.dev) return false;
+    if (g.champion && !ctx.champion) return false;
     return true;
   }
   return false;
@@ -1445,7 +1516,10 @@ var api = {
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
   TITLES: deepFreeze(TITLES), titleOk: titleOk,
-  PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles
+  SEASON_TZ_MIN: SEASON_TZ_MIN, SEASON_DROP: SEASON_DROP, seasonNo: seasonNo, seasonStart: seasonStart, seasonEnd: seasonEnd,
+  seasonLeftMs: seasonLeftMs, seasonLeftDays: seasonLeftDays, seasonNextRate: seasonNextRate,
+  PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles,
+  EVENT_TITLES: deepFreeze(EVENT_TITLES), titleProof: titleProof
 };
 return Object.freeze(api);
 });
