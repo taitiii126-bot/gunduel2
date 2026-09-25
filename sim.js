@@ -123,8 +123,11 @@ function cleanLoadout(v, allowDup) {
 }
 
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5 };
-var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth'];
+// hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
+// あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 5, outfit: 4, neck: 3, accent: 8 };
+var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent'];
+var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
 function cleanLook(v) {
   var o = {};
   LOOK_KEYS.forEach(function (k) {
@@ -135,8 +138,13 @@ function cleanLook(v) {
 }
 function randomLook(rnd) {
   var r = rnd || Math.random, o = {};
-  LOOK_KEYS.forEach(function (k) { o[k] = Math.floor(r() * LOOK_SIZES[k]); });
+  LOOK_KEYS.forEach(function (k) { if (LOOK_GEAR.indexOf(k) < 0) o[k] = Math.floor(r() * LOOK_SIZES[k]); });
   if (r() < 0.75) o.skin = Math.floor(r() * 6);   // 青や緑の肌はときどき
+  // 身につける物（帽子と首もとは、なしを多めに）
+  o.hat = r() < 0.45 ? 0 : 1 + Math.floor(r() * (LOOK_SIZES.hat - 1));
+  o.outfit = Math.floor(r() * LOOK_SIZES.outfit);
+  o.neck = r() < 0.55 ? 0 : 1 + Math.floor(r() * (LOOK_SIZES.neck - 1));
+  o.accent = Math.floor(r() * LOOK_SIZES.accent);
   return o;
 }
 
@@ -1531,7 +1539,7 @@ function titleOk(id, ctx) {
 }
 
 var api = {
-  VW: VW, VH: VH, WORLD_W: WORLD_W, GND: GND, MAX_HP: MAX_HP, CHAR_W: CHAR_W, CHAR_H: CHAR_H, DUCK_H: DUCK_H,
+  VW: VW, VH: VH, WORLD_W: WORLD_W, GND: GND, MAX_HP: MAX_HP, CHAR_W: CHAR_W, CHAR_H: CHAR_H, DUCK_H: DUCK_H, HIT_FRAMES: HIT_FRAMES,
   GRAVITY: GRAVITY, JUMP_F: JUMP_F, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
