@@ -310,8 +310,8 @@ class Room {
     if (!a || !b) return 0;
     return Math.abs((+a.rate || 0) - (+b.rate || 0));
   }
-  // ランクマッチは、レートが離れたら再戦できない（離れた相手と延々と続けられないように）
-  canRematch() { return !this.ranked || this.rateGap() <= REMATCH_GAP; }
+  // ランクマッチは再戦できない（同じ相手と続けてレートを動かせないように。もう一度ランクマッチを探してもらう）
+  canRematch() { return !this.ranked; }
 
   // 両者が希望したら、同じ部屋のまま次の試合へ
   rematch(slot) {
