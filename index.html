@@ -1665,7 +1665,7 @@ body.mland #settings-screen>.scr-head{column-span:all;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=21"></script>
+<script src="sim.js?v=22"></script>
 <script src="lang.js?v=24"></script>
 <script>
 /*
@@ -2289,11 +2289,11 @@ function titleUnlocked(id){
   if(d.gate)return SIM.titleOk(id,myTitleCtx());
   return SIM.titleProof(id,profile,myTitleCtx());   // 記録の裏づけがある称号だけ（サーバーと同じ判定）
 }
-// CPUの強さを変えたので、CPU戦で取れる称号と背景を1回だけやり直す（サーバー側でも同じことをしている）
+// プロフィールのやり直し（CPU戦の称号・鬼帝の背景と称号など。段階ごとに1回だけ。サーバー側でも同じことをしている）
 function migrateProfile(){
   ensureProfileShape();
   if((+profile.epoch||0)>=SIM.PROFILE_EPOCH)return;
-  SIM.resetCpuTitles(profile,computeTierIndex());
+  SIM.upgradeProfile(profile,computeTierIndex());
   ensureProfileShape();saveProfile();refreshProfileViews();
 }
 // 条件を満たした称号を「獲得済み」にして、新しく取れたものをお知らせする

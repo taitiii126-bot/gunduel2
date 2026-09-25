@@ -1498,7 +1498,26 @@ WEAPON_IDS.forEach(function (wid) {
 // ---- プロフィールのやり直し（epoch）----
 // CPUの強さを変えたときは、CPU戦で取れる称号を全員から外して取り直してもらう。
 // ブラウザにも同じ記録が残っているので、サーバーと手元の両方でこれを通す（片方だけだと次の保存で戻ってしまう）
-var PROFILE_EPOCH = 1;
+// 1：CPUの強さを変えたので、CPU戦で取れる称号をやり直し（resetCpuTitles。鬼帝の記録もここで消える）
+// 2：鬼帝に勝ってもらえる背景と称号「鬼帝を討ちし者」を、全員から外す（resetEmperorReward。ほかの称号は残す）
+var PROFILE_EPOCH = 2;
+// 古いプロフィールを今の段階までやり直す。サーバー・ブラウザ・古いページからの保存のどれもここを通す
+function upgradeProfile(p, tier) {
+  if (!p || typeof p !== 'object') return p;
+  var e = +p.epoch || 0;
+  if (e < 1) return resetCpuTitles(p, tier);        // 1 のやり直しは鬼帝の記録も消すので、2 も済んだことになる
+  if (e < 2) resetEmperorReward(p);
+  p.epoch = PROFILE_EPOCH;
+  return p;
+}
+function resetEmperorReward(p) {
+  var em = p.emperor && typeof p.emperor === 'object' ? p.emperor : {};
+  p.emperor = { w: 0, l: +em.l || 0, beat: false, seen: !!em.seen };   // 挑戦したこと（負け数・見つけたこと）は残す
+  if (p.ach && p.ach.got && typeof p.ach.got === 'object') delete p.ach.got.emperor_slayer;
+  if (p.bg === 'emperor') p.bg = null;
+  if (p.title === 'emperor_slayer') p.title = 'rookie';
+  return p;
+}
 function resetCpuTitles(p, tier) {
   if (!p || typeof p !== 'object') return p;
   // サーバーが確かめる称号（オンライン戦績・フレンド数・開拓者・運営から配ったもの）だけ残す
@@ -1604,7 +1623,7 @@ var api = {
   guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,
   SEASON_TZ_MIN: SEASON_TZ_MIN, SEASON_DROP: SEASON_DROP, seasonNo: seasonNo, seasonStart: seasonStart, seasonEnd: seasonEnd,
   seasonLeftMs: seasonLeftMs, seasonLeftDays: seasonLeftDays, seasonNextRate: seasonNextRate,
-  PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles,
+  PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles, upgradeProfile: upgradeProfile,
   EVENT_TITLES: deepFreeze(EVENT_TITLES), titleProof: titleProof
 };
 return Object.freeze(api);

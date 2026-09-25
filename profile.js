@@ -75,7 +75,7 @@ function cleanEmperor(e) {
 function clean(v, ctx, rtier) {
   v = v && typeof v === 'object' ? v : {};
   // やり直しを通っていないプロフィール（古いページからの保存）は、ここで白紙に戻す
-  if ((+v.epoch || 0) < SIM.PROFILE_EPOCH) v = SIM.resetCpuTitles(JSON.parse(JSON.stringify(v)), rtier);
+  if ((+v.epoch || 0) < SIM.PROFILE_EPOCH) v = SIM.upgradeProfile(JSON.parse(JSON.stringify(v)), rtier);
   const stats = {}, prog = {};
   for (const d of DIFFS) {
     const s = (v.stats && v.stats[d]) || {}, p = (v.tierProgress && v.tierProgress[d]) || {};
