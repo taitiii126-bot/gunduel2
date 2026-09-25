@@ -100,12 +100,11 @@ if ((db.meta.rateEpoch || 0) < 3) {
   }
   db.meta.rateEpoch = 3; dirty = true;
 }
-// CPUの強さを変えたので、CPU戦で取れる称号（難度クリア・武器のとどめ・試合中の出来事・鬼帝）を
-// 全員から外して取り直してもらう。背景も今のティアまでに戻す（1回だけ）。オンライン戦績とレートは消さない
+// プロフィールのやり直し（段階ごとに1回だけ。中身は sim.js の upgradeProfile）。オンライン戦績とレートは消さない
 if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
   for (const u of Object.values(db.users)) {
     if (!u.profile) continue;
-    SIM.resetCpuTitles(u.profile, SIM.tierOfRate(typeof u.rate === 'number' ? u.rate : SIM.RATE_START));
+    SIM.upgradeProfile(u.profile, SIM.tierOfRate(typeof u.rate === 'number' ? u.rate : SIM.RATE_START));
     u.profileRev = (u.profileRev || 0) + 1;          // 端末側にも新しい内容を配る
   }
   db.meta.titleEpoch = SIM.PROFILE_EPOCH; dirty = true;

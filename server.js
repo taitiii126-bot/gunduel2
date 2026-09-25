@@ -79,6 +79,7 @@ function limiter(max, windowMs) {
 }
 const loginTries = limiter(20, 10 * 60 * 1000);   // ログイン：10分で20回まで
 const joinFails = limiter(10, 10 * 60 * 1000);    // 部屋番号の入力ミス：10分で10回まで（総当たり対策）
+const devtoolsReports = limiter(4, 10 * 60 * 1000);   // コンソールを開いた知らせ：同じIPから10分で4回まで（いたずら対策）
 const profileSaves = limiter(30, 60 * 1000);      // プロフィールの保存：1人1分で30回まで
 const lookups = limiter(60, 60 * 1000);           // フレンドIDでの検索：1分で60回まで（総当たり対策）
 const friendOps = limiter(30, 60 * 1000);         // フレンド申請・承認など：1人1分で30回まで
@@ -884,6 +885,32 @@ const server = http.createServer((req, res) => {
   if (url === '/api/me') {
     const u = auth.verify(bearer(req));
     return u ? json(res, 200, { user: auth.publicUser(u), profile: u.profile || null, rev: u.profileRev || 0 }) : json(res, 401, { error: '未ログイン' });
+  }
+  // コンソール（開発者ツール）を開いた人を、管理者のDiscordに知らせる。
+  // ブラウザからの知らせ（窓の大きさなどからの推測）なので、証拠ではなく「見ておく」ための通知
+  if (url === '/api/devtools' && req.method === 'POST') {
+    if (!devtoolsReports.hit(ip)) return json(res, 429, { error: 'too many' });
+    const u = auth.verify(bearer(req));
+    return readJson(req, m => {
+      m = m && typeof m === 'object' ? m : {};
+      const answer = m.answer === 'no_skill' ? 'チートを使おうとしている（ノースキル）' : m.answer === 'liar' ? 'まちがえた（嘘つき）' : '';
+      const name = u ? ((u.profile && u.profile.name) || u.name) : String(m.name || '').replace(/[\u0000-\u001F\u007F]/g, '').slice(0, 12) || '?';
+      const screen = String(m.screen || '').replace(/[^a-z-]/g, '').slice(0, 20);
+      log('DEVTOOLS', 'discord=' + (u ? u.id : '-'), 'name=' + name, 'ip=' + ip, answer ? 'answer=' + m.answer : 'opened', screen);
+      postAdmin({
+        title: answer ? 'コンソールの質問に答えました' : 'コンソールが開かれました',
+        color: m.answer === 'no_skill' ? 0xFF4D5E : 0x8B5CF6,
+        description: answer ? `答え：**${answer}**` : '開発者ツールを開いたようです（窓の大きさなどからの推測）',
+        fields: [
+          { name: 'プレイヤー', value: mdEscape(name) + (u ? `\n<@${u.id}>（${mdEscape(u.name)}）\nID: ${u.id}` : '\nゲスト（ログインなし）'), inline: true },
+          { name: '画面', value: screen || '-', inline: true },
+          { name: 'IP', value: '||' + ip + '||', inline: true },
+        ],
+        footer: { text: 'ブラウザからの知らせなので、いたずらや誤りのこともあります' },
+        timestamp: new Date().toISOString(),
+      });
+      json(res, 200, { ok: true });
+    });
   }
   // 自分のプロフィールを保存する（ログイン中だけ）
   if (url === '/api/profile' && req.method === 'POST') {
