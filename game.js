@@ -147,7 +147,7 @@ class Room {
       name: cleanName(info && info.name), discord: acc ? cleanName(acc.name) : '', 
       // ティアとレートは、ログイン中ならサーバーが持っている本物（ゲストだけ自己申告）
       tier: acc && acc.tierKey ? acc.tierKey : cleanTier(info && info.tier), rate: acc ? acc.rate : 0,
-      loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look),
+      loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look, !!(acc && acc.dev)),
       title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg),
       // 勝率：ログイン済みはサーバーが持っているオンライン戦績、ゲストは本人が送ってきたCPU戦の成績
       rec: acc ? { w: cleanCount(acc.wins), l: cleanCount(acc.losses), kind: 'online' }
