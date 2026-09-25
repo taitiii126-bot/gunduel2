@@ -1476,6 +1476,7 @@ var TITLES = [
   { id: 'streak3' }, { id: 'unstoppable' }, { id: 'streak10' }, { id: 'streak20' },
   { id: 'streak30', rare: true }, { id: 'streak100', rare: true, mythic: true }, { id: 'precision' }, { id: 'pit_drop' }, { id: 'wanderer', rare: true },
   { id: 'short_sleeper', rare: true }, { id: 'first_steps' }, { id: 'pioneer', rare: true, gate: { pioneer: true } }, { id: 'first_ten', rare: true, gate: { pioneer10: true } }, { id: 'rule_breaker' },
+  { id: 'no_skill' }, { id: 'liar' },   // コンソールを開いたときの、開発者からの質問の答え
   { id: 'emperor_slayer', rare: true, mythic: true },   // 隠しボス「鬼帝」に勝つ（mythic：黒と金の特別な見た目）
   // 運営から配る称号（award：届いたときにお祝いの演出が出る）。サーバーが認めた人だけ使える。自力では取れない
   { id: 'trusted_hacker', gift: true, award: true, gate: { hacker: true } },   // gift：緑のネオン
@@ -1524,7 +1525,7 @@ function resetCpuTitles(p, tier) {
 }
 
 // 試合の中の一瞬の出来事で取る称号（あとから確かめられる記録が残らないので、起きた回数を数えておく）
-var EVENT_TITLES = ['one_pistol', 'untouched', 'close_call', 'precision', 'pit_drop', 'short_sleeper', 'first_steps', 'rule_breaker'];
+var EVENT_TITLES = ['one_pistol', 'untouched', 'close_call', 'precision', 'pit_drop', 'short_sleeper', 'first_steps', 'rule_breaker', 'no_skill', 'liar'];
 // その称号を本当に取れているか、その人の記録から確かめる。
 // CPU戦の記録はブラウザからの自己申告だが、「称号だけ書き換える」チートはこれで弾ける
 // p = プロフィール（stats / tierProgress / ach / emperor）、ctx = サーバーが持っている情報

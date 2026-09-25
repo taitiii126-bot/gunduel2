@@ -278,6 +278,18 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .fr-wait{font-size:11.5px;color:var(--tx-3);}
 .fr-modal{position:fixed;inset:0;z-index:50;display:none;place-items:center;padding:16px;background:rgba(4,5,9,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);}
 .fr-modal.show{display:grid;animation:frm-fade .2s both;}
+.dev-ask{z-index:1000;}
+.dev-sheet{width:min(460px,100%);padding:20px;border:1px solid rgba(232,198,106,.5);border-radius:18px;background:linear-gradient(180deg,#1A1626,#0D0B14);box-shadow:0 30px 80px -20px rgba(0,0,0,.9),0 0 40px -18px rgba(232,198,106,.6);text-align:center;}
+.dev-pair{display:flex;justify-content:center;gap:10px;}
+.dev-pair>div{display:flex;flex-direction:column;align-items:center;}
+.dev-pair canvas{width:120px;height:152px;}
+.dev-pair b{font-family:var(--f-ui);font-size:15px;font-weight:900;color:#F5D67A;letter-spacing:.06em;}
+.dev-pair small{font-family:var(--f-ui);font-size:9px;font-weight:700;letter-spacing:.24em;color:var(--tx-3);}
+.dev-bubble{position:relative;margin:14px 0 16px;padding:12px 14px;border-radius:12px;background:#F4F1EA;color:#16131F;font-size:15px;font-weight:900;line-height:1.6;}
+.dev-bubble::before{content:"";position:absolute;left:50%;top:-8px;transform:translateX(-50%);border:8px solid transparent;border-top:0;border-bottom-color:#F4F1EA;}
+.dev-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.dev-btns .room-btn{min-height:52px;font-size:14px;}
+.dev-btns .dev-cheat{background:linear-gradient(180deg,#FF6B7A,#D92D42);color:#fff;}
 .fr-sheet{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:center;width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:20px;border:1px solid var(--line-2);border-radius:18px;background:var(--panel-solid);box-shadow:0 30px 70px -20px rgba(0,0,0,.9);animation:frm-in .3s var(--ease) both;}
 .fr-card{display:block;width:100%;height:auto;aspect-ratio:380/500;}
 .fr-stats{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 14px;margin:14px 0 18px;font-size:13px;}
@@ -1544,6 +1556,19 @@ body.demo #bg-shade{opacity:1;}
     <button id="back-to-menu" class="back-btn" onclick="leaveMatch()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 </div>
+<div id="dev-ask" class="fr-modal dev-ask" role="dialog" aria-modal="true">
+  <div class="dev-sheet">
+    <div class="dev-pair">
+      <div><canvas data-dev="0" width="150" height="190"></canvas><b>Taito</b><small>DEVELOPER</small></div>
+      <div><canvas data-dev="1" width="150" height="190"></canvas><b>Kota</b><small>DEVELOPER</small></div>
+    </div>
+    <p class="dev-bubble" id="dev-ask-msg"></p>
+    <div class="dev-btns" id="dev-ask-btns">
+      <button class="room-btn" onclick="answerDevAsk(false)" data-i18n="dev.mistake"></button>
+      <button class="room-btn dev-cheat" onclick="answerDevAsk(true)" data-i18n="dev.cheat"></button>
+    </div>
+  </div>
+</div>
 <div id="fr-modal" class="fr-modal" onclick="if(event.target===this)closeFriend()">
   <div class="fr-sheet" role="dialog" aria-modal="true">
     <canvas id="fr-card" class="fr-card" width="380" height="500"></canvas>
@@ -1565,8 +1590,8 @@ body.demo #bg-shade{opacity:1;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=20"></script>
-<script src="lang.js?v=23"></script>
+<script src="sim.js?v=21"></script>
+<script src="lang.js?v=24"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2318,6 +2343,52 @@ document.addEventListener('keydown',function(e){
   trapBuf=(trapBuf+e.key.toLowerCase()).slice(-10);
   if(/(godmode|aimbot|wallhack|cheat)$/.test(trapBuf)){trapBuf='';cheatTrap();}
 });
+
+// ---- コンソール（開発者ツール）を開いたら、開発者の Taito と Kota が出てきて質問する ----
+//   「まちがえた」→ 称号「嘘つき」、「チートを使おうとしている」→ 称号「ノースキル」（どちらも、そのまま付ける）
+//   開いたかどうかは、ブラウザの窓の内と外の大きさの差と、コンソールが表示のときだけ読む値で見る（完全には分からない）
+var DEV_PAIR=[
+  {name:'Taito',look:{skin:1,eyes:1,eyeColor:3,brows:1,hair:1,hairColor:0,nose:0,mouth:1,hat:5,outfit:4,neck:3,accent:0}},
+  {name:'Kota',look:{skin:1,eyes:0,eyeColor:2,brows:0,hair:0,hairColor:1,nose:2,mouth:2,hat:0,outfit:4,neck:3,accent:2}}
+];
+var DT={seen:false,pending:false,probe:false,hits:0};
+function devtoolsLikelyOpen(){
+  if(isTouch)return false;
+  var gap=Math.max(window.outerWidth-window.innerWidth,window.outerHeight-window.innerHeight);
+  var probed=false,el=new Image();
+  try{Object.defineProperty(el,'id',{get:function(){probed=true;return '';}});console.debug('%c',el);}catch(e){}
+  return probed||gap>200;
+}
+function inLiveOnlineMatch(){return gameMode==='online'&&currentScreen==='game-screen'&&!matchOver;}
+function checkDevtools(){
+  if(DT.seen)return;
+  DT.hits=devtoolsLikelyOpen()?DT.hits+1:0;
+  if(DT.hits<2)return;   // 2回続けてそう見えたときだけ（窓の大きさを変えた一瞬などは数えない）
+  if(inLiveOnlineMatch()){DT.pending=true;return;}   // オンライン対戦の最中は、終わってから
+  showDevAsk();
+}
+function showDevAsk(){
+  if(DT.seen)return;DT.seen=true;DT.pending=false;
+  var m=document.getElementById('dev-ask');if(!m)return;
+  document.getElementById('dev-ask-msg').textContent=t('dev.ask');
+  document.getElementById('dev-ask-btns').style.display='';
+  m.classList.add('show');
+  m.querySelectorAll('canvas[data-dev]').forEach(function(cv,i){
+    var g=cv.getContext('2d'),D=DEV_PAIR[i];g.clearRect(0,0,cv.width,cv.height);
+    drawAvatar(g,{x:cv.width/2-(i?-6:6),y:cv.height-8,s:2,dir:i?-1:1,look:D.look,team:TEAM.me,tm:1+i});
+  });
+  try{console.log('%c'+t('dev.console'),'color:#E8C66A;font-size:15px;font-weight:800');}catch(e){}
+  SFX.switchW();
+}
+function answerDevAsk(cheat){
+  var id=cheat?'no_skill':'liar';
+  document.getElementById('dev-ask-msg').textContent=t(cheat?'dev.gotNoSkill':'dev.gotLiar',{name:titleText(id)});
+  document.getElementById('dev-ask-btns').style.display='none';
+  grantTitle(id,true);
+  playTone(523,.12,'square',.08);playTone(392,.2,'square',.08,.12);
+  setTimeout(function(){var m=document.getElementById('dev-ask');if(m)m.classList.remove('show');},2600);
+}
+setInterval(function(){if(DT.pending&&!inLiveOnlineMatch())showDevAsk();else checkDevtools();},1000);
 function newStats(){var s={};DIFF_ORDER.forEach(function(k){s[k]={w:0,l:0};});return s;}
 function newTierProgress(){var s={};DIFF_ORDER.forEach(function(k){s[k]={beat:false,straight:false};});return s;}
 var profile={};
@@ -7980,7 +8051,7 @@ function drawBgFx(tm){
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
- partyInvite,partyLeaveBtn,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint].forEach(function(f){window[f.name]=f;});
+ partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint].forEach(function(f){window[f.name]=f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得
