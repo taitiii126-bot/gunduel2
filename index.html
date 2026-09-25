@@ -961,6 +961,140 @@ body.demo #bg-shade{opacity:1;}
   .look-prev{max-width:300px;width:100%;margin:0 auto;}
   .vol-row{grid-template-columns:90px 1fr 40px;}
 }
+
+/* ============================================================
+   REDESIGN 2026 — 黒×ゴールドを磨く（見た目だけの上書き。ここを消すと元に戻る）
+   ・角を斜めに切る（右上と左下）
+   ・うすい文字を少し明るく（読みやすさ）
+   ・ホームは広い画面で左右2列（左にロゴ、右にメニュー）
+   ============================================================ */
+:root{
+  --tx-3:#858A99;
+  --cut-s:polygon(0 0,calc(100% - 10px) 0,100% 10px,100% 100%,10px 100%,0 calc(100% - 10px));
+  --cut-l:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,22px 100%,0 calc(100% - 22px));
+  --panel-2:linear-gradient(180deg,#151926,#0F121B);
+}
+
+/* ---- 角を切る：小 ---- */
+.back-btn,.settings-back,.corner-btn,.sub-btn,.home-bar,.room-btn,.login-btn,.lo-card,
+#weapon-bar button,#btns button,.stage-card,.cpu-card,.settings-section,.room-card,.ol-card,
+.fr-send,.mp-ok,#tos-agree-btn,.tos-agree-row,#tos-box,.st-op,.mp-w,.mp-grid button,.inv-ok,.pill-btn,
+.fr-sheet,.settings-reset,#login-info,.room-input,.fr-input,.pf-input{
+  clip-path:var(--cut-s);border-radius:0;
+}
+/* ---- 角を切る：大 ---- */
+.play-btn,.st-main,.st-preview,.lo-slot{clip-path:var(--cut-l);border-radius:0;}
+
+/* 切った角の外に出るフォーカス枠は内側に */
+.back-btn:focus-visible,.corner-btn:focus-visible,.sub-btn:focus-visible,.home-bar:focus-visible,.room-btn:focus-visible,
+.login-btn:focus-visible,.lo-card:focus-visible,#weapon-bar button:focus-visible,#btns button:focus-visible,.stage-card:focus-visible,
+.cpu-card:focus-visible,.ol-card:focus-visible,.play-btn:focus-visible,.lo-slot:focus-visible,.st-op:focus-visible,.mp-grid button:focus-visible{
+  outline-offset:-4px;
+}
+
+/* ---- 共通 ---- */
+.kicker{letter-spacing:.34em;}
+.scr-title{letter-spacing:.06em;}
+.back-btn{min-height:44px;background:rgba(15,18,27,.72);}
+.room-btn{padding:15px;font-size:15px;box-shadow:none;background:linear-gradient(160deg,#FFDB7A 0%,#FFC53D 45%,#E8A200 100%);}
+.room-btn.alt{background:rgba(255,255,255,.06);color:var(--tx);}
+.settings-section,.room-card{background:var(--panel-2);}
+.corner-btn{width:40px;height:40px;background:rgba(15,18,27,.72);color:var(--tx-2);}
+.pill{border-radius:0;}
+
+/* ---- ホーム ---- */
+.home-bar{background:rgba(15,18,27,.86);}
+.home-bar:hover{box-shadow:none;}
+.play-btn{position:relative;overflow:hidden;}
+.play-btn>*{position:relative;z-index:1;}
+.play-btn b{font-family:var(--f-disp);font-weight:400;letter-spacing:.04em;}
+.play-btn.primary{background:linear-gradient(160deg,#FFDB7A 0%,#FFC53D 45%,#E8A200 100%);box-shadow:none;}
+.play-btn.primary::after{content:"";position:absolute;top:0;right:0;bottom:0;width:45%;pointer-events:none;
+  background:repeating-linear-gradient(-60deg,rgba(26,18,4,.07) 0 2px,transparent 2px 12px);}
+.play-btn.online{background:var(--panel-2);border:1px solid rgba(157,116,255,.38);}
+.play-btn.online:hover{border-color:rgba(157,116,255,.7);}
+.play-btn.online .pb-ic{border-radius:0;clip-path:var(--cut-s);color:#C4ADFF;}
+.play-btn.online small{color:var(--tx-3);}
+.pb-ic{border-radius:0;clip-path:var(--cut-s);}
+.sub-btn{background:rgba(15,18,27,.9);color:var(--tx);}
+.sub-btn svg.i{color:var(--gold);}
+#mode-screen h1 .l2{filter:drop-shadow(0 10px 34px rgba(255,180,0,.3));}
+
+@media (min-width:1000px){
+  body.demo #wrap{max-width:1240px;}
+  #mode-screen{max-width:1180px;}
+  #mode-screen h1 span{display:block;white-space:nowrap;}
+  .home-bar{width:auto;max-width:640px;margin:0 0 12px;justify-self:start;}
+  #mode-screen .home-bar{align-self:flex-start;}
+  .home-main{display:grid;grid-template-columns:minmax(0,1fr) 460px;column-gap:64px;row-gap:12px;align-items:center;text-align:left;}
+  .home-main>.logo{grid-column:1;grid-row:1 / span 3;margin:0;position:relative;}
+  .home-main>.play-grid{grid-column:2;grid-row:1;grid-template-columns:1fr;gap:12px;}
+  .home-main>.sub-grid{grid-column:2;grid-row:2;grid-template-columns:1fr 1fr;margin-top:0;}
+  .home-main>#login-bar{grid-column:2;grid-row:3;align-items:stretch;margin-top:4px;}
+  #login-bar .login-btn{max-width:none;}
+  .login-note{text-align:left;}
+  /* ロゴ：2段にして、DUEL を右にずらす */
+  .logo-mark{margin:0 0 18px;width:52px;height:52px;}
+  #mode-screen h1{flex-direction:column;justify-content:flex-start;gap:0;font-size:clamp(120px,12vw,172px);line-height:.84;letter-spacing:-.03em;}
+  #mode-screen h1 .l2{padding-left:.6em;}
+  .logo-tag{margin-top:26px;font-size:12px;letter-spacing:.34em;}
+  #mode-screen .logo p{max-width:420px;margin-top:12px;font-size:15px;line-height:1.8;}
+  /* 大きなボタン */
+  .play-btn{min-height:0;padding:24px 26px;align-items:flex-start;text-align:left;}
+  .play-btn.primary{height:204px;justify-content:flex-end;}
+  .play-btn.primary::before{content:"01 — VS AI";position:absolute;top:26px;left:26px;font-family:var(--f-ui);font-size:12px;font-weight:700;letter-spacing:.3em;opacity:.7;}
+  .play-btn.primary .pb-ic{position:absolute;top:20px;right:22px;margin:0;}
+  .play-btn.primary b{font-size:44px;line-height:1.05;}
+  .play-btn.primary small{font-size:13px;font-weight:700;}
+  .play-btn.online{display:grid;grid-template-columns:56px minmax(0,1fr);grid-template-rows:auto auto;column-gap:18px;row-gap:4px;align-items:center;height:118px;padding:0 24px;}
+  .play-btn.online .pb-ic{grid-row:1 / span 2;width:56px;height:56px;margin:0;}
+  .play-btn.online b{font-size:28px;line-height:1.1;align-self:end;}
+  .play-btn.online small{font-size:12.5px;font-weight:700;align-self:start;}
+  .sub-btn{justify-content:flex-start;min-height:60px;padding:0 18px;font-size:15px;}
+}
+
+/* ---- ステージ選択 ---- */
+.st-main{background:var(--panel-2);border-color:rgba(255,255,255,.1);padding:18px;}
+.st-preview{border:0;box-shadow:none;}
+.st-new{border-radius:0;clip-path:var(--cut-s);}
+.st-map{border-radius:0;}
+.st-name{font-size:36px;}
+.st-tags span{border-radius:0;}
+.st-info .room-btn{font-family:var(--f-disp);font-weight:400;font-size:18px;letter-spacing:.06em;padding:18px;}
+.st-arrow{background:rgba(15,18,27,.86);}
+.st-dots button{border-radius:0;transform:skewX(-20deg);}
+
+/* ---- 武器セット ---- */
+.lo-slot{min-height:108px;justify-content:center;gap:6px;background:var(--panel-2);border:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);}
+.lo-slot.sel{box-shadow:inset 0 0 0 2px var(--wc);}
+.lo-slot::after{content:"";position:absolute;left:0;bottom:0;height:3px;width:0;background:var(--wc);transition:width .25s var(--ease);}
+.lo-slot.sel::after{width:100%;}
+.lo-slot canvas{width:120px;height:50px;background:transparent;filter:drop-shadow(0 0 12px color-mix(in srgb,var(--wc) 40%,transparent));}
+.lo-slot b{font-size:16px;}
+.lo-card{background:rgba(15,18,27,.9);}
+.lo-card.eq{background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0)),#12151F;}
+.lc-bar,.lc-bar i{border-radius:0;}
+
+/* ---- 対戦画面 ---- */
+.canvas-frame{padding:1px;border-radius:2px;}
+#c{border-radius:1px;}
+.canvas-frame::before,.canvas-frame::after{content:"";position:absolute;width:22px;height:22px;pointer-events:none;z-index:4;}
+.canvas-frame::before{left:-8px;top:-8px;border-left:2px solid var(--gold);border-top:2px solid var(--gold);}
+.canvas-frame::after{right:-8px;bottom:-8px;border-right:2px solid var(--gold);border-bottom:2px solid var(--gold);}
+.canvas-frame:fullscreen::before,.canvas-frame:fullscreen::after{display:none;}
+#fs-btn{border-radius:0;clip-path:var(--cut-s);}
+#weapon-bar{gap:10px;}
+#weapon-bar button{min-height:58px;background:rgba(15,18,27,.9);border:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);}
+#weapon-bar button.active{box-shadow:inset 0 0 0 1px var(--wc);background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,0)),#12151F;}
+#weapon-bar button::after{height:3px;}
+#w-heal{box-shadow:inset 0 0 0 1px rgba(52,211,153,.35);}
+#weapon-bar kbd{width:26px;height:26px;border-radius:6px;}
+#btns button{border:0;border-bottom:0;box-shadow:inset 0 0 0 1px rgba(255,255,255,.09),inset 0 -3px 0 rgba(0,0,0,.5);}
+#btns .b-atk{box-shadow:inset 0 0 0 1px rgba(255,77,94,.45),inset 0 -3px 0 rgba(0,0,0,.5);}
+.seg{border-radius:0;clip-path:var(--cut-s);padding:4px;}
+#difficulty-bar button{border-radius:0;min-height:36px;padding:6px 15px;font-weight:900;}
+#difficulty-bar button.active{background:var(--gold);color:var(--gold-ink);}
+#hint kbd{border-radius:4px;}
 </style>
 </head>
 <body>
