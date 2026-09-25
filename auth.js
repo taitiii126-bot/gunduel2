@@ -126,7 +126,7 @@ const FIRST_TEN = 10;
 Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, FIRST_TEN)
   .forEach(u => { if (!u.pioneer10) { u.pioneer10 = true; dirty = true; } });
 // 称号の確認に使う本人の情報
-const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion });
+const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, badges: u.badges || [] });
 
 // ---- レート ----
 // ティアはレートの数値だけで決まる。最初は全員1000。レートが動くのはランクマッチだけ（CPU戦では動かない）
@@ -177,9 +177,19 @@ function cleanName(v) {
   const n = String(v == null ? '' : v).replace(/[\u0000-\u001F\u007F]/g, '').trim().slice(0, NAME_MAX);
   return n || 'プレイヤー';
 }
+// 今のシーズンのバッジを配る（そのシーズンにログインした人は全員もらえる）
+// 開発者には 0 番のバッジも（DEV_IDS から外れたら取り上げる）
+function giveBadge(u) {
+  const s = SIM.seasonNo(Date.now()), b = SIM.cleanBadges(u.badges).filter(n => n !== 0 || !!u.dev);
+  if (b.indexOf(s) < 0) b.push(s);
+  if (u.dev && b.indexOf(0) < 0) b.push(0);
+  const next = SIM.cleanBadges(b);
+  if (JSON.stringify(next) === JSON.stringify(u.badges)) return;
+  u.badges = next; touch();
+}
 function publicUser(u) {
   const r = rateState(u), r2 = rateState2(u);
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0,
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0, badges: SIM.cleanBadges(u.badges),
     rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak,
     rate2: r2.rate, tier2: r2.tier, rgames2: r2.games, ranked2: { w: r2.w, l: r2.l }, peak2: r2.peak };
 }
@@ -228,6 +238,7 @@ const auth = {
     }
     u.name = cleanName(info.name);
     setGift(u); setTears(u); setDev(u);                // 配った称号は、入り直すたびに環境変数と合わせる
+    giveBadge(u);
     u.lastSeen = Date.now();
     cleanupTokens();
     const token = crypto.randomBytes(32).toString('base64url');
@@ -244,6 +255,7 @@ const auth = {
     const u = db.users[t.uid];
     if (!u || BANNED_IDS.has(u.id)) return null;
     u.lastSeen = Date.now();
+    giveBadge(u);
     return u;
   },
 
@@ -409,7 +421,7 @@ const auth = {
   card(u, status) {
     const p = u.profile || null, rs = rateState(u), tier = rs.tier, r2 = rateState2(u);
     return {
-      fid: u.fid, name: p ? p.name : u.name, discord: u.name, dev: !!u.dev,
+      fid: u.fid, name: p ? p.name : u.name, discord: u.name, dev: !!u.dev, badge: SIM.badgeShown(u.badges, p ? p.badge : null),
       title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie', bio: p ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
       tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },

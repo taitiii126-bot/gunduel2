@@ -128,6 +128,26 @@ function cleanLoadout(v, allowDup) {
 var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 6, outfit: 5, neck: 4, accent: 8 };
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
+// ---- シーズンバッジ：シーズンごとに、その間にログインした全員へ1つ配る記念のアイコン ----
+// badges = 持っているバッジの番号の配列（1以上＝シーズン番号、0＝開発者だけのバッジ）
+// sel = 見せるバッジ（-1=出さない、null=自動：開発者は0、ほかは一番新しいシーズン）。返り値の null は「出さない」
+function cleanBadges(v) {
+  var o = [];
+  if (Array.isArray(v)) v.forEach(function (x) { var n = Math.floor(+x); if (n >= 0 && n < 100000 && o.indexOf(n) < 0) o.push(n); });
+  return o.sort(function (a, b) { return a - b; });
+}
+function cleanBadgeSel(v, badges) {
+  if (v == null || v === '') return null;
+  var n = Math.floor(+v);
+  if (n === -1) return -1;
+  return n >= 0 && cleanBadges(badges).indexOf(n) >= 0 ? n : null;
+}
+function badgeShown(badges, sel) {
+  var b = cleanBadges(badges);
+  if (!b.length || sel === -1) return null;
+  if (sel != null && b.indexOf(+sel) >= 0) return +sel;
+  return b[0] === 0 ? 0 : b[b.length - 1];
+}
 // 開発者だけの見た目（それぞれの最後の番号）。dev=サーバーが DEV_IDS で確かめた人。ほかの人が送ってきたら 0 に戻す
 var LOOK_DEV = { hat: 5, outfit: 4, neck: 3 };
 function cleanLook(v, dev) {
@@ -1545,7 +1565,8 @@ var api = {
   GRAVITY: GRAVITY, JUMP_F: JUMP_F, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
-  LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook, randomLook: randomLook,
+  LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
+  cleanBadges: cleanBadges, cleanBadgeSel: cleanBadgeSel, badgeShown: badgeShown, randomLook: randomLook,
   cleanLoadout: cleanLoadout, newWorld: newWorld, newRangeWorld: newRangeWorld,
   TEAM_SLOTS: deepFreeze(TEAM_SLOTS.slice()), teamOf: teamOf, newTeamWorld: newTeamWorld, stepTeam: stepTeam, teamResult: teamResult, foes: foes, newTarget: newTarget, stepRange: stepRange, newChar: newChar, setInput: setInput, step: step,
   stepChar: stepChar, stepShots: stepShots, physics: physics, canFire: canFire, weaponOf: weaponOf, muzzleY: muzzleY,

@@ -73,7 +73,8 @@ function clean(v, ctx, rtier) {
     name: text(v.name, 12) || 'プレイヤー',
     bio: text(v.bio, 40),
     title: validTitle(v.title, ctx, proofOf),
-    look: SIM.cleanLook(v.look, !!(ctx && ctx.dev)),   // 開発者だけの見た目は、開発者のときだけ残す
+    look: SIM.cleanLook(v.look, !!(ctx && ctx.dev)),
+    badge: SIM.cleanBadgeSel(v.badge, ctx && ctx.badges),   // 見せるシーズンバッジ（持っているものだけ）   // 開発者だけの見た目は、開発者のときだけ残す
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない
     bestTier: best,
