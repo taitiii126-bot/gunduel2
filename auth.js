@@ -20,6 +20,10 @@ const BANNED_IDS = new Set((process.env.BANNED_DISCORD_IDS || '').split(',').map
 const GIFT_HACKER = new Set((process.env.GIFT_HACKER_IDS || '').split(',').map(s => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean));
 const isGiftHacker = u => GIFT_HACKER.has(String(u.fid || '').toUpperCase()) || GIFT_HACKER.has(String(u.id || ''));
 const setGift = u => { const g = isGiftHacker(u); if (g === !!u.hacker) return false; if (g) u.hacker = true; else delete u.hacker; return true; };
+// 称号「運営泣かせ」を贈る人。ひどい穴を見つけて運営を泣かせた人へ。同じく環境変数で指定する。例: GIFT_TEARS_IDS=ABCD2345
+const GIFT_TEARS = new Set((process.env.GIFT_TEARS_IDS || '').split(',').map(s => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean));
+const isGiftTears = u => GIFT_TEARS.has(String(u.fid || '').toUpperCase()) || GIFT_TEARS.has(String(u.id || ''));
+const setTears = u => { const g = isGiftTears(u); if (g === !!u.tears) return false; if (g) u.tears = true; else delete u.tears; return true; };
 // 運営（この世界を作った人）。同じく環境変数で指定する。例: DEV_IDS=ABCD2345,EFGH6789
 const DEV_IDS = new Set((process.env.DEV_IDS || '').split(',').map(s => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean));
 const isDev = u => DEV_IDS.has(String(u.fid || '').toUpperCase()) || DEV_IDS.has(String(u.id || ''));
@@ -52,7 +56,7 @@ const normFid = v => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]
 let dirty = false;
 const touch = () => { dirty = true; };
 for (const u of Object.values(db.users)) giveFid(u);   // 前からいる人にも配る
-for (const u of Object.values(db.users)) { if (setGift(u)) dirty = true; if (setDev(u)) dirty = true; }   // 配った称号（環境変数のとおりに付け外し）
+for (const u of Object.values(db.users)) { if (setGift(u)) dirty = true; if (setTears(u)) dirty = true; if (setDev(u)) dirty = true; }   // 配った称号（環境変数のとおりに付け外し）
 // レートのやり直し（1回だけ）。全員を初期のレート（＝ティア LT5）に戻す。1v1 と 2v2 の両方。
 // オンラインの通算戦績・称号・見た目は消さない（ランクマッチの勝敗数だけ0に戻る）
 if ((db.meta.rateEpoch || 0) < 3) {
@@ -122,7 +126,7 @@ const FIRST_TEN = 10;
 Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, FIRST_TEN)
   .forEach(u => { if (!u.pioneer10) { u.pioneer10 = true; dirty = true; } });
 // 称号の確認に使う本人の情報
-const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, dev: !!u.dev, champion: !!u.champion });
+const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion });
 
 // ---- レート ----
 // ティアはレートの数値だけで決まる。最初は全員1000。レートが動くのはランクマッチだけ（CPU戦では動かない）
@@ -175,7 +179,7 @@ function cleanName(v) {
 }
 function publicUser(u) {
   const r = rateState(u), r2 = rateState2(u);
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0,
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0,
     rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak,
     rate2: r2.rate, tier2: r2.tier, rgames2: r2.games, ranked2: { w: r2.w, l: r2.l }, peak2: r2.peak };
 }
@@ -223,7 +227,7 @@ const auth = {
       if (Object.keys(db.users).length <= FIRST_TEN) u.pioneer10 = true;
     }
     u.name = cleanName(info.name);
-    setGift(u); setDev(u);                             // 配った称号は、入り直すたびに環境変数と合わせる
+    setGift(u); setTears(u); setDev(u);                // 配った称号は、入り直すたびに環境変数と合わせる
     u.lastSeen = Date.now();
     cleanupTokens();
     const token = crypto.randomBytes(32).toString('base64url');

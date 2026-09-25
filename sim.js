@@ -252,12 +252,38 @@ function teamResult(w) {
   return dead[0] && dead[1] ? 'draw' : dead[0] ? 1 : dead[1] ? 0 : null;
 }
 
+// ---- 書き換えの見張り（w.guardOn が true のときだけ）----
+// 1フレームの計算が終わったときの値を控えておき、次のフレームの頭で違っていたら「外から触られた」と判断する。
+// ブラウザの開発者ツールで止めて値を入れ替えるチート（弾を増やす・リロードを飛ばす等）が、ここで分かる
+function guardSnap(c) {
+  return [c.ammo[0] | 0, c.ammo[1] | 0, c.ammo[2] | 0, c.cool | 0, c.rl | 0, c.chg | 0, c.burst | 0,
+    Math.round(c.hp * 8), Math.round(c.x * 8), Math.round(c.y * 8), c.slot | 0, c.dead ? 1 : 0];
+}
+function guardSave(w) {
+  if (!w.guardOn) return;
+  var g = w.guard || (w.guard = {}), k;
+  for (k in w.chars) g[k] = guardSnap(w.chars[k]);
+}
+function guardCheck(w) {
+  if (!w.guardOn || !w.guard) return '';
+  var k, i, a, b;
+  for (k in w.guard) {
+    if (!w.chars[k]) continue;
+    a = w.guard[k]; b = guardSnap(w.chars[k]);
+    for (i = 0; i < b.length; i++) if (a[i] !== b[i]) return k + '#' + i;
+  }
+  return '';
+}
+
 // 1フレーム進める。ev に起きたこと（発射・命中・爆発など）が入る
 function step(w, ev) {
+  var tampered = guardCheck(w);
+  if (tampered) { w.tamper = (w.tamper || 0) + 1; w.tamperAt = tampered; }
   w.frame++;
   stepChar(w, w.chars.a, w.chars.b, ev, false);
   stepChar(w, w.chars.b, w.chars.a, ev, false);
   stepShots(w, ev, false);
+  guardSave(w);
 }
 
 // vis=true はオンラインの先読み用：見た目だけ動かし、ダメージは与えない（ダメージはサーバーが決める）
@@ -1398,6 +1424,7 @@ var TITLES = [
   { id: 'emperor_slayer', rare: true, mythic: true },   // 隠しボス「鬼帝」に勝つ（mythic：黒と金の特別な見た目）
   // 運営から配る称号（award：届いたときにお祝いの演出が出る）。サーバーが認めた人だけ使える。自力では取れない
   { id: 'trusted_hacker', gift: true, award: true, gate: { hacker: true } },   // gift：緑のネオン
+  { id: 'dev_tears', glitch: true, award: true, gate: { tears: true } },       // glitch：赤と水色にズレた「壊れた画面」の文字
   { id: 'world_author', prism: true, award: true, gate: { dev: true } },       // prism：明朝の白銀にプリズムの光
   // シーズンの最終1位（crown：赤と金）。一度もらったら、また1位になっても増えない
   { id: 'unrivaled', crown: true, award: true, gate: { champion: true } }
@@ -1410,7 +1437,7 @@ WEAPON_IDS.forEach(function (wid) {
   var key = WEAPONS[wid].key;
   KILL_STEPS.forEach(function (n) { TITLES.push({ id: KILL_TITLE_OLD[key + n] || 'kill_' + key + '_' + n, kill: { w: wid, n: n }, rare: n >= 100 }); });
 });
-// その称号を使ってよいか。ctx = { w, l, friends, pioneer, pioneer10, hacker, dev }
+// その称号を使ってよいか。ctx = { w, l, friends, pioneer, pioneer10, hacker, tears, dev }
 // （オンライン戦績・フレンド数・開拓者か・最初の10人か・贈られた人か・運営か。ログインしていなければ null）
 // ---- プロフィールのやり直し（epoch）----
 // CPUの強さを変えたときは、CPU戦で取れる称号を全員から外して取り直してもらう。
@@ -1495,6 +1522,7 @@ function titleOk(id, ctx) {
     if (g.pioneer && !ctx.pioneer) return false;
     if (g.pioneer10 && !ctx.pioneer10) return false;
     if (g.hacker && !ctx.hacker) return false;
+    if (g.tears && !ctx.tears) return false;
     if (g.dev && !ctx.dev) return false;
     if (g.champion && !ctx.champion) return false;
     return true;
@@ -1516,6 +1544,7 @@ var api = {
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
   TITLES: deepFreeze(TITLES), titleOk: titleOk,
+  guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,
   SEASON_TZ_MIN: SEASON_TZ_MIN, SEASON_DROP: SEASON_DROP, seasonNo: seasonNo, seasonStart: seasonStart, seasonEnd: seasonEnd,
   seasonLeftMs: seasonLeftMs, seasonLeftDays: seasonLeftDays, seasonNextRate: seasonNextRate,
   PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles,

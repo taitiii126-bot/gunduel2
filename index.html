@@ -107,7 +107,9 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .hb-who{display:flex;flex-direction:column;gap:4px;min-width:0;}
 .hb-name{font-size:17px;font-weight:900;letter-spacing:.03em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .hb-title{font-size:12px;font-weight:900;color:var(--gold);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-.hb-tier{display:flex;align-items:center;gap:6px;font-family:var(--f-ui);font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--tx-2);white-space:nowrap;}
+.hb-tx{display:flex;flex-direction:column;align-items:flex-end;gap:3px;min-width:0;}
+.hb-rline{display:flex;align-items:center;gap:6px;}
+.hb-tier{display:flex;align-items:center;gap:8px;font-family:var(--f-ui);font-size:13px;font-weight:700;letter-spacing:.1em;color:var(--tx-2);white-space:nowrap;}
 .hb-tier canvas{display:block;width:48px;height:48px;}
 .hb-arrow{color:var(--tx-3);transition:transform .18s var(--ease),color .18s;}
 .home-bar:hover .hb-arrow{transform:translateX(3px);color:var(--tx);}
@@ -359,8 +361,9 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .rk-season{display:flex;flex-direction:column;align-items:center;gap:2px;margin:-6px 0 10px;text-align:center;}
 .rk-season b{font-family:var(--f-disp);font-size:15px;color:var(--gold);}
 .rk-season small{font-size:11px;color:var(--tx-3);}
-.hb-season{margin-left:10px;padding:3px 9px;border-radius:99px;border:1px solid rgba(255,197,61,.35);background:rgba(255,197,61,.08);font-size:10.5px;font-weight:700;color:#FFD968;white-space:nowrap;}
-@media (max-width:700px){.hb-season{display:none;}}
+.hb-season{align-self:flex-end;padding:2px 8px;border-radius:99px;border:1px solid rgba(255,197,61,.3);background:rgba(255,197,61,.07);font-size:10px;font-weight:700;letter-spacing:.02em;color:#FFD968;white-space:nowrap;}
+@media (max-width:480px){.hb-season{display:none;}}   /* 小さい画面では、ランキング画面のシーズン表示にまかせる */
+@media (max-width:560px){.hb-r2{display:none;}}         /* 狭い画面では 2v2 のレートを隠して、名前の場所を確保する */
 .rk-tabs{display:flex;justify-content:center;gap:6px;margin:-8px 0 12px;}
 .rk-tabs button{padding:6px 18px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);font-family:var(--f-ui);font-size:13px;font-weight:700;color:var(--tx-2);}
 .rk-tabs button.sel{border-color:var(--gold);color:var(--gold);background:rgba(255,197,61,.1);}
@@ -762,7 +765,7 @@ body.demo #bg-shade{opacity:1;}
 @media (max-width:480px){
   .home-bar{grid-template-columns:46px minmax(0,1fr) auto 16px;gap:10px;}
   .hb-av{width:46px;height:46px;}
-  .hb-tier span{display:none;}
+  #hb-tier-name{display:none;}
   .play-btn{min-height:128px;padding:14px 10px;}
   .play-btn b{font-size:17px;}
   .play-btn small{font-size:10.5px;}
@@ -825,6 +828,23 @@ body.demo #bg-shade{opacity:1;}
 .dev-badge path{fill:none;stroke:#0B0E14;stroke-width:2.8;stroke-linecap:round;stroke-linejoin:round;}
 .hb-name .dev-badge,.fr-info b .dev-badge,.rk-col b .dev-badge{width:14px;height:14px;margin-left:4px;}
 .acc-row .dev-badge{margin-left:4px;}
+/* 運営泣かせ：赤と水色にズレた「壊れた画面」の文字。ときどきガクッと裂ける */
+.title-chip.glitch{position:relative;overflow:hidden;padding:7px 18px;font-size:16px;border-color:rgba(255,59,92,.5);background:linear-gradient(135deg,#150609,#06131a);}
+.title-chip.glitch:hover{border-color:#FF7D95;}
+.title-chip.glitch.sel{border-color:#9FF6FF;box-shadow:0 0 0 1px rgba(53,241,255,.5),0 0 18px -4px rgba(255,59,92,.9);}
+.title-chip.glitch::after{content:'';position:absolute;left:0;right:0;height:40%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(53,241,255,0),rgba(53,241,255,.18),rgba(255,59,92,.12),rgba(53,241,255,0));animation:gl-scan 2.2s linear infinite;}
+@keyframes gl-scan{from{top:-42%}to{top:102%}}
+.gl,.fr-info .gl,.rk-row small.gl{--gs:1.2px;--gs2:3px;display:inline-block;font-family:var(--f-neon);font-weight:400;letter-spacing:.06em;color:#EAF7FF;
+  animation:gl-rgb 2.8s steps(1,end) infinite;}
+@keyframes gl-rgb{
+  0%,85.9%{text-shadow:calc(var(--gs) * -1) 0 0 rgba(255,59,92,.9),var(--gs) 0 0 rgba(53,241,255,.85),0 0 6px rgba(53,241,255,.4);transform:none;}
+  86%{text-shadow:calc(var(--gs2) * -1) 0 0 rgba(255,59,92,.95),var(--gs2) 0 0 rgba(53,241,255,.9),0 0 8px rgba(255,59,92,.45);transform:translateX(.5px) skewX(-7deg);}
+  88%{text-shadow:var(--gs2) -1px 0 rgba(255,59,92,.95),calc(var(--gs2) * -1) 1px 0 rgba(53,241,255,.9);transform:translateX(-1px);}
+  90%{text-shadow:calc(var(--gs2) * -1.4) 0 0 rgba(255,59,92,.9),calc(var(--gs2) * 1.4) 0 0 rgba(53,241,255,.9),0 0 10px rgba(53,241,255,.5);transform:translateX(1px) skewX(5deg);}
+  91.5%,100%{text-shadow:calc(var(--gs) * -1) 0 0 rgba(255,59,92,.9),var(--gs) 0 0 rgba(53,241,255,.85),0 0 6px rgba(53,241,255,.4);transform:none;}
+}
+.hb-title.gl,.fr-info .gl{font-size:14px;--gs:1px;--gs2:2.4px;}
 /* この世界の創造主：明朝の白銀に、プリズム（虹）の光が流れる */
 /* 天下無双：赤と金 */
 .title-chip.crown{padding:7px 18px;font-size:16px;border-color:rgba(245,196,82,.55);background:linear-gradient(135deg,#1a0708,#2a0d0a);}
@@ -877,6 +897,18 @@ body.demo #bg-shade{opacity:1;}
 #gift-fx.prism .gf-spark i{background:#F2F7FF;box-shadow:0 0 10px rgba(210,230,255,.95);}
 #gift-fx.prism .gf-from{color:rgba(226,236,255,.85);}
 #gift-fx .gf-title .sv{font-size:inherit;letter-spacing:.1em;}
+#gift-fx.glitch{background:radial-gradient(circle at 50% 47%,rgba(34,8,20,.94),rgba(2,4,8,.97) 62%);}
+#gift-fx.glitch .gf-rings span{border-color:rgba(255,59,92,.55);}
+#gift-fx.glitch .gf-spark i{background:#9FF6FF;box-shadow:0 0 10px rgba(53,241,255,.95);}
+#gift-fx.glitch .gf-from{color:rgba(190,240,255,.85);}
+#gift-fx .gf-title .gl{font-size:inherit;letter-spacing:.09em;--gs:3px;--gs2:8px;}
+/* 壊れた画面らしく、細い走査線と明るい帯が画面を流れる */
+#gift-fx.glitch::before{content:'';position:absolute;inset:0;pointer-events:none;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.04) 0 1px,transparent 1px 3px);animation:gl-lines 1.4s steps(3,end) infinite;}
+#gift-fx.glitch::after{content:'';position:absolute;left:0;right:0;height:15%;pointer-events:none;
+  background:linear-gradient(180deg,rgba(53,241,255,0),rgba(53,241,255,.13),rgba(255,59,92,.10),rgba(53,241,255,0));animation:gl-sweep 3.2s linear infinite;}
+@keyframes gl-lines{from{transform:translateY(0)}to{transform:translateY(3px)}}
+@keyframes gl-sweep{from{top:-16%}to{top:104%}}
 @keyframes gf-up{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes gf-pop{from{opacity:0;transform:scale(.72)}to{opacity:1;transform:none}}
 /* 鬼帝を討ちし者：黒と金。金の光が文字の上を流れる */
@@ -969,8 +1001,8 @@ body.demo #bg-shade{opacity:1;}
     <button class="home-bar" onclick="showProfileScreen()" data-i18n-title="home.barHint">
       <canvas class="hb-av" id="hb-av" width="104" height="104"></canvas>
       <span class="hb-who"><b class="hb-name" id="hb-name"></b><small class="hb-title" id="hb-title"></small></span>
-      <small class="hb-season" id="hb-season"></small>
-      <span class="hb-tier"><canvas id="hb-tier" width="96" height="96"></canvas><span id="hb-tier-name"></span><small id="hb-rate"></small></span>
+      <span class="hb-tier"><canvas id="hb-tier" width="96" height="96"></canvas>
+        <span class="hb-tx"><span class="hb-rline"><span id="hb-tier-name"></span><small id="hb-rate"></small></span><small class="hb-season" id="hb-season"></small></span></span>
       <svg class="i hb-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
     </button>
     <div class="home-main">
@@ -1302,8 +1334,8 @@ body.demo #bg-shade{opacity:1;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=16"></script>
-<script src="lang.js?v=18"></script>
+<script src="sim.js?v=17"></script>
+<script src="lang.js?v=19"></script>
 <script>
 (function(){
 'use strict';
@@ -1881,11 +1913,12 @@ function isMythicTitle(id){var d=titleDef(id);return !!(d&&d.mythic);}
 function isGiftTitle(id){var d=titleDef(id);return !!(d&&d.gift);}
 function isPrismTitle(id){var d=titleDef(id);return !!(d&&d.prism);}
 function isCrownTitle(id){var d=titleDef(id);return !!(d&&d.crown);}
+function isGlitchTitle(id){var d=titleDef(id);return !!(d&&d.glitch);}
 // 運営の印（丸に✓）。称号と違って着け替えられないので、本物の証明になる
 var DEV_SVG='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.4"/><path d="M6.9 12.6l3.4 3.4 6.9-7.5"/></svg>';
 function devBadge(on){return on?'<span class="dev-badge" title="'+esc(t('badge.dev'))+'" aria-label="'+esc(t('badge.dev'))+'">'+DEV_SVG+'</span>':'';}
 // 称号の文字の見せ方（mt＝黒と金／sv＝明朝の白銀＋プリズム／gt＝贈られた称号＝緑のネオン／nt＝レア＝青いネオン）
-function titleCls(id){return isMythicTitle(id)?'mt':isCrownTitle(id)?'cr':isPrismTitle(id)?'sv':isGiftTitle(id)?'gt':isRareTitle(id)?'nt':'';}
+function titleCls(id){return isMythicTitle(id)?'mt':isCrownTitle(id)?'cr':isPrismTitle(id)?'sv':isGlitchTitle(id)?'gl':isGiftTitle(id)?'gt':isRareTitle(id)?'nt':'';}
 // 条件を満たしているか（武器ごとの称号は、その武器でのとどめの回数で決まる）
 function titleRule(d){if(d.kill)return killsWith(d.kill.w)>=d.kill.n;var f=TITLE_RULES[d.id];return !!(f&&f());}
 // 取り方の説明（武器ごとの称号は、ひな形に武器の名前と回数を入れる）
@@ -1893,7 +1926,7 @@ function titleCond(id){var d=titleDef(id);return d&&d.kill?t('tcond.kill',{weapo
 function beaten(d){var p=profile.tierProgress&&profile.tierProgress[d];return !!(p&&p.beat);}
 function totalWL(){var c=cpuTotals();return{w:c.w+(AUTH.user?AUTH.user.wins||0:0),l:c.l+(AUTH.user?AUTH.user.losses||0:0)};}   // CPU戦＋オンライン対戦
 function killsWith(wid){return +(profile.ach.kills[wid]||0);}
-function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion}:null;}
+function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,tears:!!AUTH.user.tears,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion}:null;}
 function titleUnlocked(id){
   var d=titleDef(id);if(!d)return false;
   if(d.gate)return SIM.titleOk(id,myTitleCtx());
@@ -1922,6 +1955,7 @@ function checkTitles(){
 }
 // 試合の中の出来事で称号をあげる（equip なら、そのまま付け替える）
 function grantTitle(id,equip,quiet){
+  if(aiTamper&&id!=='rule_breaker')return;   // ズルが見つかった試合では、称号もあげない
   ensureProfileShape();
   if(SIM.EVENT_TITLES.indexOf(id)>=0)profile.ach.evt[id]=(+profile.ach.evt[id]||0)+1;   // あとから確かめられるように回数を残す
   var fresh=!profile.ach.got[id];
@@ -1954,11 +1988,12 @@ function showGiftFx(id){
     '<p class="gf-title"><span class="'+cls+'">'+esc(titleText(id))+'</span></p>'+
     '<p class="gf-cond">'+esc(titleCond(id))+'</p>'+
     '<p class="gf-tap">'+esc(t('gift.tap'))+'</p>';
-  el.className='on '+(cls==='sv'?'prism':cls==='cr'?'crown':'gift');
+  el.className='on '+(cls==='sv'?'prism':cls==='cr'?'crown':cls==='gl'?'glitch':'gift');
   playTone(523,.14,'triangle',.11);playTone(659,.14,'triangle',.11,.12);playTone(784,.16,'triangle',.11,.24);
   playTone(1046,.5,'triangle',.12,.38);playTone(1568,.6,'sine',.05,.46);
   if(cls==='sv'){playTone(1318,.7,'sine',.06,.52);playTone(2093,.9,'sine',.04,.62);}   // 創造主はもう一段きらびやかに
   if(cls==='cr'){playTone(392,.5,'sawtooth',.06,.5);playTone(1046,.8,'triangle',.08,.58);}   // 天下無双は重く華やかに
+  if(cls==='gl'){playTone(146,.10,'sawtooth',.10,.50);playTone(1975,.06,'square',.07,.56);playTone(110,.14,'sawtooth',.10,.62);playTone(2349,.06,'square',.06,.70);playTone(880,.45,'sawtooth',.06,.78);}   // 運営泣かせは機械が壊れた音
   clearTimeout(giftTimer);giftTimer=setTimeout(closeGiftFx,9500);
 }
 function closeGiftFx(){
@@ -2084,6 +2119,7 @@ function saveProfile(){writeProfileLocal();profileChanged();}   // 変えたら�
 var profileSaveTimer=null;
 function saveProfileSoon(){if(profileSaveTimer)clearTimeout(profileSaveTimer);profileSaveTimer=setTimeout(saveProfile,300);}
 function recordMatchResult(diff,win,straight){
+  if(aiTamper)return;   // ズルが見つかった試合は、勝っても負けても記録しない
   ensureProfileShape();
   if(diff===EMP){   // 鬼帝：成績は別に持つ。初めて勝ったら、称号をお知らせなしで付ける（専用の演出で見せる）
     if(win){profile.emperor.w++;profile.emperor.beat=true;grantTitle('emperor_slayer',false,true);}
@@ -2131,7 +2167,7 @@ function applyRateResult(r){
 function bgIndex(){return profile.bg==null?profile.bestTier:profile.bg;}
 function titleText(id){return t('title.'+(id||'rookie'));}
 function myCardData(){
-  return{name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me};
+  return{name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me};
 }
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
@@ -2229,9 +2265,9 @@ function renderTitleChips(){
   TITLES.forEach(function(x){
     if(!titleUnlocked(x.id))return;
     n++;
-    var my=isMythicTitle(x.id),cw=isCrownTitle(x.id),pz=isPrismTitle(x.id),gf=isGiftTitle(x.id),tx=esc(titleText(x.id));
-    var body=my?'<span class="mt">'+tx+'</span>':cw?'<span class="cr">'+tx+'</span>':pz?'<span class="sv">'+tx+'</span>':gf?'<span class="gt">'+tx+'</span>':tx;
-    chips+='<button class="title-chip'+(my?' mythic':cw?' crown':pz?' prism':gf?' gift':x.rare?' rare':'')+(x.id===profile.title?' sel':'')+
+    var my=isMythicTitle(x.id),cw=isCrownTitle(x.id),pz=isPrismTitle(x.id),gl=isGlitchTitle(x.id),gf=isGiftTitle(x.id),tx=esc(titleText(x.id));
+    var body=my?'<span class="mt">'+tx+'</span>':cw?'<span class="cr">'+tx+'</span>':pz?'<span class="sv">'+tx+'</span>':gl?'<span class="gl">'+tx+'</span>':gf?'<span class="gt">'+tx+'</span>':tx;
+    chips+='<button class="title-chip'+(my?' mythic':cw?' crown':pz?' prism':gl?' glitch':gf?' gift':x.rare?' rare':'')+(x.id===profile.title?' sel':'')+
       '" onclick="pickTitle(\''+x.id+'\')" onmouseenter="titleHint(\''+x.id+'\')" onmouseleave="titleHint(\'\')" onfocus="titleHint(\''+x.id+'\')" title="'+esc(titleCond(x.id))+'">'+body+'</button>';
   });
   el.innerHTML='<p class="title-count">'+esc(t('pf.titleCount',{n:n}))+'<small>'+esc(t('pf.titleHint'))+'</small></p>'+
@@ -2790,7 +2826,7 @@ function friendOp(op,fid){
 }
 // ---- フレンドのプロフィール（自分のプロフィールと同じカード）----
 function friendCardData(p){
-  return{name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
+  return{name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
     look:SIM.cleanLook(p.look||LOOK_DEFAULT),loadout:p.loadout?SIM.cleanLoadout(p.loadout,false):null,team:TEAM.me};
 }
 function openFriend(fid){
@@ -2956,7 +2992,9 @@ function renderHomeBar(){
   nm.innerHTML=esc(profile.name)+devBadge(AUTH.user&&AUTH.user.dev);
   tl.textContent=titleText(profile.title);tl.className='hb-title'+(titleCls(profile.title)?' '+titleCls(profile.title):'');
   document.getElementById('hb-tier-name').textContent=isRanked()?tierName(tier):'';
-  document.getElementById('hb-rate').textContent=isRanked()?myRate()+'  ·  2v2 '+(myTier2Index()?TIER_LADDER[myTier2Index()].key+' ':'')+myRate2():t('tier.loginShort');
+  var rt=document.getElementById('hb-rate');   // 2v2のぶんは、狭い画面では隠す（名前が消えてしまうため）
+  if(isRanked())rt.innerHTML=esc(String(myRate()))+'<span class="hb-r2">  ·  2v2 '+esc((myTier2Index()?TIER_LADDER[myTier2Index()].key+' ':'')+myRate2())+'</span>';
+  else rt.textContent=t('tier.loginShort');
   var av=document.getElementById('hb-av');if(av)drawMiniAvatar(av,{tier:tier,look:profile.look});
   renderSeason();
   drawHomeBarTier(0);
@@ -3717,6 +3755,7 @@ function initLocalRound(){
   achRoundStart();
   useStage(selectedStage);
   lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;
+  lw.guardOn=true;SIM.guardSave(lw);   // 外から値を書き換えられていないか見張る
   aiBrain=SIM.newBrain(difficulty);
   playerSlot=0;lp.wantSlot=0;clearPending();
   lRoundOver=false;clearFx();
@@ -3727,6 +3766,7 @@ function gameUpdateLocal(){
   SIM.setInput(lp,playerInput());
   SIM.setInput(lai,SIM.think(aiBrain,lw,'b'));
   var ev=[];SIM.step(lw,ev);
+  if(lw.tamper&&!aiTamper){aiTamper=true;note(t('c.cheatFound'));cheatTrap();}   // ズルが見つかった試合は記録しない
   handleEvents(ev,'a',localStyle);
   if(ev.some(function(e){return e.t==='heal'&&e.who==='a';}))updateHealBtn();
   if(lp.dead||lai.dead)endRoundL(lp.dead&&lai.dead?null:(lp.dead?'ai':'player'));
@@ -4047,8 +4087,9 @@ setInterval(function(){if(gameMode==='online'&&ws&&ws.readyState===1&&!olRoundOv
 // ============================================================
 // ゲーム開始
 // ============================================================
+var aiTamper=false;   // この試合で、外から値を書き換えられたか
 function startAI(){
-  clearGameTimers();
+  clearGameTimers();aiTamper=false;
   useStage(selectedStage);
   gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};keys={};
   var boss=difficulty===EMP;
@@ -5438,6 +5479,35 @@ function drawPrismTitle(g,text,x,y,size,tm){
   }
   g.restore();
 }
+// 運営泣かせ：赤と水色にズレた「壊れた画面」の文字。走査線が上へ走り、ときどき横に裂ける
+var GLITCH_RED='#FF3B5C',GLITCH_CYAN='#35F1FF';
+function drawGlitchTitle(g,text,x,y,size,tm){
+  askNeonFont(text);
+  tm=tm||0;
+  var k=ctxScale(g),tw=g.measureText(text).width;
+  var cyc=tm%2.8,bad=cyc>2.42&&cyc<2.62,                     // 2.8秒ごとに 0.2秒だけ激しくブレる
+      j=bad?Math.sin(cyc*170)*2.4:0,sp=(bad?3.4:1.4)*Math.max(1,size/22);
+  g.save();g.lineJoin='round';
+  g.lineWidth=Math.max(1.5,size*.16);g.strokeStyle='rgba(0,0,0,.85)';g.strokeText(text,x+j,y);
+  g.globalAlpha=.8;                                          // 赤と水色を左右にずらして重ねる（色ズレ）
+  g.fillStyle=GLITCH_RED;g.fillText(text,x+j-sp,y+(bad?.9:0));
+  g.fillStyle=GLITCH_CYAN;g.fillText(text,x+j+sp,y-(bad?.9:0));
+  g.globalAlpha=1;
+  g.shadowColor='rgba(53,241,255,.5)';g.shadowBlur=size*.24*k;
+  g.fillStyle='#EAF7FF';g.fillText(text,x+j,y);g.shadowBlur=0;
+  var bh=Math.max(1.4,size*.12),by=y+size*.2-((tm*.62)%1.4)*(size*1.55);   // 走査線が下から上へ
+  g.save();g.beginPath();g.rect(x-size,by,tw+size*2,bh);g.clip();
+  g.fillStyle='rgba(255,255,255,.92)';g.fillText(text,x+j,y);
+  g.restore();
+  if(bad){                                                   // 横に裂けて、帯だけ横へずれる
+    var sy=y-size*(.26+.32*(Math.floor(cyc*40)%3)/3),sh=size*.19;
+    g.save();g.beginPath();g.rect(x-size,sy,tw+size*2,sh);g.clip();
+    g.globalAlpha=.9;g.fillStyle=GLITCH_RED;g.fillText(text,x+j+sp*2.2,y);
+    g.globalAlpha=1;g.fillStyle='#EAF7FF';g.fillText(text,x+j+sp*1.6,y);
+    g.restore();
+  }
+  g.restore();
+}
 // 運営の印（丸に✓）を絵として描く
 function drawDevBadge(g,x,y,r){
   g.save();
@@ -5504,6 +5574,10 @@ function drawProfileCard(g,P,x,y,w,h,tm){
     var tsm=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
     drawMythicTitle(g,titleText,x+pad,ty,tsm,tm);
     nameY=ty-tsm*1.22;
+  }else if(P.titleGlitch){   // 運営泣かせ：赤と水色にズレた壊れた画面
+    var tsx=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
+    drawGlitchTitle(g,titleText,x+pad,ty,tsx,tm);
+    nameY=ty-tsx*1.22;
   }else if(P.titleGift){   // 贈られた称号：緑のネオン
     var tsg=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
     drawNeonTitle(g,titleText,x+pad,ty,tsg,tm,NEON_GREEN);
@@ -6831,7 +6905,7 @@ function myRecord(){
 function tierIdxOf(key){for(var i=1;i<TIER_LADDER.length;i++)if(TIER_LADDER[i].key===key)return i;return 0;}
 function oppCardData(){
   var ti=tierIdxOf(oppInfo.tier);
-  return{name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),titleCrown:isCrownTitle(oppInfo.title),dev:!!oppInfo.dev,bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
+  return{name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),titleCrown:isCrownTitle(oppInfo.title),titleGlitch:isGlitchTitle(oppInfo.title),dev:!!oppInfo.dev,bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
 }
 function drawRecPill(cx,y,rec,col){
   var total=rec?rec.w+rec.l:0;
@@ -6859,7 +6933,7 @@ function drawDiscordTag(cx,y,name){
 function teamCardData(s){
   if(s===mySlot){var m=myCardData();m.tier=myTier2Index();m.bg=bgIndex();return m;}
   var P=TM.players[s]||{},ti=tierIdxOf(P.tier);
-  return{name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),titleCrown:isCrownTitle(P.title),dev:!!P.dev,bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
+  return{name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),titleCrown:isCrownTitle(P.title),titleGlitch:isGlitchTitle(P.title),dev:!!P.dev,bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
 }
 function drawVsTeam(T){
   var cw=124,ch=164,cy=(VH-ch)/2+6,e=1-Math.pow(1-Math.min(1,T/.45),3),out=T>2.65?Math.min(1,(T-2.65)/.35):0;
