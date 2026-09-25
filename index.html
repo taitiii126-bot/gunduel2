@@ -2454,12 +2454,21 @@ function showDevAsk(){
   });
   try{console.log('%c'+t('dev.console'),'color:#E8C66A;font-size:15px;font-weight:800');}catch(e){}
   SFX.switchW();
+  reportDevtools('');
+}
+// コンソールを開いたこと（と答え）をサーバーに知らせる。サーバーが管理者のDiscordに通知する
+function reportDevtools(answer){
+  try{
+    var h={'Content-Type':'application/json'};if(AUTH&&AUTH.token)h.Authorization='Bearer '+AUTH.token;
+    fetch(httpBase()+'/api/devtools',{method:'POST',headers:h,body:JSON.stringify({answer:answer,name:profile.name,screen:currentScreen})}).catch(function(){});
+  }catch(e){}
 }
 function answerDevAsk(cheat){
   var id=cheat?'no_skill':'liar';
   document.getElementById('dev-ask-msg').textContent=t(cheat?'dev.gotNoSkill':'dev.gotLiar',{name:titleText(id)});
   document.getElementById('dev-ask-btns').style.display='none';
   grantTitle(id,true);
+  reportDevtools(id);
   playTone(523,.12,'square',.08);playTone(392,.2,'square',.08,.12);
   setTimeout(function(){var m=document.getElementById('dev-ask');if(m)m.classList.remove('show');},2600);
 }
