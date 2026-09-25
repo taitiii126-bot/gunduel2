@@ -86,6 +86,11 @@ const DODGE_GROUNDED_FRAMES = 15;  // 直前まで15フレーム以上地面に�
 const DODGE_MIN_THREATS = +process.env.DODGE_MIN_THREATS || 8;   // 狙われた回数がこれ未満なら判定しない
 const DODGE_MIN_COUNT = 6;         // 瞬間回避がこの回数以上
 const DODGE_RATIO = 0.6;           // かつ、狙われた弾の6割以上を瞬間回避
+const REACT_MIN_SAMPLES = 25;      // 反応の速さ：狙いが合ってから撃つまでを、これだけ集めてから判定
+const REACT_MEDIAN_FRAMES = 5;     // その真ん中の値が5フレーム（約0.083秒）以下なら疑う（人間は速い人でも0.15秒前後）
+const RHYTHM_MIN_SAMPLES = 30;     // 撃つ間隔：ボタンを押し直した間隔を、これだけ集めてから判定
+const RHYTHM_MAX_GAP = 40;         // 間隔がこれより長いもの（様子見など）は数えない
+const RHYTHM_MAX_SD = 0.5;         // 間隔のばらつき（標準偏差）がこのフレーム数未満なら、機械的に一定＝マクロの疑い
 
 const SLOTS = ['a', 'b'];
 // 相手に見せる名前とティアは、そのまま信用せず長さと文字種を落とす（見えない制御文字は取り除く）
@@ -213,7 +218,7 @@ class Room {
   }
   resetStats(p) {
     Object.assign(p, { acts: 0, shots: 0, alignedShots: 0, instantShots: 0, togSec: 0, togN: 0, fastSecs: 0,
-      threats: 0, instantDodges: 0, suspect: '' });
+      threats: 0, instantDodges: 0, suspect: '', reacts: [], lastPull: -1, gaps: [] });
   }
   hostIp() { return this.players.a ? this.players.a.ip : ''; }
 
@@ -367,7 +372,7 @@ class Room {
       const p = this.players[s];
       if (p) {
         p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false;
-        p.input.slot = 0; p.input.fire = false; p.alignedFrame = -1; p.readyFrame = -1;
+        p.input.slot = 0; p.input.fire = false; p.alignedFrame = -1; p.readyFrame = -1; p.lastPull = -1;
       }
     }
     this.phase = 'playing';
@@ -423,7 +428,7 @@ class Room {
   flag(p, reason) {
     if (!p || p.bot || p.suspect) return;
     p.suspect = reason;
-    if (this.hooks.onSuspect) this.hooks.onSuspect(p, reason);
+    if (this.hooks.onSuspect) this.hooks.onSuspect(p, reason, this);
   }
 
   leave(slot) {
@@ -460,15 +465,37 @@ class Room {
     p.shots++;
     if (aimed && p.alignedFrame >= 0) {
       p.alignedShots++;
-      if (this.frame - Math.max(p.alignedFrame, p.readyFrame) <= BOT_INSTANT_FRAMES) p.instantShots++;
+      const rt = this.frame - Math.max(p.alignedFrame, p.readyFrame);
+      if (rt <= BOT_INSTANT_FRAMES) p.instantShots++;
+      if (p.readyFrame >= 0 && rt >= 0 && p.reacts.length < 400) p.reacts.push(rt);
     }
+    // 押し直した間隔（押しっぱなしの連射は、押した瞬間だけ数えるのでここには来ない）
+    if (p.lastPull >= 0) { const gap = this.frame - p.lastPull; if (gap <= RHYTHM_MAX_GAP && p.gaps.length < 400) p.gaps.push(gap); }
+    p.lastPull = this.frame;
     p.readyFrame = -1;
+    this.checkReact(p);
+    this.checkRhythm(p);
     if (p.shots >= BOT_MIN_SHOTS && p.alignedShots / p.shots >= BOT_ALIGNED_RATIO &&
         p.alignedShots > 0 && p.instantShots / p.alignedShots >= BOT_INSTANT_RATIO) {
       this.flag(p, '狙いが合った瞬間に撃ち続けている（自動射撃の疑い）');
     }
   }
   // 弾が出た瞬間に跳んで避けるのを、人間には無理な割合で続けていないか
+  // 反応の速さ：狙いが合って（撃てるようになって）から撃つまでの真ん中の値が、人間には続けて出せない速さ
+  checkReact(p) {
+    const r = p.reacts;
+    if (p.suspect || r.length < REACT_MIN_SAMPLES) return;
+    const m = r.slice().sort((a, b) => a - b)[r.length >> 1];
+    if (m <= REACT_MEDIAN_FRAMES) this.flag(p, `反応が人間離れして速い（自動射撃の疑い：${r.length}回の真ん中 ${Math.round(m * 1000 / 60)}ms）`);
+  }
+  // 撃つ間隔：人間は押す間隔が必ずばらつく。フレーム単位でそろい続けるのは自動化ツール
+  checkRhythm(p) {
+    const g = p.gaps;
+    if (p.suspect || g.length < RHYTHM_MIN_SAMPLES) return;
+    const n = g.length, mean = g.reduce((a, b) => a + b, 0) / n;
+    const sd = Math.sqrt(g.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n);
+    if (mean >= 3 && sd < RHYTHM_MAX_SD) this.flag(p, `撃つ間隔が機械的に一定（マクロの疑い：${n}回・平均${mean.toFixed(1)}フレーム・ばらつき${sd.toFixed(2)}）`);
+  }
   checkDodge(slot, groundSince) {
     const p = this.players[slot];
     const f = this.world.frame;   // 着地したフレームと弾が出たフレームは、どちらも sim のフレーム番号
