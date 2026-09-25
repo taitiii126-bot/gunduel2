@@ -238,8 +238,8 @@ class TeamRoom {
     });
     return Math.abs(avg[0] - avg[1]);
   }
-  // ランクマッチは、レートが離れたら再戦できない
-  canRematch() { return !this.ranked || this.rateGap() <= G.REMATCH_GAP; }
+  // ランクマッチは再戦できない
+  canRematch() { return !this.ranked; }
 
   // 全員（人だけ）が希望したら、同じ部屋のまま次の試合へ（BOT はいつでも賛成）
   rematch(slot) {
