@@ -56,7 +56,7 @@ class TeamRoom {
       name: G.cleanName(info && info.name), discord: acc ? G.cleanName(acc.name) : '',
       // 2v2 のティアとレートは、ログイン中ならサーバーが持っている本物（ゲストは未ランク）
       tier: acc && acc.tier2Key ? acc.tier2Key : '', rate: acc ? (acc.rate2 || SIM.RATE_START) : SIM.RATE_START,
-      loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look),
+      loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look, !!(acc && acc.dev)),
       title: G.cleanTitle(info && info.title, acc), bio: G.cleanBio(info && info.bio), bg: G.cleanBg(info && info.bg),
       rec: acc ? { w: G.cleanCount(acc.wins), l: G.cleanCount(acc.losses), kind: 'online' }
                : { w: G.cleanCount(info && info.cpu && info.cpu.w), l: G.cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },

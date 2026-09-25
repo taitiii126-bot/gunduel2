@@ -125,14 +125,16 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 5, outfit: 4, neck: 3, accent: 8 };
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 6, outfit: 5, neck: 4, accent: 8 };
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
-function cleanLook(v) {
+// 開発者だけの見た目（それぞれの最後の番号）。dev=サーバーが DEV_IDS で確かめた人。ほかの人が送ってきたら 0 に戻す
+var LOOK_DEV = { hat: 5, outfit: 4, neck: 3 };
+function cleanLook(v, dev) {
   var o = {};
   LOOK_KEYS.forEach(function (k) {
     var n = v && typeof v === 'object' ? Math.floor(+v[k]) : 0;
-    o[k] = n >= 0 && n < LOOK_SIZES[k] ? n : 0;
+    o[k] = n >= 0 && n < LOOK_SIZES[k] && (dev || LOOK_DEV[k] !== n) ? n : 0;
   });
   return o;
 }
@@ -141,9 +143,9 @@ function randomLook(rnd) {
   LOOK_KEYS.forEach(function (k) { if (LOOK_GEAR.indexOf(k) < 0) o[k] = Math.floor(r() * LOOK_SIZES[k]); });
   if (r() < 0.75) o.skin = Math.floor(r() * 6);   // 青や緑の肌はときどき
   // 身につける物（帽子と首もとは、なしを多めに）
-  o.hat = r() < 0.45 ? 0 : 1 + Math.floor(r() * (LOOK_SIZES.hat - 1));
-  o.outfit = Math.floor(r() * LOOK_SIZES.outfit);
-  o.neck = r() < 0.55 ? 0 : 1 + Math.floor(r() * (LOOK_SIZES.neck - 1));
+  o.hat = r() < 0.45 ? 0 : 1 + Math.floor(r() * (LOOK_DEV.hat - 1));   // 開発者だけの物は出さない
+  o.outfit = Math.floor(r() * LOOK_DEV.outfit);
+  o.neck = r() < 0.55 ? 0 : 1 + Math.floor(r() * (LOOK_DEV.neck - 1));
   o.accent = Math.floor(r() * LOOK_SIZES.accent);
   return o;
 }
@@ -1543,7 +1545,7 @@ var api = {
   GRAVITY: GRAVITY, JUMP_F: JUMP_F, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
-  LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), cleanLook: cleanLook, randomLook: randomLook,
+  LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook, randomLook: randomLook,
   cleanLoadout: cleanLoadout, newWorld: newWorld, newRangeWorld: newRangeWorld,
   TEAM_SLOTS: deepFreeze(TEAM_SLOTS.slice()), teamOf: teamOf, newTeamWorld: newTeamWorld, stepTeam: stepTeam, teamResult: teamResult, foes: foes, newTarget: newTarget, stepRange: stepRange, newChar: newChar, setInput: setInput, step: step,
   stepChar: stepChar, stepShots: stepShots, physics: physics, canFire: canFire, weaponOf: weaponOf, muzzleY: muzzleY,
