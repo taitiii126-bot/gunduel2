@@ -612,6 +612,13 @@ var ja = {
   'btn.duck': 'しゃがむ',
   'btn.reload': 'リロード',
   'btn.heal': '回復',
+  'game.rotate': 'スマホを横向きにすると、画面いっぱいで遊べます',
+  'set.pad': 'ゲームパッド',
+  'pad.move': '移動（下でしゃがむ）',
+  'pad.swap': '武器の切り替え',
+  'pad.start': '開始・再戦・演出をとばす',
+  'pad.note': 'つなぐだけで使えます（ボタンの変更はできません）。PlayStation のコントローラーは A=×、B=○、X=□、Y=△ です。',
+  'pad.connected': 'ゲームパッドをつなぎました',
   'game.aiLevel': 'AI強さ',
   'game.locked': '対戦中は変更不可',
   'game.hint': 'キー設定は「設定」から',
@@ -664,6 +671,7 @@ var ja = {
   'mp.decide': '決定（Enter）',
   'mp.waiting': '相手を待っています',
   'c.reloadHint': '{key} でリロード',
+  'c.reloadTap': 'リロードを押す',
   'c.rate': 'RATE',
   'c.discordReported': 'Discordに報告しました'
 };
@@ -1275,6 +1283,13 @@ var en = {
   'btn.duck': 'Duck',
   'btn.reload': 'Reload',
   'btn.heal': 'Heal',
+  'game.rotate': 'Turn your phone sideways to play full screen',
+  'set.pad': 'Gamepad',
+  'pad.move': 'Move (down to duck)',
+  'pad.swap': 'Switch weapon',
+  'pad.start': 'Start / rematch / skip',
+  'pad.note': 'Just connect it (buttons cannot be changed). On PlayStation controllers A=Cross, B=Circle, X=Square, Y=Triangle.',
+  'pad.connected': 'Gamepad connected',
   'game.aiLevel': 'CPU level',
   'game.locked': 'Locked during a match',
   'game.hint': 'Change keys in Settings',
@@ -1327,6 +1342,7 @@ var en = {
   'mp.decide': 'Confirm (Enter)',
   'mp.waiting': 'Waiting for opponent',
   'c.reloadHint': '{key} to reload',
+  'c.reloadTap': 'Tap Reload',
   'c.rate': 'RATE',
   'c.discordReported': 'Posted to Discord'
 };

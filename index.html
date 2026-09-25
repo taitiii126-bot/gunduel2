@@ -721,6 +721,47 @@ body.in-game #wrap{max-width:1340px;}
 body.touch #game-screen.playing #btns{display:grid;}
 body.touch #game-screen.playing #weapon-bar{display:grid;}
 body.touch #game-screen.playing #back-to-menu{display:flex;}
+/* ---------- スマホ横持ち（body.mland）：ゲームを画面いっぱいに出し、操作ボタンは画面の上に重ねる ---------- */
+#tpad{display:none;position:absolute;inset:0;z-index:3;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
+#rotate-hint{display:none;margin-top:10px;padding:8px 12px;border:1px dashed var(--line-2);border-radius:10px;font-size:12px;font-weight:700;color:var(--tx-2);text-align:center;}
+@media (orientation:portrait){body.touch.in-game #rotate-hint{display:block;}}
+body.mland.in-game{overflow:hidden;}
+body.mland.in-game #wrap{padding:0;max-width:none;}
+body.mland.in-game #corner{display:none;}
+body.mland #game-screen{max-width:none;}
+body.mland #game-screen.playing .canvas-frame{width:min(100vw,calc(100vh * 2));width:min(100vw,calc(100dvh * 2));padding:0;border-radius:0;background:none;box-shadow:none;}
+body.mland #game-screen.playing .canvas-frame::before,body.mland #game-screen.playing .canvas-frame::after{display:none;}
+body.mland #game-screen.playing #c{border-radius:0;}
+body.mland #game-screen.playing #btns,body.mland #game-screen.playing #weapon-bar,body.mland #game-screen.playing #back-to-menu,body.mland #game-screen.playing #online-hud{display:none;}
+body.mland #game-screen.playing #tpad{display:block;}
+body.mland.pad #game-screen.playing #tpad{display:none;}   /* ゲームパッドで遊んでいる間は隠す */
+body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
+#tp-stick{position:absolute;left:0;bottom:0;width:40%;height:78%;pointer-events:auto;touch-action:none;}
+#tp-stick i{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;}
+#tp-stick .tp-base{width:24vh;height:24vh;border:1.5px solid rgba(255,255,255,.22);background:rgba(10,12,20,.22);opacity:.55;transition:opacity .15s;}
+#tp-stick .tp-knob{width:10vh;height:10vh;background:rgba(255,255,255,.3);border:1.5px solid rgba(255,255,255,.55);opacity:.6;}
+#tp-stick.on .tp-base,#tp-stick.on .tp-knob{opacity:1;transition:none;}
+.tp-b{position:absolute;display:grid;place-items:center;align-content:center;gap:1px;padding:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);background:rgba(10,12,20,.3);color:rgba(255,255,255,.88);pointer-events:auto;touch-action:none;transition:transform .08s,background .08s;}
+.tp-b small{font-size:max(8px,2.4vh);font-weight:800;line-height:1;opacity:.8;}
+.tp-b svg.i{width:5.5vh;height:5.5vh;}
+.tp-b.on{background:rgba(255,255,255,.26);border-color:rgba(255,255,255,.7);transform:scale(.93);}
+.tp-b:disabled{opacity:.28;}
+.tp-l{width:25vh;height:25vh;right:4vh;bottom:6vh;border-color:rgba(255,77,94,.65);background:rgba(255,77,94,.2);color:#FFE3E6;}
+.tp-l svg.i{width:9vh;height:9vh;}
+.tp-l.on{background:rgba(255,77,94,.45);}
+.tp-m{width:17vh;height:17vh;right:31vh;bottom:3vh;}
+.tp-s{width:13vh;height:13vh;}
+#tp-reload{right:8vh;bottom:33vh;border-color:rgba(251,146,60,.6);}
+#tp-heal{right:27vh;bottom:23vh;border-color:rgba(52,211,153,.6);}
+#tp-weps{position:absolute;left:50%;bottom:2vh;transform:translateX(-50%);display:flex;gap:1.5vh;pointer-events:auto;}
+.tp-w{min-width:16vh;height:9vh;padding:0 2vh;border-radius:2.4vh;border:1.5px solid rgba(255,255,255,.22);background:rgba(10,12,20,.5);color:rgba(255,255,255,.72);font-size:max(10px,2.8vh);font-weight:900;letter-spacing:.04em;touch-action:none;}
+.tp-w small{display:block;margin-top:1px;font-family:var(--f-ui);font-size:max(8px,2.2vh);font-weight:700;opacity:.7;}
+.tp-w.active{border-color:var(--wc);color:#fff;background:rgba(10,12,20,.75);box-shadow:0 0 14px -4px var(--wc);}
+.tp-w.rl small{color:#FB923C;opacity:1;}
+#tp-reload.need{border-color:#FF4D5E;background:rgba(255,77,94,.4);animation:tp-need .5s ease-in-out infinite alternate;}
+@keyframes tp-need{to{background:rgba(255,77,94,.15);}}
+#tp-menu{position:absolute;top:48px;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);pointer-events:auto;}
+#tp-menu svg.i{width:16px;height:16px;}
 #fs-btn{position:absolute;top:10px;right:10px;z-index:5;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);opacity:.5;transition:.15s var(--ease);}
 #fs-btn:hover{opacity:1;color:var(--tx);}
 #fs-btn svg.i{width:16px;height:16px;}
@@ -1333,6 +1374,18 @@ body.demo #bg-shade{opacity:1;}
       <div class="kb-row"><span class="kb-label" data-i18n="kb.heal"></span><span class="kb-key" id="skb-heal" onclick="startListen('heal')"></span></div>
     </div>
     <button class="settings-reset" onclick="resetKeybinds()" data-i18n="common.reset"></button>
+    <div class="settings-section">
+      <h3><span data-i18n="set.pad"></span><span>GAMEPAD</span></h3>
+      <div class="kb-row"><span class="kb-label" data-i18n="pad.move"></span><span class="kb-key">L / ✚</span></div>
+      <div class="kb-row"><span class="kb-label" data-i18n="kb.jump"></span><span class="kb-key">A</span></div>
+      <div class="kb-row"><span class="kb-label" data-i18n="kb.duck"></span><span class="kb-key">B</span></div>
+      <div class="kb-row"><span class="kb-label" data-i18n="kb.attack"></span><span class="kb-key">RT</span></div>
+      <div class="kb-row"><span class="kb-label" data-i18n="kb.reload"></span><span class="kb-key">X</span></div>
+      <div class="kb-row"><span class="kb-label" data-i18n="kb.heal"></span><span class="kb-key">Y</span></div>
+      <div class="kb-row"><span class="kb-label" data-i18n="pad.swap"></span><span class="kb-key">LB / RB</span></div>
+      <div class="kb-row"><span class="kb-label" data-i18n="pad.start"></span><span class="kb-key">START</span></div>
+      <p class="pf-note" data-i18n="pad.note"></p>
+    </div>
     <div class="settings-section set-server">
       <h3><span data-i18n="set.server"></span><span>SERVER</span></h3>
       <div id="server-url-bar"><label for="server-url">URL</label><input id="server-url" value="wss://gunduel2-production.up.railway.app" spellcheck="false"></div>
@@ -1415,9 +1468,18 @@ body.demo #bg-shade{opacity:1;}
   </div>
 
   <div id="game-screen" class="screen" style="display:none;">
-    <div class="canvas-frame"><canvas id="c" width="720" height="360"></canvas><div id="match-panel"></div><button id="fs-btn" onclick="toggleFullscreen()" data-i18n-title="common.fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+    <div class="canvas-frame"><canvas id="c" width="720" height="360"></canvas><div id="match-panel"></div><div id="tpad">
+      <div id="tp-stick"><i class="tp-base"></i><i class="tp-knob"></i></div>
+      <div id="tp-weps"><button class="tp-w" data-w="1"></button><button class="tp-w" data-w="2"></button><button class="tp-w" data-w="3"></button></div>
+      <button id="tp-heal" class="tp-b tp-s"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><small data-i18n="btn.heal"></small></button>
+      <button id="tp-reload" class="tp-b tp-s"><svg class="i" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.3-5.7M20 4v5h-5"/></svg><small data-i18n="btn.reload"></small></button>
+      <button id="tp-jump" class="tp-b tp-m"><svg class="i" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg><small data-i18n="btn.jump"></small></button>
+      <button id="tp-atk" class="tp-b tp-l"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg><small data-i18n="btn.attack"></small></button>
+      <button id="tp-menu" onclick="leaveMatch()" data-i18n-title="common.backMenu"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+    </div><button id="fs-btn" onclick="toggleFullscreen()" data-i18n-title="common.fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
     <div id="online-hud"></div>
     <div id="range-panel"></div>
+    <div id="rotate-hint" data-i18n="game.rotate"></div>
     <div id="btns">
       <button ontouchstart="setKey('left',true)" ontouchend="setKey('left',false)" onmousedown="setKey('left',true)" onmouseup="setKey('left',false)"><svg class="i" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></svg><span data-i18n="btn.left"></span></button>
       <button ontouchstart="doJump()" onmousedown="doJump()"><svg class="i" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg><span data-i18n="btn.jump"></span></button>
@@ -1469,7 +1531,7 @@ body.demo #bg-shade{opacity:1;}
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
 <script src="sim.js?v=18"></script>
-<script src="lang.js?v=20"></script>
+<script src="lang.js?v=21"></script>
 <script>
 (function(){
 'use strict';
@@ -3416,7 +3478,13 @@ function showGameScreen(mode){
 function setInGameUI(playing){document.getElementById('game-screen').classList.toggle('playing',playing);fitCanvas();}
 function toggleFullscreen(){
   var el=document.querySelector('.canvas-frame');
-  if(!document.fullscreenElement){if(el&&el.requestFullscreen)el.requestFullscreen();}
+  if(!document.fullscreenElement){
+    if(el&&el.requestFullscreen){
+      var pr=el.requestFullscreen();
+      // スマホは横向きに固定（できる端末だけ）
+      if(isTouch&&pr&&pr.then)pr.then(function(){if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('landscape').catch(function(){});}).catch(function(){});
+    }
+  }
   else exitFullscreen();
 }
 function exitFullscreen(){if(document.fullscreenElement&&document.exitFullscreen)document.exitFullscreen();}
@@ -3677,12 +3745,14 @@ function updateWeaponBar(){
     b.style.setProperty('--wc',WEAPONS[id].color);
     var nm=b.querySelector('.wn');if(nm)nm.innerHTML=esc(wShort(id))+'<small>'+esc(enShort(id))+'</small>';
   }
+  tpLast='';   // スマホ横持ちの武器ボタンも描き直す
   updateHealBtn();
 }
 function updateHealBtn(){
   var btn=document.getElementById('w-heal');if(!btn)return;
   var c=myChar(),used=!!(c&&c.healUsed);
   btn.disabled=used;btn.style.opacity=used?'0.35':'1';
+  var th=document.getElementById('tp-heal');if(th)th.disabled=used;
 }
 var aiDiffLocked=false;
 function lockDifficulty(){aiDiffLocked=true;var bar=document.getElementById('difficulty-bar');if(bar)bar.classList.add('locked');}
@@ -3747,6 +3817,7 @@ function handleEvents(ev,me,styleOf){
       case'pull':if(mine)matchShots++;break;
       case'fire':
         sfxFire(e.wid);
+        if(mine&&GP.used&&AV_KICK[e.wid]&&AV_KICK[e.wid][1]>=.18)padRumble(.25,.5,70);   // 重い武器を撃ったら軽く揺らす
         FX.av[e.who]={t:performance.now(),wid:e.wid};
         FX.muzzle.push({x:e.x,y:e.y,dir:e.dir,life:5,col:WEAPONS[e.wid].color,big:e.wid===5||e.wid===11||e.wid===3});
         if(e.beam)FX.beam.push({x1:e.x,x2:e.x2,y:e.y,life:16,col:WEAPONS[e.wid].color});
@@ -3760,6 +3831,7 @@ function handleEvents(ev,me,styleOf){
       case'charge':SFX.charge();break;
       case'hit':
         SFX.hit();addSparks(e.x,e.y,e.who===me?'#FF8A96':'#FFD27A',7);
+        if(e.who===me)feelHit();
         if(e.by===me&&e.sid&&!hitSids[e.sid]){hitSids[e.sid]=1;matchHits++;}
         break;
       case'vhit':addSparks(e.x,e.y,'#FFD27A',4);break;
@@ -4068,6 +4140,7 @@ function handleServerFx(fx){
     if(e.t==='dead'){list.push(e);return;}                 // 倒れたかどうかはサーバーが決める
     if(e.t==='hit'){                                        // 火花だけ出す（音はHPの変化で鳴らしている）
       addSparks(e.x,e.y,e.who===mySlot?'#FF8A96':'#FFD27A',7);
+      if(e.who===mySlot)feelHit();
       if(e.by===mySlot){
         if(e.sid&&!hitSids[e.sid]){hitSids[e.sid]=1;matchHits++;}
         dropConfirmedShot(e);                               // 当たった弾を消す（先読みでは通り抜けさせている）
@@ -4394,6 +4467,141 @@ window.addEventListener('blur',function(){keys={};if(gameMode==='online')sendInp
   cv.addEventListener('contextmenu',function(e){e.preventDefault();});
   window.addEventListener('mouseup',function(e){if(listeningFor)return;handleBindUp('mouse'+e.button);});
 })();
+// 移動・しゃがみの押しっぱなし状態をまとめて変える（変わったときだけオンラインに送る）
+function setMoveKeys(l,r,dn){
+  var ch=false;
+  if(!!keys.left!==l){keys.left=l;ch=true;}
+  if(!!keys.right!==r){keys.right=r;ch=true;}
+  if(!!keys.duck!==dn){keys.duck=dn;ch=true;}
+  if(ch&&gameMode==='online')sendInput();
+}
+function overlayFxOn(){return bossIntro||unlockFx||slayFx;}
+// 撃たれたときの手ごたえ：スマホは振動、ゲームパッドは揺れ
+function feelHit(){
+  if(sfxMuted)return;
+  if(GP.used)padRumble(.7,.35,140);
+  else if(isTouch&&navigator.vibrate){try{navigator.vibrate(35);}catch(e){}}
+}
+
+// ============================================================
+// スマホ横持ち：画面いっぱいのゲームに、操作ボタンを重ねる
+//   左側のどこでも：指を置いたところにスティックが出る（左右で移動・下でしゃがむ・上へはじくとジャンプ）
+//   右側：攻撃（大）・ジャンプ・リロード・回復、下の真ん中：武器1〜3
+// ============================================================
+var MLAND=false,tpLast='';
+function updateMland(){
+  var on=isTouch&&innerWidth>innerHeight&&innerHeight<=600;
+  if(MLAND!==on){MLAND=on;document.body.classList.toggle('mland',on);tpLast='';}
+  scheduleFit();
+}
+// 武器ボタンに、武器の名前・弾数・リロード中を出す（変わったときだけ書きかえる）
+function tpadSync(c){
+  var empty=false,key='',i,W;
+  for(i=0;i<3;i++){W=WEAPONS[c.load[i]];key+=c.load[i]+':'+(c.slot===i)+':'+(W.mag===0?'':c.rl>0&&c.rlSlot===i?'r':c.ammo[i])+'|';}
+  W=WEAPONS[c.load[c.slot]];empty=W.mag>0&&c.ammo[c.slot]<=0&&!(c.rl>0&&c.rlSlot===c.slot)&&!c.dead;
+  key+=empty+':'+c.healUsed;
+  if(key===tpLast)return;tpLast=key;
+  document.querySelectorAll('#tp-weps .tp-w').forEach(function(b,j){
+    var id=c.load[j],Wj=WEAPONS[id],rl=c.rl>0&&c.rlSlot===j;
+    b.classList.toggle('active',c.slot===j);b.classList.toggle('rl',rl);b.style.setProperty('--wc',Wj.color);
+    b.innerHTML=esc(wShort(id))+'<small>'+(Wj.mag===0?'∞':rl?'…':c.ammo[j]+'/'+Wj.mag)+'</small>';
+  });
+  var rb=document.getElementById('tp-reload');if(rb)rb.classList.toggle('need',empty);
+  var hb=document.getElementById('tp-heal');if(hb)hb.disabled=!!c.healUsed;
+}
+window.addEventListener('resize',updateMland);
+window.addEventListener('orientationchange',updateMland);
+(function(){
+  var zone=document.getElementById('tp-stick');if(!zone)return;
+  var base=zone.querySelector('.tp-base'),knob=zone.querySelector('.tp-knob'),sid=null,ox=0,oy=0,flick=false;
+  function place(el,x,y){el.style.left=x+'px';el.style.top=y+'px';}
+  function rest(){var r=zone.getBoundingClientRect();place(base,r.width*.34,r.height*.66);place(knob,r.width*.34,r.height*.66);zone.classList.remove('on');}
+  zone.addEventListener('pointerdown',function(e){
+    e.preventDefault();if(sid!==null)return;
+    if(overlayFxOn()){skipOverlayFx();return;}
+    sid=e.pointerId;try{zone.setPointerCapture(sid);}catch(er){}
+    var r=zone.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;place(base,ox,oy);place(knob,ox,oy);zone.classList.add('on');flick=false;
+  });
+  zone.addEventListener('pointermove',function(e){
+    if(e.pointerId!==sid)return;
+    var r=zone.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,dx=x-ox,dy=y-oy,R=(base.offsetWidth/2)||40,len=Math.sqrt(dx*dx+dy*dy)||1;
+    if(len>R*1.5){ox=x-dx/len*R*1.5;oy=y-dy/len*R*1.5;dx=x-ox;dy=y-oy;len=R*1.5;place(base,ox,oy);}   // 指が離れすぎたら、台がついてくる
+    var k=len>R?R/len:1;place(knob,ox+dx*k,oy+dy*k);
+    setMoveKeys(dx<-R*.25,dx>R*.25,dy>R*.5);
+    if(dy<-R*.75&&-dy>Math.abs(dx)){if(!flick){flick=true;doJump();}}else if(dy>-R*.35)flick=false;
+  });
+  function end(e){if(e.pointerId!==sid)return;sid=null;setMoveKeys(false,false,false);rest();}
+  zone.addEventListener('pointerup',end);zone.addEventListener('pointercancel',end);
+  // ボタン：押した瞬間に反応（指を離すまで押しっぱなし）
+  function btn(id,down,up){
+    var el=document.getElementById(id);if(!el)return;
+    el.addEventListener('pointerdown',function(e){
+      e.preventDefault();
+      if(matchOver&&(id==='tp-atk'||id==='tp-jump')){doRematch();return;}
+      if(overlayFxOn()){skipOverlayFx();return;}
+      try{el.setPointerCapture(e.pointerId);}catch(er){}
+      el.classList.add('on');down();
+    });
+    function rel(){if(!el.classList.contains('on'))return;el.classList.remove('on');if(up)up();}
+    el.addEventListener('pointerup',rel);el.addEventListener('pointercancel',rel);el.addEventListener('lostpointercapture',rel);
+  }
+  btn('tp-atk',doAttack,attackUp);btn('tp-jump',doJump);btn('tp-reload',doReload);btn('tp-heal',doHeal);
+  document.querySelectorAll('#tp-weps .tp-w').forEach(function(b){
+    b.addEventListener('pointerdown',function(e){e.preventDefault();setWeapon(+b.getAttribute('data-w'));});
+  });
+  // 画面をさわったら、ゲームパッドの表示からタッチの表示へ戻す
+  document.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'&&GP.used)setPadMode(false);},{passive:true});
+  window.addEventListener('resize',rest);
+  updateMland();rest();
+})();
+
+// ============================================================
+// ゲームパッド（ブラウザの標準の配置。PlayStation は A=×・B=○・X=□・Y=△）
+//   左スティック・十字キー：移動（下でしゃがむ・十字キー上でジャンプ）  A：ジャンプ  B：しゃがむ
+//   RT：攻撃（押しっぱなしで撃ち続ける）  X：リロード  Y：回復  LB/RB：武器の切り替え  START：開始・再戦・演出をとばす
+// ============================================================
+var GP={idx:-1,prev:[],mv:{l:false,r:false,d:false},used:false};
+window.addEventListener('gamepadconnected',function(e){GP.idx=e.gamepad.index;toast(t('pad.connected'));});
+window.addEventListener('gamepaddisconnected',function(e){
+  if(GP.idx!==e.gamepad.index)return;
+  GP.idx=-1;GP.prev=[];GP.mv={l:false,r:false,d:false};setMoveKeys(false,false,false);if(keys.attack)attackUp();setPadMode(false);
+});
+function setPadMode(on){GP.used=!!on;document.body.classList.toggle('pad',!!on);}
+function readPad(){
+  if(!navigator.getGamepads)return null;
+  var list=navigator.getGamepads()||[],p=GP.idx>=0?list[GP.idx]:null;
+  if(!p)for(var i=0;i<list.length;i++)if(list[i]&&list[i].connected){p=list[i];GP.idx=i;break;}
+  return p&&p.connected?p:null;
+}
+function padRumble(strong,weak,ms){
+  var p=readPad(),a=p&&p.vibrationActuator;
+  if(a&&a.playEffect){try{a.playEffect('dual-rumble',{duration:ms,strongMagnitude:strong,weakMagnitude:weak});}catch(e){}}
+}
+// 毎フレーム読む（ゲーム画面のループから呼ぶ）
+function pollPad(){
+  var p=readPad();if(!p)return;
+  var now=[],i;
+  for(i=0;i<17;i++){var b=p.buttons[i];now[i]=!!b&&(b.pressed||b.value>.5);}
+  function hit(j){return now[j]&&!GP.prev[j];}
+  var ax=p.axes[0]||0,ay=p.axes[1]||0;
+  var L=ax<-.35||now[14],R=ax>.35||now[15],D=ay>.6||now[13]||now[1];
+  if(!GP.used&&(L||R||D||now.indexOf(true)>=0))setPadMode(true);
+  if(L!==GP.mv.l||R!==GP.mv.r||D!==GP.mv.d){GP.mv={l:L,r:R,d:D};setMoveKeys(L,R,D);}
+  if(hit(9)){
+    if(matchOver)doRematch();
+    else if(overlayFxOn())skipOverlayFx();
+    else if(lobbyPhase&&gameMode==='ai')endLobby();
+    else if(WAIT&&gameMode==='online')matchReady();
+  }
+  if(hit(0)||hit(12))doJump();
+  if(hit(7))doAttack();
+  if(!now[7]&&GP.prev[7])attackUp();
+  if(hit(2))doReload();
+  if(hit(3))doHeal();
+  if(hit(4))setWeapon((playerSlot+2)%3+1);
+  if(hit(5))setWeapon((playerSlot+1)%3+1);
+  GP.prev=now;
+}
 
 // ============================================================
 // カメラ
@@ -6573,6 +6781,7 @@ function drawPing(){
 // 対戦中の武器表示（画面下の武器バーを隠すかわり）：3つの武器・弾数・リロード・回復
 function drawWeaponStrip(c){
   if(!c)return;
+  if(MLAND&&!GP.used){tpadSync(c);return;}   // スマホ横持ち：同じ内容を、押せる武器ボタンに出す
   var bw=78,bh=24,gap=5,x0=12,y0=VH-32;
   for(var i=0;i<3;i++){
     var id=c.load[i],W=WEAPONS[id],on=c.slot===i,x=x0+i*(bw+gap);
@@ -6591,7 +6800,7 @@ function drawWeaponStrip(c){
   var AW=WEAPONS[c.load[c.slot]];
   if(AW.mag>0&&c.ammo[c.slot]<=0&&!(c.rl>0&&c.rlSlot===c.slot)&&!c.dead){
     var ax=x0+c.slot*(bw+gap),pulse=.55+.45*Math.sin(frame*.25),hot=dryFlash>0;
-    var label=t('c.reloadHint',{key:(kdn(keybinds.reload)||'R').toUpperCase()});
+    var label=GP.used?t('c.reloadHint',{key:'X'}):isTouch?t('c.reloadTap'):t('c.reloadHint',{key:(kdn(keybinds.reload)||'R').toUpperCase()});
     ctx.font='800 10px '+FONT_UI;var lw=ctx.measureText(label).width+14;
     ctx.fillStyle=hot?'rgba(255,77,94,.95)':'rgba(255,77,94,'+(.35+.4*pulse).toFixed(3)+')';rrect(ax+bw/2-lw/2,y0-20,lw,16,5);ctx.fill();
     ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#fff';ctx.fillText(label,ax+bw/2,y0-12);
@@ -7486,6 +7695,7 @@ function drawScene(){
 var FRAME_MS=1000/60,lastTime=0,accumulator=0;
 function loop(ts){
   if(!loopRunning)return;
+  pollPad();
   if(lastTime===0)lastTime=ts;var delta=ts-lastTime;lastTime=ts;if(delta>200)delta=200;
   accumulator+=delta;
   while(accumulator>=FRAME_MS){
