@@ -40,6 +40,13 @@ const CLIENT_ID = process.env.DISCORD_CLIENT_ID || '';
 const CLIENT_SECRET = process.env.DISCORD_CLIENT_SECRET || '';
 // 利用停止するDiscordのユーザーID（カンマ区切り）。ログインもトークンも使えなくなる
 const BANNED_IDS = new Set((process.env.BANNED_DISCORD_IDS || '').split(',').map(s => s.trim()).filter(Boolean));
+// 怪しいプレイの自動対応：最近（FLAG_DAYS日以内）に検知された試合の数で段階を上げる
+const FLAG_DAYS = +process.env.FLAG_DAYS || 30;
+const SUSPECT_POOL_FLAGS = +process.env.SUSPECT_POOL_FLAGS || 2;   // これ以上：ランクマッチは怪しい人どうしでしか組まない（本人には知らせない）
+const AUTO_BAN_FLAGS = +process.env.AUTO_BAN_FLAGS || 4;           // これ以上：自動で一時BAN
+const AUTO_BAN_DAYS = +process.env.AUTO_BAN_DAYS || 7;
+const recentFlags = u => (Array.isArray(u.flagLog) ? u.flagLog : []).filter(f => Date.now() - f.at < FLAG_DAYS * 86400000).length;
+const tempBanned = u => !!u.banUntil && u.banUntil > Date.now();
 // 称号「信頼のハッカー」を贈る人。フレンドコード（8文字）か Discord の ID をカンマ区切りで環境変数に書く。
 // 例: GIFT_HACKER_IDS=ABCD2345 　書けば付き、消せば外れる（コードには誰も書かない）
 const GIFT_HACKER = new Set((process.env.GIFT_HACKER_IDS || '').split(',').map(s => s.trim().toUpperCase().replace(/[^A-Z0-9]/g, '')).filter(Boolean));
@@ -253,7 +260,7 @@ const auth = {
     const info = await (exchange || exchangeWithDiscord)(code, redirectUri);
     if (!info || !info.id) throw new Error('ユーザー情報を取得できませんでした');
     const uid = String(info.id);
-    if (BANNED_IDS.has(uid)) { const e = new Error('banned'); e.code = 'BANNED'; throw e; }
+    if (BANNED_IDS.has(uid) || (db.users[uid] && tempBanned(db.users[uid]))) { const e = new Error('banned'); e.code = 'BANNED'; throw e; }
     let u = db.users[uid];
     if (!u) {
       u = db.users[uid] = { id: uid, name: '', created: Date.now(), online: { w: 0, l: 0 } };
@@ -278,7 +285,7 @@ const auth = {
     if (!t) return null;
     if (t.exp < Date.now()) { delete db.tokens[token]; touch(); return null; }
     const u = db.users[t.uid];
-    if (!u || BANNED_IDS.has(u.id)) return null;
+    if (!u || BANNED_IDS.has(u.id) || tempBanned(u)) return null;
     u.lastSeen = Date.now();
     giveBadge(u);
     return u;
@@ -347,13 +354,24 @@ const auth = {
   },
 
   // 怪しいプレイを検知した回数をアカウントに残す（BANするかの判断材料）
+  // 返り値：{ recent: 最近の検知数, action: 'none'|'pool'|'ban', until: BANが解ける時刻 }
   flag(uid, reason) {
     const u = db.users[uid];
-    if (!u) return;
-    u.flags = (u.flags || 0) + 1; u.lastFlag = String(reason).slice(0, 80); u.lastFlagAt = Date.now();
+    if (!u) return null;
+    u.flags = (u.flags || 0) + 1; u.lastFlag = String(reason).slice(0, 120); u.lastFlagAt = Date.now();
+    u.flagLog = (Array.isArray(u.flagLog) ? u.flagLog : []).concat([{ at: Date.now(), r: String(reason).slice(0, 120) }]).slice(-30);
+    const recent = recentFlags(u);
+    let action = recent >= SUSPECT_POOL_FLAGS ? 'pool' : 'none';
+    if (recent >= AUTO_BAN_FLAGS && !tempBanned(u)) {
+      u.banUntil = Date.now() + AUTO_BAN_DAYS * 86400000; action = 'ban';
+      for (const [k, t] of Object.entries(db.tokens)) if (t.uid === uid) delete db.tokens[k];   // ログイン状態も消す
+    }
     touch();
+    return { recent, action, until: u.banUntil || 0, total: u.flags };
   },
-  isBanned(uid) { return BANNED_IDS.has(String(uid)); },
+  // ランクマッチで、怪しい人どうしでしか組ませないか
+  inSuspectPool(uid) { const u = db.users[uid]; return !!u && recentFlags(u) >= SUSPECT_POOL_FLAGS; },
+  isBanned(uid) { const u = db.users[uid]; return BANNED_IDS.has(String(uid)) || (!!u && tempBanned(u)); },
   // Discordに報告済みの最高ティア（0=未ランク、1=LT5 … 10=HT1）
   bestTier(uid) { const u = db.users[uid]; return u ? (u.tierBest || 0) : 0; },
   setBestTier(uid, idx) {

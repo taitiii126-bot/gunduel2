@@ -52,6 +52,7 @@ const REQUIRE_LOGIN = process.env.REQUIRE_LOGIN === '1';          // オンラ�
 const ALLOW_SAME_IP_RECORDS = process.env.ALLOW_SAME_IP_RECORDS === '1';
 const BANNED_IPS = new Set(list(process.env.BANNED_IPS));
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';          // 昇格を投稿するDiscordのWebhook
+const ADMIN_WEBHOOK_URL = process.env.ADMIN_WEBHOOK_URL || '';      // 怪しいプレイを知らせる、管理者だけのチャンネルのWebhook
 const GAME_URL = process.env.GAME_URL || '';                        // 投稿にゲームへのリンクを付ける（任意）
 const MSG_PER_SEC = 120;        // 1接続あたりの受信上限（超えた分は捨てる）
 const MSG_KICK_PER_SEC = 600;   // 明らかな連打・攻撃は切断
@@ -196,10 +197,35 @@ function recordBotResult(room, winner, loser, reason) {
   log(tag, 'recorded:', p.discord || p.name, win ? 'beat' : 'lost to', bot.name, reason === 'forfeit' ? '(left)' : '');
 }
 
-// 怪しい操作は本人には知らせず、ログとアカウントに残す（BANの判断材料）
-function onSuspect(p, reason) {
-  log('SUSPECT', 'discord=' + (p.uid || '-'), 'name=' + p.name + (p.discord ? ' (' + p.discord + ')' : ''), 'ip=' + p.ip, reason);
-  if (p.uid) auth.flag(p.uid, reason);
+// 怪しい操作は本人には知らせず、ログとアカウントに残す。回数が増えたら自動で対応し、管理者のDiscordに知らせる
+const adminPosts = limiter(20, 60 * 1000);
+function postAdmin(embed) {
+  if (!ADMIN_WEBHOOK_URL || !adminPosts.hit('all')) return;
+  fetch(ADMIN_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }) })
+    .then(r => { if (!r.ok) log('admin webhook failed', r.status); }).catch(e => log('admin webhook error', e.message));
+}
+function onSuspect(p, reason, room) {
+  const r = p.uid ? auth.flag(p.uid, reason) : null;
+  const act = !r ? 'ゲストのため記録のみ（IPで止めるなら BANNED_IPS）'
+    : r.action === 'ban' ? `自動で一時BAN（${new Date(r.until).toISOString().slice(0, 10)} まで）`
+    : r.action === 'pool' ? 'ランクマッチは怪しい人どうしでしか組まない' : '記録のみ';
+  log('SUSPECT', 'discord=' + (p.uid || '-'), 'name=' + p.name + (p.discord ? ' (' + p.discord + ')' : ''), 'ip=' + p.ip, reason, '→', act);
+  postAdmin({
+    title: r && r.action === 'ban' ? '自動で一時BANしました' : '怪しいプレイを検知しました',
+    color: r && r.action === 'ban' ? 0xFF4D5E : 0xFBBF24,
+    description: mdEscape(reason),
+    fields: [
+      { name: 'プレイヤー', value: mdEscape(p.name) + (p.uid ? `\n<@${p.uid}>（${mdEscape(p.discord || '')}）\nID: ${p.uid}` : '\nゲスト'), inline: true },
+      { name: '最近30日の検知', value: r ? `${r.recent}回（通算${r.total}回）` : '-', inline: true },
+      { name: '対応', value: act, inline: false },
+      { name: '部屋', value: (room && room.id ? room.id : '-') + (room && room.ranked ? '（ランク）' : ''), inline: true },
+      { name: 'IP', value: '||' + (p.ip || '-') + '||', inline: true },
+    ],
+    footer: { text: '永久BANは BANNED_DISCORD_IDS に ID を追加' },
+    timestamp: new Date().toISOString(),
+  });
+  if (r && r.action === 'ban' && p.ws) { try { p.ws.close(); } catch (e) {} }
 }
 
 function openRoom() {
@@ -326,6 +352,7 @@ function searchRange(sec) { let r = QUEUE_STEPS[0][1]; for (const [t, v] of QUEU
 function queueLeave(ws, why) { if (queue.delete(ws) && why) send(ws, { type: 'queue_left', why }); }
 function queueSec(q) { return Math.floor((Date.now() - q.at) / 1000); }
 // 組み合わせ：レート順に並べて、となり同士が許せる差なら組ませる
+const suspectOf = ws => !!(ws.account && auth.inSuspectPool(ws.account.uid));
 function queueTick() {
   for (const mode of ['ranked', 'casual']) {
     const list = [];
@@ -336,11 +363,12 @@ function queueTick() {
       if (!queue.has(A.ws) || !queue.has(B.ws)) continue;
       if (A.ws.account && B.ws.account && A.ws.account.uid === B.ws.account.uid) continue;   // 同じアカウント同士は組ませない
       if (!ALLOW_SAME_IP_RECORDS && mode === 'ranked' && A.ws.ip && A.ws.ip === B.ws.ip) continue;
+      if (mode === 'ranked' && suspectOf(A.ws) !== suspectOf(B.ws)) continue;   // 怪しい人は、怪しい人どうし（かBOT）でしか組まない
       if (mode === 'ranked' && Math.abs(A.q.rate - B.q.rate) > Math.max(searchRange(A.sec), searchRange(B.sec))) continue;
       if (pairUp(A, B, mode)) i++;   // 組んだ2人は飛ばす
     }
   }
-  if (bots && !BOT_OFF) for (const [ws, q] of queue) if (botAllowed(q) && queueSec(q) >= botWaitFor(q)) startBotMatch(ws, q);
+  if (bots && !BOT_OFF) for (const [ws, q] of queue) if ((botAllowed(q) || suspectOf(ws)) && queueSec(q) >= botWaitFor(q)) startBotMatch(ws, q);   // 怪しい人は、相手がいなければBOTと
   for (const [ws, q] of queue) {
     const sec = queueSec(q);
     send(ws, { type: 'queue_status', waited: sec, range: q.mode === 'ranked' ? searchRange(sec) : 0, n: queue.size, rate: q.rate });
