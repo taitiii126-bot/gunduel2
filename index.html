@@ -1468,8 +1468,8 @@ body.demo #bg-shade{opacity:1;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=17"></script>
-<script src="lang.js?v=19"></script>
+<script src="sim.js?v=18"></script>
+<script src="lang.js?v=20"></script>
 <script>
 (function(){
 'use strict';
@@ -1982,9 +1982,10 @@ function renderLoadoutUI(){
 var LOOK_OPTS={
   skin:['#FFE3CC','#F5C9A1','#E0A57A','#C58456','#8D5A3B','#5C3A26','#9BD3F0','#A7E3A1'],
   eyeColor:['#2B1B14','#3B82F6','#16A34A','#D97706','#DC2626','#9333EA','#0891B2','#6B7280'],
-  hairColor:['#1F1B24','#5B3A1E','#E8C15A','#B83A1B','#E5E7EB','#3B82F6','#EC4899','#22C55E']
+  hairColor:['#1F1B24','#5B3A1E','#E8C15A','#B83A1B','#E5E7EB','#3B82F6','#EC4899','#22C55E'],
+  accent:['#E8B730','#E23D3D','#2F6FE0','#1F9D55','#F4F1EA','#2A2530','#EC5CA8','#F08A24']   // 自分の色（帽子のリボン・首もと）
 };
-var LOOK_DEFAULT={skin:1,eyes:0,eyeColor:0,brows:0,hair:0,hairColor:1,nose:0,mouth:1};
+var LOOK_DEFAULT={skin:1,eyes:0,eyeColor:0,brows:0,hair:0,hairColor:1,nose:0,mouth:1,hat:0,outfit:0,neck:0,accent:0};
 // 服の色はチームで決まる（自分=紫、相手=赤）。見分けやすさを優先
 var TEAM={
   me:{jacket:'#7C3AED',shade:'#5B21B6',light:'#A78BFA',pants:'#2E1065',boots:'#1C1917',trim:'#DDD6FE'},
@@ -2317,16 +2318,19 @@ function pickBg(i){
   if(i===CHAMP_BG){if(!isChampion())return;profile.bg=CHAMP_BG;saveProfile();renderBgOptions();return;}
   i=+i;if(!(i>=0&&i<=profile.bestTier))return;profile.bg=i;saveProfile();renderBgOptions();
 }
-// 見た目のエディター：タブは 肌・目（形と色）・まゆげ・髪（形と色）・鼻・口
+// 見た目のエディター：タブは 肌・目（形と色）・まゆげ・髪（形と色）・鼻・口・帽子（形と自分の色）・服・首もと（形と自分の色）
 var LOOK_TABS=[
   {key:'skin',color:'skin'},
   {key:'eyes',shape:'eyes',color:'eyeColor'},
   {key:'brows',shape:'brows'},
   {key:'hair',shape:'hair',color:'hairColor'},
   {key:'nose',shape:'nose'},
-  {key:'mouth',shape:'mouth'}
+  {key:'mouth',shape:'mouth'},
+  {key:'hat',shape:'hat',color:'accent'},
+  {key:'outfit',shape:'outfit'},
+  {key:'neck',shape:'neck',color:'accent'}
 ];
-var LOOK_FOCUS={eyes:[.24,-.02,6.2],brows:[.24,-.1,6.2],nose:[.36,.32,8.6],mouth:[.3,.56,8.6]};
+var LOOK_FOCUS={eyes:[.24,-.02,6.2],brows:[.24,-.1,6.2],nose:[.36,.32,8.6],mouth:[.3,.56,8.6],hat:[0,-.5,3],neck:[-.1,1.35,3.4]};
 var lookTab='skin',lookHover=null;   // lookHover：マウスをのせている選択肢（プレビューで試着）
 function pickLookTab(k){lookTab=k;lookHover=null;renderLookEditor();}
 function pickLook(k,i){
@@ -2376,18 +2380,19 @@ function renderLookEditor(){
     html+='</div>';
   }
   if(tab.color){
-    if(tab.shape)html+='<p class="look-sub">'+esc(t('look.color'))+'</p>';
+    if(tab.shape)html+='<p class="look-sub">'+esc(t(tab.color==='accent'?'look.accent':'look.color'))+'</p>';
     html+='<div class="opt-grid">';
     LOOK_OPTS[tab.color].forEach(function(c,j){html+=opt(tab.color,j,'<i style="background:'+c+'"></i>',' swatch');});
     html+='</div>';
   }
   opts.innerHTML=html;
-  // 形の選択肢：顔のパーツはその部分を大きく（[頭の中心からの位置x,y（半径=1）, 倍率]）、髪型は頭全体を写す
+  // 形の選択肢：顔のパーツはその部分を大きく（[頭の中心からの位置x,y（半径=1）, 倍率]）、髪型は頭全体、服は全身を写す
   var k=tab.shape,F=LOOK_FOCUS[k];
   opts.querySelectorAll('canvas[data-look]').forEach(function(cv){
     var look=Object.assign({},profile.look);look[k]=+cv.getAttribute('data-look');
     var g=cv.getContext('2d');g.clearRect(0,0,132,132);
-    if(F)drawLookHead(g,look,66-F[0]*13*F[2],66-F[1]*13*F[2],F[2]);
+    if(k==='outfit')drawAvatar(g,{x:62,y:140,s:1.62,dir:1,look:Object.assign(look,{hat:0,neck:0}),team:TEAM.me});   // 服だけを比べられるよう、帽子と首もとは外す
+    else if(F)drawLookHead(g,look,66-F[0]*13*F[2],66-F[1]*13*F[2],F[2]);
     else drawLookHead(g,look,66,82,3.4);
   });
   renderLookPreview();
@@ -2838,8 +2843,8 @@ function drawMiniAvatar(cv,p){
   g.save();g.beginPath();g.arc(W/2,H/2,r,0,Math.PI*2);g.clip();
   var bg=g.createLinearGradient(0,0,0,H);bg.addColorStop(0,hexA(col,.55));bg.addColorStop(1,'#0B0E1A');
   g.fillStyle=bg;g.fillRect(0,0,W,H);
-  var sc=W/40;
-  drawAvatar(g,{x:W/2-sc,y:H*.46+74*sc,s:sc,dir:1,look:SIM.cleanLook(p.look||LOOK_DEFAULT),team:TEAM.me});
+  var L=SIM.cleanLook(p.look||LOOK_DEFAULT),tall=L.hat===1||L.hat===2,sc=W/40*(tall?.86:1);   // 背の高い帽子は、少し小さく下げて丸に収める
+  drawAvatar(g,{x:W/2-sc,y:H*(tall?.56:.46)+74*sc,s:sc,dir:1,look:L,team:TEAM.me});
   g.restore();
   var TM=METAL[tierStyle(tier).trim],rg=g.createLinearGradient(0,0,W,H);
   rg.addColorStop(0,TM[0]);rg.addColorStop(.5,TM[2]);rg.addColorStop(1,TM[1]);
@@ -3695,7 +3700,7 @@ function setDiff(d){
 // 演出（弾の光・爆発・破片など。対戦の結果には関係しない）
 // ホームの背景デモも同じ描画を使うので、演出の入れ物をまとめて差し替えられるようにしておく
 // ============================================================
-function newFx(){return{melee:[],heal:[],boom:[],beam:[],muzzle:[],spark:[],shards:[]};}
+function newFx(){return{melee:[],heal:[],boom:[],beam:[],muzzle:[],spark:[],shards:[],av:{}};}   // av：キャラごとの最後に撃った時刻（反動の動き）
 var FX=newFx(),GRADS={};
 function clearFx(){FX=newFx();}
 function addSparks(x,y,col,n){
@@ -3742,6 +3747,7 @@ function handleEvents(ev,me,styleOf){
       case'pull':if(mine)matchShots++;break;
       case'fire':
         sfxFire(e.wid);
+        FX.av[e.who]={t:performance.now(),wid:e.wid};
         FX.muzzle.push({x:e.x,y:e.y,dir:e.dir,life:5,col:WEAPONS[e.wid].color,big:e.wid===5||e.wid===11||e.wid===3});
         if(e.beam)FX.beam.push({x1:e.x,x2:e.x2,y:e.y,life:16,col:WEAPONS[e.wid].color});
         break;
@@ -4540,21 +4546,261 @@ function avBoot(g,x,y,d,col){
   rrPath(g,x0,y-7,12,7,2.5);g.fillStyle=col;g.fill();g.lineWidth=1.5;g.strokeStyle=OUTLINE;g.stroke();
   g.fillStyle='rgba(255,255,255,.18)';g.fillRect(x0+2,y-6,8,1.4);
 }
-// o: {x,y=足元, s=倍率, dir, look, team, wid=持っている武器, crouch, walk=歩きの位相, air, bob, glow=レールガンの溜め, blink=まばたき}
-// 描く順番は固定：奥の腕・脚・胴 → 頭（肌）→ 顔のパーツ（まゆげ・目・鼻・口）→ 髪 → 武器と手前の腕
+// ---- 試合中の細かい動き（反動・リロード）----
+// 撃った反動：[後ろへ下がる量, 銃口がはね上がる角度（ラジアン）]
+var AV_KICK={2:[2.2,.2],3:[3.5,.28],4:[1.1,.06],5:[3.5,.26],6:[1.5,.08],7:[1.6,.09],8:[2.6,.3],9:[1.3,.06],10:[2.4,.18],11:[4,.16]};
+// リロードの動き。k：swap=弾倉を替える pistol=弾倉を替えてスライドを引く bolt=ボルトを引く shell=1発ずつ込める cyl=シリンダーに込める
+//   tilt=銃口を上げる角度、at=手を持っていく場所（銃の絵の座標：持ち手が原点・前が+x・下が+y）、item=[幅,高さ,色,丸い]（手に持つ物・落ちる物）
+var AV_RELOAD={
+  2:{k:'pistol',tilt:.16,at:[3,7],item:[2.2,5,'#1F2937']},
+  3:{k:'bolt',tilt:.08,at:[-2,-3.4],item:[1,2.2,'#E0B84A']},
+  4:{k:'swap',tilt:.36,at:[6.5,4],item:[3,7.5,'#18181B']},
+  5:{k:'shell',tilt:.16,at:[4,4.5],item:[1.8,3.8,'#B91C1C']},
+  6:{k:'swap',tilt:.36,at:[7,4],item:[4,6,'#18181B']},
+  7:{k:'swap',tilt:.36,at:[9.7,4],item:[3.5,6.5,'#0F172A']},
+  8:{k:'cyl',tilt:.5,at:[3.2,-1.2],item:[1,2.4,'#E0B84A']},
+  9:{k:'swap',tilt:.22,at:[6.5,5],item:[11,8,'#27272A']},
+  10:{k:'shell',tilt:.16,at:[3,6],item:[3.4,3.4,'#FB7185',1]},
+  11:{k:'swap',tilt:.3,at:[8,4],item:[4,4.5,'#4338CA']}
+};
+function avEase(t){t=t<0?0:t>1?1:t;return t*t*(3-2*t);}
+// キーフレーム [[進み,x,y],...] の間をなめらかにつなぐ
+function avKeys(K,p){
+  if(p<=K[0][0])return[K[0][1],K[0][2]];
+  for(var i=1;i<K.length;i++){var a=K[i-1],b=K[i];if(p<=b[0]){var u=avEase((p-a[0])/Math.max(1e-6,b[0]-a[0]));return[a[1]+(b[1]-a[1])*u,a[2]+(b[2]-a[2])*u];}}
+  var z=K[K.length-1];return[z[1],z[2]];
+}
+// 銃の構え：反動とリロードで、持ち手を中心に銃を傾け、支える手を動かす
+// 返り値：gx,gy=持ち手 rot=銃の回転 sx,sy=支える手 hand=支える手を描くか front=銃より手前に描くか held=手に持つ物 drops=落ちていく物
+function avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air){
+  var P={gx:handX,gy:handY,rot:0,sx:supX-d*3,sy:handY+2,hand:false,front:false,held:null,drops:[]};
+  if(!W||W.kind==='melee')return P;
+  var ang=0,kk=AV_KICK[o.wid],R=AV_RELOAD[o.wid],p=o.reload,rl=R&&p!=null&&p>=0&&p<=1;
+  if(kk&&o.kick>0){P.gx-=d*kk[0]*o.kick;ang+=kk[1]*o.kick;}
+  if(rl)ang+=R.tilt*avEase(p/.1)*(1-avEase((p-.86)/.14));
+  P.rot=-d*ang;
+  var c=Math.cos(P.rot),s=Math.sin(P.rot);
+  function at(x,y){x*=1.45*d;y*=1.45;return[P.gx+x*c-y*s,P.gy+x*s+y*c];}   // 銃の絵の座標 → 体の座標
+  // ふだんの支える手：両手持ちは銃の下（銃といっしょに動く）、片手持ちは胸の前
+  var N=oneHand?[d*8,handY+2]:at((supX-d*3-handX)*d/1.45,2/1.45);
+  P.sx=N[0];P.sy=N[1];
+  if(!rl)return P;
+  var A=at(R.at[0],R.at[1]),B=[d*12.5,hipY+1],K,hold=null,front=null,drop=null;   // B：腰の前のポーチ
+  switch(R.k){
+    case'swap':K=[[0,N[0],N[1]],[.12,A[0],A[1]],[.32,B[0],B[1]],[.5,B[0],B[1]],[.72,A[0],A[1]],[.86,N[0],N[1]]];hold=[.46,.72];drop=.12;break;
+    case'pistol':
+      var S=at(1.5,-4.6),S2=at(-1.5,-4.6);
+      K=[[0,N[0],N[1]],[.1,A[0],A[1]],[.28,B[0],B[1]],[.42,B[0],B[1]],[.6,A[0],A[1]],[.7,S[0],S[1]],[.8,S2[0],S2[1]],[.88,S[0],S[1]],[1,N[0],N[1]]];
+      hold=[.4,.6];front=[.66,.92];drop=.1;break;
+    case'bolt':
+      var S3=at(-5.5,-3.4);
+      K=[[0,N[0],N[1]],[.18,A[0],A[1]],[.36,S3[0],S3[1]],[.5,S3[0],S3[1]],[.66,A[0],A[1]],[.84,N[0],N[1]]];
+      front=[.14,.7];drop=.36;break;
+    case'cyl':
+      K=[[0,N[0],N[1]],[.1,A[0],A[1]],[.2,A[0],A[1]],[.36,B[0],B[1]],[.46,B[0],B[1]],[.62,A[0],A[1]],[.72,A[0],A[1]],[.86,N[0],N[1]]];
+      hold=[.44,.62];front=[.06,.24,.58,.76];drop=.12;break;
+    default:   // shell：ポーチとの間を弾の数だけ往復する
+      var n=Math.max(1,W.mag),cy=.8/n;K=[[0,N[0],N[1]],[.1,A[0],A[1]]];hold=[];
+      for(var i=0;i<n;i++){var t0=.1+i*cy;K.push([t0+cy*.35,B[0],B[1]],[t0+cy*.5,B[0],B[1]],[t0+cy*.92,A[0],A[1]]);hold.push(t0+cy*.45,t0+cy*.9);}
+      K.push([.96,N[0],N[1]]);
+  }
+  function inR(r){if(!r)return false;for(var j=0;j<r.length;j+=2)if(p>=r[j]&&p<=r[j+1])return true;return false;}
+  var h=avKeys(K,p);P.sx=h[0];P.sy=h[1];P.hand=true;P.front=inR(front);
+  if(inR(hold))P.held=R.item;
+  // 空の弾倉や薬きょうが落ちる（リロードを始めてからのフレーム数で動かす）
+  if(drop!=null&&o.rlF!=null&&o.rlMax){
+    var f=o.rlF-drop*o.rlMax;
+    if(f>=0&&f<26){
+      var bolt=R.k==='bolt',D=bolt?at(-2,-3):A,cnt=R.k==='cyl'?5:1,ih=R.item[1]*1.45;
+      for(var q=0;q<cnt;q++){
+        var vx=bolt?-d*1.1:-d*(.2+q*.16),vy=bolt?-2.2:.3+q*.08,x=D[0]+vx*f+(cnt>1?(q-2)*.7*d:0),y=D[1]+vy*f+.3*f*f;
+        if(!air&&y>-ih*.5)y=-ih*.5;   // 地面で止まる
+        P.drops.push({x:x,y:y,r:d*f*.22,a:f<16?1:1-(f-16)/10,it:R.item});
+      }
+    }
+  }
+  return P;
+}
+// 弾倉・弾・薬きょう（it=[幅,高さ,色,丸い]、銃の絵と同じ単位）
+function avItem(g,x,y,it,rot,alpha){
+  var w=it[0]*1.45,h=it[1]*1.45;
+  g.save();g.translate(x,y);if(rot)g.rotate(rot);if(alpha<1)g.globalAlpha*=Math.max(0,alpha);
+  if(it[3]){g.beginPath();g.arc(0,0,w/2,0,Math.PI*2);}else rrPath(g,-w/2,-h/2,w,h,Math.min(w,h)*.25);
+  g.fillStyle=it[2];g.fill();g.lineWidth=1;g.strokeStyle=OUTLINE;g.stroke();
+  g.restore();
+}
+// 支える手（リロードのときだけ描く。手に持つ物があれば、手の上に）
+function avHand(g,P){
+  if(P.held)avItem(g,P.sx,P.sy-P.held[1]*1.45*.35,P.held,P.rot,1);
+  g.beginPath();g.arc(P.sx,P.sy,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+}
+// ---- 服の形・首もと（色はチームの色。首もとは自分の色）----
+// 胴：0=ジャケット 1=ロングコート（太ももまで。後ろのすそは drawCoatTails）2=ベスト＋弾帯 3=パーカー（フードつき）
+function drawTorso(g,fit,T,topY,hipY,d){
+  var tw=12.5,bw=10.5,botY=fit===1?Math.min(hipY+9,-8):hipY,hw=fit===1?bw+2:bw;
+  function tp(){
+    g.beginPath();
+    g.moveTo(-tw,topY+4);g.quadraticCurveTo(-tw,topY,-tw+4,topY);g.lineTo(tw-4,topY);g.quadraticCurveTo(tw,topY,tw,topY+4);
+    g.lineTo(bw,hipY);if(botY!==hipY){g.lineTo(hw,botY);g.lineTo(-hw,botY);}g.lineTo(-bw,hipY);g.closePath();
+  }
+  tp();g.fillStyle=fit===2?T.shade:T.jacket;g.fill();
+  g.save();tp();g.clip();
+  g.fillStyle=fit===2?shadeHex(T.shade,-.3):T.shade;g.fillRect(d>0?-tw-1:2,topY-1,tw-1,botY-topY+2);
+  g.fillStyle=hexA(T.light,.45);g.fillRect(d>0?tw-4:-tw,topY,4,hipY-topY);
+  if(botY!==hipY)g.fillRect(d>0?hw-4:-hw,hipY,4,botY-hipY);
+  if(fit===2){
+    // ベスト：前が開いて、中のシャツ（チームの色）が見える
+    g.beginPath();g.moveTo(-d*1.5,topY);g.lineTo(d*5,topY);g.lineTo(d*4,hipY);g.lineTo(-d*.5,hipY);g.closePath();
+    g.fillStyle=T.jacket;g.fill();g.lineWidth=1.1;g.strokeStyle=OUTLINE;g.stroke();
+    g.fillStyle='#E0B84A';[topY+9,topY+14,topY+19].forEach(function(y){g.beginPath();g.arc(d*5.6,y,.9,0,Math.PI*2);g.fill();});
+    // 弾帯：奥の肩から手前の腰へ、金色の弾が並ぶ
+    var x1=-d*11,y1=topY+1,x2=d*11,y2=hipY-2,dx=x2-x1,dy=y2-y1,len=Math.sqrt(dx*dx+dy*dy),ux=dx/len,uy=dy/len,nx=-uy,ny=ux;
+    g.beginPath();g.moveTo(x1+nx*2.4,y1+ny*2.4);g.lineTo(x2+nx*2.4,y2+ny*2.4);g.lineTo(x2-nx*2.4,y2-ny*2.4);g.lineTo(x1-nx*2.4,y1-ny*2.4);g.closePath();
+    g.fillStyle='#6B4423';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+    for(var i=1;i<7;i++){
+      var px=x1+ux*len*i/7,py=y1+uy*len*i/7;
+      g.save();g.translate(px,py);g.rotate(Math.atan2(ny,nx));g.fillStyle='#E0B84A';g.fillRect(-3.2,-1,5.4,2);g.fillStyle='#B8862B';g.fillRect(2,-1,1.4,2);g.restore();
+    }
+  }
+  g.restore();
+  tp();g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
+  if(fit===3){
+    // パーカー：すその絞り・前ポケット・首まわりとひも
+    g.fillStyle=T.shade;g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);
+    g.strokeStyle=hexA(OUTLINE,.35);g.lineWidth=.8;g.beginPath();for(var k=-9;k<=9;k+=2.5){g.moveTo(k,hipY-3);g.lineTo(k,hipY+.5);}g.stroke();
+    g.beginPath();g.moveTo(-d*4.5,hipY-12);g.lineTo(d*7,hipY-12);g.lineTo(d*9,hipY-4.5);g.lineTo(-d*6.5,hipY-4.5);g.closePath();
+    g.fillStyle=hexA(T.shade,.5);g.fill();g.lineWidth=1.1;g.strokeStyle=hexA(OUTLINE,.55);g.stroke();
+    g.fillStyle=T.shade;g.beginPath();g.moveTo(-6.5,topY);g.quadraticCurveTo(d*1,topY+6.5,6.5,topY);g.lineTo(4.5,topY);g.quadraticCurveTo(d*1,topY+3.5,-4.5,topY);g.closePath();g.fill();
+    g.strokeStyle=T.trim;g.lineWidth=1;g.lineCap='round';g.beginPath();g.moveTo(-d*1,topY+3.5);g.lineTo(-d*1.4,topY+10);g.moveTo(d*3,topY+3);g.lineTo(d*3.4,topY+9.5);g.stroke();
+    g.fillStyle=T.trim;[[-1.4,10],[3.4,9.5]].forEach(function(p){g.beginPath();g.arc(d*p[0],topY+p[1],.9,0,Math.PI*2);g.fill();});
+    // フード（背中にかかっている。頭より先に描くので、頭の後ろからのぞく）
+    g.beginPath();g.moveTo(-d*2,topY+1.5);g.quadraticCurveTo(-d*15,topY+3,-d*15,topY-6);g.quadraticCurveTo(-d*14,topY-14,-d*6,topY-12);g.quadraticCurveTo(-d*2,topY-6,-d*2,topY+1.5);g.closePath();
+    g.fillStyle=T.shade;g.fill();g.lineWidth=1.5;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+    g.beginPath();g.moveTo(-d*4.5,topY);g.quadraticCurveTo(-d*12,topY,-d*12,topY-6);g.lineWidth=1;g.strokeStyle=hexA(OUTLINE,.4);g.stroke();
+    return;
+  }
+  g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);
+  g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);
+  if(fit===0){g.strokeStyle=hexA(T.trim,.5);g.lineWidth=1.1;g.beginPath();g.moveTo(d*1.5,topY+7);g.lineTo(d*1.5,hipY-4);g.stroke();}
+  if(fit===1){   // コート：前の合わせ（すそまで）と、えり
+    g.strokeStyle=hexA(OUTLINE,.55);g.lineWidth=1.1;g.beginPath();g.moveTo(d*1.5,topY+9);g.lineTo(d*1.5,hipY-3.5);g.moveTo(d*1.5,hipY+1);g.lineTo(d*2.5,botY);g.stroke();
+    g.fillStyle=T.shade;g.lineWidth=1;g.strokeStyle=hexA(OUTLINE,.7);
+    g.beginPath();g.moveTo(d*5.5,topY);g.lineTo(d*8.5,topY+6);g.lineTo(d*1.5,topY+11);g.closePath();g.fill();g.stroke();
+    g.beginPath();g.moveTo(-d*5.5,topY);g.lineTo(-d*7,topY+5);g.lineTo(d*.5,topY+10);g.closePath();g.fill();g.stroke();
+  }
+  g.fillStyle=T.trim;g.beginPath();g.moveTo(-6,topY);g.lineTo(d*1,topY+7);g.lineTo(6,topY);g.closePath();g.fill();
+}
+// ロングコートの後ろのすそ（脚より先に描くので、脚の後ろに見える）。なびくほど後ろへ広がる
+function drawCoatTails(g,T,hipY,cr,air,d,wind,sw){
+  var h=hipY-3,len=cr?13:air?16:21,fl=(cr?6:air?7:3)+wind*4+Math.abs(sw)*.3;
+  g.beginPath();g.moveTo(d*10.2,h);g.lineTo(-d*10.8,h);
+  g.quadraticCurveTo(-d*(12+fl),h+len*.6,-d*(12.5+fl),h+len);
+  g.quadraticCurveTo(-d*6,h+len+1.5,-d*1.5,h+len-1);g.lineTo(-d*.5,h+len*.55);g.lineTo(d*.8,h+len-1);
+  g.quadraticCurveTo(d*6,h+len+.5,d*9.5,h+len-2);g.closePath();
+  g.fillStyle=shadeHex(T.shade,-.12);g.fill();g.lineWidth=1.5;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+  g.beginPath();g.moveTo(-d*(10+fl*.6),h+len-1.5);g.quadraticCurveTo(-d*6,h+len+.3,-d*2,h+len-1.6);g.lineWidth=1;g.strokeStyle='rgba(255,255,255,.16)';g.stroke();
+}
+// 首もと：1=バンダナ 2=スカーフ（なびく長い端は drawScarfTail）。t=胴の上の高さ
+function drawNeckwear(g,neck,acc,t,d){
+  g.save();g.lineJoin='round';g.lineCap='round';
+  var ink=lumHex(acc)>.72?'rgba(0,0,0,.35)':'rgba(255,255,255,.75)';   // 明るい色には黒い点
+  if(neck===1){   // 胸に三角を垂らし、結び目は首の後ろ
+    g.beginPath();g.moveTo(-d*9.5,t-.5);g.quadraticCurveTo(-d*1,t+2.5,d*7.5,t-1);g.quadraticCurveTo(d*1,t+4,-d*2.5,t+11);g.quadraticCurveTo(-d*5,t+5,-d*9.5,t-.5);g.closePath();
+    g.fillStyle=acc;g.fill();g.lineWidth=1.3;g.strokeStyle=OUTLINE;g.stroke();
+    g.fillStyle=ink;[[-5,2],[-2,2.5],[-3,6],[1,1.8]].forEach(function(p){g.beginPath();g.arc(d*p[0],t+p[1],.75,0,Math.PI*2);g.fill();});
+    g.beginPath();g.moveTo(-d*9.5,t-.5);g.lineTo(-d*12.5,t+4);g.lineTo(-d*9,t+3.5);g.closePath();g.fillStyle=shadeHex(acc,-.25);g.fill();g.lineWidth=1;g.strokeStyle=OUTLINE;g.stroke();
+  }else{   // スカーフ：首に巻いた部分と、前に垂れた短い端
+    rrPath(g,-9,t-3.5,18,6,3);g.fillStyle=acc;g.fill();g.lineWidth=1.3;g.strokeStyle=OUTLINE;g.stroke();
+    g.beginPath();g.moveTo(-7,t);g.quadraticCurveTo(0,t+1.8,7,t);g.lineWidth=1;g.strokeStyle=hexA(OUTLINE,.35);g.stroke();
+    g.beginPath();g.moveTo(-d*4.5,t+1.5);g.lineTo(-d*1,t+1.5);g.lineTo(-d*.8,t+10);g.lineTo(-d*4.2,t+10.5);g.closePath();
+    g.fillStyle=shadeHex(acc,-.12);g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+    g.beginPath();g.moveTo(-d*4.1,t+8.2);g.lineTo(-d*.9,t+7.8);g.lineWidth=1;g.strokeStyle=ink;g.stroke();
+  }
+  g.restore();
+}
+// スカーフの長い端：首の後ろから、なびく（止まっていると少し垂れる）
+function drawScarfTail(g,acc,t,d,wind,tm){
+  var x=-d*6,y=t-1,pts=[x,y],mix=Math.min(1,.3+wind*.7),base=Math.PI/2+d*Math.PI/2*mix;
+  for(var i=1;i<=4;i++){
+    var a=base+Math.sin(tm*(5+wind*7)-i*1.2)*(.08+wind*.2)*i*.5;
+    x+=Math.cos(a)*5.5;y+=Math.sin(a)*5.5;pts.push(x,y);
+  }
+  avLimb(g,pts,5,acc);
+  var n=pts.length,ex=pts[n-2],ey=pts[n-1],px=pts[n-4],py=pts[n-3],dx=ex-px,dy=ey-py,dl=Math.sqrt(dx*dx+dy*dy)||1;
+  g.beginPath();g.moveTo(ex-dx/dl*2.2-dy/dl*2.2,ey-dy/dl*2.2+dx/dl*2.2);g.lineTo(ex-dx/dl*2.2+dy/dl*2.2,ey-dy/dl*2.2-dx/dl*2.2);
+  g.lineWidth=1.2;g.strokeStyle=shadeHex(acc,-.35);g.stroke();
+}
+// ---- 帽子（色は自分の色。形は髪と同じく「頭の半径＝1、右を向いているとき」の座標）----
+// 1=カウボーイハット 2=キャップ 3=ゴーグル 4=ヘッドバンド
+// HAT_CUT：帽子で隠れる髪を切る線の高さ[後ろ,前]（ここより上の髪は描かない）
+var HAT_CUT={1:[-.6,-.6],2:[-.22,-.5]};
+function drawHat(g,hat,acc,hx,hy,r,d,wind,tm){
+  var H=hairPen(g,hx,hy,r,d);
+  g.save();g.lineJoin='round';g.lineCap='round';g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+  function paint(c){g.fillStyle=c;g.fill();g.stroke();}
+  function shine(x0,y0,cx,cy,x1,y1,w){g.beginPath();H.M(x0,y0);H.Q(cx,cy,x1,y1);g.lineWidth=r*w;g.strokeStyle='rgba(255,255,255,.3)';g.stroke();g.lineWidth=1.5;g.strokeStyle=OUTLINE;}
+  switch(hat){
+    case 1:   // カウボーイハット：茶色の山とつば、リボンが自分の色
+      var col='#7A4E2A',b=H.at(.06,-.6);
+      g.beginPath();g.ellipse(b[0],b[1],r*1.42,r*.3,-d*.08,0,Math.PI*2);paint(shadeHex(col,-.28));
+      g.beginPath();H.M(-.8,-.62);H.C(-.9,-1.25,-.62,-1.55,-.22,-1.45);H.Q(.02,-1.34,.22,-1.47);H.C(.64,-1.56,.9,-1.25,.82,-.62);g.closePath();paint(col);
+      g.save();g.clip();g.beginPath();H.M(-1.2,-.62);H.L(1.2,-.62);H.L(1.2,-.88);H.L(-1.2,-.86);g.closePath();g.fillStyle=acc;g.fill();g.restore();
+      g.beginPath();H.M(-.8,-.64);H.L(.82,-.64);g.stroke();
+      g.beginPath();g.ellipse(b[0],b[1],r*1.42,r*.3,-d*.08,0,Math.PI);g.stroke();
+      shine(-.5,-1.3,-.32,-1.46,-.12,-1.38,.07);
+      break;
+    case 2:   // キャップ：自分の色、つばは少し暗く
+      g.beginPath();H.M(-1.02,-.22);H.C(-1.12,-.98,-.52,-1.3,.08,-1.28);H.C(.74,-1.25,1.04,-.86,1,-.48);H.Q(0,-.44,-1.02,-.22);g.closePath();paint(acc);
+      g.beginPath();H.M(.12,-1.26);H.Q(.3,-.9,.34,-.47);g.lineWidth=r*.04;g.strokeStyle=hexA(OUTLINE,.45);g.stroke();g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+      g.beginPath();H.M(.7,-.5);H.Q(1.3,-.62,1.62,-.4);H.Q(1.24,-.3,.84,-.36);g.closePath();paint(shadeHex(acc,-.3));
+      var bt=H.at(.08,-1.3);g.beginPath();g.arc(bt[0],bt[1],r*.09,0,Math.PI*2);g.fillStyle=shadeHex(acc,-.2);g.fill();g.lineWidth=1.2;g.stroke();
+      shine(-.62,-.86,-.4,-1.14,-.06,-1.18,.08);
+      break;
+    case 3:   // ゴーグル：額にかけたレンズ2つ（ふちが自分の色）とベルト
+      g.beginPath();H.M(-1.01,-.12);H.Q(-.5,-.66,.2,-.78);H.L(.24,-.5);H.Q(-.44,-.4,-.99,.12);g.closePath();paint('#2A2433');
+      [[.02,-.6,.18],[.5,-.63,.21]].forEach(function(e){
+        var c=H.at(e[0],e[1]),rr=r*e[2];
+        g.beginPath();g.arc(c[0],c[1],rr,0,Math.PI*2);g.fillStyle=acc;g.fill();g.lineWidth=1.3;g.strokeStyle=OUTLINE;g.stroke();
+        var gr=g.createLinearGradient(c[0],c[1]-rr,c[0],c[1]+rr);gr.addColorStop(0,'#D8F6FF');gr.addColorStop(1,'#3A8FB7');
+        g.beginPath();g.arc(c[0],c[1],rr*.64,0,Math.PI*2);g.fillStyle=gr;g.fill();
+        g.beginPath();g.arc(c[0]-d*rr*.22,c[1]-rr*.24,rr*.18,0,Math.PI*2);g.fillStyle='rgba(255,255,255,.9)';g.fill();
+      });
+      break;
+    case 4:   // ヘッドバンド：額に巻いて、結び目の端が後ろになびく
+      var wv=Math.sin(tm*(5+wind*7))*(.06+wind*.12);
+      [[-.02,.1],[.16,-.12]].forEach(function(e,i){
+        g.beginPath();H.M(-.96,-.24+i*.04);H.Q(-1.3,-.24+e[0]+wv,-1.62-wind*.3,e[1]-wind*.3+wv*1.6);H.L(-1.5-wind*.3,e[1]+.14-wind*.3+wv*1.6);H.Q(-1.2,-.1+e[0]+wv,-.94,-.1+i*.04);g.closePath();
+        paint(shadeHex(acc,-.15*(1-i)));
+      });
+      g.beginPath();H.M(-1.02,-.36);H.Q(-.2,-.82,.9,-.66);H.L(.93,-.42);H.Q(-.2,-.58,-1.0,-.1);g.closePath();paint(acc);
+      var kn=H.at(-.98,-.24);g.beginPath();g.arc(kn[0],kn[1],r*.12,0,Math.PI*2);paint(shadeHex(acc,-.2));
+      break;
+  }
+  g.restore();
+}
+// o: {x,y=足元, s=倍率, dir, look, team, wid=持っている武器, crouch, walk=歩きの位相, air, bob, glow=レールガンの溜め, blink=まばたき,
+//     kick=撃った反動(0〜1), flinch=撃たれたひるみ(0〜1), reload=リロードの進み(0〜1。していなければ null), rlF/rlMax=リロードのフレーム数,
+//     wind=コートのすそやスカーフのなびき(0〜1), tm=時刻（秒）}
+// 描く順番は固定：体の後ろ（スカーフの端・コートのすそ）→ 奥の腕・脚・胴 → 首もと → 頭（肌）→ 顔のパーツ（まゆげ・目・鼻・口）→ 髪 → 帽子 → 武器と手前の腕
 function drawAvatar(g,o){
   var L=o.look||LOOK_DEFAULT,T=o.team||TEAM.me,d=o.dir<0?-1:1,cr=!!o.crouch,air=!!o.air&&!cr;
   var skin=LOOK_OPTS.skin[L.skin]||LOOK_OPTS.skin[1],hairC=LOOK_OPTS.hairColor[L.hairColor]||LOOK_OPTS.hairColor[1],eyeC=LOOK_OPTS.eyeColor[L.eyeColor]||LOOK_OPTS.eyeColor[0];
   if(o.boss){skin='#8E2B25';hairC='#ECE6D6';eyeC='#FFC53D';}   // 鬼帝：赤い肌・白い髪・金の目
+  var fit=L.outfit|0,hat=L.hat|0,neck=L.neck|0,acc=LOOK_OPTS.accent[L.accent]||LOOK_OPTS.accent[0];
+  var tm=o.tm==null?performance.now()/1000:o.tm,wind=o.wind||0;
   var bob=o.bob||0,sw=o.walk==null?0:Math.sin(o.walk)*6;
   g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
   var hipY=cr?-16:-30,topY=(cr?-40:-58)+bob,headR=cr?11.5:13,headCX=d,headCY=topY-15+(cr?1.5:0);
-  if(o.boss&&o.aura!==false)drawBossAura(g,topY,o.tm==null?performance.now()/1000:o.tm);   // 体の後ろに立ちのぼる黒と金の気
+  if(o.boss&&o.aura!==false)drawBossAura(g,topY,tm);   // 体の後ろに立ちのぼる黒と金の気
   var W=o.wid?WEAPONS[o.wid]:null,oneHand=!W||W.kind==='melee'||o.wid===2||o.wid===8,rest=!W&&!cr&&!air;   // rest：武器なしで立っているときは腕を下ろす
   var shY=topY+5,handX=d*14,handY=topY+13,supX=oneHand?d*11:d*22;
+  var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
+  // 体の後ろ：スカーフの長い端・コートのすそ
+  if(neck===2)drawScarfTail(g,acc,topY,d,wind,tm);
+  if(fit===1)drawCoatTails(g,T,hipY,cr,air,d,wind,sw);
   // 奥の腕（銃を支える手）
   if(rest)avLimb(g,[-d*7,shY,-d*10,shY+11,-d*9,shY+21],6,T.shade);
-  else avLimb(g,[-d*1,shY,supX-d*3,handY+2],6,T.shade);
+  else avLimb(g,[-d*1,shY,P.sx,P.sy],6,T.shade);
   // 脚
   if(cr){
     avLimb(g,[-d*3,hipY,-d*6,-5,-d*12,-5],7,T.pants);avBoot(g,-d*13,0,d,T.boots);
@@ -4567,32 +4813,24 @@ function drawAvatar(g,o){
     avLimb(g,[-d*3,hipY,(bf-d*3)/2+d*1.5,-19,bf,-6],7,T.pants);avBoot(g,bf,0,d,T.boots);
     avLimb(g,[d*3,hipY,(ff+d*3)/2+d*1.5,-19,ff,-6],7,T.pants);avBoot(g,ff,0,d,T.boots);
   }
-  // 胴（ジャケット）
-  var tw=12.5,bw=10.5;
-  g.beginPath();
-  g.moveTo(-tw,topY+4);g.quadraticCurveTo(-tw,topY,-tw+4,topY);g.lineTo(tw-4,topY);g.quadraticCurveTo(tw,topY,tw,topY+4);
-  g.lineTo(bw,hipY);g.lineTo(-bw,hipY);g.closePath();
-  g.fillStyle=T.jacket;g.fill();
-  g.save();g.clip();
-  g.fillStyle=T.shade;g.fillRect(d>0?-tw-1:2,topY-1,tw-1,hipY-topY+2);
-  g.fillStyle=hexA(T.light,.45);g.fillRect(d>0?tw-4:-tw,topY,4,hipY-topY);
-  g.restore();
-  g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
-  g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);
-  g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);
-  g.strokeStyle=hexA(T.trim,.5);g.lineWidth=1.1;g.beginPath();g.moveTo(d*1.5,topY+7);g.lineTo(d*1.5,hipY-4);g.stroke();
-  g.fillStyle=T.trim;g.beginPath();g.moveTo(-6,topY);g.lineTo(d*1,topY+7);g.lineTo(6,topY);g.closePath();g.fill();
-  // 首
+  // 胴（服の形）と首・首もと
+  drawTorso(g,fit,T,topY,hipY,d);
   g.fillStyle=shadeHex(skin,-.18);g.fillRect(-3+d,topY-4,6,5);
+  if(neck)drawNeckwear(g,neck,acc,topY,d);
+  if(P.hand&&!P.front)avHand(g,P);   // リロード中の支える手：体の前を回って、腰のポーチへ（銃より奥）
+  // 頭：撃たれたら少しのけぞる（首を中心に回す）
+  var fl=o.flinch||0,cut=HAT_CUT[hat]||null;
+  g.save();
+  if(fl>0){var nx=d*.5,ny=topY-1;g.translate(nx-d*fl*1.2,ny);g.rotate(-d*fl*.24);g.translate(-nx,-ny);}
   // 長い髪の後ろ側（頭より先に描くので、顔にはかからない）
-  if(L.hair===2)drawBackHair(g,hairC,headCX,headCY,headR,d);
+  if(L.hair===2)drawBackHair(g,hairC,headCX,headCY,headR,d,cut);
   // 頭（肌）と耳
   g.beginPath();g.ellipse(headCX,headCY,headR,headR*1.03,0,0,Math.PI*2);
   g.fillStyle=skin;g.fill();g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
   drawEar(g,skin,headCX,headCY,headR,d);
-  // 顔のパーツ → 髪（髪は顔の部分をよけて描く）
-  drawFace(g,L,headCX,headCY,headR,d,eyeC,hairC,skin,!!o.blink);
-  drawHair(g,L.hair,hairC,headCX,headCY,headR,d);
+  // 顔のパーツ → 髪（髪は顔の部分をよけて描く）→ 帽子。ニット帽の髪型は、帽子をかぶると描かない
+  drawFace(g,L,headCX,headCY,headR,d,eyeC,hairC,skin,!!o.blink||fl>.45);
+  if(!(cut&&L.hair===5))drawHair(g,L.hair,hairC,headCX,headCY,headR,d,cut);
   if(o.boss){   // 角と、光る目
     drawBossHorns(g,headCX,headCY,headR,d);
     var gx=headCX+d*headR*FACE.eyeF,gy=headCY+headR*FACE.eyeY;
@@ -4600,12 +4838,17 @@ function drawAvatar(g,o){
     var eg=g.createRadialGradient(gx,gy,0,gx,gy,headR*.6);eg.addColorStop(0,'rgba(255,214,110,.9)');eg.addColorStop(1,'rgba(255,150,40,0)');
     g.fillStyle=eg;g.beginPath();g.arc(gx,gy,headR*.6,0,Math.PI*2);g.fill();g.restore();
   }
-  // 武器と手前の腕
-  if(W)drawGun(g,o.wid,handX,handY,d,1.45,o.glow||0);
-  var hx2=handX-d*.5,hy2=handY+1;
+  if(hat)drawHat(g,hat,acc,headCX,headCY,headR,d,wind,tm);
+  g.restore();
+  // 武器と手前の腕（反動・リロードでは持ち手を中心に傾ける）
+  if(W){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
+  if(P.hand&&P.front)avHand(g,P);
+  var hx2=P.gx-d*.5,hy2=P.gy+1;
   if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
-  else avLimb(g,[d*3,shY,handX-d*2,handY+1],6.5,T.jacket);
+  else avLimb(g,[d*3,shY,P.gx-d*2,P.gy+1],6.5,T.jacket);
   g.beginPath();g.arc(hx2,hy2,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+  // 落ちていく空の弾倉・薬きょう
+  P.drops.forEach(function(q){avItem(g,q.x,q.y,q.it,q.r,q.a);});
   g.restore();
 }
 // 鬼帝の角：額から上へそり返る2本（根元は金、先は黒）
@@ -4785,9 +5028,12 @@ function hairPen(g,hx,hy,r,d){
     at:P
   };
 }
+// 帽子の下だけに描く（cut=[後ろ,前] の線より上を切る）
+function hairCut(g,H,cut){if(cut){g.beginPath();H.M(-3,cut[0]);H.L(3,cut[1]);H.L(3,3);H.L(-3,3);g.closePath();g.clip();}}
 // 長い髪の後ろ側（頭の後ろから肩へ）
-function drawBackHair(g,col,hx,hy,r,d){
+function drawBackHair(g,col,hx,hy,r,d,cut){
   var H=hairPen(g,hx,hy,r,d);
+  g.save();hairCut(g,H,cut);
   g.beginPath();
   H.M(.2,-1.02);
   H.C(-.8,-1.3,-1.46,-.4,-1.34,.6);
@@ -4795,14 +5041,16 @@ function drawBackHair(g,col,hx,hy,r,d){
   H.pts([-.78,1.56,-.5,1.86,-.18,1.5,.1,.6]);
   g.closePath();
   g.fillStyle=shadeHex(col,-.15);g.fill();g.lineWidth=1.5;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+  g.restore();
 }
-function drawHair(g,style,col,hx,hy,r,d){
+function drawHair(g,style,col,hx,hy,r,d,cut){
   var H=hairPen(g,hx,hy,r,d),lite=shadeHex(col,.3),dark=shadeHex(col,-.32),Z=FACE_ZONE;
   g.save();
   // 顔の部分（まゆげ〜口）をくりぬいてから描く：どの髪型でも目・まゆげ・鼻・口にかからない
   g.beginPath();g.rect(hx-r*3,hy-r*3,r*6,r*6);
   rrSub(g,d>0?hx+Z.x0*r:hx-Z.x1*r,hy+Z.y0*r,(Z.x1-Z.x0)*r,(Z.y1-Z.y0)*r,Z.rad*r);
   g.clip('evenodd');
+  hairCut(g,H,cut);
   g.lineWidth=1.5;g.strokeStyle=OUTLINE;g.lineJoin='round';g.lineCap='round';
   function paint(c){g.fillStyle=c||col;g.fill();g.stroke();}
   function gloss(pts,w){g.beginPath();H.M(pts[0],pts[1]);H.Q(pts[2],pts[3],pts[4],pts[5]);g.lineWidth=r*(w||.09);g.strokeStyle=hexA(lite,.85);g.stroke();g.lineWidth=1.5;g.strokeStyle=OUTLINE;}
@@ -5781,6 +6029,33 @@ function cardLoop(ts){
   else cardLoopOn=false;
 }
 
+// 試合中の細かい動き：呼吸とまばたき（キャラごとにずらす）・撃った反動・撃たれたひるみ・リロード・服のなびき
+function charAnim(s,W,moving){
+  var now=performance.now(),side=String(s.side||''),ph=0;
+  for(var i=0;i<side.length;i++)ph+=side.charCodeAt(i)*1.37;
+  ph%=7;
+  var tm=now/1000+ph,air=!s.onGround,A={tm:tm,wind:air?1:Math.min(1,Math.abs(s.vx||0)/2.5),kick:0,flinch:0,reload:null};
+  A.bob=moving?-(1-Math.abs(Math.sin(s.x*.2)))*1.3:air?0:Math.sin(tm*2.1)*.8;   // 歩くと上下にはずみ、止まっていると息をする
+  A.blink=(tm%(3.6+ph%1.4))<.12;
+  var f=FX.av&&FX.av[side],kk=f&&AV_KICK[f.wid];
+  if(kk&&W&&f.wid===W.id){var e=(now-f.t)/(kk[1]>=.18?200:120);if(e<1)A.kick=(1-e)*(1-e);}
+  if(s.hit>0)A.flinch=Math.min(1,s.hit/SIM.HIT_FRAMES);
+  if(W&&W.mag>0&&s.rl>0&&s.rlMax>0){A.reload=1-s.rl/s.rlMax;A.rlF=s.rlMax-s.rl;A.rlMax=s.rlMax;}
+  return A;
+}
+// 足元の影：真下にある足場（遮蔽物の上も）に落とす。高く跳ぶほど小さく薄くなる
+function drawCharShadow(s){
+  var cx=s.x+CHAR_W/2,feet=s.y+CHAR_H,gy=1e9,i,p;
+  for(i=0;i<platforms.length;i++){p=platforms[i];if(cx>=p.x&&cx<=p.x+p.w&&p.y>=feet-2&&p.y<gy)gy=p.y;}
+  for(i=0;i<solids.length;i++){p=solids[i];if(cx>=p.x&&cx<=p.x+p.w&&p.y>=feet-2&&p.y<gy)gy=p.y;}
+  var k=gy>VH?0:1-(gy-feet)/150;
+  if(k<=0)return;
+  var rx=10*(.6+.4*k);
+  ctx.save();ctx.translate(wx(cx),gy);ctx.scale(1,.26);ctx.globalAlpha*=k;
+  var sg=ctx.createRadialGradient(0,0,0,0,0,rx);sg.addColorStop(0,'rgba(0,0,0,.42)');sg.addColorStop(.6,'rgba(0,0,0,.24)');sg.addColorStop(1,'rgba(0,0,0,0)');
+  ctx.fillStyle=sg;ctx.beginPath();ctx.arc(0,0,rx,0,Math.PI*2);ctx.fill();
+  ctx.restore();
+}
 // o: {look, team, hud:false で名札やHPを出さない}
 function drawChar(s,isMe,o){
   if(!s||s.dead)return;   // 倒されたら破片になって消える
@@ -5793,11 +6068,13 @@ function drawChar(s,isMe,o){
     ctx.save();ctx.globalAlpha=.25+.55*p;ctx.strokeStyle=W.color;ctx.lineWidth=.6+1.6*p;ctx.setLineDash([6,5]);ctx.lineDashOffset=-frame*1.5;
     ctx.beginPath();ctx.moveTo(x1,my);ctx.lineTo(x2,my);ctx.stroke();ctx.setLineDash([]);ctx.restore();
   }
+  drawCharShadow(s);
   ctx.save();
   if(s.hit>0&&Math.sin(frame*.8)>0)ctx.globalAlpha=.3;
-  var moving=Math.abs(s.vx||0)>.6&&s.onGround&&!s.ducking;
+  var moving=Math.abs(s.vx||0)>.6&&s.onGround&&!s.ducking,A=charAnim(s,W,moving);
   drawAvatar(ctx,{x:cx2,y:s.y+CHAR_H,s:.5,dir:d,look:o.look,team:team,wid:wid,crouch:s.ducking,boss:!!o.boss,
-    walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0});
+    walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0,
+    bob:A.bob,blink:A.blink,kick:A.kick,flinch:A.flinch,reload:A.reload,rlF:A.rlF,rlMax:A.rlMax,wind:A.wind,tm:A.tm});
   ctx.restore();
   if(s.swT>0&&W&&W.wind){   // 近接の振りかぶり：光る弧が大きくなって、当たる瞬間を予告する
     var wp=1-s.swT/W.wind;
