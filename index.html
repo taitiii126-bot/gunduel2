@@ -71,6 +71,9 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 /* ---------- 共通 ---------- */
 .screen{animation:scr-in .42s var(--ease) both;}
 @keyframes scr-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* ゲーム画面は透明度だけ（transform のアニメーションが残ると、中の全画面表示（試合前のパネル）がゲーム画面の枠に閉じ込められる） */
+#game-screen.screen{animation-name:scr-fade;}
+@keyframes scr-fade{from{opacity:0}to{opacity:1}}
 /* メニューの中身を上から順にふわっと出す（transform は使わない：子の位置指定をこわさないため） */
 .screen.menu>*{animation:scr-item .5s ease-out backwards;}
 .screen.menu>*:nth-child(2){animation-delay:.05s}.screen.menu>*:nth-child(3){animation-delay:.1s}.screen.menu>*:nth-child(4){animation-delay:.15s}
@@ -718,6 +721,100 @@ button.mp-w{cursor:pointer;}
 .mp-ok:active{transform:translateY(1px);}
 .mp-ok:disabled{opacity:.45;cursor:default;}
 @media (max-width:700px){.mp-grid{grid-template-columns:1fr 1fr;}.mp-row{grid-template-columns:1fr;}.mp-head b{font-size:15px;}.mp-time{font-size:24px;}}
+/* ==== 試合前の準備（ステージ投票・武器選択）：画面いっぱいの重ね表示 ==== */
+#match-panel.on{position:fixed;inset:0;left:0;top:0;bottom:0;transform:none;width:auto;max-width:none;z-index:60;display:flex;align-items:center;justify-content:center;
+  padding:18px;border:0;border-radius:0;box-shadow:none;overflow:auto;background:radial-gradient(ellipse at 50% 40%,rgba(10,12,24,.78),rgba(3,4,9,.92));font-size:13px;}
+#match-panel.on .mp-box{position:relative;width:min(980px,100%);max-height:100%;overflow:auto;padding:16px 18px 14px;border-radius:18px;
+  background:linear-gradient(180deg,rgba(18,21,34,.98),rgba(8,10,18,.98));border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 80px -24px rgba(0,0,0,.95);}
+.mp-bar{position:absolute;left:0;right:0;top:0;height:3px;border-radius:18px 18px 0 0;overflow:hidden;background:rgba(255,255,255,.06);}
+.mp-bar i{display:block;height:100%;background:linear-gradient(90deg,#FFC53D,#FF8A3D);box-shadow:0 0 12px rgba(255,197,61,.8);transition:width .25s linear;}
+.mp-bar.low i{background:linear-gradient(90deg,#FF4D5E,#FF8A96);box-shadow:0 0 12px rgba(255,77,94,.8);}
+/* ステージ：大きなカード3枚 */
+.mp-st3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.st3{position:relative;display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:14px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .2s,transform .12s;}
+.st3:hover{border-color:rgba(255,255,255,.35);transform:translateY(-2px);}
+.st3 canvas{display:block;width:100%;aspect-ratio:2/1;height:auto;background:#0B0E1A;}
+.st3 .st-tx{display:block;padding:10px 12px 12px;}
+.st3 .st-tx b{display:block;font-family:var(--f-disp);font-size:19px;letter-spacing:.02em;}
+.st3 .st-tx small{display:block;margin-top:3px;font-size:11.5px;line-height:1.5;color:var(--tx-3);}
+.st3.mine{border-color:#B794FF;box-shadow:0 0 0 1px rgba(183,148,255,.5),0 0 30px -8px rgba(183,148,255,.8);}
+.st3.theirs{border-color:#FF6B7A;box-shadow:0 0 0 1px rgba(255,107,122,.45),0 0 26px -10px rgba(255,107,122,.8);}
+.st3.agree{border-color:#FFC53D;box-shadow:0 0 0 2px rgba(255,197,61,.6),0 0 40px -6px rgba(255,197,61,.95);animation:st-agree 1s ease-in-out infinite alternate;}
+@keyframes st-agree{to{box-shadow:0 0 0 2px rgba(255,197,61,.9),0 0 54px -4px rgba(255,197,61,1);}}
+.st-tags{position:absolute;left:8px;top:8px;display:flex;flex-wrap:wrap;gap:5px;}
+.st-tags i{font-style:normal;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:900;letter-spacing:.06em;box-shadow:0 4px 12px -4px rgba(0,0,0,.8);}
+.st-tags .me{background:#B794FF;color:#150A2A;}.st-tags .op{background:#FF6B7A;color:#2A0A0E;}.st-tags .al{background:#5EEAD4;color:#06201C;}
+.st-agree{position:absolute;right:8px;top:8px;padding:4px 11px;border-radius:8px;background:linear-gradient(180deg,#FFE08A,#F5B400);color:#1a1300;font-weight:900;font-size:12px;letter-spacing:.08em;}
+/* 武器：左に自分の3枠、右に一覧と詳しい数字 */
+.mp-opps{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 12px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);}
+.mp-opp{display:flex;align-items:center;gap:6px;min-width:0;}
+.mp-opp>b{font-size:11.5px;font-weight:900;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+.mp-opp canvas{width:46px;height:20px;padding:2px 3px;border-radius:6px;background:rgba(0,0,0,.35);}
+.mp-opp .rd{font-size:10.5px;font-weight:900;color:#34D399;}
+.mp-main{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:16px;align-items:start;}
+.mp-slots{display:flex;flex-direction:column;gap:9px;}
+.mp-slot{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 44px;border-radius:13px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .2s;}
+.mp-slot .n{position:absolute;left:10px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.08);font-family:var(--f-disp);font-size:14px;color:var(--tx-2);}
+.mp-slot canvas{width:78px;height:34px;flex:none;}
+.mp-slot b{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:900;}
+.mp-slot.sel{border-color:#FFC53D;background:rgba(255,197,61,.1);box-shadow:0 0 0 1px rgba(255,197,61,.35),0 0 26px -10px rgba(255,197,61,.9);}
+.mp-slot.sel .n{background:#FFC53D;color:#1a1300;}
+.mp-slot:disabled{cursor:default;opacity:.75;}
+.mp-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}
+.mp-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px 7px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--tx-2);cursor:pointer;transition:border-color .15s,background .15s,transform .08s;}
+.mp-tile:hover,.mp-tile.focus{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:var(--tx-1);}
+.mp-tile:active{transform:translateY(1px);}
+.mp-tile canvas{width:74px;height:32px;}
+.mp-tile b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:900;}
+.mp-tile.eq{border-color:rgba(255,197,61,.55);background:rgba(255,197,61,.08);}
+.mp-tile .q{position:absolute;right:5px;top:5px;display:grid;place-items:center;width:17px;height:17px;border-radius:5px;background:#FFC53D;color:#1a1300;font-size:10.5px;font-weight:900;}
+.mp-tiles.off .mp-tile{cursor:default;opacity:.55;}
+.mp-detail{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);min-height:92px;}
+.mp-detail h5{display:flex;align-items:baseline;gap:10px;margin:0 0 3px;font-size:14px;font-weight:900;}
+.mp-detail h5 small{font-size:11px;font-weight:700;color:var(--tx-3);}
+.mp-detail p{margin:0 0 8px;font-size:11.5px;line-height:1.5;color:var(--tx-3);}
+.mp-bars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 14px;}
+.mp-bars span{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;color:var(--tx-2);white-space:nowrap;}
+.mp-bars span i{position:relative;flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;}
+.mp-bars span i::after{content:"";position:absolute;inset:0;width:var(--v);border-radius:99px;background:var(--c,#FFC53D);}
+#match-panel.on .mp-foot{position:sticky;bottom:-14px;margin:14px -18px -14px;padding:12px 18px 14px;border-top:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(12,14,24,.94),rgba(8,10,18,.99));}
+.mp-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.mp-chip{padding:4px 10px;border-radius:99px;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.06);color:var(--tx-3);}
+.mp-chip.ok{background:rgba(52,211,153,.16);color:#34D399;}
+#match-panel.on .mp-ok{min-width:220px;padding:14px 30px;font-size:16px;border-radius:13px;}
+@media (max-width:760px){
+  #match-panel.on{padding:0;align-items:stretch;}
+  #match-panel.on .mp-box{border-radius:0;min-height:100%;padding:14px 12px 12px;}
+  #match-panel.on .mp-head{padding-right:46px;}   /* 右上の音量ボタンと重ならないように */
+  .mp-bar{border-radius:0;}
+  .mp-st3{grid-template-columns:1fr;gap:10px;}
+  .st3{flex-direction:row;}
+  .st3 canvas{width:46%;flex:none;}
+  .st3 .st-tx b{font-size:16px;}
+  .mp-main{grid-template-columns:1fr;gap:10px;}
+  .mp-slots{flex-direction:row;gap:6px;}
+  .mp-slot{flex:1;min-width:0;flex-direction:column;gap:3px;padding:24px 4px 7px;}
+  .mp-slot .n{left:6px;top:6px;transform:none;width:20px;height:20px;font-size:12px;}
+  .mp-slot canvas{width:64px;height:28px;}
+  .mp-slot b{font-size:11.5px;max-width:100%;}
+  .mp-tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+  .mp-tile canvas{width:56px;height:24px;}
+  .mp-tile b{font-size:10.5px;}
+  .mp-bars{grid-template-columns:1fr 1fr;}
+  #match-panel.on .mp-foot{margin:12px -12px -12px;padding:10px 12px 12px;flex-wrap:wrap;}
+  #match-panel.on .mp-ok{flex:1 1 100%;min-width:0;}
+}
+body.mland #match-panel.on .mp-box{padding:10px 12px;}
+body.mland #match-panel.on{padding:0;}body.mland #match-panel.on .mp-box{width:100%;min-height:100%;border-radius:0;}body.mland #match-panel.on .mp-head{padding-right:46px;margin-bottom:6px;padding-bottom:6px;}
+body.mland .mp-hint{margin:4px 0;}body.mland .st3 .st-tx{padding:6px 9px 7px;}body.mland .st3 .st-tx small{display:none;}
+body.mland .mp-detail{min-height:0;padding:7px 10px;}body.mland .mp-detail p{display:none;}body.mland .mp-opps{margin-bottom:6px;padding:5px 8px;}
+body.mland .mp-st3{grid-template-columns:repeat(3,minmax(0,1fr));}
+body.mland .st3{flex-direction:column;}body.mland .st3 canvas{width:100%;}
+body.mland .mp-main{grid-template-columns:minmax(0,190px) minmax(0,1fr);}
+body.mland .mp-slots{flex-direction:column;}
+body.mland .mp-slot{flex-direction:row;padding:6px 8px 6px 36px;}
+body.mland .mp-slot .n{left:7px;top:50%;transform:translateY(-50%);}
+body.mland .mp-tiles{grid-template-columns:repeat(7,minmax(0,1fr));}
 #btns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px;}
 #btns button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;padding:9px 4px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),var(--panel-solid);border:1px solid var(--line);border-bottom:3px solid rgba(0,0,0,.55);border-radius:12px;color:var(--tx-2);font-size:11.5px;font-weight:700;letter-spacing:.04em;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .08s,background .12s,color .12s;}
 #btns button:active{transform:translateY(2px);background:var(--panel-hi);color:var(--tx);}
@@ -1683,8 +1780,8 @@ body.mland #settings-screen>.scr-head{column-span:all;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=28"></script>
-<script src="lang.js?v=29"></script>
+<script src="sim.js?v=29"></script>
+<script src="lang.js?v=30"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2668,7 +2765,6 @@ function renderLookPreview(tm){
     var pt=(tm%3.2)-.35,wid=(loadout&&loadout[0])||2;
     var sh2=g.createRadialGradient(150,268,0,150,268,60);sh2.addColorStop(0,'rgba(0,0,0,.55)');sh2.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=sh2;g.beginPath();g.ellipse(150,268,60,10,0,0,Math.PI*2);g.fill();
-    if(pt>0&&(L.win|0)===6)drawCodeRain(g,300,300,winPose(6,pt,1).rain,tm);
     drawAvatar(g,{x:148,y:268,s:1.95,dir:1,look:L,team:TEAM.me,wid:wid,blink:blink,win:pt>0?{pose:L.win|0,t:pt}:null,tm:tm});
     document.querySelectorAll('#look-opts canvas[data-pose]').forEach(function(pc){
       var pg=pc.getContext('2d');pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,132,132);
@@ -3784,7 +3880,7 @@ function onWaitMsg(msg){
   var now=performance.now();
   if(msg.team){
     var rd=msg.ready||{};
-    WAIT={team:true,kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),vsUntil:now+(+msg.vsMs||0),ready:rd,
+    WAIT={team:true,kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),total:waitTotal(msg),vsUntil:now+(+msg.vsMs||0),ready:rd,
       meReady:!!rd[mySlot],oppReady:false,mine:SIM.cleanLoadout(msg.mine,false),opp:null,loads:msg.loads||{},
       stages:msg.stages||null,votes:msg.votes||{},myVote:(msg.votes||{})[mySlot]||null};
     matchLoadout=WAIT.mine.slice();
@@ -3793,7 +3889,7 @@ function onWaitMsg(msg){
     if(!waitTick)waitTick=setInterval(tickMatchPanel,250);
     return;
   }
-  WAIT={kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),vsUntil:now+(+msg.vsMs||0),
+  WAIT={kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),total:waitTotal(msg),vsUntil:now+(+msg.vsMs||0),
     meReady:!!(msg.ready&&msg.ready.me),oppReady:!!(msg.ready&&msg.ready.opp),
     mine:SIM.cleanLoadout(msg.mine,false),opp:msg.opp?SIM.cleanLoadout(msg.opp,true):null,
     stages:msg.stages||null,votes:msg.votes||{},myVote:(msg.votes||{}).me||null};
@@ -3802,6 +3898,8 @@ function onWaitMsg(msg){
   renderMatchPanel();
   if(!waitTick)waitTick=setInterval(tickMatchPanel,250);
 }
+// 残り時間のバーの長さの基準：同じ待ちの間は、最初に聞いた長さを使う（途中で届く知らせでバーが伸びないように）
+function waitTotal(msg){var k=msg.kind||'',ms=+msg.ms||0;if(WAIT&&WAIT.kind===(k==='pick'?'pick':k==='stage'?'stage':'prep')&&WAIT.total&&ms<=WAIT.total)return WAIT.total;return ms;}
 function waitLeft(){return WAIT?Math.max(0,Math.ceil((WAIT.until-performance.now())/1000)):0;}
 function endWaitUI(){
   WAIT=null;
@@ -3824,6 +3922,7 @@ function pickMatchWeapon(id){
   lo[pickSel]=id;
   matchLoadout=lo.slice();
   if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'loadout',loadout:lo}));
+  mpFocusId=id;pickSel=(pickSel+1)%3;   // 入れたら、次の枠へ進む
   SFX.switchW();renderMatchPanel();
 }
 // 武器1つぶんの札（アイコン・名前・射程・威力・連射）
@@ -3869,73 +3968,122 @@ function mpCard(id,btn,sel,onclick){
   return (btn?'<button class="mp-w'+(sel?' sel':'')+'" onclick="'+onclick+'">':'<div class="mp-w">')+
     '<canvas width="116" height="50" data-gun="'+id+'"></canvas><span class="mw-t"><b style="color:'+W.color+'">'+esc(wName(id))+'</b><small>'+esc(stat)+'</small></span>'+(btn?'</button>':'</div>');
 }
+// ステージのプレビュー：本物の背景と足場を、そのステージの色・動きのまま小さく描く（2人が向かい合って立つ）
+var STPV={},stPvOn=false;
+function stagePv(id){
+  var v=STPV[id];
+  if(!v){var w=SIM.newWorld(id,[2,3,1],[2,3,1]);w.chars.a.x=560;w.chars.b.x=860;w.chars.a.dir=1;w.chars.b.dir=-1;
+    v=STPV[id]={g:null,cam:(SIM.WORLD_W-VW)/2,w:w,frame:0,fx:newFx(),grads:{},theme:themeOf(id)};}
+  return v;
+}
+function drawStagePv(cv,id){
+  var v=stagePv(id),g=cv.getContext('2d');
+  if(v.g!==g){v.g=g;v.grads={};}
+  v.frame++;
+  var opp=WAIT&&WAIT.team?LOOK_DEFAULT:(oppInfo.look||LOOK_DEFAULT);
+  withView(v,function(){
+    ctx.setTransform(cv.width/VW,0,0,cv.width/VW,0,0);ctx.clearRect(0,0,VW,VH);
+    drawBackground();
+    drawChar(v.w.chars.a,false,{look:profile.look,team:TEAM.me,hud:false});
+    drawChar(v.w.chars.b,false,{look:opp,team:TEAM.foe,hud:false});
+    drawWeather(stageTheme);
+  });
+}
+function stagePvLoop(){
+  var cvs=document.querySelectorAll('#match-panel canvas[data-stpv]');
+  if(!cvs.length||document.hidden){stPvOn=false;return;}
+  cvs.forEach(function(cv){drawStagePv(cv,cv.getAttribute('data-stpv'));});
+  setTimeout(function(){requestAnimationFrame(stagePvLoop);},33);   // 30コマ/秒で十分
+}
+// 誰がどのステージに入れたか：自分（紫）・相手（赤）・味方（青緑）
+function stageVoters(id){
+  var r={me:WAIT.myVote===id,op:0,al:0};
+  if(WAIT.team)SIM.TEAM_SLOTS.forEach(function(s){if(s!==mySlot&&WAIT.votes[s]===id){if(slotRole(s)==='ally')r.al++;else r.op++;}});
+  else if(WAIT.votes&&WAIT.votes.opp===id)r.op=1;
+  return r;
+}
+// 武器の数字（詳しい表示のバー）
+function mpDetailHtml(id){
+  var W=WEAPONS[id],st=weaponStats(id);if(!W)return'';
+  var bar=function(lb,v,c){return'<span>'+esc(lb)+'<i style="--v:'+Math.round(Math.max(.04,Math.min(1,v))*100)+'%;--c:'+c+'"></i></span>';};
+  var pw=W.pellets?(W.dmg+'×'+W.pellets):W.burst?(W.dmg+'×'+W.burst):W.dmg;
+  return'<h5><span style="color:'+W.color+'">'+esc(wName(id))+'</span><small>'+esc(t('mp.dRange'))+' '+W.range+' · '+esc(t('mp.dPower'))+' '+pw+' · '+
+    (W.mag?esc(t('mp.dMag'))+' '+W.mag:'∞')+(W.mag?' · '+esc(t('mp.dReload',{s:st.reload.toFixed(1)})):'')+'</small></h5>'+
+    '<p>'+esc(wDesc(id))+'</p><div class="mp-bars">'+
+    bar(t('mp.dRange'),W.range/560,'#60A5FA')+bar(t('mp.dPower'),st.power/55,'#FF6B7A')+bar(t('mp.dRate'),st.rps/9,'#34D399')+'</div>';
+}
+var mpFocusId=0;
+function mpFocus(id){mpFocusId=+id;var el=document.getElementById('mp-detail');if(el)el.innerHTML=mpDetailHtml(mpFocusId);
+  document.querySelectorAll('#match-panel .mp-tile').forEach(function(b){b.classList.toggle('focus',+b.getAttribute('data-w')===mpFocusId);});}
+function mpIcon(id,w,h){return'<canvas width="'+w+'" height="'+h+'" data-gun="'+id+'"></canvas>';}
 function renderMatchPanel(){
   var el=document.getElementById('match-panel');if(!el)return;
   if(!WAIT||gameMode!=='online'||vsPhase||stageFx){el.className='';el.innerHTML='';return;}   // VS画面・ステージ決定の演出の間は出さない
   var stage=WAIT.kind==='stage',pick=WAIT.kind==='pick',h='';
+  var left=Math.max(0,WAIT.until-performance.now()),frac=WAIT.total?left/WAIT.total:1;
+  h+='<div class="mp-bar'+(left<3000?' low':'')+'"><i id="mp-bar-fill" style="width:'+(frac*100).toFixed(1)+'%"></i></div>';
   h+='<div class="mp-head"><b>'+esc(t(stage?'mp.stageTitle':pick?'mp.pickTitle':'mp.weaponTitle'))+'</b><span class="mp-time" id="mp-time">'+waitLeft()+'</span></div>';
-  // ①ステージを選ぶ：大きく2つ出す
+  // ①ステージ：大きなカード3枚（動くプレビュー）。誰が選んだかを札で、そろったら「決定！」
   if(stage){
-    h+='<p class="mp-hint">'+esc(t('mp.stageHint'))+'</p><div class="mp-sts big">';
+    h+='<p class="mp-hint">'+esc(t('mp.stageHint'))+'</p><div class="mp-st3">';
+    var all=1+(WAIT.team?SIM.TEAM_SLOTS.filter(function(k){return k!==mySlot&&TM.players[k];}).length:1);
     (WAIT.stages||[]).forEach(function(sid){
-      h+='<button class="st-op'+(WAIT.myVote===sid?' sel':'')+'" onclick="stageVote(\''+sid+'\')">'+
-        '<canvas width="420" height="150" data-stage="'+sid+'"></canvas>'+voteDots(sid)+
+      var v=stageVoters(sid),n=(v.me?1:0)+v.op+v.al,agree=n>=all&&all>1;
+      h+='<button class="st3'+(v.me?' mine':'')+(v.op&&!v.me?' theirs':'')+(agree?' agree':'')+'" onclick="stageVote(\''+sid+'\')">'+
+        '<canvas width="480" height="240" data-stpv="'+sid+'"></canvas>'+
+        '<span class="st-tags">'+(v.me?'<i class="me">'+esc(t('mp.youTag'))+'</i>':'')+(v.al?'<i class="al">'+esc(t('mp.allyTag'))+(v.al>1?' ×'+v.al:'')+'</i>':'')+
+          (v.op?'<i class="op">'+esc(WAIT.team?t('mp.foeTag'):(oppInfo.name||t('c.opp')))+(v.op>1?' ×'+v.op:'')+'</i>':'')+'</span>'+
+        (agree?'<span class="st-agree">'+esc(t('mp.agree'))+'</span>':'')+
         '<span class="st-tx"><b>'+esc(t('stage.'+sid+'.name'))+'</b><small>'+esc(t('stage.'+sid+'.desc'))+'</small></span></button>';
     });
     var mine=!!WAIT.myVote;
     var oppN=WAIT.team?SIM.TEAM_SLOTS.filter(function(k){return k!==mySlot&&WAIT.votes[k];}).length:((WAIT.votes&&WAIT.votes.opp)?1:0);
-    var yet='<span class="mp-yet">'+esc(t('mp.notReady'))+'</span>',done='<span class="ok">'+esc(t('mp.voted'))+'</span>';
-    h+='</div><div class="mp-foot"><span class="mp-ready">'+esc(t('mp.you'))+' '+(mine?done:yet)+'　／　'+
-      esc(WAIT.team?t('mp.readyCount',{n:oppN,all:SIM.TEAM_SLOTS.length-1}):t('c.opp'))+' '+(oppN?done:yet)+'</span>'+
-      (mine?'':'<span class="mp-voted">'+esc(t('mp.waitVote'))+'</span>')+'</div>';
+    h+='</div><div class="mp-foot"><span class="mp-chips"><span class="mp-chip'+(mine?' ok':'')+'">'+esc(t('mp.you'))+'：'+esc(t(mine?'mp.voted':'mp.notVoted'))+'</span>'+
+      '<span class="mp-chip'+(oppN?' ok':'')+'">'+esc(WAIT.team?t('mp.readyCount',{n:oppN,all:all-1}):(oppInfo.name||t('c.opp')))+(WAIT.team?'':'：'+esc(t(oppN?'mp.voted':'mp.notVoted')))+'</span></span>'+
+      '<span class="mp-voted">'+esc(t(mine?'mp.waitVote':'mp.tapStage'))+'</span></div>';
     el.className='on stage'+(WAIT.team?' team':'');
-    el.innerHTML=h;
-    el.querySelectorAll('canvas[data-stage]').forEach(function(cv){drawStageMini(cv,cv.getAttribute('data-stage'));});
+    el.innerHTML='<div class="mp-box">'+h+'</div>';
+    el.querySelectorAll('canvas[data-stpv]').forEach(function(cv){drawStagePv(cv,cv.getAttribute('data-stpv'));});
+    if(!stPvOn){stPvOn=true;requestAnimationFrame(stagePvLoop);}
     return;
   }
-  h+='<div class="mp-cols">';
-  h+='<div class="mp-col"><h4>'+esc(t('mp.mine'))+'</h4><div class="mp-row">';
-  WAIT.mine.forEach(function(id,i){h+=mpCard(id,!WAIT.meReady,i===pickSel,'pickMatchSlot('+i+')');});
-  h+='</div></div>';
-  if(WAIT.team){   // 2v2：味方と、相手2人の武器（小さめのカード）
-    teamSlots('ally').concat(teamSlots('foe')).forEach(function(s){
-      var P=TM.players[s]||{},r=slotRole(s);
-      h+='<div class="mp-col '+(r==='foe'?'opp':'ally')+' mini"><h4 style="color:'+TEAM_COL[r]+'">'+esc(t(r==='foe'?'mp.opp':'mp.ally',{name:P.name||'?'}))+'</h4><div class="mp-row">';
-      (P.loadout||[]).forEach(function(id){h+=mpCard(id,false);});
-      h+='</div></div>';
-    });
-    h+='</div>';
-  }else{
-    h+='<div class="mp-col opp"><h4>'+esc(t('mp.opp',{name:oppInfo.name||t('c.opp')}))+'</h4><div class="mp-row">';
-    (WAIT.opp||oppInfo.loadout||[]).forEach(function(id){h+=mpCard(id,false);});
-    h+='</div></div></div>';
-  }
-  if(!WAIT.meReady){
-    h+='<div class="mp-hint">'+esc(t('mp.pickHint',{n:pickSel+1}))+'</div><div class="mp-grid">';
-    WEAPON_ORDER.forEach(function(id){
-      var W=WEAPONS[id],st=weaponStats(id);
-      h+='<button class="'+(WAIT.mine.indexOf(id)>=0?'eq':'')+'" onclick="pickMatchWeapon('+id+')">'+
-        '<canvas width="132" height="56" data-gun="'+id+'"></canvas>'+
-        '<span class="g-t"><b style="color:'+W.color+'">'+esc(wName(id))+'</b>'+
-        '<small>'+esc(t('mp.stat',{range:W.kind==='grenade'?'~'+W.range:W.range,power:W.pellets?(W.dmg+'×'+W.pellets):W.burst?(W.dmg+'×'+W.burst):W.dmg,rate:st.rps.toFixed(1)}))+'</small></span></button>';
-    });
-    h+='</div>';
-  }
+  // ②武器：上に相手（と味方）の武器を小さく、左に自分の3枠、右に一覧と詳しい数字
+  var who=[];
+  if(WAIT.team){
+    teamSlots('ally').concat(teamSlots('foe')).forEach(function(s){var P=TM.players[s]||{},r=slotRole(s);who.push({nm:P.name||'?',col:TEAM_COL[r],lo:P.loadout||[],rd:!!WAIT.ready[s]});});
+  }else who.push({nm:oppInfo.name||t('c.opp'),col:'#FF8A96',lo:WAIT.opp||oppInfo.loadout||[],rd:WAIT.oppReady});
+  h+='<div class="mp-opps">';
+  who.forEach(function(o){h+='<span class="mp-opp"><b style="color:'+o.col+'">'+esc(o.nm)+'</b>'+o.lo.map(function(id){return mpIcon(id,92,40);}).join('')+(o.rd?'<span class="rd">✓</span>':'')+'</span>';});
+  h+='</div><div class="mp-main"><div class="mp-slots">';
+  WAIT.mine.forEach(function(id,i){
+    var W=WEAPONS[id];
+    h+='<button class="mp-slot'+(i===pickSel&&!WAIT.meReady?' sel':'')+'" onclick="pickMatchSlot('+i+')"'+(WAIT.meReady?' disabled':'')+'><span class="n">'+(i+1)+'</span>'+
+      mpIcon(id,156,68)+'<b style="color:'+W.color+'">'+esc(wName(id))+'</b></button>';
+  });
+  h+='</div><div><div class="mp-tiles'+(WAIT.meReady?' off':'')+'">';
+  WEAPON_ORDER.forEach(function(id){
+    var slot=WAIT.mine.indexOf(id);
+    h+='<button class="mp-tile'+(slot>=0?' eq':'')+'" data-w="'+id+'" onclick="pickMatchWeapon('+id+')" onmouseenter="mpFocus('+id+')"'+(WAIT.meReady?' disabled':'')+'>'+
+      (slot>=0?'<span class="q">'+(slot+1)+'</span>':'')+mpIcon(id,148,64)+'<b>'+esc(wName(id))+'</b></button>';
+  });
+  if(!mpFocusId||!WEAPONS[mpFocusId])mpFocusId=WAIT.mine[pickSel]||WAIT.mine[0];
+  h+='</div><div class="mp-detail" id="mp-detail">'+mpDetailHtml(mpFocusId)+'</div></div></div>';
   var vs=!pick&&performance.now()<WAIT.vsUntil;
-  var readyTx=WAIT.team
-    ?t('mp.you')+' '+(WAIT.meReady?'<span class="ok">'+esc(t('mp.ready'))+'</span>':esc(t('mp.notReady')))+'　／　'+esc(t('mp.readyCount',{n:SIM.TEAM_SLOTS.filter(function(s){return WAIT.ready[s];}).length,all:Object.keys(WAIT.ready).length}))
-    :t('mp.you')+' '+(WAIT.meReady?'<span class="ok">'+esc(t('mp.ready'))+'</span>':esc(t('mp.notReady')))+'　／　'+
-    esc(t('c.opp'))+' '+(WAIT.oppReady?'<span class="ok">'+esc(t('mp.ready'))+'</span>':esc(t('mp.notReady')));
-  h+='<div class="mp-foot"><span class="mp-ready">'+readyTx+'</span>'+
+  var chips='<span class="mp-chip'+(WAIT.meReady?' ok':'')+'">'+esc(t('mp.you'))+'：'+esc(t(WAIT.meReady?'mp.ready':'mp.notReady'))+'</span>';
+  if(WAIT.team)chips+='<span class="mp-chip">'+esc(t('mp.readyCount',{n:SIM.TEAM_SLOTS.filter(function(s){return WAIT.ready[s];}).length,all:Object.keys(WAIT.ready).length}))+'</span>';
+  else chips+='<span class="mp-chip'+(WAIT.oppReady?' ok':'')+'">'+esc(oppInfo.name||t('c.opp'))+'：'+esc(t(WAIT.oppReady?'mp.ready':'mp.notReady'))+'</span>';
+  h+='<div class="mp-foot"><span class="mp-chips">'+chips+'</span>'+
     '<button class="mp-ok" onclick="matchReady()"'+(WAIT.meReady||vs?' disabled':'')+'>'+esc(t(WAIT.meReady?'mp.waiting':pick?'mp.decide':'mp.readyBtn'))+'</button></div>';
-  el.className='on '+(pick?'pick':'prep')+(WAIT.team?' team':'');   // 武器を選ぶ画面は、ラウンド間と同じ作り
-  el.innerHTML=h;
+  el.className='on '+(pick?'pick':'prep')+(WAIT.team?' team':'');
+  el.innerHTML='<div class="mp-box">'+h+'</div>';
   el.querySelectorAll('canvas[data-gun]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);drawGunIcon(g,+cv.getAttribute('data-gun'),0,0,cv.width,cv.height);});
-  el.querySelectorAll('canvas[data-stage]').forEach(function(cv){drawStageMini(cv,cv.getAttribute('data-stage'));});
+  mpFocus(mpFocusId);
 }
 function tickMatchPanel(){
   if(!WAIT){if(waitTick){clearInterval(waitTick);waitTick=null;}return;}
   var tm=document.getElementById('mp-time');if(tm)tm.textContent=waitLeft();
+  var bf=document.getElementById('mp-bar-fill');
+  if(bf&&WAIT.total){var lf=Math.max(0,WAIT.until-performance.now());bf.style.width=(lf/WAIT.total*100).toFixed(1)+'%';bf.parentNode.classList.toggle('low',lf<3000);}
   // VS画面が終わったら、準備完了を押せるようにする
   var ok=document.querySelector('#match-panel .mp-ok');
   if(ok&&!WAIT.meReady&&WAIT.kind==='prep')ok.disabled=performance.now()<WAIT.vsUntil;
@@ -5404,15 +5552,17 @@ function drawAvatar(g,o){
   g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
   var WP=o.win?winPose(o.win.pose,o.win.t,d):null;
   if(WP){g.translate(WP.bx,-WP.hop+WP.sq);if(WP.spin){g.translate(0,-30);g.rotate(WP.spin);g.translate(0,30);}}
+  if(WP&&WP.fx){   // スポーン：消えている間は描かない。組み上がる間は、足元から見えている所までだけ描く
+    if(WP.alpha!=null)g.globalAlpha*=Math.max(0,WP.alpha);
+    if(WP.reveal!=null){g.save();g.beginPath();g.rect(-60,-WP.reveal*100,120,120);g.clip();WP.clipped=true;}
+  }
   var hipY=cr?-16:-30,topY=(cr?-40:-58)+bob,headR=cr?11.5:13,headCX=d,headCY=topY-15+(cr?1.5:0);
   if(o.boss&&o.aura!==false)drawBossAura(g,topY,tm);   // 体の後ろに立ちのぼる黒と金の気
-  if(WP&&WP.orbit)devPoseFx(g,{orbit:WP.orbit},WP.t,d,topY,0,0,null,-1);   // 開発者の勝ちポーズ：体の後ろ側を回る 0 と 1
+  if(WP&&WP.fx)devSpawnBack(g,WP,d,topY);   // 開発者の勝ちポーズ（スポーン）：体の後ろの光の柱と光の粒
   var W=o.wid?WEAPONS[o.wid]:null,oneHand=!W||W.kind==='melee'||o.wid===2||o.wid===8,rest=!W&&!cr&&!air;   // rest：武器なしで立っているときは腕を下ろす
   var shY=topY+5,handX=d*14,handY=topY+13,supX=oneHand?d*11:d*22;
   var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
   if(WP&&W){P.gx+=WP.gx;P.gy+=WP.gy;P.rot+=WP.rot;if(WP.gx||WP.gy){P.sx=P.gx-d*2;P.sy=P.gy+2;}}   // 勝ちポーズ：銃の位置と向き
-  if(WP&&WP.arm==='snap'){P.gx=d*13;P.gy=topY-6;P.sx=-d*3;P.sy=shY+16;}          // 指を鳴らす：手を顔の横へ
-  else if(WP&&WP.arm==='cross'){P.sx=-d*7;P.sy=shY+12;}                           // 腕を組む（奥の腕はひじまで）
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
   if(fit===1||fit===4)drawCoatTails(g,T,hipY,cr,air,d,wind,sw,fit===4?'#0E0C14':null);
@@ -5462,15 +5612,10 @@ function drawAvatar(g,o){
   if(hat)drawHat(g,hat,acc,headCX,headCY,headR,d,wind,tm);
   g.restore();
   // 武器と手前の腕（反動・リロードでは持ち手を中心に傾ける）
-  if(W&&!(WP&&WP.nogun)){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
+  if(W){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
   if(P.hand&&P.front)avHand(g,P);
   var hx2=P.gx-d*.5,hy2=P.gy+1;
-  if(WP&&WP.arm==='cross'){   // 腕組み：奥の前腕を胸の前へ、手前の腕をその上に重ねる
-    avLimb(g,[-d*7,shY+12,d*10,shY+7],6,shadeHex(T.jacket,-.12));
-    g.beginPath();g.arc(d*10.5,shY+7,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
-    avLimb(g,[d*3,shY,d*8,shY+13,-d*7,shY+9],6.5,T.jacket);hx2=-d*7.5;hy2=shY+9;
-  }
-  else if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
+  if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
   else avLimb(g,[d*3,shY,P.gx-d*2,P.gy+1],6.5,T.jacket);
   g.beginPath();g.arc(hx2,hy2,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
   // 落ちていく空の弾倉・薬きょう
@@ -5481,68 +5626,55 @@ function drawAvatar(g,o){
     if(WP.flash>0){g.globalAlpha=WP.flash;g.fillStyle='#FFF1B8';g.beginPath();g.arc(tx,ty,5+WP.flash*5,0,Math.PI*2);g.fill();g.globalAlpha=WP.flash*.5;g.fillStyle='#FFB347';g.beginPath();g.arc(tx,ty,11*WP.flash,0,Math.PI*2);g.fill();}
     g.globalAlpha=1;
   }
-  if(WP&&(WP.orbit||WP.holo||WP.vanish||WP.snapFx))devPoseFx(g,WP,WP.t,d,topY,headCX,headCY,P,1);
+  if(WP&&WP.clipped){g.restore();WP.clipped=false;}
   if(WP)g.restore();
+  if(WP&&WP.fx)devSpawnFront(g,WP,d,topY,headCY);   // 前かがみの傾きは受けない（[SPAWN] がまっすぐ出る）
   g.restore();
 }
-function devPoseFx(g,WP,t,d,topY,hx,hy,P,side){   // side：-1＝体の後ろ側だけ、1＝体の前側と、そのほかの光
-  g.save();g.textAlign='center';g.textBaseline='middle';
-  if(WP.orbit>0){   // 体のまわりを回る 0 と 1（奥は暗く小さく、手前は明るく大きく）。顔の高さはよける
-    g.font='800 8px monospace';
-    for(var i=0;i<8;i++){
-      var a=t*2.2+i*Math.PI*2/8,z=Math.sin(a),x=Math.cos(a)*25,y=topY+24+Math.sin(a*2+i)*12;
-      if((z>0?1:-1)!==side)continue;
-      g.globalAlpha=WP.orbit*(.35+.45*(z+1)/2);g.fillStyle=z>0?'#9CFFD0':'#3FAF7A';g.shadowColor='#4ADE80';g.shadowBlur=z>0?8:0;
-      g.save();g.translate(x,y);g.scale(.8+.3*z,.8+.3*z);g.fillText(i%3===1?'0':'1',0,0);g.restore();
-    }
+// ---- スポーン（開発者だけの勝ちポーズ）の光 ----
+// 体の後ろ：縦の光の柱と、集まってくる光の粒
+function devSpawnBack(g,WP,d,topY){
+  g.save();g.globalAlpha=1;g.globalCompositeOperation='lighter';
+  if(WP.beam>0){
+    var bg=g.createLinearGradient(-12,0,12,0);bg.addColorStop(0,'rgba(90,220,255,0)');bg.addColorStop(.5,'rgba(190,245,255,'+(.55*WP.beam).toFixed(3)+')');bg.addColorStop(1,'rgba(90,220,255,0)');
+    g.fillStyle=bg;g.fillRect(-12,-130,24,134);
+    g.fillStyle='rgba(255,255,255,'+(.7*WP.beam).toFixed(3)+')';g.fillRect(-1.2,-130,2.4,134);
   }
-  if(side<0){g.restore();return;}
-  if(WP.holo>0){   // 頭の上に浮かぶ </>
-    g.globalAlpha=WP.holo*(.75+.25*Math.sin(t*6));g.font='900 12px monospace';g.fillStyle='#FFE08A';g.shadowColor='#FFB020';g.shadowBlur=10;
-    g.fillText('</>',hx,hy-24+Math.sin(t*3)*1.5);
-  }
-  if(WP.vanish>0&&WP.vanish<1){   // 銃が光の粒になって消える
-    g.shadowBlur=0;
-    for(var k=0;k<12;k++){var an=k*2.4,r=4+WP.vanish*18*(.5+prand(k)*.8);g.globalAlpha=(1-WP.vanish);g.fillStyle=k%2?'#FFE08A':'#9CFFD0';
-      g.fillRect(P.gx+Math.cos(an)*r-1,P.gy-6+Math.sin(an)*r-1-WP.vanish*8,2,2);}
-  }
-  if(WP.snapFx>0){   // パチン：指先の光
-    var sx=d*13,sy=topY-9,R=4+(1-WP.snapFx)*10;
-    g.globalAlpha=WP.snapFx;g.strokeStyle='#E8FFF0';g.lineWidth=1.6;g.shadowColor='#4ADE80';g.shadowBlur=10;g.beginPath();
-    for(var s2=0;s2<6;s2++){var a2=s2*Math.PI/3;g.moveTo(sx+Math.cos(a2)*R*.4,sy+Math.sin(a2)*R*.4);g.lineTo(sx+Math.cos(a2)*R,sy+Math.sin(a2)*R);}
-    g.stroke();
+  if(WP.gather>0){   // 光の粒が、まわりから体の位置へ集まる
+    for(var i=0;i<22;i++){var a=i*2.39,r=(1-WP.gather)*(34+prand(i)*26)+2,y=-10-prand(i*7)*70;
+      g.fillStyle=i%3?'rgba(150,235,255,.9)':'rgba(255,230,150,.9)';g.fillRect(Math.cos(a)*r-1.2,y+Math.sin(a)*r*.3-1.2,2.4,2.4);}
   }
   g.restore();
 }
-// 世界の書き換え：景色が緑のコードの雨に変わる（k＝強さ 0〜1）
-var RAIN_GLYPH='01アイウエオカキクケコサシスセソタチツテトナニヌネノ<>{}=;';
-function drawCodeRain(g,W,H,k,tm){
-  if(k<=0)return;
-  g.save();g.globalAlpha=k*.82;g.fillStyle='#010B04';g.fillRect(0,0,W,H);
-  g.font='700 11px monospace';g.textAlign='center';g.textBaseline='middle';
-  var cols=Math.ceil(W/12);
-  for(var i=0;i<cols;i++){
-    var sp=60+prand(i*1.7)*90,head=((tm*sp+prand(i*3.1)*H*2)%(H+140))-40,x=i*12+6;
-    for(var j=0;j<10;j++){
-      var y=head-j*13;if(y<-10||y>H+10)continue;
-      g.globalAlpha=k*(j?Math.max(0,.85-j*.085):1);g.fillStyle=j?'#22C55E':'#D9FFE6';
-      g.fillText(RAIN_GLYPH.charAt(Math.floor(prand(i*31+j+Math.floor(tm*9))*RAIN_GLYPH.length)),x,y);
-    }
+// 体の前：ノイズ・消えるときの光の粒・組み上がりの走査線・頭の上の [SPAWN]
+function devSpawnFront(g,WP,d,topY,hy){
+  g.save();g.globalAlpha=1;
+  if(WP.glitch){   // ノイズ：体の上を色のずれた横線が走る
+    for(var i=0;i<5;i++){var y=topY-20+prand(i*13+Math.floor(performance.now()/40))*80;g.fillStyle=i%2?'rgba(80,240,255,.55)':'rgba(255,60,160,.45)';g.fillRect(-16+(prand(i*5.1)-.5)*8,y,32,2.2);}
+  }
+  if(WP.dissolve>0){   // 体が光の粒になって上へ散る
+    g.globalCompositeOperation='lighter';
+    for(var k=0;k<28;k++){var px=(prand(k*3.3)-.5)*26,py=-4-prand(k*1.9)*84-WP.dissolve*(20+prand(k)*30);
+      g.fillStyle='rgba(150,235,255,'+(1-WP.dissolve).toFixed(3)+')';g.fillRect(px-1.2,py-1.2,2.4,2.4);}
+    g.globalCompositeOperation='source-over';
+  }
+  if(WP.reveal!=null&&WP.reveal<1){   // 組み上がり：いま見えている境目に光る走査線
+    var sy=-WP.reveal*100;g.globalCompositeOperation='lighter';
+    var lg=g.createLinearGradient(0,sy-6,0,sy+6);lg.addColorStop(0,'rgba(120,230,255,0)');lg.addColorStop(.5,'rgba(220,250,255,.95)');lg.addColorStop(1,'rgba(120,230,255,0)');
+    g.fillStyle=lg;g.fillRect(-22,sy-6,44,12);g.globalCompositeOperation='source-over';
+  }
+  if(WP.tag>0){   // 頭の上に [SPAWN]
+    g.globalAlpha=WP.tag;g.font='800 8px monospace';g.textAlign='center';g.textBaseline='middle';
+    g.fillStyle='rgba(6,14,24,.75)';g.fillRect(-20,hy-34,40,11);g.strokeStyle='rgba(120,230,255,.8)';g.lineWidth=.8;g.strokeRect(-20,hy-34,40,11);
+    g.fillStyle='#9CF0FF';g.fillText('[SPAWN]',0,hy-28.5);
   }
   g.restore();
-}
-// 対戦：勝った人が開発者の勝ちポーズなら、背景をコードの雨に
-function devRainLevel(){
-  if(!CHEER||!CHEER.side)return 0;
-  var t2=(performance.now()-CHEER.t0)/1000-.45;if(t2<1/DEV_POSE_SPEED||t2>2.2/DEV_POSE_SPEED)return 0;
-  var st=gameMode==='ai'?localStyle(CHEER.side):TEAM2?teamStyle(CHEER.side):onlineStyle(CHEER.side),L=st&&st.look;
-  return L&&(L.win|0)===6?winPose(6,t2,1).rain:0;
 }
 // ---- 勝ちポーズ ----
 // t=始まってからの秒、d=向き。返す値：
 //  bx/hop/sq=体の横のずれ・跳ぶ高さ・沈み込み（足は地面に残る）、spin=体の回転、tuck=空中でひざを抱える量、
 //  lift=[奥の足, 手前の足]を上げる高さ、spread=足の開き、gx/gy/rot=銃の位置と向きのずれ、smoke/flash=銃口の煙・光
-var WIN_POSES=SIM.LOOK_SIZES.win,DEV_POSE_SPEED=1.5;   // 最後の1つ（6）は開発者だけ
+var WIN_POSES=SIM.LOOK_SIZES.win;   // 最後の1つ（6）は開発者だけ
 // 1回のジャンプ：t0 で踏み切り、air 秒で着地。踏み切りの前は沈んでため、着地したらひざで受ける
 function winHop(o,t,t0,air,h,deep){
   var pre=.13,post=.18,dp=deep||6;
@@ -5551,7 +5683,6 @@ function winHop(o,t,t0,air,h,deep){
   else if(t>=t0+air&&t<t0+air+post){var v=(t-t0-air)/post;o.sq=Math.max(o.sq,(dp+1)*Math.sin((1-v)*Math.PI/2)*(1-v*.3));}
 }
 function winPose(pose,t,d){
-  if(pose===6)t*=DEV_POSE_SPEED;   // 降臨は長いので速めに流す（次のラウンドまでに腕組みまで見せる）
   var up=Math.min(1,t*5),o={bx:0,hop:0,sq:0,spin:0,tuck:0,air:false,lift:[0,0],spread:0,lean:0,gx:0,gy:0,rot:0,smoke:0,flash:0},k;
   switch(pose){
     case 1:   // くるくる：片ひざをゆるめて立ち、指で銃を回してから下ろす
@@ -5577,14 +5708,15 @@ function winPose(pose,t,d){
       o.lift[0]=Math.max(0,k)*7;o.lift[1]=Math.max(0,-k)*7;
       o.gy=-15*up;o.rot=-d*(1.1+.45*k)*up;o.gx=d*10*up;
       break;
-    case 6:   // 開発者だけ：降臨 → 世界の書き換え（深くためて宙に浮き、0と1が回る → 銃が光になって消え、指を鳴らすと景色がコードの雨に → 腕を組んで見下ろす）
-      if(t<.28){o.sq=10*Math.sin(t/.28*Math.PI/2);}
-      else{k=Math.min(1,(t-.28)/.52);o.hop=30*(1-Math.pow(1-k,3))+(t>.8?Math.sin((t-.8)*2.4)*3:0);o.air=true;o.tuck=.3;}
-      if(t<.95){o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;}
-      else{o.nogun=true;o.arm=t<1.25?'snap':'cross';if(t<1.25)o.vanish=Math.min(1,(t-.95)/.25);}
-      if(t>=1.08&&t<1.22)o.snapFx=1-(t-1.08)/.14;
-      o.rain=t<1.08?0:t<1.16?(t-1.08)/.08:t<1.6?1:Math.max(0,1-(t-1.6)/.3);
-      o.orbit=Math.min(1,Math.max(0,(t-.35)*2.5));o.holo=Math.min(1,Math.max(0,(t-.6)*2.5));
+    case 6:   // 開発者だけ：スポーン（ノイズが走る → 光の粒になって消える → 光の柱に粒が集まる → 足元から体が組み上がる → 着地して決める）
+      o.fx=true;
+      if(t<.12){o.glitch=1;o.bx=(prand(Math.floor(t*60))-.5)*6;}
+      else if(t<.4){o.alpha=1-(t-.12)/.28;o.dissolve=(t-.12)/.28;o.bx=(prand(Math.floor(t*60))-.5)*3;}
+      else if(t<.7){o.alpha=0;o.gather=(t-.4)/.3;}
+      else if(t<.95){o.reveal=(t-.7)/.25;o.hop=6*(1-o.reveal);}
+      if(t>=.4&&t<1.15)o.beam=t<.55?(t-.4)/.15:t<.95?1:1-(t-.95)/.2;
+      if(t>=.95){winHop(o,t,.8,.15,6);o.tag=Math.min(1,(t-.95)*4)*(t<2.2?1:Math.max(0,1-(t-2.2)*3));
+        k=Math.min(1,(t-.95)*6);o.gx=d*6*k;o.gy=-14*k;o.rot=-d*1.1*k;}   // 決めポーズ：銃を顔の横に立てる
       break;
     default:  // 掲げる：銃を空へ掲げて、3回小さく跳ねる（だんだん低く）
       o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;
@@ -5602,7 +5734,7 @@ function winFace(pose,t,o){
     case 3:return o.air?{eyes:3,mouth:6,brows:0}:t<.22?{eyes:1,mouth:0,brows:1}:{eyes:4,mouth:2,blush:true};   // バク宙：ため→叫んで回る→満面の笑み
     case 4:return o.flash>0||o.sq>2.5?{eyes:1,mouth:6,brows:1}:{eyes:1,mouth:2,brows:1};                  // 祝砲：撃つたびに叫ぶ
     case 5:return{eyes:4,mouth:Math.sin(t*8)>0?2:1,blush:true};                                           // ステップ：楽しそうに
-    case 6:return t<1.08?{eyes:1,mouth:5,brows:1}:{eyes:2,mouth:0,brows:1};                               // 降臨：不敵に笑う → 無表情で見下ろす
+    case 6:return t<.95?{eyes:3,mouth:0}:{eyes:1,mouth:5,brows:1,wink:t>1.25&&t<1.6};                     // スポーン：現れたら不敵ににやり → ウインク
     default:return o.hop>2?{eyes:4,mouth:6,blush:true}:{eyes:4,mouth:2,blush:true};                       // 掲げる：大喜び
   }
 }
@@ -8289,7 +8421,7 @@ var vsPhase=false,vsT0=0;
 // ステージが決まったときの演出。割れたときは、2つの間を行ったり来たりしてから止まる
 function startStageFx(m){
   var opts=(m.options||[]).slice(0,2);
-  if(opts.length!==2){stageFx=null;return;}
+  if(opts.length<2){stageFx=null;return;}
   stageFx={t0:performance.now(),E:Math.max(900,(+m.ms||1800))/1000,opts:opts,win:opts.indexOf(m.stage),split:!!m.split,votes:m.votes||[0,0]};
   if(stageFx.win<0)stageFx.win=0;
   renderMatchPanel();
@@ -8301,13 +8433,13 @@ function drawStageFx(){
   if(T>E){stageFx=null;renderMatchPanel();return;}
   var out=T>E-.3?Math.max(0,(E-T)/.3):1,cx=VW/2,cy=VH/2;
   var roll=stageFx.split?Math.min(1,T/(E*.55)):1;                     // 割れたときだけ、少し回してから止まる
-  var idx=roll>=1?stageFx.win:(Math.floor(T*14)%2);
+  var idx=roll>=1?stageFx.win:(Math.floor(T*14)%stageFx.opts.length);
   ctx.save();ctx.globalAlpha=out;
   ctx.fillStyle='rgba(4,5,10,.82)';ctx.fillRect(-10,-10,VW+20,VH+20);
   ctx.textAlign='center';ctx.textBaseline='middle';
-  // 2つのステージ名を左右に出し、選ばれた方を光らせる
+  // ステージ名を横に並べ、選ばれたものを光らせる
   stageFx.opts.forEach(function(sid,i){
-    var x=cx+(i===0?-1:1)*VW*.22,on=i===idx;
+    var x=cx+(i-(stageFx.opts.length-1)/2)*VW*.3,on=i===idx;
     ctx.save();ctx.globalAlpha=out*(on?1:.28);
     ctx.font='700 '+(on?18:15)+'px '+FONT_JP;
     ctx.fillStyle=on?'#FFC53D':'rgba(255,255,255,.7)';
@@ -8486,7 +8618,6 @@ function drawScene(){
   ctx.save();if(sk>.2)ctx.translate((Math.random()-.5)*2*sk,(Math.random()-.5)*2*sk);   // 画面の揺れ
   if(kc){var kx=wx(kc.x),ky=kc.y;ctx.save();ctx.translate(kx,ky);ctx.scale(kz,kz);ctx.translate(-kx,-ky);}
   drawBackground();
-  var rk=devRainLevel();if(rk>0)drawCodeRain(ctx,VW,VH,rk,performance.now()/1000);
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins,me=null,op=null;
   if(gameMode==='ai'&&lp&&lai){
     me=lp;op=lai;drawChar(lp,true,{look:profile.look});drawChar(lai,false,{look:cpuLook,boss:isBossFight()});

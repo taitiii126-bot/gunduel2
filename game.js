@@ -37,7 +37,7 @@ const TICK_MS = 1000 / 60;
 const VS_MS = process.env.LOBBY_MS ? 0 : (+process.env.VS_MS || 3300);
 const PREP_MS = +process.env.LOBBY_MS || +process.env.PREP_MS || 10000;
 // 試合前のステージ投票の時間と、決まったことを見せる時間
-const STAGE_MS = process.env.STAGE_MS != null ? +process.env.STAGE_MS : 5000;
+const STAGE_MS = process.env.STAGE_MS != null ? +process.env.STAGE_MS : 8000;   // 3つを見比べられるよう、少し長め（全員選んだらすぐ次へ）
 const STAGE_SHOW_MS = process.env.STAGE_SHOW_MS != null ? +process.env.STAGE_SHOW_MS : 1800;
 // ラウンド間：倒れる演出（ROUND_GAP_MS）のあと、最大 PICK_MS の武器変更。両者が「決定」を押したらすぐ次へ
 const PICK_MS = process.env.PICK_MS != null ? +process.env.PICK_MS : 10000;
@@ -53,23 +53,29 @@ const BOT_SKILL_BOOST = process.env.BOT_SKILL_BOOST != null ? +process.env.BOT_S
 const BOT_BOOST_RANKED = process.env.BOT_SKILL_BOOST_RANKED != null ? +process.env.BOT_SKILL_BOOST_RANKED : Math.round(BOT_SKILL_BOOST / 2);
 const STAGE = 'classic';                            // 投票で決まらなかったときの既定
 // ---- ステージ投票 ----
-// 試合前に2つ出して、みんなで1つずつ選ぶ。多い方に決まり、割れた（同数）ときはその2つからランダム
+// 試合前に決まった3つ（タワー・フラット・クラシック）を出して、みんなで1つずつ選ぶ。
+// いちばん多いものに決まり、同数で割れたときはその中から、誰も選ばなかったときは3つからランダム
 const STAGE_KEYS = Object.keys(SIM.STAGES);
 // ONLINE_STAGE にステージ名を入れると、投票をやめてそのステージに固定できる（不具合が出たステージを外すとき用）
 const FORCE_STAGE = SIM.STAGES[process.env.ONLINE_STAGE] ? process.env.ONLINE_STAGE : '';
-function twoStages() {
-  const a = STAGE_KEYS[Math.floor(Math.random() * STAGE_KEYS.length)];
-  let b = a;
-  while (b === a) b = STAGE_KEYS[Math.floor(Math.random() * STAGE_KEYS.length)];
-  return [a, b];
+const STAGE_CHOICES = ['tower', 'flat', 'classic'].filter(k => SIM.STAGES[k]);
+function stageOptions() {
+  if (STAGE_CHOICES.length >= 2) return STAGE_CHOICES.slice();
+  return STAGE_KEYS.slice(0, 3);
 }
+// 票を数える：[各ステージの票数]
+function stageCounts(opts, votes) {
+  const n = opts.map(() => 0);
+  for (const v of Object.values(votes || {})) { const i = opts.indexOf(v); if (i >= 0) n[i]++; }
+  return n;
+}
+// いちばん多いものが1つに決まらなかった（同数・誰も入れなかった）か
+function stageSplit(n) { const m = Math.max(0, ...n); return n.filter(x => x === m).length > 1; }
 function decideStage(opts, votes) {
-  const o = Array.isArray(opts) && opts.length === 2 ? opts : [STAGE, STAGE];
-  const n = [0, 0];
-  for (const v of Object.values(votes || {})) { const i = o.indexOf(v); if (i >= 0) n[i]++; }
-  if (n[0] > n[1]) return o[0];
-  if (n[1] > n[0]) return o[1];
-  return o[Math.floor(Math.random() * 2)];          // 割れた・誰も入れなかった
+  const o = Array.isArray(opts) && opts.length ? opts : [STAGE];
+  const n = stageCounts(o, votes), m = Math.max(...n);
+  const top = o.filter((_, i) => n[i] === m);                  // 同数なら、その中からランダム（誰も入れなければ全部から）
+  return top[Math.floor(Math.random() * top.length)];
 }
 
 // ---- 自動操作（BOT・マクロ）の検知基準 ----
@@ -147,7 +153,7 @@ class Room {
     this.wins = { a: 0, b: 0 };
     this.world = SIM.newWorld(STAGE);
     this.frame = 0; this.timers = new Set(); this.closed = false; this.closeTimer = null;
-    this.stage = FORCE_STAGE || STAGE; this.stagePick = FORCE_STAGE ? null : twoStages(); this.votes = {};   // ステージ投票
+    this.stage = FORCE_STAGE || STAGE; this.stagePick = FORCE_STAGE ? null : stageOptions(); this.votes = {};   // ステージ投票
     this.matchLive = false; this.roundsDone = 0;
     this.later(() => {
       if (this.phase !== 'waiting') return;
@@ -230,7 +236,7 @@ class Room {
       if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, dev: !!o.dev, loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
     }
     this.schedulePing();
-    this.stagePick = FORCE_STAGE ? null : twoStages(); this.votes = {};
+    this.stagePick = FORCE_STAGE ? null : stageOptions(); this.votes = {};
     if (this.stagePick && STAGE_MS > 0) this.beginWait('stage', STAGE_MS, VS_MS);   // ①ステージ → ②武器
     else this.beginWait('prep', PREP_MS, VS_MS);
   }
@@ -245,7 +251,7 @@ class Room {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (!p || !p.bot) continue;
-      if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
+      if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * this.stagePick.length)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
       else this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
@@ -299,10 +305,9 @@ class Room {
     const kind = this.waitState.kind;
     this.waitState = null; this.waitTimer = null;
     if (kind === 'stage') {
-      const opts = this.stagePick || [], n = [0, 0];
-      for (const v of Object.values(this.votes)) { const i = opts.indexOf(v); if (i >= 0) n[i]++; }
+      const opts = this.stagePick || [], n = stageCounts(opts, this.votes);
       this.stage = FORCE_STAGE || decideStage(this.stagePick, this.votes);
-      const split = opts.length === 2 && n[0] === n[1];                    // 割れた（同数）ときはランダムで決まった
+      const split = opts.length > 1 && stageSplit(n);                      // 割れた（同数）・誰も入れなかったときはランダムで決まった
       this.broadcast({ type: 'stage_result', stage: this.stage, options: opts, votes: n, split, ms: STAGE_SHOW_MS });
       this.later(() => { if (!this.closed) this.beginWait('prep', PREP_MS, 0); }, STAGE_SHOW_MS);
       return;
@@ -568,4 +573,4 @@ class Room {
 
 // 2v2（team.js）でも同じ整え方・同じ時間を使う
 module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
-  WIN_ROUNDS, VS_MS, PREP_MS, STAGE_MS, STAGE_SHOW_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, twoStages, decideStage };
+  WIN_ROUNDS, VS_MS, PREP_MS, STAGE_MS, STAGE_SHOW_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, stageOptions, stageCounts, stageSplit, decideStage };
