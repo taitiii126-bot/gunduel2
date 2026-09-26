@@ -41,9 +41,10 @@ var GRAVITY = 0.55, JUMP_F = -13, SPEED = 3.4;
 var REGEN_IDLE = 120, REGEN_INT = 120, REGEN_AMT = 20;   // 2秒のあいだ撃たず撃たれずなら、2秒ごとに20回復
 var SWAP_FRAMES = 10;      // 持ち替えてから撃てるまで
 var BUFFER_FRAMES = 6;     // 押した入力を少しだけ覚えておく（押し損ね・通信のゆらぎの吸収）
+var LAND_LAG = 14;         // 着地してから次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 5;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加
+var PROTO = 6;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -371,8 +372,9 @@ function stepChar(w, c, t, ev, vis) {
     if (W.mag > 0 && c.ammo[c.slot] < W.mag && c.rl <= 0 && c.burst <= 0 && c.chg <= 0) startReload(c, ev);
   }
   if (c.jumpBuf > 0) {
-    if (c.onGround && !busy && c.kbT <= 0) { c.vy = JUMP_F; c.jumpBuf = 0; ev.push({ t: 'jump', who: c.side }); }
-    else c.jumpBuf--;
+    var landWait = c.onGround && c.groundSince >= 0 && w.frame - c.groundSince < LAND_LAG;
+    if (c.onGround && !busy && c.kbT <= 0 && !landWait) { c.vy = JUMP_F; c.jumpBuf = 0; ev.push({ t: 'jump', who: c.side }); }
+    else if (!landWait) c.jumpBuf--;   // 着地の待ちの間は、押したジャンプを覚えておき、待ちが明けたら跳ぶ
   }
   // 向きと移動（撃つより先に向きを決めるので、振り向きながら撃てる）
   var sp = SPEED * (W.move || 1) * (c.chg > 0 ? 0.4 : 1);
@@ -1102,6 +1104,8 @@ function tacBand(b, W, op) {
   }
   return [lo, hi];
 }
+// 次のフレームで跳べるか（着地の待ち LAND_LAG が明けているか）。think は step の前なので、次のフレームで数える
+function landReady(w, c) { return !(c.onGround && c.groundSince >= 0 && w.frame + 1 - c.groundSince < LAND_LAG); }
 // 相手が今から t フレーム後にいる高さ（空中なら、落ちてくる先まで読む）
 function predictTopY(w, c, t) {
   if (c.onGround || t <= 0) return c.y;
@@ -1276,7 +1280,7 @@ function think(b, w, side) {
       tx = b.edgeX + (b.node && b.edgeX < (b.node.x1 + b.node.x2) / 2 ? -8 : 8);
       if (!me.onGround) b.air = e.to;
     } else if (Math.abs(me.x - tx) <= 4 && me.onGround) {
-      if (e.type === 'up' || e.type === 'leap') { jumpNow = true; b.air = e.to; }
+      if (e.type === 'up' || e.type === 'leap') { if (landReady(w, me)) { jumpNow = true; b.air = e.to; } }   // 着地の待ちが明けるまで、端で待つ
       else { b.edge = null; b.moveT = 999; }
     }
   } else if (b.goalX !== null && b.goalX !== undefined) {
@@ -1607,7 +1611,7 @@ function titleOk(id, ctx) {
 
 var api = {
   VW: VW, VH: VH, WORLD_W: WORLD_W, GND: GND, MAX_HP: MAX_HP, CHAR_W: CHAR_W, CHAR_H: CHAR_H, DUCK_H: DUCK_H, HIT_FRAMES: HIT_FRAMES,
-  GRAVITY: GRAVITY, JUMP_F: JUMP_F, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
+  GRAVITY: GRAVITY, JUMP_F: JUMP_F, LAND_LAG: LAND_LAG, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
