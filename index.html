@@ -1363,6 +1363,84 @@ body.mland .settings-section{padding:11px 13px;margin-bottom:8px;}
 body.mland #settings-screen{column-count:2;column-gap:12px;}
 body.mland #settings-screen>*{break-inside:avoid;}
 body.mland #settings-screen>.scr-head{column-span:all;}
+
+/* ============================================================
+   PROFILE 2026 — プロフィールを「カード／見た目／戦績」のタブに分ける
+   ・広い画面：左にカード（スクロールしても残る）、右にタブ
+   ・スマホ：上にカード、その下にタブ（見た目タブではカードを隠して、大きなプレビューだけ）
+   ============================================================ */
+body:has(#profile-screen:not([style*="none"])){align-items:flex-start;}
+body:has(#profile-screen:not([style*="none"])) #wrap{max-width:1120px;}
+#profile-screen{max-width:1080px;}
+.pf-layout{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:24px;align-items:start;margin-bottom:12px;}
+.pf-layout>.pf-card{position:sticky;top:16px;}
+.pf-main{min-width:0;}
+
+/* タブ */
+.pf-tabs{position:sticky;top:0;z-index:5;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;margin-bottom:14px;padding:4px;
+  background:rgba(7,8,12,.92);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);box-shadow:inset 0 0 0 1px rgba(255,255,255,.09);clip-path:var(--cut-s);}
+.pf-tab{display:flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:0 10px;border:0;background:transparent;color:var(--tx-2);
+  font-size:15px;font-weight:900;letter-spacing:.06em;clip-path:var(--cut-s);transition:background .15s,color .15s;}
+.pf-tab svg.i{width:18px;height:18px;}
+.pf-tab:hover{color:var(--tx);background:rgba(255,255,255,.05);}
+.pf-tab[aria-selected="true"]{background:var(--gold);color:var(--gold-ink);}
+.pf-tab:focus-visible{outline-offset:-4px;}
+
+/* パネル：選んでいるタブだけ出す */
+.pf-panel{display:none;}
+#profile-screen[data-pf="card"] .pf-panel[data-panel="card"],
+#profile-screen[data-pf="look"] .pf-panel[data-panel="look"],
+#profile-screen[data-pf="stats"] .pf-panel[data-panel="stats"]{display:block;animation:scr-item .3s ease-out both;}
+.pf-panel .settings-section:last-child{margin-bottom:0;}
+
+/* 見出しを読みやすく：日本語は大きく白、英語は小さく金 */
+#profile-screen .settings-section{padding:18px 20px;}
+#profile-screen .settings-section h3{align-items:center;margin-bottom:14px;}
+#profile-screen .settings-section h3 span:first-child{font-family:var(--f-jp);font-size:15.5px;font-weight:900;letter-spacing:.06em;color:var(--tx);}
+#profile-screen .settings-section h3 span:last-child{font-size:10px;letter-spacing:.24em;color:var(--gold);opacity:.85;}
+#profile-screen .pf-note{font-size:12.5px;line-height:1.7;color:var(--tx-2);}
+
+/* 名前とひとことは横に並べる */
+.pf-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.4fr);gap:12px;}
+.pf-row2 .settings-section{margin-bottom:12px;}
+.pf-input{font-size:16px;}
+
+/* 背景：少し大きく */
+#profile-screen .bg-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;}
+#profile-screen .bg-opt .lk{font-size:10.5px;}
+
+/* 見た目：右の欄に収まるように */
+#profile-screen .look-wrap{grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:22px;}
+#profile-screen .look-tab{min-height:38px;padding:7px 14px;font-size:13px;}
+
+/* 戦績：ティア一覧は2列でコンパクトに */
+#profile-screen #tier-ladder{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;}
+#profile-screen .tier-row{padding:6px 10px;border-radius:0;font-size:12px;color:var(--tx-2);}
+#profile-screen .tier-row>span:first-child{font-size:13px;color:var(--tx);}
+#profile-screen .tier-row canvas.tier-mk{width:30px;height:30px;margin-right:8px;}
+#profile-screen #tier-score,#profile-screen #tier-next{font-size:13px;color:var(--tx-2);}
+#profile-screen #profile-account,#profile-screen .profile-empty{font-size:13.5px;color:var(--tx-2);}
+#profile-screen .profile-row{font-size:14px;}
+#profile-screen .profile-diff{font-size:14.5px;}
+
+/* スマホ・タブレット */
+@media (max-width:900px){
+  .pf-layout{grid-template-columns:1fr;gap:14px;}
+  .pf-layout>.pf-card{position:static;max-width:280px;width:100%;margin:0 auto;}
+  #profile-screen[data-pf="look"] .pf-layout>.pf-card{display:none;}
+  .pf-tabs{position:static;}
+  #profile-screen .look-wrap{grid-template-columns:1fr;}
+  #profile-screen .look-prev{max-width:280px;}
+}
+@media (max-width:560px){
+  .pf-row2{grid-template-columns:1fr;gap:0;}
+  #profile-screen .settings-section{padding:16px;}
+  #profile-screen #tier-ladder{grid-template-columns:1fr;}
+  .pf-tab{font-size:14px;gap:6px;}
+}
+/* スマホ横持ち：カードを小さく左に固定 */
+body.mland .pf-layout{grid-template-columns:minmax(0,210px) minmax(0,1fr);gap:12px;}
+body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:none;}
 </style>
 </head>
 <body>
@@ -1638,68 +1716,84 @@ body.mland #settings-screen>.scr-head{column-span:all;}
     <button class="back-btn" onclick="closeLoadout()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="lo.done"></span></button>
   </div>
 
-  <div id="profile-screen" class="screen menu wide" style="display:none;">
+  <div id="profile-screen" class="screen menu wide" style="display:none;" data-pf="card">
     <div class="scr-head">
       <span class="kicker" data-i18n="pf.kicker"></span>
       <h2 class="scr-title" data-i18n="pf.title"></h2>
     </div>
-    <div class="pf-top">
+    <div class="pf-layout">
       <div class="pf-card"><canvas id="pf-card" width="380" height="500"></canvas></div>
-      <div class="pf-edit">
-        <div class="settings-section">
-          <h3><span data-i18n="pf.name"></span><span>NAME</span></h3>
-          <input class="pf-input" id="profile-name-input" maxlength="12" data-i18n-ph="pf.namePh" oninput="editProfileText('name',this.value)">
+      <div class="pf-main">
+        <div class="pf-tabs" role="tablist">
+          <button role="tab" class="pf-tab" data-tab="card" aria-selected="true" onclick="pfTab('card')"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><circle cx="12" cy="10" r="3"/><path d="M8 17h8"/></svg><span data-i18n="pf.tab.card"></span></button>
+          <button role="tab" class="pf-tab" data-tab="look" aria-selected="false" onclick="pfTab('look')"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg><span data-i18n="pf.tab.look"></span></button>
+          <button role="tab" class="pf-tab" data-tab="stats" aria-selected="false" onclick="pfTab('stats')"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg><span data-i18n="pf.tab.stats"></span></button>
         </div>
-        <div class="settings-section">
-          <h3><span data-i18n="pf.bio"></span><span>BIO</span></h3>
-          <input class="pf-input" id="profile-bio-input" maxlength="40" data-i18n-ph="pf.bioPh" oninput="editProfileText('bio',this.value)">
+
+        <div class="pf-panel" data-panel="card" role="tabpanel">
+          <div class="pf-row2">
+            <div class="settings-section">
+              <h3><span data-i18n="pf.name"></span><span>NAME</span></h3>
+              <input class="pf-input" id="profile-name-input" maxlength="12" data-i18n-ph="pf.namePh" oninput="editProfileText('name',this.value)">
+            </div>
+            <div class="settings-section">
+              <h3><span data-i18n="pf.bio"></span><span>BIO</span></h3>
+              <input class="pf-input" id="profile-bio-input" maxlength="40" data-i18n-ph="pf.bioPh" oninput="editProfileText('bio',this.value)">
+            </div>
+          </div>
+          <div class="settings-section">
+            <h3><span data-i18n="pf.titleSec"></span><span>TITLE</span></h3>
+            <div class="chip-row" id="pf-titles"></div>
+          </div>
+          <div class="settings-section">
+            <h3><span data-i18n="pf.badgeSec"></span><span>SEASON BADGE</span></h3>
+            <div class="badge-row" id="pf-badges"></div>
+            <p class="pf-note" data-i18n="pf.badgeNote"></p>
+          </div>
+          <div class="settings-section pf-bgsec">
+            <h3><span data-i18n="pf.bg"></span><span>BACKGROUND</span></h3>
+            <div class="bg-grid" id="pf-bgs"></div>
+            <p class="pf-note" data-i18n="pf.bgNote"></p>
+          </div>
         </div>
-        <div class="settings-section">
-          <h3><span data-i18n="pf.titleSec"></span><span>TITLE</span></h3>
-          <div class="chip-row" id="pf-titles"></div>
+
+        <div class="pf-panel" data-panel="look" role="tabpanel">
+          <div class="settings-section">
+            <h3><span data-i18n="pf.look"></span><span>APPEARANCE</span></h3>
+            <div class="look-wrap">
+              <div class="look-prev"><canvas id="look-prev" width="600" height="600"></canvas></div>
+              <div class="look-side">
+                <div class="look-tabs" id="look-tabs"></div>
+                <div id="look-opts"></div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="settings-section">
-          <h3><span data-i18n="pf.badgeSec"></span><span>SEASON BADGE</span></h3>
-          <div class="badge-row" id="pf-badges"></div>
-          <p class="pf-note" data-i18n="pf.badgeNote"></p>
+
+        <div class="pf-panel" data-panel="stats" role="tabpanel">
+          <div class="settings-section">
+            <h3><span data-i18n="pf.account"></span><span>ACCOUNT</span></h3>
+            <div id="profile-account"></div>
+          </div>
+          <div class="settings-section">
+            <h3><span data-i18n="pf.overall"></span><span>OVERALL</span></h3>
+            <div id="profile-total"></div>
+          </div>
+          <div class="settings-section">
+            <h3><span data-i18n="pf.vsCpu"></span><span>VS CPU</span></h3>
+            <div id="profile-rows"></div>
+          </div>
+          <div class="settings-section">
+            <h3><span data-i18n="pf.tier"></span><span>TIER</span></h3>
+            <div id="tier-badge-wrap">
+              <div id="tier-score"></div>
+              <div id="tier-progress-wrap"><div id="tier-progress-bar"></div></div>
+              <div id="tier-next"></div>
+            </div>
+            <div id="tier-ladder"></div>
+          </div>
         </div>
       </div>
-      <div class="settings-section pf-bgsec">
-        <h3><span data-i18n="pf.bg"></span><span>BACKGROUND</span></h3>
-        <div class="bg-grid" id="pf-bgs"></div>
-        <p class="pf-note" data-i18n="pf.bgNote"></p>
-      </div>
-    </div>
-    <div class="settings-section">
-      <h3><span data-i18n="pf.look"></span><span>APPEARANCE</span></h3>
-      <div class="look-wrap">
-        <div class="look-prev"><canvas id="look-prev" width="600" height="600"></canvas></div>
-        <div class="look-side">
-          <div class="look-tabs" id="look-tabs"></div>
-          <div id="look-opts"></div>
-        </div>
-      </div>
-    </div>
-    <div class="settings-section">
-      <h3><span data-i18n="pf.account"></span><span>ACCOUNT</span></h3>
-      <div id="profile-account"></div>
-    </div>
-    <div class="settings-section">
-      <h3><span data-i18n="pf.overall"></span><span>OVERALL</span></h3>
-      <div id="profile-total"></div>
-    </div>
-    <div class="settings-section">
-      <h3><span data-i18n="pf.tier"></span><span>TIER</span></h3>
-      <div id="tier-badge-wrap">
-        <div id="tier-score"></div>
-        <div id="tier-progress-wrap"><div id="tier-progress-bar"></div></div>
-        <div id="tier-next"></div>
-      </div>
-      <div id="tier-ladder"></div>
-    </div>
-    <div class="settings-section">
-      <h3><span data-i18n="pf.vsCpu"></span><span>VS CPU</span></h3>
-      <div id="profile-rows"></div>
     </div>
     <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
@@ -1781,7 +1875,7 @@ body.mland #settings-screen>.scr-head{column-span:all;}
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
 <script src="sim.js?v=29"></script>
-<script src="lang.js?v=30"></script>
+<script src="lang.js?v=31"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3795,6 +3889,13 @@ function renderOnline(){
   renderQueue();
 }
 function showSettingsScreen(){if(currentScreen==='game-screen')return;showScreen('settings-screen');renderKbUI();renderSettingsUI();renderLangSegs();}
+// プロフィールのタブ（カード／見た目／戦績）。見た目は切りかえた時にプレビューを描き直す
+function pfTab(k){
+  var sc=document.getElementById('profile-screen');if(!sc)return;
+  sc.setAttribute('data-pf',k);
+  sc.querySelectorAll('.pf-tab').forEach(function(b){b.setAttribute('aria-selected',b.getAttribute('data-tab')===k?'true':'false');});
+  startCardLoop();if(k==='look')renderLookPreview();
+}
 function showProfileScreen(){showScreen('profile-screen');renderProfileUI();renderLoginUI();if(AUTH.token)refreshMe();}
 function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
 function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();}
@@ -8782,7 +8883,7 @@ function drawBgFx(tm){
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
  doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
- selectCpuLevel,selectStage,showModeScreen,showProfileScreen,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
+ selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
