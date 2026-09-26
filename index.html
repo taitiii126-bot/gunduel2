@@ -5406,7 +5406,7 @@ function drawAvatar(g,o){
   if(WP){g.translate(WP.bx,-WP.hop+WP.sq);if(WP.spin){g.translate(0,-30);g.rotate(WP.spin);g.translate(0,30);}}
   var hipY=cr?-16:-30,topY=(cr?-40:-58)+bob,headR=cr?11.5:13,headCX=d,headCY=topY-15+(cr?1.5:0);
   if(o.boss&&o.aura!==false)drawBossAura(g,topY,tm);   // 体の後ろに立ちのぼる黒と金の気
-  if(WP&&WP.orbit)devPoseFx(g,{orbit:WP.orbit},o.win.t,d,topY,0,0,null,-1);   // 開発者の勝ちポーズ：体の後ろ側を回る 0 と 1
+  if(WP&&WP.orbit)devPoseFx(g,{orbit:WP.orbit},WP.t,d,topY,0,0,null,-1);   // 開発者の勝ちポーズ：体の後ろ側を回る 0 と 1
   var W=o.wid?WEAPONS[o.wid]:null,oneHand=!W||W.kind==='melee'||o.wid===2||o.wid===8,rest=!W&&!cr&&!air;   // rest：武器なしで立っているときは腕を下ろす
   var shY=topY+5,handX=d*14,handY=topY+13,supX=oneHand?d*11:d*22;
   var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
@@ -5481,7 +5481,7 @@ function drawAvatar(g,o){
     if(WP.flash>0){g.globalAlpha=WP.flash;g.fillStyle='#FFF1B8';g.beginPath();g.arc(tx,ty,5+WP.flash*5,0,Math.PI*2);g.fill();g.globalAlpha=WP.flash*.5;g.fillStyle='#FFB347';g.beginPath();g.arc(tx,ty,11*WP.flash,0,Math.PI*2);g.fill();}
     g.globalAlpha=1;
   }
-  if(WP&&(WP.orbit||WP.holo||WP.vanish||WP.snapFx))devPoseFx(g,WP,o.win.t,d,topY,headCX,headCY,P,1);
+  if(WP&&(WP.orbit||WP.holo||WP.vanish||WP.snapFx))devPoseFx(g,WP,WP.t,d,topY,headCX,headCY,P,1);
   if(WP)g.restore();
   g.restore();
 }
@@ -5534,7 +5534,7 @@ function drawCodeRain(g,W,H,k,tm){
 // 対戦：勝った人が開発者の勝ちポーズなら、背景をコードの雨に
 function devRainLevel(){
   if(!CHEER||!CHEER.side)return 0;
-  var t2=(performance.now()-CHEER.t0)/1000-.45;if(t2<1||t2>2.2)return 0;
+  var t2=(performance.now()-CHEER.t0)/1000-.45;if(t2<1/DEV_POSE_SPEED||t2>2.2/DEV_POSE_SPEED)return 0;
   var st=gameMode==='ai'?localStyle(CHEER.side):TEAM2?teamStyle(CHEER.side):onlineStyle(CHEER.side),L=st&&st.look;
   return L&&(L.win|0)===6?winPose(6,t2,1).rain:0;
 }
@@ -5542,7 +5542,7 @@ function devRainLevel(){
 // t=始まってからの秒、d=向き。返す値：
 //  bx/hop/sq=体の横のずれ・跳ぶ高さ・沈み込み（足は地面に残る）、spin=体の回転、tuck=空中でひざを抱える量、
 //  lift=[奥の足, 手前の足]を上げる高さ、spread=足の開き、gx/gy/rot=銃の位置と向きのずれ、smoke/flash=銃口の煙・光
-var WIN_POSES=SIM.LOOK_SIZES.win;   // 最後の1つ（6）は開発者だけ
+var WIN_POSES=SIM.LOOK_SIZES.win,DEV_POSE_SPEED=1.5;   // 最後の1つ（6）は開発者だけ
 // 1回のジャンプ：t0 で踏み切り、air 秒で着地。踏み切りの前は沈んでため、着地したらひざで受ける
 function winHop(o,t,t0,air,h,deep){
   var pre=.13,post=.18,dp=deep||6;
@@ -5551,6 +5551,7 @@ function winHop(o,t,t0,air,h,deep){
   else if(t>=t0+air&&t<t0+air+post){var v=(t-t0-air)/post;o.sq=Math.max(o.sq,(dp+1)*Math.sin((1-v)*Math.PI/2)*(1-v*.3));}
 }
 function winPose(pose,t,d){
+  if(pose===6)t*=DEV_POSE_SPEED;   // 降臨は長いので速めに流す（次のラウンドまでに腕組みまで見せる）
   var up=Math.min(1,t*5),o={bx:0,hop:0,sq:0,spin:0,tuck:0,air:false,lift:[0,0],spread:0,lean:0,gx:0,gy:0,rot:0,smoke:0,flash:0},k;
   switch(pose){
     case 1:   // くるくる：片ひざをゆるめて立ち、指で銃を回してから下ろす
@@ -5589,7 +5590,7 @@ function winPose(pose,t,d){
       o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;
       winHop(o,t,.2,.34,15);winHop(o,t,.7,.3,11);winHop(o,t,1.16,.26,7);
   }
-  o.face=winFace(pose,t,o);
+  o.face=winFace(pose,t,o);o.t=t;
   return o;
 }
 // 勝ちポーズの表情（目・口・まゆ・ウインク・ほおの赤み）。eyes 4＝にっこり目、3＝見開く、2＝ねむそう（クール）、1＝するどい
