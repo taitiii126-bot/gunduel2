@@ -44,7 +44,7 @@ class TeamRoom {
     this.phase = 'waiting';                 // waiting → lobby → playing ⇄ roundOver/pick → ended
     this.wins = [0, 0];
     this.world = SIM.newTeamWorld(G.STAGE, {});
-    this.stage = G.FORCE_STAGE || G.STAGE; this.stagePick = G.FORCE_STAGE ? null : G.twoStages(); this.votes = {};   // ステージ投票
+    this.stage = G.FORCE_STAGE || G.STAGE; this.stagePick = G.FORCE_STAGE ? null : G.stageOptions(); this.votes = {};   // ステージ投票
     this.frame = 0; this.timers = new Set(); this.closed = false; this.closeTimer = null;
     this.matchLive = false; this.roundsDone = 0; this.ranked = false; this.rate0 = null;
     this.later(() => {
@@ -156,7 +156,7 @@ class TeamRoom {
     }
     for (const k of SLOTS) { const p = this.players[k]; if (p && !p.bot) this.send(p, { type: 'team_ready', slot: k, ranked: this.ranked, players: info }); }
     this.schedulePing();
-    this.stagePick = G.FORCE_STAGE ? null : G.twoStages(); this.votes = {};
+    this.stagePick = G.FORCE_STAGE ? null : G.stageOptions(); this.votes = {};
     if (this.stagePick && G.STAGE_MS > 0) this.beginWait('stage', G.STAGE_MS, G.VS_MS);
     else this.beginWait('prep', G.PREP_MS, G.VS_MS);
   }
@@ -169,7 +169,7 @@ class TeamRoom {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (!p || !p.bot) continue;
-      if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * 2)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
+      if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * this.stagePick.length)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
       else this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
@@ -221,10 +221,9 @@ class TeamRoom {
     const kind = this.waitState.kind;
     this.waitState = null; this.waitTimer = null;
     if (kind === 'stage') {
-      const opts = this.stagePick || [], n = [0, 0];
-      for (const v of Object.values(this.votes)) { const i = opts.indexOf(v); if (i >= 0) n[i]++; }
+      const opts = this.stagePick || [], n = G.stageCounts(opts, this.votes);
       this.stage = G.FORCE_STAGE || G.decideStage(this.stagePick, this.votes);
-      this.broadcast({ type: 'stage_result', stage: this.stage, options: opts, votes: n, split: opts.length === 2 && n[0] === n[1], ms: G.STAGE_SHOW_MS });
+      this.broadcast({ type: 'stage_result', stage: this.stage, options: opts, votes: n, split: opts.length > 1 && G.stageSplit(n), ms: G.STAGE_SHOW_MS });
       this.later(() => { if (!this.closed) this.beginWait('prep', G.PREP_MS, 0); }, G.STAGE_SHOW_MS);
       return;
     }

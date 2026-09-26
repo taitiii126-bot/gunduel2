@@ -71,6 +71,9 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 /* ---------- 共通 ---------- */
 .screen{animation:scr-in .42s var(--ease) both;}
 @keyframes scr-in{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+/* ゲーム画面は透明度だけ（transform のアニメーションが残ると、中の全画面表示（試合前のパネル）がゲーム画面の枠に閉じ込められる） */
+#game-screen.screen{animation-name:scr-fade;}
+@keyframes scr-fade{from{opacity:0}to{opacity:1}}
 /* メニューの中身を上から順にふわっと出す（transform は使わない：子の位置指定をこわさないため） */
 .screen.menu>*{animation:scr-item .5s ease-out backwards;}
 .screen.menu>*:nth-child(2){animation-delay:.05s}.screen.menu>*:nth-child(3){animation-delay:.1s}.screen.menu>*:nth-child(4){animation-delay:.15s}
@@ -718,6 +721,100 @@ button.mp-w{cursor:pointer;}
 .mp-ok:active{transform:translateY(1px);}
 .mp-ok:disabled{opacity:.45;cursor:default;}
 @media (max-width:700px){.mp-grid{grid-template-columns:1fr 1fr;}.mp-row{grid-template-columns:1fr;}.mp-head b{font-size:15px;}.mp-time{font-size:24px;}}
+/* ==== 試合前の準備（ステージ投票・武器選択）：画面いっぱいの重ね表示 ==== */
+#match-panel.on{position:fixed;inset:0;left:0;top:0;bottom:0;transform:none;width:auto;max-width:none;z-index:60;display:flex;align-items:center;justify-content:center;
+  padding:18px;border:0;border-radius:0;box-shadow:none;overflow:auto;background:radial-gradient(ellipse at 50% 40%,rgba(10,12,24,.78),rgba(3,4,9,.92));font-size:13px;}
+#match-panel.on .mp-box{position:relative;width:min(980px,100%);max-height:100%;overflow:auto;padding:16px 18px 14px;border-radius:18px;
+  background:linear-gradient(180deg,rgba(18,21,34,.98),rgba(8,10,18,.98));border:1px solid rgba(255,255,255,.14);box-shadow:0 30px 80px -24px rgba(0,0,0,.95);}
+.mp-bar{position:absolute;left:0;right:0;top:0;height:3px;border-radius:18px 18px 0 0;overflow:hidden;background:rgba(255,255,255,.06);}
+.mp-bar i{display:block;height:100%;background:linear-gradient(90deg,#FFC53D,#FF8A3D);box-shadow:0 0 12px rgba(255,197,61,.8);transition:width .25s linear;}
+.mp-bar.low i{background:linear-gradient(90deg,#FF4D5E,#FF8A96);box-shadow:0 0 12px rgba(255,77,94,.8);}
+/* ステージ：大きなカード3枚 */
+.mp-st3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;}
+.st3{position:relative;display:flex;flex-direction:column;padding:0;overflow:hidden;border-radius:14px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:inherit;text-align:left;cursor:pointer;transition:border-color .15s,box-shadow .2s,transform .12s;}
+.st3:hover{border-color:rgba(255,255,255,.35);transform:translateY(-2px);}
+.st3 canvas{display:block;width:100%;aspect-ratio:2/1;height:auto;background:#0B0E1A;}
+.st3 .st-tx{display:block;padding:10px 12px 12px;}
+.st3 .st-tx b{display:block;font-family:var(--f-disp);font-size:19px;letter-spacing:.02em;}
+.st3 .st-tx small{display:block;margin-top:3px;font-size:11.5px;line-height:1.5;color:var(--tx-3);}
+.st3.mine{border-color:#B794FF;box-shadow:0 0 0 1px rgba(183,148,255,.5),0 0 30px -8px rgba(183,148,255,.8);}
+.st3.theirs{border-color:#FF6B7A;box-shadow:0 0 0 1px rgba(255,107,122,.45),0 0 26px -10px rgba(255,107,122,.8);}
+.st3.agree{border-color:#FFC53D;box-shadow:0 0 0 2px rgba(255,197,61,.6),0 0 40px -6px rgba(255,197,61,.95);animation:st-agree 1s ease-in-out infinite alternate;}
+@keyframes st-agree{to{box-shadow:0 0 0 2px rgba(255,197,61,.9),0 0 54px -4px rgba(255,197,61,1);}}
+.st-tags{position:absolute;left:8px;top:8px;display:flex;flex-wrap:wrap;gap:5px;}
+.st-tags i{font-style:normal;padding:3px 9px;border-radius:99px;font-size:11px;font-weight:900;letter-spacing:.06em;box-shadow:0 4px 12px -4px rgba(0,0,0,.8);}
+.st-tags .me{background:#B794FF;color:#150A2A;}.st-tags .op{background:#FF6B7A;color:#2A0A0E;}.st-tags .al{background:#5EEAD4;color:#06201C;}
+.st-agree{position:absolute;right:8px;top:8px;padding:4px 11px;border-radius:8px;background:linear-gradient(180deg,#FFE08A,#F5B400);color:#1a1300;font-weight:900;font-size:12px;letter-spacing:.08em;}
+/* 武器：左に自分の3枠、右に一覧と詳しい数字 */
+.mp-opps{display:flex;flex-wrap:wrap;gap:8px 14px;align-items:center;margin:0 0 12px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);}
+.mp-opp{display:flex;align-items:center;gap:6px;min-width:0;}
+.mp-opp>b{font-size:11.5px;font-weight:900;white-space:nowrap;max-width:140px;overflow:hidden;text-overflow:ellipsis;}
+.mp-opp canvas{width:46px;height:20px;padding:2px 3px;border-radius:6px;background:rgba(0,0,0,.35);}
+.mp-opp .rd{font-size:10.5px;font-weight:900;color:#34D399;}
+.mp-main{display:grid;grid-template-columns:minmax(0,250px) minmax(0,1fr);gap:16px;align-items:start;}
+.mp-slots{display:flex;flex-direction:column;gap:9px;}
+.mp-slot{position:relative;display:flex;align-items:center;gap:10px;padding:10px 12px 10px 44px;border-radius:13px;border:2px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:inherit;text-align:left;cursor:pointer;transition:border-color .15s,background .15s,box-shadow .2s;}
+.mp-slot .n{position:absolute;left:10px;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:24px;height:24px;border-radius:8px;background:rgba(255,255,255,.08);font-family:var(--f-disp);font-size:14px;color:var(--tx-2);}
+.mp-slot canvas{width:78px;height:34px;flex:none;}
+.mp-slot b{display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px;font-weight:900;}
+.mp-slot.sel{border-color:#FFC53D;background:rgba(255,197,61,.1);box-shadow:0 0 0 1px rgba(255,197,61,.35),0 0 26px -10px rgba(255,197,61,.9);}
+.mp-slot.sel .n{background:#FFC53D;color:#1a1300;}
+.mp-slot:disabled{cursor:default;opacity:.75;}
+.mp-tiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;}
+.mp-tile{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 4px 7px;border-radius:11px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);color:var(--tx-2);cursor:pointer;transition:border-color .15s,background .15s,transform .08s;}
+.mp-tile:hover,.mp-tile.focus{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.08);color:var(--tx-1);}
+.mp-tile:active{transform:translateY(1px);}
+.mp-tile canvas{width:74px;height:32px;}
+.mp-tile b{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11.5px;font-weight:900;}
+.mp-tile.eq{border-color:rgba(255,197,61,.55);background:rgba(255,197,61,.08);}
+.mp-tile .q{position:absolute;right:5px;top:5px;display:grid;place-items:center;width:17px;height:17px;border-radius:5px;background:#FFC53D;color:#1a1300;font-size:10.5px;font-weight:900;}
+.mp-tiles.off .mp-tile{cursor:default;opacity:.55;}
+.mp-detail{margin-top:10px;padding:10px 12px;border-radius:12px;background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.07);min-height:92px;}
+.mp-detail h5{display:flex;align-items:baseline;gap:10px;margin:0 0 3px;font-size:14px;font-weight:900;}
+.mp-detail h5 small{font-size:11px;font-weight:700;color:var(--tx-3);}
+.mp-detail p{margin:0 0 8px;font-size:11.5px;line-height:1.5;color:var(--tx-3);}
+.mp-bars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 14px;}
+.mp-bars span{display:flex;align-items:center;gap:7px;font-size:10.5px;font-weight:800;color:var(--tx-2);white-space:nowrap;}
+.mp-bars span i{position:relative;flex:1;height:6px;border-radius:99px;background:rgba(255,255,255,.08);overflow:hidden;}
+.mp-bars span i::after{content:"";position:absolute;inset:0;width:var(--v);border-radius:99px;background:var(--c,#FFC53D);}
+#match-panel.on .mp-foot{position:sticky;bottom:-14px;margin:14px -18px -14px;padding:12px 18px 14px;border-top:1px solid rgba(255,255,255,.1);background:linear-gradient(180deg,rgba(12,14,24,.94),rgba(8,10,18,.99));}
+.mp-chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.mp-chip{padding:4px 10px;border-radius:99px;font-size:11.5px;font-weight:800;background:rgba(255,255,255,.06);color:var(--tx-3);}
+.mp-chip.ok{background:rgba(52,211,153,.16);color:#34D399;}
+#match-panel.on .mp-ok{min-width:220px;padding:14px 30px;font-size:16px;border-radius:13px;}
+@media (max-width:760px){
+  #match-panel.on{padding:0;align-items:stretch;}
+  #match-panel.on .mp-box{border-radius:0;min-height:100%;padding:14px 12px 12px;}
+  #match-panel.on .mp-head{padding-right:46px;}   /* 右上の音量ボタンと重ならないように */
+  .mp-bar{border-radius:0;}
+  .mp-st3{grid-template-columns:1fr;gap:10px;}
+  .st3{flex-direction:row;}
+  .st3 canvas{width:46%;flex:none;}
+  .st3 .st-tx b{font-size:16px;}
+  .mp-main{grid-template-columns:1fr;gap:10px;}
+  .mp-slots{flex-direction:row;gap:6px;}
+  .mp-slot{flex:1;min-width:0;flex-direction:column;gap:3px;padding:24px 4px 7px;}
+  .mp-slot .n{left:6px;top:6px;transform:none;width:20px;height:20px;font-size:12px;}
+  .mp-slot canvas{width:64px;height:28px;}
+  .mp-slot b{font-size:11.5px;max-width:100%;}
+  .mp-tiles{grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;}
+  .mp-tile canvas{width:56px;height:24px;}
+  .mp-tile b{font-size:10.5px;}
+  .mp-bars{grid-template-columns:1fr 1fr;}
+  #match-panel.on .mp-foot{margin:12px -12px -12px;padding:10px 12px 12px;flex-wrap:wrap;}
+  #match-panel.on .mp-ok{flex:1 1 100%;min-width:0;}
+}
+body.mland #match-panel.on .mp-box{padding:10px 12px;}
+body.mland #match-panel.on{padding:0;}body.mland #match-panel.on .mp-box{width:100%;min-height:100%;border-radius:0;}body.mland #match-panel.on .mp-head{padding-right:46px;margin-bottom:6px;padding-bottom:6px;}
+body.mland .mp-hint{margin:4px 0;}body.mland .st3 .st-tx{padding:6px 9px 7px;}body.mland .st3 .st-tx small{display:none;}
+body.mland .mp-detail{min-height:0;padding:7px 10px;}body.mland .mp-detail p{display:none;}body.mland .mp-opps{margin-bottom:6px;padding:5px 8px;}
+body.mland .mp-st3{grid-template-columns:repeat(3,minmax(0,1fr));}
+body.mland .st3{flex-direction:column;}body.mland .st3 canvas{width:100%;}
+body.mland .mp-main{grid-template-columns:minmax(0,190px) minmax(0,1fr);}
+body.mland .mp-slots{flex-direction:column;}
+body.mland .mp-slot{flex-direction:row;padding:6px 8px 6px 36px;}
+body.mland .mp-slot .n{left:7px;top:50%;transform:translateY(-50%);}
+body.mland .mp-tiles{grid-template-columns:repeat(7,minmax(0,1fr));}
 #btns{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:12px;}
 #btns button{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:58px;padding:9px 4px;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.012)),var(--panel-solid);border:1px solid var(--line);border-bottom:3px solid rgba(0,0,0,.55);border-radius:12px;color:var(--tx-2);font-size:11.5px;font-weight:700;letter-spacing:.04em;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform .08s,background .12s,color .12s;}
 #btns button:active{transform:translateY(2px);background:var(--panel-hi);color:var(--tx);}
@@ -1683,8 +1780,8 @@ body.mland #settings-screen>.scr-head{column-span:all;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=28"></script>
-<script src="lang.js?v=29"></script>
+<script src="sim.js?v=29"></script>
+<script src="lang.js?v=30"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3783,7 +3880,7 @@ function onWaitMsg(msg){
   var now=performance.now();
   if(msg.team){
     var rd=msg.ready||{};
-    WAIT={team:true,kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),vsUntil:now+(+msg.vsMs||0),ready:rd,
+    WAIT={team:true,kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),total:waitTotal(msg),vsUntil:now+(+msg.vsMs||0),ready:rd,
       meReady:!!rd[mySlot],oppReady:false,mine:SIM.cleanLoadout(msg.mine,false),opp:null,loads:msg.loads||{},
       stages:msg.stages||null,votes:msg.votes||{},myVote:(msg.votes||{})[mySlot]||null};
     matchLoadout=WAIT.mine.slice();
@@ -3792,7 +3889,7 @@ function onWaitMsg(msg){
     if(!waitTick)waitTick=setInterval(tickMatchPanel,250);
     return;
   }
-  WAIT={kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),vsUntil:now+(+msg.vsMs||0),
+  WAIT={kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),total:waitTotal(msg),vsUntil:now+(+msg.vsMs||0),
     meReady:!!(msg.ready&&msg.ready.me),oppReady:!!(msg.ready&&msg.ready.opp),
     mine:SIM.cleanLoadout(msg.mine,false),opp:msg.opp?SIM.cleanLoadout(msg.opp,true):null,
     stages:msg.stages||null,votes:msg.votes||{},myVote:(msg.votes||{}).me||null};
@@ -3801,6 +3898,8 @@ function onWaitMsg(msg){
   renderMatchPanel();
   if(!waitTick)waitTick=setInterval(tickMatchPanel,250);
 }
+// 残り時間のバーの長さの基準：同じ待ちの間は、最初に聞いた長さを使う（途中で届く知らせでバーが伸びないように）
+function waitTotal(msg){var k=msg.kind||'',ms=+msg.ms||0;if(WAIT&&WAIT.kind===(k==='pick'?'pick':k==='stage'?'stage':'prep')&&WAIT.total&&ms<=WAIT.total)return WAIT.total;return ms;}
 function waitLeft(){return WAIT?Math.max(0,Math.ceil((WAIT.until-performance.now())/1000)):0;}
 function endWaitUI(){
   WAIT=null;
@@ -3823,6 +3922,7 @@ function pickMatchWeapon(id){
   lo[pickSel]=id;
   matchLoadout=lo.slice();
   if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'loadout',loadout:lo}));
+  mpFocusId=id;pickSel=(pickSel+1)%3;   // 入れたら、次の枠へ進む
   SFX.switchW();renderMatchPanel();
 }
 // 武器1つぶんの札（アイコン・名前・射程・威力・連射）
@@ -3868,73 +3968,122 @@ function mpCard(id,btn,sel,onclick){
   return (btn?'<button class="mp-w'+(sel?' sel':'')+'" onclick="'+onclick+'">':'<div class="mp-w">')+
     '<canvas width="116" height="50" data-gun="'+id+'"></canvas><span class="mw-t"><b style="color:'+W.color+'">'+esc(wName(id))+'</b><small>'+esc(stat)+'</small></span>'+(btn?'</button>':'</div>');
 }
+// ステージのプレビュー：本物の背景と足場を、そのステージの色・動きのまま小さく描く（2人が向かい合って立つ）
+var STPV={},stPvOn=false;
+function stagePv(id){
+  var v=STPV[id];
+  if(!v){var w=SIM.newWorld(id,[2,3,1],[2,3,1]);w.chars.a.x=560;w.chars.b.x=860;w.chars.a.dir=1;w.chars.b.dir=-1;
+    v=STPV[id]={g:null,cam:(SIM.WORLD_W-VW)/2,w:w,frame:0,fx:newFx(),grads:{},theme:themeOf(id)};}
+  return v;
+}
+function drawStagePv(cv,id){
+  var v=stagePv(id),g=cv.getContext('2d');
+  if(v.g!==g){v.g=g;v.grads={};}
+  v.frame++;
+  var opp=WAIT&&WAIT.team?LOOK_DEFAULT:(oppInfo.look||LOOK_DEFAULT);
+  withView(v,function(){
+    ctx.setTransform(cv.width/VW,0,0,cv.width/VW,0,0);ctx.clearRect(0,0,VW,VH);
+    drawBackground();
+    drawChar(v.w.chars.a,false,{look:profile.look,team:TEAM.me,hud:false});
+    drawChar(v.w.chars.b,false,{look:opp,team:TEAM.foe,hud:false});
+    drawWeather(stageTheme);
+  });
+}
+function stagePvLoop(){
+  var cvs=document.querySelectorAll('#match-panel canvas[data-stpv]');
+  if(!cvs.length||document.hidden){stPvOn=false;return;}
+  cvs.forEach(function(cv){drawStagePv(cv,cv.getAttribute('data-stpv'));});
+  setTimeout(function(){requestAnimationFrame(stagePvLoop);},33);   // 30コマ/秒で十分
+}
+// 誰がどのステージに入れたか：自分（紫）・相手（赤）・味方（青緑）
+function stageVoters(id){
+  var r={me:WAIT.myVote===id,op:0,al:0};
+  if(WAIT.team)SIM.TEAM_SLOTS.forEach(function(s){if(s!==mySlot&&WAIT.votes[s]===id){if(slotRole(s)==='ally')r.al++;else r.op++;}});
+  else if(WAIT.votes&&WAIT.votes.opp===id)r.op=1;
+  return r;
+}
+// 武器の数字（詳しい表示のバー）
+function mpDetailHtml(id){
+  var W=WEAPONS[id],st=weaponStats(id);if(!W)return'';
+  var bar=function(lb,v,c){return'<span>'+esc(lb)+'<i style="--v:'+Math.round(Math.max(.04,Math.min(1,v))*100)+'%;--c:'+c+'"></i></span>';};
+  var pw=W.pellets?(W.dmg+'×'+W.pellets):W.burst?(W.dmg+'×'+W.burst):W.dmg;
+  return'<h5><span style="color:'+W.color+'">'+esc(wName(id))+'</span><small>'+esc(t('mp.dRange'))+' '+W.range+' · '+esc(t('mp.dPower'))+' '+pw+' · '+
+    (W.mag?esc(t('mp.dMag'))+' '+W.mag:'∞')+(W.mag?' · '+esc(t('mp.dReload',{s:st.reload.toFixed(1)})):'')+'</small></h5>'+
+    '<p>'+esc(wDesc(id))+'</p><div class="mp-bars">'+
+    bar(t('mp.dRange'),W.range/560,'#60A5FA')+bar(t('mp.dPower'),st.power/55,'#FF6B7A')+bar(t('mp.dRate'),st.rps/9,'#34D399')+'</div>';
+}
+var mpFocusId=0;
+function mpFocus(id){mpFocusId=+id;var el=document.getElementById('mp-detail');if(el)el.innerHTML=mpDetailHtml(mpFocusId);
+  document.querySelectorAll('#match-panel .mp-tile').forEach(function(b){b.classList.toggle('focus',+b.getAttribute('data-w')===mpFocusId);});}
+function mpIcon(id,w,h){return'<canvas width="'+w+'" height="'+h+'" data-gun="'+id+'"></canvas>';}
 function renderMatchPanel(){
   var el=document.getElementById('match-panel');if(!el)return;
   if(!WAIT||gameMode!=='online'||vsPhase||stageFx){el.className='';el.innerHTML='';return;}   // VS画面・ステージ決定の演出の間は出さない
   var stage=WAIT.kind==='stage',pick=WAIT.kind==='pick',h='';
+  var left=Math.max(0,WAIT.until-performance.now()),frac=WAIT.total?left/WAIT.total:1;
+  h+='<div class="mp-bar'+(left<3000?' low':'')+'"><i id="mp-bar-fill" style="width:'+(frac*100).toFixed(1)+'%"></i></div>';
   h+='<div class="mp-head"><b>'+esc(t(stage?'mp.stageTitle':pick?'mp.pickTitle':'mp.weaponTitle'))+'</b><span class="mp-time" id="mp-time">'+waitLeft()+'</span></div>';
-  // ①ステージを選ぶ：大きく2つ出す
+  // ①ステージ：大きなカード3枚（動くプレビュー）。誰が選んだかを札で、そろったら「決定！」
   if(stage){
-    h+='<p class="mp-hint">'+esc(t('mp.stageHint'))+'</p><div class="mp-sts big">';
+    h+='<p class="mp-hint">'+esc(t('mp.stageHint'))+'</p><div class="mp-st3">';
+    var all=1+(WAIT.team?SIM.TEAM_SLOTS.filter(function(k){return k!==mySlot&&TM.players[k];}).length:1);
     (WAIT.stages||[]).forEach(function(sid){
-      h+='<button class="st-op'+(WAIT.myVote===sid?' sel':'')+'" onclick="stageVote(\''+sid+'\')">'+
-        '<canvas width="420" height="150" data-stage="'+sid+'"></canvas>'+voteDots(sid)+
+      var v=stageVoters(sid),n=(v.me?1:0)+v.op+v.al,agree=n>=all&&all>1;
+      h+='<button class="st3'+(v.me?' mine':'')+(v.op&&!v.me?' theirs':'')+(agree?' agree':'')+'" onclick="stageVote(\''+sid+'\')">'+
+        '<canvas width="480" height="240" data-stpv="'+sid+'"></canvas>'+
+        '<span class="st-tags">'+(v.me?'<i class="me">'+esc(t('mp.youTag'))+'</i>':'')+(v.al?'<i class="al">'+esc(t('mp.allyTag'))+(v.al>1?' ×'+v.al:'')+'</i>':'')+
+          (v.op?'<i class="op">'+esc(WAIT.team?t('mp.foeTag'):(oppInfo.name||t('c.opp')))+(v.op>1?' ×'+v.op:'')+'</i>':'')+'</span>'+
+        (agree?'<span class="st-agree">'+esc(t('mp.agree'))+'</span>':'')+
         '<span class="st-tx"><b>'+esc(t('stage.'+sid+'.name'))+'</b><small>'+esc(t('stage.'+sid+'.desc'))+'</small></span></button>';
     });
     var mine=!!WAIT.myVote;
     var oppN=WAIT.team?SIM.TEAM_SLOTS.filter(function(k){return k!==mySlot&&WAIT.votes[k];}).length:((WAIT.votes&&WAIT.votes.opp)?1:0);
-    var yet='<span class="mp-yet">'+esc(t('mp.notReady'))+'</span>',done='<span class="ok">'+esc(t('mp.voted'))+'</span>';
-    h+='</div><div class="mp-foot"><span class="mp-ready">'+esc(t('mp.you'))+' '+(mine?done:yet)+'　／　'+
-      esc(WAIT.team?t('mp.readyCount',{n:oppN,all:SIM.TEAM_SLOTS.length-1}):t('c.opp'))+' '+(oppN?done:yet)+'</span>'+
-      (mine?'':'<span class="mp-voted">'+esc(t('mp.waitVote'))+'</span>')+'</div>';
+    h+='</div><div class="mp-foot"><span class="mp-chips"><span class="mp-chip'+(mine?' ok':'')+'">'+esc(t('mp.you'))+'：'+esc(t(mine?'mp.voted':'mp.notVoted'))+'</span>'+
+      '<span class="mp-chip'+(oppN?' ok':'')+'">'+esc(WAIT.team?t('mp.readyCount',{n:oppN,all:all-1}):(oppInfo.name||t('c.opp')))+(WAIT.team?'':'：'+esc(t(oppN?'mp.voted':'mp.notVoted')))+'</span></span>'+
+      '<span class="mp-voted">'+esc(t(mine?'mp.waitVote':'mp.tapStage'))+'</span></div>';
     el.className='on stage'+(WAIT.team?' team':'');
-    el.innerHTML=h;
-    el.querySelectorAll('canvas[data-stage]').forEach(function(cv){drawStageMini(cv,cv.getAttribute('data-stage'));});
+    el.innerHTML='<div class="mp-box">'+h+'</div>';
+    el.querySelectorAll('canvas[data-stpv]').forEach(function(cv){drawStagePv(cv,cv.getAttribute('data-stpv'));});
+    if(!stPvOn){stPvOn=true;requestAnimationFrame(stagePvLoop);}
     return;
   }
-  h+='<div class="mp-cols">';
-  h+='<div class="mp-col"><h4>'+esc(t('mp.mine'))+'</h4><div class="mp-row">';
-  WAIT.mine.forEach(function(id,i){h+=mpCard(id,!WAIT.meReady,i===pickSel,'pickMatchSlot('+i+')');});
-  h+='</div></div>';
-  if(WAIT.team){   // 2v2：味方と、相手2人の武器（小さめのカード）
-    teamSlots('ally').concat(teamSlots('foe')).forEach(function(s){
-      var P=TM.players[s]||{},r=slotRole(s);
-      h+='<div class="mp-col '+(r==='foe'?'opp':'ally')+' mini"><h4 style="color:'+TEAM_COL[r]+'">'+esc(t(r==='foe'?'mp.opp':'mp.ally',{name:P.name||'?'}))+'</h4><div class="mp-row">';
-      (P.loadout||[]).forEach(function(id){h+=mpCard(id,false);});
-      h+='</div></div>';
-    });
-    h+='</div>';
-  }else{
-    h+='<div class="mp-col opp"><h4>'+esc(t('mp.opp',{name:oppInfo.name||t('c.opp')}))+'</h4><div class="mp-row">';
-    (WAIT.opp||oppInfo.loadout||[]).forEach(function(id){h+=mpCard(id,false);});
-    h+='</div></div></div>';
-  }
-  if(!WAIT.meReady){
-    h+='<div class="mp-hint">'+esc(t('mp.pickHint',{n:pickSel+1}))+'</div><div class="mp-grid">';
-    WEAPON_ORDER.forEach(function(id){
-      var W=WEAPONS[id],st=weaponStats(id);
-      h+='<button class="'+(WAIT.mine.indexOf(id)>=0?'eq':'')+'" onclick="pickMatchWeapon('+id+')">'+
-        '<canvas width="132" height="56" data-gun="'+id+'"></canvas>'+
-        '<span class="g-t"><b style="color:'+W.color+'">'+esc(wName(id))+'</b>'+
-        '<small>'+esc(t('mp.stat',{range:W.kind==='grenade'?'~'+W.range:W.range,power:W.pellets?(W.dmg+'×'+W.pellets):W.burst?(W.dmg+'×'+W.burst):W.dmg,rate:st.rps.toFixed(1)}))+'</small></span></button>';
-    });
-    h+='</div>';
-  }
+  // ②武器：上に相手（と味方）の武器を小さく、左に自分の3枠、右に一覧と詳しい数字
+  var who=[];
+  if(WAIT.team){
+    teamSlots('ally').concat(teamSlots('foe')).forEach(function(s){var P=TM.players[s]||{},r=slotRole(s);who.push({nm:P.name||'?',col:TEAM_COL[r],lo:P.loadout||[],rd:!!WAIT.ready[s]});});
+  }else who.push({nm:oppInfo.name||t('c.opp'),col:'#FF8A96',lo:WAIT.opp||oppInfo.loadout||[],rd:WAIT.oppReady});
+  h+='<div class="mp-opps">';
+  who.forEach(function(o){h+='<span class="mp-opp"><b style="color:'+o.col+'">'+esc(o.nm)+'</b>'+o.lo.map(function(id){return mpIcon(id,92,40);}).join('')+(o.rd?'<span class="rd">✓</span>':'')+'</span>';});
+  h+='</div><div class="mp-main"><div class="mp-slots">';
+  WAIT.mine.forEach(function(id,i){
+    var W=WEAPONS[id];
+    h+='<button class="mp-slot'+(i===pickSel&&!WAIT.meReady?' sel':'')+'" onclick="pickMatchSlot('+i+')"'+(WAIT.meReady?' disabled':'')+'><span class="n">'+(i+1)+'</span>'+
+      mpIcon(id,156,68)+'<b style="color:'+W.color+'">'+esc(wName(id))+'</b></button>';
+  });
+  h+='</div><div><div class="mp-tiles'+(WAIT.meReady?' off':'')+'">';
+  WEAPON_ORDER.forEach(function(id){
+    var slot=WAIT.mine.indexOf(id);
+    h+='<button class="mp-tile'+(slot>=0?' eq':'')+'" data-w="'+id+'" onclick="pickMatchWeapon('+id+')" onmouseenter="mpFocus('+id+')"'+(WAIT.meReady?' disabled':'')+'>'+
+      (slot>=0?'<span class="q">'+(slot+1)+'</span>':'')+mpIcon(id,148,64)+'<b>'+esc(wName(id))+'</b></button>';
+  });
+  if(!mpFocusId||!WEAPONS[mpFocusId])mpFocusId=WAIT.mine[pickSel]||WAIT.mine[0];
+  h+='</div><div class="mp-detail" id="mp-detail">'+mpDetailHtml(mpFocusId)+'</div></div></div>';
   var vs=!pick&&performance.now()<WAIT.vsUntil;
-  var readyTx=WAIT.team
-    ?t('mp.you')+' '+(WAIT.meReady?'<span class="ok">'+esc(t('mp.ready'))+'</span>':esc(t('mp.notReady')))+'　／　'+esc(t('mp.readyCount',{n:SIM.TEAM_SLOTS.filter(function(s){return WAIT.ready[s];}).length,all:Object.keys(WAIT.ready).length}))
-    :t('mp.you')+' '+(WAIT.meReady?'<span class="ok">'+esc(t('mp.ready'))+'</span>':esc(t('mp.notReady')))+'　／　'+
-    esc(t('c.opp'))+' '+(WAIT.oppReady?'<span class="ok">'+esc(t('mp.ready'))+'</span>':esc(t('mp.notReady')));
-  h+='<div class="mp-foot"><span class="mp-ready">'+readyTx+'</span>'+
+  var chips='<span class="mp-chip'+(WAIT.meReady?' ok':'')+'">'+esc(t('mp.you'))+'：'+esc(t(WAIT.meReady?'mp.ready':'mp.notReady'))+'</span>';
+  if(WAIT.team)chips+='<span class="mp-chip">'+esc(t('mp.readyCount',{n:SIM.TEAM_SLOTS.filter(function(s){return WAIT.ready[s];}).length,all:Object.keys(WAIT.ready).length}))+'</span>';
+  else chips+='<span class="mp-chip'+(WAIT.oppReady?' ok':'')+'">'+esc(oppInfo.name||t('c.opp'))+'：'+esc(t(WAIT.oppReady?'mp.ready':'mp.notReady'))+'</span>';
+  h+='<div class="mp-foot"><span class="mp-chips">'+chips+'</span>'+
     '<button class="mp-ok" onclick="matchReady()"'+(WAIT.meReady||vs?' disabled':'')+'>'+esc(t(WAIT.meReady?'mp.waiting':pick?'mp.decide':'mp.readyBtn'))+'</button></div>';
-  el.className='on '+(pick?'pick':'prep')+(WAIT.team?' team':'');   // 武器を選ぶ画面は、ラウンド間と同じ作り
-  el.innerHTML=h;
+  el.className='on '+(pick?'pick':'prep')+(WAIT.team?' team':'');
+  el.innerHTML='<div class="mp-box">'+h+'</div>';
   el.querySelectorAll('canvas[data-gun]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);drawGunIcon(g,+cv.getAttribute('data-gun'),0,0,cv.width,cv.height);});
-  el.querySelectorAll('canvas[data-stage]').forEach(function(cv){drawStageMini(cv,cv.getAttribute('data-stage'));});
+  mpFocus(mpFocusId);
 }
 function tickMatchPanel(){
   if(!WAIT){if(waitTick){clearInterval(waitTick);waitTick=null;}return;}
   var tm=document.getElementById('mp-time');if(tm)tm.textContent=waitLeft();
+  var bf=document.getElementById('mp-bar-fill');
+  if(bf&&WAIT.total){var lf=Math.max(0,WAIT.until-performance.now());bf.style.width=(lf/WAIT.total*100).toFixed(1)+'%';bf.parentNode.classList.toggle('low',lf<3000);}
   // VS画面が終わったら、準備完了を押せるようにする
   var ok=document.querySelector('#match-panel .mp-ok');
   if(ok&&!WAIT.meReady&&WAIT.kind==='prep')ok.disabled=performance.now()<WAIT.vsUntil;
@@ -8272,7 +8421,7 @@ var vsPhase=false,vsT0=0;
 // ステージが決まったときの演出。割れたときは、2つの間を行ったり来たりしてから止まる
 function startStageFx(m){
   var opts=(m.options||[]).slice(0,2);
-  if(opts.length!==2){stageFx=null;return;}
+  if(opts.length<2){stageFx=null;return;}
   stageFx={t0:performance.now(),E:Math.max(900,(+m.ms||1800))/1000,opts:opts,win:opts.indexOf(m.stage),split:!!m.split,votes:m.votes||[0,0]};
   if(stageFx.win<0)stageFx.win=0;
   renderMatchPanel();
@@ -8284,13 +8433,13 @@ function drawStageFx(){
   if(T>E){stageFx=null;renderMatchPanel();return;}
   var out=T>E-.3?Math.max(0,(E-T)/.3):1,cx=VW/2,cy=VH/2;
   var roll=stageFx.split?Math.min(1,T/(E*.55)):1;                     // 割れたときだけ、少し回してから止まる
-  var idx=roll>=1?stageFx.win:(Math.floor(T*14)%2);
+  var idx=roll>=1?stageFx.win:(Math.floor(T*14)%stageFx.opts.length);
   ctx.save();ctx.globalAlpha=out;
   ctx.fillStyle='rgba(4,5,10,.82)';ctx.fillRect(-10,-10,VW+20,VH+20);
   ctx.textAlign='center';ctx.textBaseline='middle';
-  // 2つのステージ名を左右に出し、選ばれた方を光らせる
+  // ステージ名を横に並べ、選ばれたものを光らせる
   stageFx.opts.forEach(function(sid,i){
-    var x=cx+(i===0?-1:1)*VW*.22,on=i===idx;
+    var x=cx+(i-(stageFx.opts.length-1)/2)*VW*.3,on=i===idx;
     ctx.save();ctx.globalAlpha=out*(on?1:.28);
     ctx.font='700 '+(on?18:15)+'px '+FONT_JP;
     ctx.fillStyle=on?'#FFC53D':'rgba(255,255,255,.7)';
