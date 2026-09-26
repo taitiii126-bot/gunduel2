@@ -134,7 +134,7 @@ function packFx(ev) {
       case 'melee': out.push({ t: 'melee', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, hit: !!e.hit, reach: e.reach }); break;
       case 'windup': out.push({ t: 'windup', who: e.who, wid: e.wid }); break;
       case 'charge': out.push({ t: 'charge', who: e.who, wid: e.wid }); break;
-      case 'hit': out.push({ t: 'hit', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), sid: e.sid }); break;
+      case 'hit': out.push({ t: 'hit', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), sid: e.sid, dmg: Math.round(e.dmg || 0) }); break;   // dmg：画面のダメージ数字用
       case 'dead': out.push({ t: 'dead', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), dir: e.dir, duck: !!e.duck }); break;   // by：とどめを刺した人（2v2 の称号の数え方に使う）
       case 'boom': out.push({ t: 'boom', who: e.who, x: r1(e.x), y: r1(e.y), r: e.r }); break;
       case 'spark': out.push({ t: 'spark', x: r1(e.x), y: r1(e.y), own: e.own }); break;
