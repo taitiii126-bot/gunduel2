@@ -856,13 +856,8 @@ body.demo #bg-shade{opacity:1;}
 }
 
 /* ---------- 言語の切り替え ---------- */
-.pose-box{display:flex;gap:12px;align-items:stretch;}
-.pose-box canvas{width:220px;height:150px;flex:none;border-radius:12px;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 85%,rgba(255,197,61,.14),transparent 60%),linear-gradient(#141a33,#2a2342);}
-.pose-grid{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start;}
-.pose-grid button{padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.3);color:var(--tx-2);font-size:13px;font-weight:800;transition:.15s;}
-.pose-grid button:hover{color:var(--tx);border-color:rgba(255,197,61,.5);}
-.pose-grid button.sel{color:#1A1206;background:#FFC53D;border-color:#FFC53D;}
-@media (max-width:560px){.pose-box{flex-direction:column;}.pose-box canvas{width:100%;height:auto;aspect-ratio:22/15;}}
+.kb-row .lang-seg{flex:none;display:inline-grid;grid-auto-flow:column;grid-template-columns:none;grid-auto-columns:max-content;}
+.kb-row .lang-seg button{white-space:nowrap;padding:8px 14px;}
 .lang-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:4px;padding:4px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;}
 .lang-seg button{padding:10px;border:0;border-radius:9px;background:transparent;color:var(--tx-3);font-size:13px;font-weight:900;transition:.15s;}
 .lang-seg button:hover{color:var(--tx);}
@@ -877,7 +872,8 @@ body.demo #bg-shade{opacity:1;}
 .vol-val{font-family:var(--f-ui);font-size:13px;font-weight:700;text-align:right;color:var(--tx);}
 
 /* ---------- プロフィール ---------- */
-.pf-top{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:18px;align-items:start;margin-bottom:12px;}
+.pf-top{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);grid-template-rows:auto 1fr;grid-template-areas:"card edit" "bg edit";gap:18px;align-items:start;margin-bottom:12px;}
+.pf-top>.pf-card{grid-area:card;}.pf-top>.pf-edit{grid-area:edit;}.pf-top>.pf-bgsec{grid-area:bg;margin:0;}
 .pf-card canvas{display:block;width:100%;height:auto;}
 .pf-edit .settings-section:last-child{margin-bottom:0;}
 .pf-input{width:100%;padding:11px 14px;border:1px solid var(--line-2);border-radius:10px;background:rgba(0,0,0,.35);color:var(--tx);font-size:15px;font-weight:700;outline:none;transition:.18s;}
@@ -1045,13 +1041,17 @@ body.demo #bg-shade{opacity:1;}
 .opt:hover{transform:translateY(-2px);border-color:var(--line-2);}
 .opt.sel{border-color:var(--gold);box-shadow:inset 0 0 0 1px var(--gold),0 0 18px -6px rgba(255,197,61,.6);}
 .opt canvas{width:66px;height:66px;border-radius:11px;}
+.opt.pose{width:92px;height:auto;padding:6px 0 7px;gap:2px;}
+.opt.pose canvas{width:80px;height:80px;}
+.opt-name{font-size:11px;font-weight:800;color:var(--tx-2);white-space:nowrap;}
+.opt.pose.sel .opt-name{color:var(--gold);}
 .opt.swatch{width:44px;height:44px;border-radius:50%;}
 .opt-dev{position:absolute;right:3px;bottom:3px;padding:1px 5px;border-radius:5px;background:linear-gradient(180deg,#F5D67A,#C99A33);color:#1a1300;font-family:var(--f-ui);font-size:9px;font-weight:900;letter-spacing:.08em;}
 .opt.swatch i{display:block;width:30px;height:30px;border-radius:50%;box-shadow:inset 0 -3px 6px rgba(0,0,0,.25),0 0 0 1px rgba(255,255,255,.15);}
 #tier-badge-wrap{text-align:center;margin-bottom:14px;}
 .tier-row canvas.tier-mk{width:36px;height:36px;margin-right:10px;}
 @media (max-width:720px){
-  .pf-top{grid-template-columns:1fr;}
+  .pf-top{grid-template-columns:1fr;grid-template-rows:none;grid-template-areas:"card" "edit" "bg";}
   .pf-card{max-width:320px;width:100%;margin:0 auto;}
   .look-wrap{grid-template-columns:1fr;}
   .look-prev{max-width:300px;width:100%;margin:0 auto;}
@@ -1486,10 +1486,6 @@ body.mland #settings-screen>.scr-head{column-span:all;}
       <div class="vol-row"><label for="vol-se" data-i18n="set.se"></label><input type="range" id="vol-se" min="0" max="100" step="5" oninput="setVolume('se',this.value)" onchange="testSe()"><span class="vol-val" id="vol-se-v"></span></div>
     </div>
     <div class="settings-section">
-      <h3><span data-i18n="set.win"></span><span>VICTORY POSE</span></h3>
-      <div class="pose-box"><canvas id="pose-cv" width="440" height="300"></canvas><div class="pose-grid" id="pose-grid"></div></div>
-    </div>
-    <div class="settings-section">
       <h3><span data-i18n="set.fx"></span><span>EFFECTS</span></h3>
       <div class="kb-row"><span class="kb-label" data-i18n="set.shake"></span><span class="lang-seg" data-fxopt="shake"></span></div>
       <div class="kb-row"><span class="kb-label" data-i18n="set.fxq"></span><span class="lang-seg" data-fxopt="fxq"></span></div>
@@ -1569,11 +1565,11 @@ body.mland #settings-screen>.scr-head{column-span:all;}
           <div class="badge-row" id="pf-badges"></div>
           <p class="pf-note" data-i18n="pf.badgeNote"></p>
         </div>
-        <div class="settings-section">
-          <h3><span data-i18n="pf.bg"></span><span>BACKGROUND</span></h3>
-          <div class="bg-grid" id="pf-bgs"></div>
-          <p class="pf-note" data-i18n="pf.bgNote"></p>
-        </div>
+      </div>
+      <div class="settings-section pf-bgsec">
+        <h3><span data-i18n="pf.bg"></span><span>BACKGROUND</span></h3>
+        <div class="bg-grid" id="pf-bgs"></div>
+        <p class="pf-note" data-i18n="pf.bgNote"></p>
       </div>
     </div>
     <div class="settings-section">
@@ -1687,7 +1683,7 @@ body.mland #settings-screen>.scr-head{column-span:all;}
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
 <script src="sim.js?v=27"></script>
-<script src="lang.js?v=27"></script>
+<script src="lang.js?v=28"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -1801,30 +1797,6 @@ function renderSettingsUI(){
     var k=el.getAttribute('data-fxopt'),opts=k==='shake'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
-}
-// ---- 設定画面：勝ちポーズを選ぶ（左のプレビューで、自分の見た目のまま動きを見せる）----
-var posePrev={t0:0,on:false};
-function pickWinPose(i){
-  i=+i;if(!(i>=0&&i<WIN_POSES))return;
-  profile.look.win=i;saveProfile();posePrev.t0=performance.now();renderPoseUI();SFX.switchW&&SFX.switchW();
-}
-function renderPoseUI(){
-  var el=document.getElementById('pose-grid');if(!el)return;
-  var cur=(profile.look&&profile.look.win)|0,h='';
-  for(var i=0;i<WIN_POSES;i++)h+='<button class="'+(i===cur?'sel':'')+'" onclick="pickWinPose('+i+')">'+esc(t('pose.'+i))+'</button>';
-  el.innerHTML=h;
-  if(!posePrev.on){posePrev.on=true;posePrev.t0=performance.now();requestAnimationFrame(posePrevLoop);}
-}
-function posePrevLoop(){
-  var cv=document.getElementById('pose-cv');
-  if(!cv||currentScreen!=='settings-screen'||document.hidden){posePrev.on=false;return;}
-  requestAnimationFrame(posePrevLoop);
-  var g=cv.getContext('2d'),W2=cv.width,H2=cv.height,T=(performance.now()-posePrev.t0)/1000,cyc=3.2,tt=T%cyc,wid=(loadout&&loadout[0])||2;
-  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W2,H2);
-  g.fillStyle='rgba(255,255,255,.08)';g.fillRect(0,H2-44,W2,2);
-  g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(W2/2,H2-43,34,6,0,0,Math.PI*2);g.fill();
-  var tw=tt-.35;   // 最初の少しは、ふつうに立っている
-  drawAvatar(g,{x:W2/2,y:H2-44,s:2.1,dir:1,look:profile.look,team:TEAM.me,wid:wid,win:tw>0?{pose:(profile.look.win|0),t:tw}:null,tm:performance.now()/1000});
 }
 function setFxOpt(k,v){
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
@@ -2661,7 +2633,8 @@ var LOOK_TABS=[
   {key:'mouth',shape:'mouth'},
   {key:'hat',shape:'hat',color:'accent'},
   {key:'outfit',shape:'outfit'},
-  {key:'neck',shape:'neck',color:'accent'}
+  {key:'neck',shape:'neck',color:'accent'},
+  {key:'win',pose:true}   // 勝ちポーズ（見本は動く）
 ];
 var LOOK_FOCUS={eyes:[.24,-.02,6.2],brows:[.24,-.1,6.2],nose:[.36,.32,8.6],mouth:[.3,.56,8.6],hat:[0,-.5,3],neck:[-.1,1.35,3.4]};
 var lookTab='skin',lookHover=null;   // lookHover：マウスをのせている選択肢（プレビューで試着）
@@ -2690,6 +2663,18 @@ function renderLookPreview(tm){
   g.setTransform(W/300,0,0,W/300,0,0);g.clearRect(0,0,300,300);
   var bg=g.createRadialGradient(150,118,10,150,130,220);bg.addColorStop(0,'#2B3252');bg.addColorStop(1,'#0A0C15');
   g.fillStyle=bg;g.fillRect(0,0,300,300);
+  if(lookTab==='win'){   // 勝ちポーズ：全身を大きく。3.2秒ごとにくり返す（最初は少し立ったまま）
+    var pt=(tm%3.2)-.35,wid=(loadout&&loadout[0])||2;
+    var sh2=g.createRadialGradient(150,268,0,150,268,60);sh2.addColorStop(0,'rgba(0,0,0,.55)');sh2.addColorStop(1,'rgba(0,0,0,0)');
+    g.fillStyle=sh2;g.beginPath();g.ellipse(150,268,60,10,0,0,Math.PI*2);g.fill();
+    drawAvatar(g,{x:148,y:268,s:1.95,dir:1,look:L,team:TEAM.me,wid:wid,blink:blink,win:pt>0?{pose:L.win|0,t:pt}:null,tm:tm});
+    document.querySelectorAll('#look-opts canvas[data-pose]').forEach(function(pc){
+      var pg=pc.getContext('2d');pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,132,132);
+      pg.fillStyle='rgba(0,0,0,.35)';pg.beginPath();pg.ellipse(66,118,26,5,0,0,Math.PI*2);pg.fill();
+      drawAvatar(pg,{x:70,y:120,s:.98,dir:1,look:profile.look,team:TEAM.me,wid:wid,win:pt>0?{pose:+pc.getAttribute('data-pose'),t:pt}:null,tm:tm});
+    });
+    return;
+  }
   drawLookHead(g,L,152,142,5.5,{bob:bob,blink:blink});
   g.save();rrPath(g,10,196,74,94,12);g.fillStyle='rgba(6,8,14,.72)';g.fill();g.lineWidth=1;g.strokeStyle='rgba(255,255,255,.14)';g.stroke();
   g.clip();
@@ -2707,6 +2692,11 @@ function renderLookEditor(){
   function opt(k,i,inner,cls){
     var a='\''+k+'\','+i;
     return'<button class="opt'+(cls||'')+(profile.look[k]===i?' sel':'')+'" onclick="pickLook('+a+')" onmouseenter="hoverLook('+a+')" onmouseleave="hoverLook(null)" onfocus="hoverLook('+a+')" onblur="hoverLook(null)">'+inner+'</button>';
+  }
+  if(tab.pose){   // 勝ちポーズ：動く見本と名前。のせると上の大きなプレビューでも全身で動く
+    html+='<p class="look-sub">'+esc(t('look.winHint'))+'</p><div class="opt-grid">';
+    for(var pi=0;pi<WIN_POSES;pi++)html+=opt('win',pi,'<canvas data-pose="'+pi+'" width="132" height="132"></canvas><span class="opt-name">'+esc(t('pose.'+pi))+'</span>',' pose');
+    html+='</div>';
   }
   if(tab.shape){
     if(tab.color)html+='<p class="look-sub">'+esc(t('look.shape'))+'</p>';
@@ -3703,7 +3693,7 @@ function renderOnline(){
   document.querySelectorAll('#room-screen canvas[data-tier]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,52,52);drawTierIcon(g,+cv.getAttribute('data-tier'),26,26,44,44,0);});
   renderQueue();
 }
-function showSettingsScreen(){if(currentScreen==='game-screen')return;showScreen('settings-screen');renderKbUI();renderSettingsUI();renderLangSegs();renderPoseUI();}
+function showSettingsScreen(){if(currentScreen==='game-screen')return;showScreen('settings-screen');renderKbUI();renderSettingsUI();renderLangSegs();}
 function showProfileScreen(){showScreen('profile-screen');renderProfileUI();renderLoginUI();if(AUTH.token)refreshMe();}
 function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
 function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();}
@@ -8581,7 +8571,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,randomizeLook,setLang,setVolume,setFxOpt,pickWinPose,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
