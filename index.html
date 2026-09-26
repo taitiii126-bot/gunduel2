@@ -2668,7 +2668,6 @@ function renderLookPreview(tm){
     var pt=(tm%3.2)-.35,wid=(loadout&&loadout[0])||2;
     var sh2=g.createRadialGradient(150,268,0,150,268,60);sh2.addColorStop(0,'rgba(0,0,0,.55)');sh2.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=sh2;g.beginPath();g.ellipse(150,268,60,10,0,0,Math.PI*2);g.fill();
-    if(pt>0&&(L.win|0)===6)drawCodeRain(g,300,300,winPose(6,pt,1).rain,tm);
     drawAvatar(g,{x:148,y:268,s:1.95,dir:1,look:L,team:TEAM.me,wid:wid,blink:blink,win:pt>0?{pose:L.win|0,t:pt}:null,tm:tm});
     document.querySelectorAll('#look-opts canvas[data-pose]').forEach(function(pc){
       var pg=pc.getContext('2d');pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,132,132);
@@ -5404,15 +5403,17 @@ function drawAvatar(g,o){
   g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
   var WP=o.win?winPose(o.win.pose,o.win.t,d):null;
   if(WP){g.translate(WP.bx,-WP.hop+WP.sq);if(WP.spin){g.translate(0,-30);g.rotate(WP.spin);g.translate(0,30);}}
+  if(WP&&WP.fx){   // スポーン：消えている間は描かない。組み上がる間は、足元から見えている所までだけ描く
+    if(WP.alpha!=null)g.globalAlpha*=Math.max(0,WP.alpha);
+    if(WP.reveal!=null){g.save();g.beginPath();g.rect(-60,-WP.reveal*100,120,120);g.clip();WP.clipped=true;}
+  }
   var hipY=cr?-16:-30,topY=(cr?-40:-58)+bob,headR=cr?11.5:13,headCX=d,headCY=topY-15+(cr?1.5:0);
   if(o.boss&&o.aura!==false)drawBossAura(g,topY,tm);   // 体の後ろに立ちのぼる黒と金の気
-  if(WP&&WP.orbit)devPoseFx(g,{orbit:WP.orbit},WP.t,d,topY,0,0,null,-1);   // 開発者の勝ちポーズ：体の後ろ側を回る 0 と 1
+  if(WP&&WP.fx)devSpawnBack(g,WP,d,topY);   // 開発者の勝ちポーズ（スポーン）：体の後ろの光の柱と光の粒
   var W=o.wid?WEAPONS[o.wid]:null,oneHand=!W||W.kind==='melee'||o.wid===2||o.wid===8,rest=!W&&!cr&&!air;   // rest：武器なしで立っているときは腕を下ろす
   var shY=topY+5,handX=d*14,handY=topY+13,supX=oneHand?d*11:d*22;
   var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
   if(WP&&W){P.gx+=WP.gx;P.gy+=WP.gy;P.rot+=WP.rot;if(WP.gx||WP.gy){P.sx=P.gx-d*2;P.sy=P.gy+2;}}   // 勝ちポーズ：銃の位置と向き
-  if(WP&&WP.arm==='snap'){P.gx=d*13;P.gy=topY-6;P.sx=-d*3;P.sy=shY+16;}          // 指を鳴らす：手を顔の横へ
-  else if(WP&&WP.arm==='cross'){P.sx=-d*7;P.sy=shY+12;}                           // 腕を組む（奥の腕はひじまで）
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
   if(fit===1||fit===4)drawCoatTails(g,T,hipY,cr,air,d,wind,sw,fit===4?'#0E0C14':null);
@@ -5462,15 +5463,10 @@ function drawAvatar(g,o){
   if(hat)drawHat(g,hat,acc,headCX,headCY,headR,d,wind,tm);
   g.restore();
   // 武器と手前の腕（反動・リロードでは持ち手を中心に傾ける）
-  if(W&&!(WP&&WP.nogun)){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
+  if(W){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
   if(P.hand&&P.front)avHand(g,P);
   var hx2=P.gx-d*.5,hy2=P.gy+1;
-  if(WP&&WP.arm==='cross'){   // 腕組み：奥の前腕を胸の前へ、手前の腕をその上に重ねる
-    avLimb(g,[-d*7,shY+12,d*10,shY+7],6,shadeHex(T.jacket,-.12));
-    g.beginPath();g.arc(d*10.5,shY+7,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
-    avLimb(g,[d*3,shY,d*8,shY+13,-d*7,shY+9],6.5,T.jacket);hx2=-d*7.5;hy2=shY+9;
-  }
-  else if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
+  if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
   else avLimb(g,[d*3,shY,P.gx-d*2,P.gy+1],6.5,T.jacket);
   g.beginPath();g.arc(hx2,hy2,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
   // 落ちていく空の弾倉・薬きょう
@@ -5481,68 +5477,55 @@ function drawAvatar(g,o){
     if(WP.flash>0){g.globalAlpha=WP.flash;g.fillStyle='#FFF1B8';g.beginPath();g.arc(tx,ty,5+WP.flash*5,0,Math.PI*2);g.fill();g.globalAlpha=WP.flash*.5;g.fillStyle='#FFB347';g.beginPath();g.arc(tx,ty,11*WP.flash,0,Math.PI*2);g.fill();}
     g.globalAlpha=1;
   }
-  if(WP&&(WP.orbit||WP.holo||WP.vanish||WP.snapFx))devPoseFx(g,WP,WP.t,d,topY,headCX,headCY,P,1);
+  if(WP&&WP.clipped){g.restore();WP.clipped=false;}
   if(WP)g.restore();
+  if(WP&&WP.fx)devSpawnFront(g,WP,d,topY,headCY);   // 前かがみの傾きは受けない（[SPAWN] がまっすぐ出る）
   g.restore();
 }
-function devPoseFx(g,WP,t,d,topY,hx,hy,P,side){   // side：-1＝体の後ろ側だけ、1＝体の前側と、そのほかの光
-  g.save();g.textAlign='center';g.textBaseline='middle';
-  if(WP.orbit>0){   // 体のまわりを回る 0 と 1（奥は暗く小さく、手前は明るく大きく）。顔の高さはよける
-    g.font='800 8px monospace';
-    for(var i=0;i<8;i++){
-      var a=t*2.2+i*Math.PI*2/8,z=Math.sin(a),x=Math.cos(a)*25,y=topY+24+Math.sin(a*2+i)*12;
-      if((z>0?1:-1)!==side)continue;
-      g.globalAlpha=WP.orbit*(.35+.45*(z+1)/2);g.fillStyle=z>0?'#9CFFD0':'#3FAF7A';g.shadowColor='#4ADE80';g.shadowBlur=z>0?8:0;
-      g.save();g.translate(x,y);g.scale(.8+.3*z,.8+.3*z);g.fillText(i%3===1?'0':'1',0,0);g.restore();
-    }
+// ---- スポーン（開発者だけの勝ちポーズ）の光 ----
+// 体の後ろ：縦の光の柱と、集まってくる光の粒
+function devSpawnBack(g,WP,d,topY){
+  g.save();g.globalAlpha=1;g.globalCompositeOperation='lighter';
+  if(WP.beam>0){
+    var bg=g.createLinearGradient(-12,0,12,0);bg.addColorStop(0,'rgba(90,220,255,0)');bg.addColorStop(.5,'rgba(190,245,255,'+(.55*WP.beam).toFixed(3)+')');bg.addColorStop(1,'rgba(90,220,255,0)');
+    g.fillStyle=bg;g.fillRect(-12,-130,24,134);
+    g.fillStyle='rgba(255,255,255,'+(.7*WP.beam).toFixed(3)+')';g.fillRect(-1.2,-130,2.4,134);
   }
-  if(side<0){g.restore();return;}
-  if(WP.holo>0){   // 頭の上に浮かぶ </>
-    g.globalAlpha=WP.holo*(.75+.25*Math.sin(t*6));g.font='900 12px monospace';g.fillStyle='#FFE08A';g.shadowColor='#FFB020';g.shadowBlur=10;
-    g.fillText('</>',hx,hy-24+Math.sin(t*3)*1.5);
-  }
-  if(WP.vanish>0&&WP.vanish<1){   // 銃が光の粒になって消える
-    g.shadowBlur=0;
-    for(var k=0;k<12;k++){var an=k*2.4,r=4+WP.vanish*18*(.5+prand(k)*.8);g.globalAlpha=(1-WP.vanish);g.fillStyle=k%2?'#FFE08A':'#9CFFD0';
-      g.fillRect(P.gx+Math.cos(an)*r-1,P.gy-6+Math.sin(an)*r-1-WP.vanish*8,2,2);}
-  }
-  if(WP.snapFx>0){   // パチン：指先の光
-    var sx=d*13,sy=topY-9,R=4+(1-WP.snapFx)*10;
-    g.globalAlpha=WP.snapFx;g.strokeStyle='#E8FFF0';g.lineWidth=1.6;g.shadowColor='#4ADE80';g.shadowBlur=10;g.beginPath();
-    for(var s2=0;s2<6;s2++){var a2=s2*Math.PI/3;g.moveTo(sx+Math.cos(a2)*R*.4,sy+Math.sin(a2)*R*.4);g.lineTo(sx+Math.cos(a2)*R,sy+Math.sin(a2)*R);}
-    g.stroke();
+  if(WP.gather>0){   // 光の粒が、まわりから体の位置へ集まる
+    for(var i=0;i<22;i++){var a=i*2.39,r=(1-WP.gather)*(34+prand(i)*26)+2,y=-10-prand(i*7)*70;
+      g.fillStyle=i%3?'rgba(150,235,255,.9)':'rgba(255,230,150,.9)';g.fillRect(Math.cos(a)*r-1.2,y+Math.sin(a)*r*.3-1.2,2.4,2.4);}
   }
   g.restore();
 }
-// 世界の書き換え：景色が緑のコードの雨に変わる（k＝強さ 0〜1）
-var RAIN_GLYPH='01アイウエオカキクケコサシスセソタチツテトナニヌネノ<>{}=;';
-function drawCodeRain(g,W,H,k,tm){
-  if(k<=0)return;
-  g.save();g.globalAlpha=k*.82;g.fillStyle='#010B04';g.fillRect(0,0,W,H);
-  g.font='700 11px monospace';g.textAlign='center';g.textBaseline='middle';
-  var cols=Math.ceil(W/12);
-  for(var i=0;i<cols;i++){
-    var sp=60+prand(i*1.7)*90,head=((tm*sp+prand(i*3.1)*H*2)%(H+140))-40,x=i*12+6;
-    for(var j=0;j<10;j++){
-      var y=head-j*13;if(y<-10||y>H+10)continue;
-      g.globalAlpha=k*(j?Math.max(0,.85-j*.085):1);g.fillStyle=j?'#22C55E':'#D9FFE6';
-      g.fillText(RAIN_GLYPH.charAt(Math.floor(prand(i*31+j+Math.floor(tm*9))*RAIN_GLYPH.length)),x,y);
-    }
+// 体の前：ノイズ・消えるときの光の粒・組み上がりの走査線・頭の上の [SPAWN]
+function devSpawnFront(g,WP,d,topY,hy){
+  g.save();g.globalAlpha=1;
+  if(WP.glitch){   // ノイズ：体の上を色のずれた横線が走る
+    for(var i=0;i<5;i++){var y=topY-20+prand(i*13+Math.floor(performance.now()/40))*80;g.fillStyle=i%2?'rgba(80,240,255,.55)':'rgba(255,60,160,.45)';g.fillRect(-16+(prand(i*5.1)-.5)*8,y,32,2.2);}
+  }
+  if(WP.dissolve>0){   // 体が光の粒になって上へ散る
+    g.globalCompositeOperation='lighter';
+    for(var k=0;k<28;k++){var px=(prand(k*3.3)-.5)*26,py=-4-prand(k*1.9)*84-WP.dissolve*(20+prand(k)*30);
+      g.fillStyle='rgba(150,235,255,'+(1-WP.dissolve).toFixed(3)+')';g.fillRect(px-1.2,py-1.2,2.4,2.4);}
+    g.globalCompositeOperation='source-over';
+  }
+  if(WP.reveal!=null&&WP.reveal<1){   // 組み上がり：いま見えている境目に光る走査線
+    var sy=-WP.reveal*100;g.globalCompositeOperation='lighter';
+    var lg=g.createLinearGradient(0,sy-6,0,sy+6);lg.addColorStop(0,'rgba(120,230,255,0)');lg.addColorStop(.5,'rgba(220,250,255,.95)');lg.addColorStop(1,'rgba(120,230,255,0)');
+    g.fillStyle=lg;g.fillRect(-22,sy-6,44,12);g.globalCompositeOperation='source-over';
+  }
+  if(WP.tag>0){   // 頭の上に [SPAWN]
+    g.globalAlpha=WP.tag;g.font='800 8px monospace';g.textAlign='center';g.textBaseline='middle';
+    g.fillStyle='rgba(6,14,24,.75)';g.fillRect(-20,hy-34,40,11);g.strokeStyle='rgba(120,230,255,.8)';g.lineWidth=.8;g.strokeRect(-20,hy-34,40,11);
+    g.fillStyle='#9CF0FF';g.fillText('[SPAWN]',0,hy-28.5);
   }
   g.restore();
-}
-// 対戦：勝った人が開発者の勝ちポーズなら、背景をコードの雨に
-function devRainLevel(){
-  if(!CHEER||!CHEER.side)return 0;
-  var t2=(performance.now()-CHEER.t0)/1000-.45;if(t2<1/DEV_POSE_SPEED||t2>2.2/DEV_POSE_SPEED)return 0;
-  var st=gameMode==='ai'?localStyle(CHEER.side):TEAM2?teamStyle(CHEER.side):onlineStyle(CHEER.side),L=st&&st.look;
-  return L&&(L.win|0)===6?winPose(6,t2,1).rain:0;
 }
 // ---- 勝ちポーズ ----
 // t=始まってからの秒、d=向き。返す値：
 //  bx/hop/sq=体の横のずれ・跳ぶ高さ・沈み込み（足は地面に残る）、spin=体の回転、tuck=空中でひざを抱える量、
 //  lift=[奥の足, 手前の足]を上げる高さ、spread=足の開き、gx/gy/rot=銃の位置と向きのずれ、smoke/flash=銃口の煙・光
-var WIN_POSES=SIM.LOOK_SIZES.win,DEV_POSE_SPEED=1.5;   // 最後の1つ（6）は開発者だけ
+var WIN_POSES=SIM.LOOK_SIZES.win;   // 最後の1つ（6）は開発者だけ
 // 1回のジャンプ：t0 で踏み切り、air 秒で着地。踏み切りの前は沈んでため、着地したらひざで受ける
 function winHop(o,t,t0,air,h,deep){
   var pre=.13,post=.18,dp=deep||6;
@@ -5551,7 +5534,6 @@ function winHop(o,t,t0,air,h,deep){
   else if(t>=t0+air&&t<t0+air+post){var v=(t-t0-air)/post;o.sq=Math.max(o.sq,(dp+1)*Math.sin((1-v)*Math.PI/2)*(1-v*.3));}
 }
 function winPose(pose,t,d){
-  if(pose===6)t*=DEV_POSE_SPEED;   // 降臨は長いので速めに流す（次のラウンドまでに腕組みまで見せる）
   var up=Math.min(1,t*5),o={bx:0,hop:0,sq:0,spin:0,tuck:0,air:false,lift:[0,0],spread:0,lean:0,gx:0,gy:0,rot:0,smoke:0,flash:0},k;
   switch(pose){
     case 1:   // くるくる：片ひざをゆるめて立ち、指で銃を回してから下ろす
@@ -5577,14 +5559,15 @@ function winPose(pose,t,d){
       o.lift[0]=Math.max(0,k)*7;o.lift[1]=Math.max(0,-k)*7;
       o.gy=-15*up;o.rot=-d*(1.1+.45*k)*up;o.gx=d*10*up;
       break;
-    case 6:   // 開発者だけ：降臨 → 世界の書き換え（深くためて宙に浮き、0と1が回る → 銃が光になって消え、指を鳴らすと景色がコードの雨に → 腕を組んで見下ろす）
-      if(t<.28){o.sq=10*Math.sin(t/.28*Math.PI/2);}
-      else{k=Math.min(1,(t-.28)/.52);o.hop=30*(1-Math.pow(1-k,3))+(t>.8?Math.sin((t-.8)*2.4)*3:0);o.air=true;o.tuck=.3;}
-      if(t<.95){o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;}
-      else{o.nogun=true;o.arm=t<1.25?'snap':'cross';if(t<1.25)o.vanish=Math.min(1,(t-.95)/.25);}
-      if(t>=1.08&&t<1.22)o.snapFx=1-(t-1.08)/.14;
-      o.rain=t<1.08?0:t<1.16?(t-1.08)/.08:t<1.6?1:Math.max(0,1-(t-1.6)/.3);
-      o.orbit=Math.min(1,Math.max(0,(t-.35)*2.5));o.holo=Math.min(1,Math.max(0,(t-.6)*2.5));
+    case 6:   // 開発者だけ：スポーン（ノイズが走る → 光の粒になって消える → 光の柱に粒が集まる → 足元から体が組み上がる → 着地して決める）
+      o.fx=true;
+      if(t<.12){o.glitch=1;o.bx=(prand(Math.floor(t*60))-.5)*6;}
+      else if(t<.4){o.alpha=1-(t-.12)/.28;o.dissolve=(t-.12)/.28;o.bx=(prand(Math.floor(t*60))-.5)*3;}
+      else if(t<.7){o.alpha=0;o.gather=(t-.4)/.3;}
+      else if(t<.95){o.reveal=(t-.7)/.25;o.hop=6*(1-o.reveal);}
+      if(t>=.4&&t<1.15)o.beam=t<.55?(t-.4)/.15:t<.95?1:1-(t-.95)/.2;
+      if(t>=.95){winHop(o,t,.8,.15,6);o.tag=Math.min(1,(t-.95)*4)*(t<2.2?1:Math.max(0,1-(t-2.2)*3));
+        k=Math.min(1,(t-.95)*6);o.gx=d*6*k;o.gy=-14*k;o.rot=-d*1.1*k;}   // 決めポーズ：銃を顔の横に立てる
       break;
     default:  // 掲げる：銃を空へ掲げて、3回小さく跳ねる（だんだん低く）
       o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;
@@ -5602,7 +5585,7 @@ function winFace(pose,t,o){
     case 3:return o.air?{eyes:3,mouth:6,brows:0}:t<.22?{eyes:1,mouth:0,brows:1}:{eyes:4,mouth:2,blush:true};   // バク宙：ため→叫んで回る→満面の笑み
     case 4:return o.flash>0||o.sq>2.5?{eyes:1,mouth:6,brows:1}:{eyes:1,mouth:2,brows:1};                  // 祝砲：撃つたびに叫ぶ
     case 5:return{eyes:4,mouth:Math.sin(t*8)>0?2:1,blush:true};                                           // ステップ：楽しそうに
-    case 6:return t<1.08?{eyes:1,mouth:5,brows:1}:{eyes:2,mouth:0,brows:1};                               // 降臨：不敵に笑う → 無表情で見下ろす
+    case 6:return t<.95?{eyes:3,mouth:0}:{eyes:1,mouth:5,brows:1,wink:t>1.25&&t<1.6};                     // スポーン：現れたら不敵ににやり → ウインク
     default:return o.hop>2?{eyes:4,mouth:6,blush:true}:{eyes:4,mouth:2,blush:true};                       // 掲げる：大喜び
   }
 }
@@ -8486,7 +8469,6 @@ function drawScene(){
   ctx.save();if(sk>.2)ctx.translate((Math.random()-.5)*2*sk,(Math.random()-.5)*2*sk);   // 画面の揺れ
   if(kc){var kx=wx(kc.x),ky=kc.y;ctx.save();ctx.translate(kx,ky);ctx.scale(kz,kz);ctx.translate(-kx,-ky);}
   drawBackground();
-  var rk=devRainLevel();if(rk>0)drawCodeRain(ctx,VW,VH,rk,performance.now()/1000);
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins,me=null,op=null;
   if(gameMode==='ai'&&lp&&lai){
     me=lp;op=lai;drawChar(lp,true,{look:profile.look});drawChar(lai,false,{look:cpuLook,boss:isBossFight()});

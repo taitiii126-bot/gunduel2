@@ -175,7 +175,7 @@ function badgeShown(badges, sel) {
   return b[0] === 0 ? 0 : b[b.length - 1];
 }
 // 開発者だけの見た目（それぞれの最後の番号）。dev=サーバーが DEV_IDS で確かめた人。ほかの人が送ってきたら 0 に戻す
-var LOOK_DEV = { hat: 5, outfit: 4, neck: 3, win: 6 };   // 開発者だけの見た目（勝ちポーズ 6＝降臨）
+var LOOK_DEV = { hat: 5, outfit: 4, neck: 3, win: 6 };   // 開発者だけの見た目（勝ちポーズ 6＝スポーン）
 function cleanLook(v, dev) {
   var o = {};
   LOOK_KEYS.forEach(function (k) {
