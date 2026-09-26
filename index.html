@@ -856,6 +856,13 @@ body.demo #bg-shade{opacity:1;}
 }
 
 /* ---------- 言語の切り替え ---------- */
+.pose-box{display:flex;gap:12px;align-items:stretch;}
+.pose-box canvas{width:220px;height:150px;flex:none;border-radius:12px;border:1px solid var(--line);background:radial-gradient(ellipse at 50% 85%,rgba(255,197,61,.14),transparent 60%),linear-gradient(#141a33,#2a2342);}
+.pose-grid{flex:1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;align-content:start;}
+.pose-grid button{padding:10px 8px;border:1px solid var(--line);border-radius:10px;background:rgba(0,0,0,.3);color:var(--tx-2);font-size:13px;font-weight:800;transition:.15s;}
+.pose-grid button:hover{color:var(--tx);border-color:rgba(255,197,61,.5);}
+.pose-grid button.sel{color:#1A1206;background:#FFC53D;border-color:#FFC53D;}
+@media (max-width:560px){.pose-box{flex-direction:column;}.pose-box canvas{width:100%;height:auto;aspect-ratio:22/15;}}
 .lang-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:4px;padding:4px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:12px;}
 .lang-seg button{padding:10px;border:0;border-radius:9px;background:transparent;color:var(--tx-3);font-size:13px;font-weight:900;transition:.15s;}
 .lang-seg button:hover{color:var(--tx);}
@@ -1479,6 +1486,10 @@ body.mland #settings-screen>.scr-head{column-span:all;}
       <div class="vol-row"><label for="vol-se" data-i18n="set.se"></label><input type="range" id="vol-se" min="0" max="100" step="5" oninput="setVolume('se',this.value)" onchange="testSe()"><span class="vol-val" id="vol-se-v"></span></div>
     </div>
     <div class="settings-section">
+      <h3><span data-i18n="set.win"></span><span>VICTORY POSE</span></h3>
+      <div class="pose-box"><canvas id="pose-cv" width="440" height="300"></canvas><div class="pose-grid" id="pose-grid"></div></div>
+    </div>
+    <div class="settings-section">
       <h3><span data-i18n="set.fx"></span><span>EFFECTS</span></h3>
       <div class="kb-row"><span class="kb-label" data-i18n="set.shake"></span><span class="lang-seg" data-fxopt="shake"></span></div>
       <div class="kb-row"><span class="kb-label" data-i18n="set.fxq"></span><span class="lang-seg" data-fxopt="fxq"></span></div>
@@ -1675,8 +1686,8 @@ body.mland #settings-screen>.scr-head{column-span:all;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=25"></script>
-<script src="lang.js?v=26"></script>
+<script src="sim.js?v=26"></script>
+<script src="lang.js?v=27"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -1790,6 +1801,30 @@ function renderSettingsUI(){
     var k=el.getAttribute('data-fxopt'),opts=k==='shake'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
+}
+// ---- 設定画面：勝ちポーズを選ぶ（左のプレビューで、自分の見た目のまま動きを見せる）----
+var posePrev={t0:0,on:false};
+function pickWinPose(i){
+  i=+i;if(!(i>=0&&i<WIN_POSES))return;
+  profile.look.win=i;saveProfile();posePrev.t0=performance.now();renderPoseUI();SFX.switchW&&SFX.switchW();
+}
+function renderPoseUI(){
+  var el=document.getElementById('pose-grid');if(!el)return;
+  var cur=(profile.look&&profile.look.win)|0,h='';
+  for(var i=0;i<WIN_POSES;i++)h+='<button class="'+(i===cur?'sel':'')+'" onclick="pickWinPose('+i+')">'+esc(t('pose.'+i))+'</button>';
+  el.innerHTML=h;
+  if(!posePrev.on){posePrev.on=true;posePrev.t0=performance.now();requestAnimationFrame(posePrevLoop);}
+}
+function posePrevLoop(){
+  var cv=document.getElementById('pose-cv');
+  if(!cv||currentScreen!=='settings-screen'||document.hidden){posePrev.on=false;return;}
+  requestAnimationFrame(posePrevLoop);
+  var g=cv.getContext('2d'),W2=cv.width,H2=cv.height,T=(performance.now()-posePrev.t0)/1000,cyc=3.2,tt=T%cyc,wid=(loadout&&loadout[0])||2;
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W2,H2);
+  g.fillStyle='rgba(255,255,255,.08)';g.fillRect(0,H2-44,W2,2);
+  g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.ellipse(W2/2,H2-43,34,6,0,0,Math.PI*2);g.fill();
+  var tw=tt-.35;   // 最初の少しは、ふつうに立っている
+  drawAvatar(g,{x:W2/2,y:H2-44,s:2.1,dir:1,look:profile.look,team:TEAM.me,wid:wid,win:tw>0?{pose:(profile.look.win|0),t:tw}:null,tm:performance.now()/1000});
 }
 function setFxOpt(k,v){
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
@@ -2228,7 +2263,7 @@ var LOOK_OPTS={
   hairColor:['#1F1B24','#5B3A1E','#E8C15A','#B83A1B','#E5E7EB','#3B82F6','#EC4899','#22C55E'],
   accent:['#E8B730','#E23D3D','#2F6FE0','#1F9D55','#F4F1EA','#2A2530','#EC5CA8','#F08A24']   // 自分の色（帽子のリボン・首もと）
 };
-var LOOK_DEFAULT={skin:1,eyes:0,eyeColor:0,brows:0,hair:0,hairColor:1,nose:0,mouth:1,hat:0,outfit:0,neck:0,accent:0};
+var LOOK_DEFAULT={skin:1,eyes:0,eyeColor:0,brows:0,hair:0,hairColor:1,nose:0,mouth:1,hat:0,outfit:0,neck:0,accent:0,win:0};
 // 服の色はチームで決まる（自分=紫、相手=赤）。見分けやすさを優先
 var TEAM={
   me:{jacket:'#7C3AED',shade:'#5B21B6',light:'#A78BFA',pants:'#2E1065',boots:'#1C1917',trim:'#DDD6FE'},
@@ -2638,7 +2673,7 @@ function pickLook(k,i){
 }
 function hoverLook(k,i){lookHover=k==null?null:{k:k,i:+i};renderLookPreview();}
 function isDevUser(){return !!(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&AUTH.user.dev);}
-function randomizeLook(){profile.look=SIM.randomLook();lookHover=null;saveProfile();renderLookEditor();SFX.switchW();}
+function randomizeLook(){var wn=profile.look.win|0;profile.look=SIM.randomLook();profile.look.win=wn;lookHover=null;saveProfile();renderLookEditor();SFX.switchW();}
 function previewLook(){var L=Object.assign({},profile.look);if(lookHover)L[lookHover.k]=lookHover.i;return L;}
 // 頭の中心（立ち姿で s=1 のとき (1,-73)）を (cx,cy) に置いて描く
 function drawLookHead(g,look,cx,cy,s,o){
@@ -3668,7 +3703,7 @@ function renderOnline(){
   document.querySelectorAll('#room-screen canvas[data-tier]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,52,52);drawTierIcon(g,+cv.getAttribute('data-tier'),26,26,44,44,0);});
   renderQueue();
 }
-function showSettingsScreen(){if(currentScreen==='game-screen')return;showScreen('settings-screen');renderKbUI();renderSettingsUI();renderLangSegs();}
+function showSettingsScreen(){if(currentScreen==='game-screen')return;showScreen('settings-screen');renderKbUI();renderSettingsUI();renderLangSegs();renderPoseUI();}
 function showProfileScreen(){showScreen('profile-screen');renderProfileUI();renderLoginUI();if(AUTH.token)refreshMe();}
 function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
 function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();}
@@ -5372,12 +5407,14 @@ function drawAvatar(g,o){
   var tm=o.tm==null?performance.now()/1000:o.tm,wind=o.wind||0;
   var bob=o.bob||0,sw=o.walk==null?0:Math.sin(o.walk)*6;
   g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
+  var WP=o.win?winPose(o.win.pose,o.win.t,d):null;
+  if(WP){g.translate(WP.bx,-WP.hop);if(WP.spin){g.translate(0,-30);g.rotate(WP.spin);g.translate(0,30);}}
   var hipY=cr?-16:-30,topY=(cr?-40:-58)+bob,headR=cr?11.5:13,headCX=d,headCY=topY-15+(cr?1.5:0);
   if(o.boss&&o.aura!==false)drawBossAura(g,topY,tm);   // 体の後ろに立ちのぼる黒と金の気
   var W=o.wid?WEAPONS[o.wid]:null,oneHand=!W||W.kind==='melee'||o.wid===2||o.wid===8,rest=!W&&!cr&&!air;   // rest：武器なしで立っているときは腕を下ろす
   var shY=topY+5,handX=d*14,handY=topY+13,supX=oneHand?d*11:d*22;
   var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
-  if(o.cheer>0&&W){var cu=o.cheer;P.gx-=d*6*cu;P.gy-=16*cu;P.rot+=-d*1.35*cu;P.sx=P.gx-d*2;P.sy=P.gy+2;}   // 勝ちポーズ：銃を空へ掲げる
+  if(WP&&W){P.gx+=WP.gx;P.gy+=WP.gy;P.rot+=WP.rot;if(WP.gx||WP.gy){P.sx=P.gx-d*2;P.sy=P.gy+2;}}   // 勝ちポーズ：銃の位置と向き
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
   if(fit===1||fit===4)drawCoatTails(g,T,hipY,cr,air,d,wind,sw,fit===4?'#0E0C14':null);
@@ -5432,7 +5469,43 @@ function drawAvatar(g,o){
   g.beginPath();g.arc(hx2,hy2,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
   // 落ちていく空の弾倉・薬きょう
   P.drops.forEach(function(q){avItem(g,q.x,q.y,q.it,q.r,q.a);});
+  if(WP&&W&&W.kind!=='melee'){   // 銃口の先：硝煙・祝砲の光
+    var tx=P.gx+Math.cos(P.rot)*d*22,ty=P.gy+Math.sin(P.rot)*d*22;
+    if(WP.smoke>0)for(var sk=0;sk<4;sk++){var sp=(o.win.t*1.1+sk*.25)%1;g.globalAlpha=WP.smoke*(1-sp)*.55;g.fillStyle='#E8E4DC';g.beginPath();g.arc(tx+Math.sin(sp*6+sk)*3,ty-sp*26,2+sp*5,0,Math.PI*2);g.fill();}
+    if(WP.flash>0){g.globalAlpha=WP.flash;g.fillStyle='#FFF1B8';g.beginPath();g.arc(tx,ty,5+WP.flash*5,0,Math.PI*2);g.fill();g.globalAlpha=WP.flash*.5;g.fillStyle='#FFB347';g.beginPath();g.arc(tx,ty,11*WP.flash,0,Math.PI*2);g.fill();}
+    g.globalAlpha=1;
+  }
   g.restore();
+}
+// ---- 勝ちポーズ ----
+// t=始まってからの秒、d=向き。返す値：bx/hop=体の横と高さのずれ、spin=体の回転、gx/gy/rot=銃の位置と向きのずれ、smoke/flash=銃口の煙・光
+var WIN_POSES=6;
+function winPose(pose,t,d){
+  var up=Math.min(1,t*5),o={bx:0,hop:0,spin:0,gx:0,gy:0,rot:0,smoke:0,flash:0},k;
+  switch(pose){
+    case 1:   // くるくる：指で銃を回してから、下ろして構えを解く
+      if(t<1.7){o.gy=-4*up;o.rot=-d*(t*15-t*t*2.2);}
+      else{k=Math.min(1,(t-1.7)*4);o.gy=-4+8*k;o.rot=-d*(1.7*15-1.7*1.7*2.2)*(1-k)+d*1.05*k;}
+      break;
+    case 2:   // 硝煙を吹く：銃口を顔の前に立てて、煙をふっ
+      o.gx=d*3*up;o.gy=-17*up;o.rot=-d*1.5*up;o.smoke=Math.min(1,Math.max(0,(t-.25)*3));
+      o.hop=Math.sin(Math.min(1,t*2)*Math.PI)*3;
+      break;
+    case 3:   // バク宙：後ろへ一回転してから掲げる
+      if(t<.75){k=t/.75;o.hop=Math.sin(k*Math.PI)*44;o.spin=-d*k*Math.PI*2;o.bx=-d*Math.sin(k*Math.PI)*6;}
+      else{k=Math.min(1,(t-.75)*5);o.gx=d*4*k;o.gy=-22*k;o.rot=-d*1.35*k;}
+      break;
+    case 4:   // 祝砲：空へ3発
+      o.gx=d*5*up;o.gy=-22*up;o.rot=-d*1.3*up;
+      for(k=0;k<3;k++){var st=t-.35-k*.42;if(st>=0&&st<.12){o.flash=1-st/.12;o.gy+=4*(1-st/.12);o.rot+=d*.18*(1-st/.12);}}
+      break;
+    case 5:   // ステップ：左右に揺れて踊る
+      k=Math.sin(t*8);o.bx=k*7;o.hop=Math.abs(Math.cos(t*8))*6;o.gy=-16*up;o.rot=-d*(1.1+.45*k)*up;o.gx=d*4*up;
+      break;
+    default:  // 掲げる：銃を空へ掲げて小さく跳ねる
+      o.gx=d*4*up;o.gy=-22*up;o.rot=-d*1.35*up;o.hop=t<1.4?Math.abs(Math.sin(t*7))*12*(1-t/1.4):0;
+  }
+  return o;
 }
 // 鬼帝の角：額から上へそり返る2本（根元は金、先は黒）
 function drawBossHorns(g,hx,hy,r,d){
@@ -6709,7 +6782,7 @@ function drawChar(s,isMe,o){
   ctx.save();
   if(s.hit>0&&Math.sin(frame*.8)>0)ctx.globalAlpha=.3;
   var moving=Math.abs(s.vx||0)>.6&&s.onGround&&!s.ducking,A=charAnim(s,W,moving),ch=cheerOf(s);
-  drawAvatar(ctx,{cheer:ch?ch.up:0,x:cx2,y:s.y+CHAR_H-(ch?ch.hop:0),s:.5,dir:d,look:o.look,team:team,wid:wid,crouch:s.ducking,boss:!!o.boss,
+  drawAvatar(ctx,{win:ch?{pose:(o.look&&o.look.win)|0,t:ch.t}:null,x:cx2,y:s.y+CHAR_H,s:.5,dir:d,look:o.look,team:team,wid:wid,crouch:s.ducking,boss:!!o.boss,
     walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0,
     bob:A.bob,blink:A.blink,kick:A.kick,flinch:A.flinch,reload:A.reload,rlF:A.rlF,rlMax:A.rlMax,wind:A.wind,tm:A.tm});
   ctx.restore();
@@ -7381,7 +7454,7 @@ function cheerOf(s){
   if(!CHEER||!s||s.dead)return null;
   if(CHEER.side?CHEER.side!==s.side:(CHEER.team==null||SIM.teamOf(s.side)!==CHEER.team))return null;
   var t2=(performance.now()-CHEER.t0)/1000-.45;if(t2<0)return null;
-  return{up:Math.min(1,t2*5),hop:t2<1.4?Math.abs(Math.sin(t2*7))*6*(1-t2/1.4):0};
+  return{t:t2};
 }
 function startConfetti(){
   var n=Math.round(140*fxMul()),cols=['#FFC53D','#FF4D5E','#34D399','#60A5FA','#B794FF','#FFFFFF','#F472B6'];
@@ -8443,7 +8516,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,randomizeLook,setLang,setVolume,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,randomizeLook,setLang,setVolume,setFxOpt,pickWinPose,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
