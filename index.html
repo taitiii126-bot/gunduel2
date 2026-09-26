@@ -1043,6 +1043,7 @@ body.demo #bg-shade{opacity:1;}
 .opt canvas{width:66px;height:66px;border-radius:11px;}
 .opt.pose{width:92px;height:auto;padding:6px 0 7px;gap:2px;}
 .opt.pose canvas{width:80px;height:80px;}
+.opt.pose .opt-dev{top:4px;bottom:auto;}
 .opt-name{font-size:11px;font-weight:800;color:var(--tx-2);white-space:nowrap;}
 .opt.pose.sel .opt-name{color:var(--gold);}
 .opt.swatch{width:44px;height:44px;border-radius:50%;}
@@ -1682,8 +1683,8 @@ body.mland #settings-screen>.scr-head{column-span:all;}
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=27"></script>
-<script src="lang.js?v=28"></script>
+<script src="sim.js?v=28"></script>
+<script src="lang.js?v=29"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2667,6 +2668,7 @@ function renderLookPreview(tm){
     var pt=(tm%3.2)-.35,wid=(loadout&&loadout[0])||2;
     var sh2=g.createRadialGradient(150,268,0,150,268,60);sh2.addColorStop(0,'rgba(0,0,0,.55)');sh2.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=sh2;g.beginPath();g.ellipse(150,268,60,10,0,0,Math.PI*2);g.fill();
+    if(pt>0&&(L.win|0)===6)drawCodeRain(g,300,300,winPose(6,pt,1).rain,tm);
     drawAvatar(g,{x:148,y:268,s:1.95,dir:1,look:L,team:TEAM.me,wid:wid,blink:blink,win:pt>0?{pose:L.win|0,t:pt}:null,tm:tm});
     document.querySelectorAll('#look-opts canvas[data-pose]').forEach(function(pc){
       var pg=pc.getContext('2d');pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,132,132);
@@ -2695,7 +2697,10 @@ function renderLookEditor(){
   }
   if(tab.pose){   // 勝ちポーズ：動く見本と名前。のせると上の大きなプレビューでも全身で動く
     html+='<p class="look-sub">'+esc(t('look.winHint'))+'</p><div class="opt-grid">';
-    for(var pi=0;pi<WIN_POSES;pi++)html+=opt('win',pi,'<canvas data-pose="'+pi+'" width="132" height="132"></canvas><span class="opt-name">'+esc(t('pose.'+pi))+'</span>',' pose');
+    for(var pi=0;pi<WIN_POSES;pi++){
+      var devP=SIM.LOOK_DEV.win===pi;if(devP&&!isDevUser())continue;   // 開発者の勝ちポーズは、開発者にだけ見せる
+      html+=opt('win',pi,'<canvas data-pose="'+pi+'" width="132" height="132"></canvas><span class="opt-name">'+esc(t('pose.'+pi))+'</span>'+(devP?'<b class="opt-dev">DEV</b>':''),' pose');
+    }
     html+='</div>';
   }
   if(tab.shape){
@@ -5401,10 +5406,13 @@ function drawAvatar(g,o){
   if(WP){g.translate(WP.bx,-WP.hop+WP.sq);if(WP.spin){g.translate(0,-30);g.rotate(WP.spin);g.translate(0,30);}}
   var hipY=cr?-16:-30,topY=(cr?-40:-58)+bob,headR=cr?11.5:13,headCX=d,headCY=topY-15+(cr?1.5:0);
   if(o.boss&&o.aura!==false)drawBossAura(g,topY,tm);   // 体の後ろに立ちのぼる黒と金の気
+  if(WP&&WP.orbit)devPoseFx(g,{orbit:WP.orbit},o.win.t,d,topY,0,0,null,-1);   // 開発者の勝ちポーズ：体の後ろ側を回る 0 と 1
   var W=o.wid?WEAPONS[o.wid]:null,oneHand=!W||W.kind==='melee'||o.wid===2||o.wid===8,rest=!W&&!cr&&!air;   // rest：武器なしで立っているときは腕を下ろす
   var shY=topY+5,handX=d*14,handY=topY+13,supX=oneHand?d*11:d*22;
   var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
   if(WP&&W){P.gx+=WP.gx;P.gy+=WP.gy;P.rot+=WP.rot;if(WP.gx||WP.gy){P.sx=P.gx-d*2;P.sy=P.gy+2;}}   // 勝ちポーズ：銃の位置と向き
+  if(WP&&WP.arm==='snap'){P.gx=d*13;P.gy=topY-6;P.sx=-d*3;P.sy=shY+16;}          // 指を鳴らす：手を顔の横へ
+  else if(WP&&WP.arm==='cross'){P.sx=-d*7;P.sy=shY+12;}                           // 腕を組む（奥の腕はひじまで）
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
   if(fit===1||fit===4)drawCoatTails(g,T,hipY,cr,air,d,wind,sw,fit===4?'#0E0C14':null);
@@ -5454,10 +5462,15 @@ function drawAvatar(g,o){
   if(hat)drawHat(g,hat,acc,headCX,headCY,headR,d,wind,tm);
   g.restore();
   // 武器と手前の腕（反動・リロードでは持ち手を中心に傾ける）
-  if(W){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
+  if(W&&!(WP&&WP.nogun)){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
   if(P.hand&&P.front)avHand(g,P);
   var hx2=P.gx-d*.5,hy2=P.gy+1;
-  if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
+  if(WP&&WP.arm==='cross'){   // 腕組み：奥の前腕を胸の前へ、手前の腕をその上に重ねる
+    avLimb(g,[-d*7,shY+12,d*10,shY+7],6,shadeHex(T.jacket,-.12));
+    g.beginPath();g.arc(d*10.5,shY+7,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+    avLimb(g,[d*3,shY,d*8,shY+13,-d*7,shY+9],6.5,T.jacket);hx2=-d*7.5;hy2=shY+9;
+  }
+  else if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
   else avLimb(g,[d*3,shY,P.gx-d*2,P.gy+1],6.5,T.jacket);
   g.beginPath();g.arc(hx2,hy2,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
   // 落ちていく空の弾倉・薬きょう
@@ -5468,14 +5481,68 @@ function drawAvatar(g,o){
     if(WP.flash>0){g.globalAlpha=WP.flash;g.fillStyle='#FFF1B8';g.beginPath();g.arc(tx,ty,5+WP.flash*5,0,Math.PI*2);g.fill();g.globalAlpha=WP.flash*.5;g.fillStyle='#FFB347';g.beginPath();g.arc(tx,ty,11*WP.flash,0,Math.PI*2);g.fill();}
     g.globalAlpha=1;
   }
+  if(WP&&(WP.orbit||WP.holo||WP.vanish||WP.snapFx))devPoseFx(g,WP,o.win.t,d,topY,headCX,headCY,P,1);
   if(WP)g.restore();
   g.restore();
+}
+function devPoseFx(g,WP,t,d,topY,hx,hy,P,side){   // side：-1＝体の後ろ側だけ、1＝体の前側と、そのほかの光
+  g.save();g.textAlign='center';g.textBaseline='middle';
+  if(WP.orbit>0){   // 体のまわりを回る 0 と 1（奥は暗く小さく、手前は明るく大きく）。顔の高さはよける
+    g.font='800 8px monospace';
+    for(var i=0;i<8;i++){
+      var a=t*2.2+i*Math.PI*2/8,z=Math.sin(a),x=Math.cos(a)*25,y=topY+24+Math.sin(a*2+i)*12;
+      if((z>0?1:-1)!==side)continue;
+      g.globalAlpha=WP.orbit*(.35+.45*(z+1)/2);g.fillStyle=z>0?'#9CFFD0':'#3FAF7A';g.shadowColor='#4ADE80';g.shadowBlur=z>0?8:0;
+      g.save();g.translate(x,y);g.scale(.8+.3*z,.8+.3*z);g.fillText(i%3===1?'0':'1',0,0);g.restore();
+    }
+  }
+  if(side<0){g.restore();return;}
+  if(WP.holo>0){   // 頭の上に浮かぶ </>
+    g.globalAlpha=WP.holo*(.75+.25*Math.sin(t*6));g.font='900 12px monospace';g.fillStyle='#FFE08A';g.shadowColor='#FFB020';g.shadowBlur=10;
+    g.fillText('</>',hx,hy-24+Math.sin(t*3)*1.5);
+  }
+  if(WP.vanish>0&&WP.vanish<1){   // 銃が光の粒になって消える
+    g.shadowBlur=0;
+    for(var k=0;k<12;k++){var an=k*2.4,r=4+WP.vanish*18*(.5+prand(k)*.8);g.globalAlpha=(1-WP.vanish);g.fillStyle=k%2?'#FFE08A':'#9CFFD0';
+      g.fillRect(P.gx+Math.cos(an)*r-1,P.gy-6+Math.sin(an)*r-1-WP.vanish*8,2,2);}
+  }
+  if(WP.snapFx>0){   // パチン：指先の光
+    var sx=d*13,sy=topY-9,R=4+(1-WP.snapFx)*10;
+    g.globalAlpha=WP.snapFx;g.strokeStyle='#E8FFF0';g.lineWidth=1.6;g.shadowColor='#4ADE80';g.shadowBlur=10;g.beginPath();
+    for(var s2=0;s2<6;s2++){var a2=s2*Math.PI/3;g.moveTo(sx+Math.cos(a2)*R*.4,sy+Math.sin(a2)*R*.4);g.lineTo(sx+Math.cos(a2)*R,sy+Math.sin(a2)*R);}
+    g.stroke();
+  }
+  g.restore();
+}
+// 世界の書き換え：景色が緑のコードの雨に変わる（k＝強さ 0〜1）
+var RAIN_GLYPH='01アイウエオカキクケコサシスセソタチツテトナニヌネノ<>{}=;';
+function drawCodeRain(g,W,H,k,tm){
+  if(k<=0)return;
+  g.save();g.globalAlpha=k*.82;g.fillStyle='#010B04';g.fillRect(0,0,W,H);
+  g.font='700 11px monospace';g.textAlign='center';g.textBaseline='middle';
+  var cols=Math.ceil(W/12);
+  for(var i=0;i<cols;i++){
+    var sp=60+prand(i*1.7)*90,head=((tm*sp+prand(i*3.1)*H*2)%(H+140))-40,x=i*12+6;
+    for(var j=0;j<10;j++){
+      var y=head-j*13;if(y<-10||y>H+10)continue;
+      g.globalAlpha=k*(j?Math.max(0,.85-j*.085):1);g.fillStyle=j?'#22C55E':'#D9FFE6';
+      g.fillText(RAIN_GLYPH.charAt(Math.floor(prand(i*31+j+Math.floor(tm*9))*RAIN_GLYPH.length)),x,y);
+    }
+  }
+  g.restore();
+}
+// 対戦：勝った人が開発者の勝ちポーズなら、背景をコードの雨に
+function devRainLevel(){
+  if(!CHEER||!CHEER.side)return 0;
+  var t2=(performance.now()-CHEER.t0)/1000-.45;if(t2<1||t2>2.2)return 0;
+  var st=gameMode==='ai'?localStyle(CHEER.side):TEAM2?teamStyle(CHEER.side):onlineStyle(CHEER.side),L=st&&st.look;
+  return L&&(L.win|0)===6?winPose(6,t2,1).rain:0;
 }
 // ---- 勝ちポーズ ----
 // t=始まってからの秒、d=向き。返す値：
 //  bx/hop/sq=体の横のずれ・跳ぶ高さ・沈み込み（足は地面に残る）、spin=体の回転、tuck=空中でひざを抱える量、
 //  lift=[奥の足, 手前の足]を上げる高さ、spread=足の開き、gx/gy/rot=銃の位置と向きのずれ、smoke/flash=銃口の煙・光
-var WIN_POSES=6;
+var WIN_POSES=SIM.LOOK_SIZES.win;   // 最後の1つ（6）は開発者だけ
 // 1回のジャンプ：t0 で踏み切り、air 秒で着地。踏み切りの前は沈んでため、着地したらひざで受ける
 function winHop(o,t,t0,air,h,deep){
   var pre=.13,post=.18,dp=deep||6;
@@ -5509,6 +5576,15 @@ function winPose(pose,t,d){
       o.lift[0]=Math.max(0,k)*7;o.lift[1]=Math.max(0,-k)*7;
       o.gy=-15*up;o.rot=-d*(1.1+.45*k)*up;o.gx=d*10*up;
       break;
+    case 6:   // 開発者だけ：降臨 → 世界の書き換え（深くためて宙に浮き、0と1が回る → 銃が光になって消え、指を鳴らすと景色がコードの雨に → 腕を組んで見下ろす）
+      if(t<.28){o.sq=10*Math.sin(t/.28*Math.PI/2);}
+      else{k=Math.min(1,(t-.28)/.52);o.hop=30*(1-Math.pow(1-k,3))+(t>.8?Math.sin((t-.8)*2.4)*3:0);o.air=true;o.tuck=.3;}
+      if(t<.95){o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;}
+      else{o.nogun=true;o.arm=t<1.25?'snap':'cross';if(t<1.25)o.vanish=Math.min(1,(t-.95)/.25);}
+      if(t>=1.08&&t<1.22)o.snapFx=1-(t-1.08)/.14;
+      o.rain=t<1.08?0:t<1.16?(t-1.08)/.08:t<1.6?1:Math.max(0,1-(t-1.6)/.3);
+      o.orbit=Math.min(1,Math.max(0,(t-.35)*2.5));o.holo=Math.min(1,Math.max(0,(t-.6)*2.5));
+      break;
     default:  // 掲げる：銃を空へ掲げて、3回小さく跳ねる（だんだん低く）
       o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;
       winHop(o,t,.2,.34,15);winHop(o,t,.7,.3,11);winHop(o,t,1.16,.26,7);
@@ -5525,6 +5601,7 @@ function winFace(pose,t,o){
     case 3:return o.air?{eyes:3,mouth:6,brows:0}:t<.22?{eyes:1,mouth:0,brows:1}:{eyes:4,mouth:2,blush:true};   // バク宙：ため→叫んで回る→満面の笑み
     case 4:return o.flash>0||o.sq>2.5?{eyes:1,mouth:6,brows:1}:{eyes:1,mouth:2,brows:1};                  // 祝砲：撃つたびに叫ぶ
     case 5:return{eyes:4,mouth:Math.sin(t*8)>0?2:1,blush:true};                                           // ステップ：楽しそうに
+    case 6:return t<1.08?{eyes:1,mouth:5,brows:1}:{eyes:2,mouth:0,brows:1};                               // 降臨：不敵に笑う → 無表情で見下ろす
     default:return o.hop>2?{eyes:4,mouth:6,blush:true}:{eyes:4,mouth:2,blush:true};                       // 掲げる：大喜び
   }
 }
@@ -8408,6 +8485,7 @@ function drawScene(){
   ctx.save();if(sk>.2)ctx.translate((Math.random()-.5)*2*sk,(Math.random()-.5)*2*sk);   // 画面の揺れ
   if(kc){var kx=wx(kc.x),ky=kc.y;ctx.save();ctx.translate(kx,ky);ctx.scale(kz,kz);ctx.translate(-kx,-ky);}
   drawBackground();
+  var rk=devRainLevel();if(rk>0)drawCodeRain(ctx,VW,VH,rk,performance.now()/1000);
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins,me=null,op=null;
   if(gameMode==='ai'&&lp&&lai){
     me=lp;op=lai;drawChar(lp,true,{look:profile.look});drawChar(lai,false,{look:cpuLook,boss:isBossFight()});

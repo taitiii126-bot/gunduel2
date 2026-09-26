@@ -151,7 +151,7 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 6, outfit: 5, neck: 4, accent: 8, win: 6 };   // win＝勝ちポーズ
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 6, outfit: 5, neck: 4, accent: 8, win: 7 };   // win＝勝ちポーズ
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent', 'win'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
 // ---- シーズンバッジ：シーズンごとに、その間にログインした全員へ1つ配る記念のアイコン ----
@@ -175,7 +175,7 @@ function badgeShown(badges, sel) {
   return b[0] === 0 ? 0 : b[b.length - 1];
 }
 // 開発者だけの見た目（それぞれの最後の番号）。dev=サーバーが DEV_IDS で確かめた人。ほかの人が送ってきたら 0 に戻す
-var LOOK_DEV = { hat: 5, outfit: 4, neck: 3 };
+var LOOK_DEV = { hat: 5, outfit: 4, neck: 3, win: 6 };   // 開発者だけの見た目（勝ちポーズ 6＝降臨）
 function cleanLook(v, dev) {
   var o = {};
   LOOK_KEYS.forEach(function (k) {
@@ -193,6 +193,7 @@ function randomLook(rnd) {
   o.outfit = Math.floor(r() * LOOK_DEV.outfit);
   o.neck = r() < 0.55 ? 0 : 1 + Math.floor(r() * (LOOK_DEV.neck - 1));
   o.accent = Math.floor(r() * LOOK_SIZES.accent);
+  o.win = Math.floor(r() * LOOK_DEV.win);   // 開発者の勝ちポーズは出さない
   return o;
 }
 
