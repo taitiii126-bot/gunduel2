@@ -621,6 +621,10 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 
 /* ---------- 武器セット ---------- */
 .menu.wide{max-width:780px;}
+.stat-grid.four{grid-template-columns:repeat(4,1fr);}
+@media (max-width:480px){.stat-grid.four{grid-template-columns:1fr 1fr;}}
+/* 英語表示では、見出しの右の英字（左と同じ言葉になる）を出さない */
+html[lang=en] .settings-section h3>span+span,html[lang=en] .ol-sec h3>span+span{display:none;}
 .lo-slots{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px;}
 .lo-slot{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 8px 12px;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--tx);transition:border-color .18s,box-shadow .18s,transform .18s var(--ease);}
 .lo-slot:hover{border-color:var(--line-2);transform:translateY(-1px);}
@@ -1874,8 +1878,8 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
-<script src="sim.js?v=29"></script>
-<script src="lang.js?v=31"></script>
+<script src="sim.js?v=30"></script>
+<script src="lang.js?v=32"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2804,16 +2808,16 @@ function myCardData(){
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
   else if(field==='bio')profile.bio=String(v).slice(0,40);
-  saveProfileSoon();
+  saveProfileSoon();pfSaved();
 }
 function pickTitle(id){
   if(!titleDef(id)||!titleUnlocked(id))return;   // 未獲得の称号は選べない（一覧にも出さない）
-  profile.title=id;saveProfile();renderTitleChips();
+  profile.title=id;saveProfile();renderTitleChips();pfSaved();
 }
 function pickBg(i){
   if(i===EMP_BG){if(!emperorSlain())return;profile.bg=EMP_BG;saveProfile();renderBgOptions();return;}
   if(i===CHAMP_BG){if(!isChampion())return;profile.bg=CHAMP_BG;saveProfile();renderBgOptions();return;}
-  i=+i;if(!(i>=0&&i<=profile.bestTier))return;profile.bg=i;saveProfile();renderBgOptions();
+  i=+i;if(!(i>=0&&i<=profile.bestTier))return;profile.bg=i;saveProfile();renderBgOptions();pfSaved();
 }
 // 見た目のエディター：タブは 肌・目（形と色）・まゆげ・髪（形と色）・鼻・口・帽子（形と自分の色）・服・首もと（形と自分の色）
 var LOOK_TABS=[
@@ -2834,7 +2838,7 @@ function pickLookTab(k){lookTab=k;lookHover=null;renderLookEditor();}
 function pickLook(k,i){
   i=+i;if(!(i>=0&&i<SIM.LOOK_SIZES[k]))return;
   if(SIM.LOOK_DEV[k]===i&&!isDevUser())return;
-  profile.look[k]=i;saveProfile();renderLookEditor();
+  profile.look[k]=i;saveProfile();renderLookEditor();pfSaved();
 }
 function hoverLook(k,i){lookHover=k==null?null:{k:k,i:+i};renderLookPreview();}
 function isDevUser(){return !!(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&AUTH.user.dev);}
@@ -2952,7 +2956,7 @@ function renderBadgeOptions(){
   el.innerHTML=html;
   el.querySelectorAll('canvas[data-badge]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,112,112);drawSeasonBadge(g,56,48,34,+cv.getAttribute('data-badge'),0);});
 }
-function pickBadge(n){n=+n;if(n!==-1&&SIM.cleanBadges(AUTH&&AUTH.user&&AUTH.user.badges).indexOf(n)<0)return;profile.badge=n;saveProfile();renderBadgeOptions();}
+function pickBadge(n){n=+n;if(n!==-1&&SIM.cleanBadges(AUTH&&AUTH.user&&AUTH.user.badges).indexOf(n)<0)return;profile.badge=n;saveProfile();renderBadgeOptions();pfSaved();}
 function renderBgOptions(){
   var el=document.getElementById('pf-bgs');if(!el)return;
   var html='';
@@ -2995,7 +2999,7 @@ function renderProfileUI(){
   var totalGames=totalW+totalL,totalRate=totalGames>0?Math.round(totalW/totalGames*100):0;
   var totalEl=document.getElementById('profile-total');
   if(totalEl)totalEl.innerHTML=totalGames>0
-    ?'<div class="stat-grid"><div class="stat win"><b>'+totalW+'</b><span>WINS</span></div><div class="stat lose"><b>'+totalL+'</b><span>LOSSES</span></div><div class="stat rate"><b>'+totalRate+'<small style="font-size:.55em">%</small></b><span>WIN RATE</span></div></div>'
+    ?'<div class="stat-grid four"><div class="stat"><b>'+totalGames+'</b><span>'+esc(t('pf.sGames'))+'</span></div><div class="stat win"><b>'+totalW+'</b><span>'+esc(t('pf.sWins'))+'</span></div><div class="stat lose"><b>'+totalL+'</b><span>'+esc(t('pf.sLosses'))+'</span></div><div class="stat rate"><b>'+totalRate+'<small style="font-size:.55em">%</small></b><span>'+esc(t('pf.sRate'))+'</span></div></div>'
     :'<div class="profile-empty">'+esc(t('pf.noGames'))+'</div>';
   var rowsEl=document.getElementById('profile-rows');if(rowsEl)rowsEl.innerHTML=rows;
   renderTierUI();
@@ -3897,6 +3901,9 @@ function pfTab(k){
   startCardLoop();if(k==='look')renderLookPreview();
 }
 function showProfileScreen(){showScreen('profile-screen');renderProfileUI();renderLoginUI();if(AUTH.token)refreshMe();}
+// 名前・見た目などを変えたら、小さく「保存しました」（続けて変えたときは最後に1回だけ）
+var pfSavedT=null;
+function pfSaved(){if(currentScreen!=='profile-screen')return;clearTimeout(pfSavedT);pfSavedT=setTimeout(function(){note(t(STORE_ACC?'pf.savedSync':'pf.saved'));},700);}
 function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
 function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();}
 function renderLoadoutNotes(){
@@ -4351,7 +4358,7 @@ function footFx(s){
   var k=s.side||'x',f=FX.ft[k],now=frame,fx=s.x+CHAR_W/2,fy=s.y+CHAR_H;
   if(!f){FX.ft[k]={g:s.onGround,d:s.dir,t:now,vy:s.vy||0};return;}
   if(now===f.t)return;
-  if(s.onGround&&!f.g&&f.vy>3)addDust(fx,fy,Math.min(10,4+f.vy*.6),2.6,.5);               // 着地
+  if(s.onGround&&!f.g&&f.vy>2){f.land=now;f.lv=f.vy;if(f.vy>3)addDust(fx,fy,Math.min(10,4+f.vy*.6),2.6,.5);}   // 着地（伸び縮みにも使う）
   else if(!s.onGround&&f.g&&(s.vy||0)<-4)addDust(fx,fy,5,1.4,.3);                            // 踏み切り
   else if(s.onGround&&f.g&&s.dir!==f.d&&Math.abs(s.vx||0)>1.5)addDust(fx-s.dir*4,fy,4,1,.35);  // 振り向き
   else if(s.onGround&&Math.abs(s.vx||0)>2.4&&now%9===0)addDust(fx-(s.vx>0?6:-6),fy,1,.8,.25);  // 走り
@@ -4413,7 +4420,7 @@ function handleEvents(ev,me,styleOf){
         sfxFire(e.wid);
         if(mine&&GP.used&&AV_KICK[e.wid]&&AV_KICK[e.wid][1]>=.18)padRumble(.25,.5,70);   // 重い武器を撃ったら軽く揺らす
         FX.av[e.who]={t:performance.now(),wid:e.wid};
-        FX.muzzle.push({x:e.x,y:e.y,dir:e.dir,life:5,col:WEAPONS[e.wid].color,big:e.wid===5||e.wid===11||e.wid===3});
+        FX.muzzle.push({x:e.x,y:e.y,dir:e.dir,life:5,col:WEAPONS[e.wid].color,big:e.wid===5||e.wid===11||e.wid===3,wid:e.wid});
         if(!e.beam)addShell(e.x,e.y,e.dir,e.wid);
         addSmoke(e.x,e.y,e.dir,e.wid===5||e.wid===3||e.wid===11?4:2);
         if(e.beam)FX.beam.push({x1:e.x,x2:e.x2,y:e.y,life:16,col:WEAPONS[e.wid].color});
@@ -4744,6 +4751,10 @@ function handleServerFx(fx){
     if(e.t==='hit'){                                        // 火花だけ出す（音はHPの変化で鳴らしている）
       addSparks(e.x,e.y,e.who===mySlot?'#FF8A96':'#FFD27A',7);
       if(e.who===mySlot)feelHit();
+      if(e.dmg>0){   // ダメージの数字と、撃たれたときの揺れ（CPU戦と同じ。ヒットストップはサーバーが時間を進めるので入れない）
+        addDmgNum(e.x,e.y,e.dmg,e.who===mySlot);
+        if(e.who===mySlot)addShake(1.5+e.dmg/9);else if(e.dmg>=30)addShake(1.8);
+      }
       if(e.by===mySlot){
         if(e.sid&&!hitSids[e.sid]){hitSids[e.sid]=1;matchHits++;}
         dropConfirmedShot(e);                               // 当たった弾を消す（先読みでは通り抜けさせている）
@@ -5663,6 +5674,7 @@ function drawAvatar(g,o){
   var W=o.wid?WEAPONS[o.wid]:null,oneHand=!W||W.kind==='melee'||o.wid===2||o.wid===8,rest=!W&&!cr&&!air;   // rest：武器なしで立っているときは腕を下ろす
   var shY=topY+5,handX=d*14,handY=topY+13,supX=oneHand?d*11:d*22;
   var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
+  if(o.walk!=null&&!WP&&!o.reload&&W){var wk=Math.sin(o.walk*2);P.gy+=wk*1.3;P.gx+=d*Math.cos(o.walk*2)*.6;P.sy+=wk*1.3;}   // 走るときは、足に合わせて銃が上下にゆれる
   if(WP&&W){P.gx+=WP.gx;P.gy+=WP.gy;P.rot+=WP.rot;if(WP.gx||WP.gy){P.sx=P.gx-d*2;P.sy=P.gy+2;}}   // 勝ちポーズ：銃の位置と向き
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
@@ -7143,14 +7155,37 @@ function drawChar(s,isMe,o){
     ctx.save();ctx.globalAlpha=.25+.55*p;ctx.strokeStyle=W.color;ctx.lineWidth=.6+1.6*p;ctx.setLineDash([6,5]);ctx.lineDashOffset=-frame*1.5;
     ctx.beginPath();ctx.moveTo(x1,my);ctx.lineTo(x2,my);ctx.stroke();ctx.setLineDash([]);ctx.restore();
   }
+  if(W&&W.kind==='beam'&&s.chg>0){   // レールガンの溜め：銃口へ光の粒が集まる
+    var pp=1-s.chg/W.charge,mx0=s.bx?wx(s.bx):cx2+d*22,my0=s.by||s.y+22;
+    ctx.save();ctx.globalCompositeOperation='lighter';
+    for(var q=0;q<10;q++){var an=q*.63+frame*.05,rr=(1-((pp*3+q*.1)%1))*26+2;ctx.fillStyle='rgba(190,160,255,'+(.35+.5*pp).toFixed(2)+')';ctx.fillRect(mx0+Math.cos(an)*rr-1,my0+Math.sin(an)*rr-1,2,2);}
+    glow(mx0,my0,8+pp*14,'200,170,255',.35*pp);
+    ctx.restore();
+  }
+  if(wid===3&&!s.dead&&s.rl<=0&&(s.cool||0)<=0&&!s.ducking){   // スナイパー：スコープのきらめき
+    var gp=(Math.sin(frame*.09+(s.side==='b'?2:0))+1)/2;
+    if(gp>.55){var gx=cx2+d*6,gy=s.y+18,ga=(gp-.55)/.45;
+      ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=ga;ctx.strokeStyle='#DFF3FF';ctx.lineWidth=1;
+      ctx.beginPath();ctx.moveTo(gx-7*ga,gy);ctx.lineTo(gx+7*ga,gy);ctx.moveTo(gx,gy-4*ga);ctx.lineTo(gx,gy+4*ga);ctx.stroke();
+      ctx.restore();glow(gx,gy,7,'200,235,255',.5*ga);}
+  }
   footFx(s);
   drawCharShadow(s);
   ctx.save();
-  if(s.hit>0&&Math.sin(frame*.8)>0)ctx.globalAlpha=.3;
+  var hitNew=s.hit>SIM.HIT_FRAMES-5;                                   // 撃たれた直後の数コマは、点滅ではなく白く光らせる
+  if(s.hit>0&&!hitNew&&Math.sin(frame*.8)>0)ctx.globalAlpha=.3;
+  // 伸び縮み：跳び上がる間は縦に伸び、着地の瞬間はつぶれる（足元を中心に）
+  var ft=FX.ft&&FX.ft[s.side],sqx=1,sqy=1;
+  if(!s.onGround&&(s.vy||0)<-2){var st=Math.min(1,-(s.vy||0)/13);sqx=1-.07*st;sqy=1+.09*st;}
+  else if(s.onGround&&ft&&ft.land!=null){var lk=(frame-ft.land);if(lk>=0&&lk<7){var sq=(1-lk/7)*Math.min(1,(ft.lv||8)/12);sqx=1+.12*sq;sqy=1-.12*sq;}}
+  if(sqx!==1){ctx.translate(cx2,s.y+CHAR_H);ctx.scale(sqx,sqy);ctx.translate(-cx2,-(s.y+CHAR_H));}
   var moving=Math.abs(s.vx||0)>.6&&s.onGround&&!s.ducking,A=charAnim(s,W,moving),ch=cheerOf(s);
   drawAvatar(ctx,{win:ch?{pose:(o.look&&o.look.win)|0,t:ch.t}:null,x:cx2,y:s.y+CHAR_H,s:.5,dir:d,look:o.look,team:team,wid:wid,crouch:s.ducking,boss:!!o.boss,
     walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0,
     bob:A.bob,blink:A.blink,kick:A.kick,flinch:A.flinch,reload:A.reload,rlF:A.rlF,rlMax:A.rlMax,wind:A.wind,tm:A.tm});
+  if(hitNew){var hk=(s.hit-(SIM.HIT_FRAMES-5))/5,hy0=s.y+(s.ducking?CHAR_H-14:CHAR_H/2);   // 撃たれた瞬間の白い光
+    ctx.globalCompositeOperation='lighter';var hg=ctx.createRadialGradient(cx2,hy0,0,cx2,hy0,20);hg.addColorStop(0,'rgba(255,255,255,'+(.75*hk).toFixed(3)+')');hg.addColorStop(1,'rgba(255,255,255,0)');
+    ctx.fillStyle=hg;ctx.fillRect(cx2-20,hy0-26,40,52);ctx.globalCompositeOperation='source-over';}
   ctx.restore();
   if(s.swT>0&&W&&W.wind){   // 近接の振りかぶり：光る弧が大きくなって、当たる瞬間を予告する
     var wp=1-s.swT/W.wind;
@@ -7176,6 +7211,14 @@ function drawChar(s,isMe,o){
   var reloading=s.rl>0,rr=reloading?1-s.rl/Math.max(1,s.rlMax):1-Math.max(0,s.cool||0)/Math.max(1,s.coolMax||1);
   rr=Math.min(Math.max(rr,0),1);
   ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(hx,hy+6,bw,2);ctx.fillStyle=reloading?'#FB923C':(rr>=1?'#FFC53D':'rgba(255,255,255,.5)');ctx.fillRect(hx,hy+6,bw*rr,2);
+  if(isMe&&W&&W.mag>0){   // 自分だけ：体力の右に、弾の数（リロード中は進み具合の輪）
+    var ax=hx+bw+9,ay=hy+3,am=(s.ammo&&s.ammo[s.slot])|0;
+    ctx.save();ctx.fillStyle='rgba(0,0,0,.6)';ctx.beginPath();ctx.arc(ax,ay,6.5,0,Math.PI*2);ctx.fill();
+    if(reloading){ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ax,ay,5,0,Math.PI*2);ctx.stroke();
+      ctx.strokeStyle='#FB923C';ctx.shadowColor='#FB923C';ctx.shadowBlur=4;ctx.beginPath();ctx.arc(ax,ay,5,-Math.PI/2,-Math.PI/2+rr*Math.PI*2);ctx.stroke();}
+    else{ctx.font='800 7.5px '+FONT_UI;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=am<=0?'#FF4D5E':am<=Math.ceil(W.mag*.25)?'#FBBF24':'#FFFFFF';ctx.fillText(am,ax,ay+.5);}
+    ctx.restore();
+  }
   ctx.textAlign='center';ctx.textBaseline='alphabetic';
   if(W){ctx.font='700 9px '+FONT_UI;setLS(1);ctx.fillStyle=W.color;ctx.fillText(reloading?'RELOAD':wShort(wid),cxm,hy-5);setLS(0);}
   var tag,tagCol,nm;
@@ -7280,7 +7323,10 @@ function drawEffects(shotList){
   FX.muzzle.forEach(function(m){
     var x=wx(m.x),a=m.life/5;
     ctx.save();ctx.globalAlpha=a;ctx.fillStyle='#FFF4C2';ctx.shadowColor=m.col;ctx.shadowBlur=14;
-    ctx.beginPath();ctx.moveTo(x,m.y-(m.big?5:3));ctx.lineTo(x+m.dir*(m.big?16:10),m.y);ctx.lineTo(x,m.y+(m.big?5:3));ctx.closePath();ctx.fill();
+    if(m.wid===5){   // ショットガン：粒が散る先へ、扇形に広がる光
+      var L=26+(1-a)*10;ctx.beginPath();ctx.moveTo(x,m.y);ctx.lineTo(x+m.dir*L,m.y-11);ctx.quadraticCurveTo(x+m.dir*(L+6),m.y,x+m.dir*L,m.y+11);ctx.closePath();
+      var fg=ctx.createLinearGradient(x,0,x+m.dir*L,0);fg.addColorStop(0,'rgba(255,248,220,1)');fg.addColorStop(1,'rgba(255,160,70,0)');ctx.fillStyle=fg;ctx.fill();
+    }else{ctx.beginPath();ctx.moveTo(x,m.y-(m.big?5:3));ctx.lineTo(x+m.dir*(m.big?16:10),m.y);ctx.lineTo(x,m.y+(m.big?5:3));ctx.closePath();ctx.fill();}
     ctx.restore();
   });
   FX.melee.forEach(function(m){
@@ -7291,12 +7337,20 @@ function drawEffects(shotList){
       ctx.lineWidth=1.2;ctx.strokeStyle='#FFFFFF';ctx.beginPath();ctx.moveTo(x0+m.dir*(m.reach-30),m.y);ctx.lineTo(x0+m.dir*(m.reach-6),m.y);ctx.stroke();
     }else{
       var r=m.wid===12?10:m.wid===14?25:16,lw=m.wid===14?6:m.wid===12?2.2:3,mx=m.wid===14?m.life/14:m.wid===12?m.life/7:m.life/10;
-      ctx.globalAlpha=mx;ctx.lineWidth=lw;ctx.beginPath();ctx.arc(wx(m.x),m.y,r,m.dir>0?-.9:Math.PI-2.2,m.dir>0?.9:Math.PI+2.2);ctx.stroke();
+      var a0=m.dir>0?-.9:Math.PI-2.2,a1=m.dir>0?.9:Math.PI+2.2,cx=wx(m.x);
+      for(var k=2;k>=0;k--){   // 残像：少しずつ遅れた弧を薄く重ねる
+        var sh=k*.22*m.dir;ctx.globalAlpha=mx*(k?.22:1);ctx.lineWidth=lw*(k?1.6:1);ctx.beginPath();ctx.arc(cx,m.y,r+k,a0-sh,a1-sh);ctx.stroke();
+      }
+      if(m.wid===1){ctx.globalAlpha=mx;ctx.strokeStyle='#FFFFFF';ctx.lineWidth=1;ctx.beginPath();ctx.arc(cx,m.y,r-1,a0+.25,a1-.25);ctx.stroke();}   // ナイフ：刃の光る芯
     }
     ctx.restore();
   });
   FX.heal.forEach(function(h){ctx.save();ctx.globalAlpha=(h.life/30)*.8;ctx.strokeStyle='#34D399';ctx.lineWidth=3;ctx.beginPath();ctx.arc(wx(h.x),h.y,(1-h.life/30)*40+8,0,Math.PI*2);ctx.stroke();ctx.restore();});
-  shotList.forEach(function(b){drawShot(b,b.col||(WEAPONS[b.w]?WEAPONS[b.w].color:'#FACC15'));});
+  var puff=frame%2===0&&FX.gsF!==frame;if(puff)FX.gsF=frame;   // グレネードの煙の尾：1コマにつき1回だけ（描く回数が多くても増えすぎない）
+  shotList.forEach(function(b){
+    if(puff&&b.k==='g'&&fxOn(1))FX.smoke.push({x:b.x,y:b.y,vx:(Math.random()-.5)*.3,vy:-.2,r:1.6,life:26,max:26});
+    drawShot(b,b.col||(WEAPONS[b.w]?WEAPONS[b.w].color:'#FACC15'));
+  });
   FX.beam.forEach(function(b){
     var a=b.life/16,x1=wx(b.x1),x2=wx(b.x2);
     ctx.save();ctx.globalAlpha=a;ctx.lineCap='round';
@@ -7324,6 +7378,12 @@ function drawEffects(shotList){
     ctx.restore();
   });
   drawDmgNums();
+}
+// 体力が少ないとき：画面の端が赤く、心臓の鼓動のように脈打つ（少ないほど速く濃く）
+function drawLowHp(hp){
+  if(!GRADS.lowhp){var g=ctx.createRadialGradient(VW/2,VH/2,VH*.35,VW/2,VH/2,VW*.62);g.addColorStop(0,'rgba(255,30,50,0)');g.addColorStop(1,'rgba(255,30,50,1)');GRADS.lowhp=g;}
+  var k=1-hp/35,sp=2.4+k*2.2,b=Math.pow((Math.sin(performance.now()/1000*sp*Math.PI)+1)/2,3);
+  ctx.save();ctx.globalAlpha=.12+.18*k+.2*b*(.4+.6*k);ctx.fillStyle=GRADS.lowhp;ctx.fillRect(0,0,VW,VH);ctx.restore();
 }
 function drawDmgNums(){
   if(!FX.num.length)return;
@@ -8741,6 +8801,7 @@ function drawScene(){
   drawWeather(stageTheme);
   if(fxRich())drawGrade(stageTheme);
   ctx.fillStyle=GRADS.vignette;ctx.fillRect(0,0,VW,VH);
+  if(me&&!me.dead&&me.hp>0&&me.hp<=35&&!lobbyPhase&&!matchOver)drawLowHp(me.hp);
   if(kc&&kt<.16){ctx.save();ctx.globalAlpha=(1-kt/.16)*.55;ctx.fillStyle='#fff';ctx.fillRect(0,0,VW,VH);ctx.restore();}
   if(gameMode==='online'&&TEAM2){   // 2v2：左は自分のチーム、右は相手のチーム
     drawHudSide(true,t('c.teamMine'),teamNames('me')+(teamSlots('ally').length?' / '+teamNames('ally'):''),pw,'#9D74FF');
