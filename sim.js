@@ -44,7 +44,7 @@ var BUFFER_FRAMES = 6;     // 押した入力を少しだけ覚えておく（�
 var LAND_LAG = 14;         // 着地してから次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 6;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）
+var PROTO = 7;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -64,9 +64,9 @@ var WEAPONS = {
   6:  { id: 6,  key: 'ar',       kind: 'bullet',  range: 330, dmg: 11, rate: 11, mag: 10, reload: 125, spd: 12, color: '#34D399', band: [170, 300], auto: true },
   7:  { id: 7,  key: 'burst',    kind: 'bullet',  range: 380, dmg: 10, rate: 42, mag: 9,  reload: 120, spd: 13, burst: 3, gap: 4, color: '#2DD4BF', band: [200, 340] },
   8:  { id: 8,  key: 'revolver', kind: 'bullet',  range: 300, dmg: 22, rate: 40, mag: 5,  reload: 175, spd: 12, color: '#F59E0B', band: [150, 270] },
-  9:  { id: 9,  key: 'lmg',      kind: 'bullet',  range: 300, dmg: 7,  rate: 7,  mag: 30, reload: 220, spd: 11, move: 0.75, color: '#A3E635', band: [140, 270], auto: true },
+  9:  { id: 9,  key: 'lmg',      kind: 'bullet',  range: 300, dmg: 7,  rate: 7,  mag: 20, reload: 220, spd: 11, move: 0.75, color: '#A3E635', band: [140, 270], auto: true },
   10: { id: 10, key: 'grenade',  kind: 'grenade', range: 210, dmg: 45, sdmg: 35, rate: 54, mag: 3,  reload: 160, spd: 6.2, splash: 55, color: '#FB7185', band: [130, 215] },
-  11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 50, rate: 0,  mag: 1,  reload: 180, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
+  11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 34, rate: 0,  mag: 1,  reload: 180, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
   12: { id: 12, key: 'knuckle',  kind: 'melee',   range: 34,  dmg: 13, rate: 9,  mag: 0,  reload: 0,   spd: 0,  wind: 0,  rec: 2,  auto: true, color: '#E5E7EB', band: [0, 24] },
   13: { id: 13, key: 'spear',    kind: 'melee',   range: 96,  dmg: 46, rate: 48, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, color: '#FCD34D', band: [36, 84] },
   14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] }
@@ -811,7 +811,7 @@ function airTarget(A, me) {
 // level は 'normal' のような段階の名前か、aiForRate が作った数値の組
 function newBrain(level, rnd) {
   return { cfg: (level && typeof level === 'object') ? level : (AI_LEVELS[level] || AI_LEVELS.normal), rnd: rnd || Math.random, moveT: 999, jumpT: 0, duckT: 0,
-    wait: -1, spray: 0, seen: {}, seenN: 0, seenChg: false, dodgeCd: 0, meleeOk: false, wantSlot: 0, weaponT: 0,
+    wait: -1, spray: 0, seen: {}, seenN: 0, seenChg: false, dodgeCd: 0, railWait: 0, forceMv: null, swingDir: 0, meleeOk: false, wantSlot: 0, weaponT: 0,
     node: null, edge: null, air: null, goalX: null, strafeT: 0, strafeOff: 0, lastX: -1, stuckT: 0, evadeT: 0, evadeDir: 0, evadeGren: false, evadeJump: 0, mode: 'fight',
     prefer: 0, preferW: 0, preferUntil: 0, coverUntil: 0, rlSeen: false, lowSeen: false, walkDir: 0, holdT: 0,
     tac: 'fight', tacT: 0, tacT0: 20, preferTac: '', blockedT: 0, aggr: false, lapseT: 0, lapses: 0, lastInp: null };
@@ -972,38 +972,64 @@ function bossHits(w, me, side, jumpAt, duck, react) {
   }
   return total;
 }
-// レールガンの溜め：撃たれる瞬間（op.chg フレーム後）に、ビームの高さに自分の体があるか
-function beamHitsMe(op, me, jumpNow) {
+// レールガンの溜め：今ジャンプを押す（press）かどうかで、撃たれる瞬間（op.chg フレーム後）にビームに当たるか。
+// 着地の待ち（LAND_LAG）・押したジャンプを覚えておく時間・足場への着地まで、stepChar と同じ順で1フレームずつたどる
+function beamHitsAfter(w, me, op, press) {
   if (op.chg <= 0) return false;
   var W = weaponOf(op), x1 = op.bx, dir = op.bdir || op.dir, tc = me.x + CHAR_W / 2;
   if ((tc - x1) * dir < -10 || Math.abs(tc - x1) > W.range) return false;
-  var y = me.y, vy = me.onGround ? (jumpNow ? JUMP_F : 0) : me.vy, ground = me.onGround && !jumpNow, gy = me.onGround ? me.y : null;
-  for (var k = 0; k < op.chg; k++) if (!ground) { vy += GRAVITY; y += vy; if (gy !== null && vy > 0 && y >= gy) { y = gy; vy = 0; ground = true; } }
-  var top = y, h = CHAR_H;
-  return op.by > top - 4 && op.by < top + h + 4;
+  var y = me.y, vy = me.vy, ground = me.onGround, since = me.groundSince, buf = press ? BUFFER_FRAMES : 0, floor = GND;
+  for (var i = 0; i < w.plats.length; i++) {
+    var p = w.plats[i];
+    if (me.x + CHAR_W > p.x && me.x < p.x + p.w && p.y >= me.y + CHAR_H - 2 && p.y < floor) floor = p.y;
+  }
+  if (ground) vy = 0;
+  for (var k = 1; k <= op.chg; k++) {
+    var fr = w.frame + k;
+    if (buf > 0) {
+      var wait = ground && since >= 0 && fr - since < LAND_LAG;
+      if (ground && !wait) { vy = JUMP_F; ground = false; buf = 0; }
+      else if (!wait) buf--;
+    }
+    if (!ground) { vy += GRAVITY; y += vy; if (vy > 0 && y + CHAR_H >= floor) { y = floor - CHAR_H; vy = 0; ground = true; since = fr; } }
+  }
+  return op.by > y - 4 && op.by < y + CHAR_H + 4;
+}
+// 相手がレールガンを持っていて、跳んで着地するまで（約1秒）の間に撃てる状態か（振り向きは一瞬なので、向きは問わない）
+function railThreat(me, op) {
+  var W = weaponOf(op);
+  if (W.kind !== 'beam') return false;
+  if (op.chg > 0) return true;
+  return (op.ammo[op.slot] > 0 || op.rl > 0) && op.rl < 70 && Math.abs(me.x - op.x) <= W.range;
 }
 // 弾を見てから判断するまでに react フレームかかる（見えていない弾は計算に入れない）。
 // 何もしなければ当たるなら、跳ぶ・しゃがむのうち一番当たらない方を選ぶ。跳ぶのは「今跳ばないと間に合わない」瞬間まで待つ
 function bossDodge(b, w, me, op, side, inp) {
   if (b.dodgeCd > 0) return;
+  var lag = me.onGround && me.groundSince >= 0 ? Math.max(0, LAND_LAG - (w.frame + 1 - me.groundSince)) : 0;
   var seenAny = false;
   for (var i = 0; i < w.shots.length; i++) { var sh = w.shots[i]; if (!mine(w, side, sh.own) && sh.k !== 'g' && sh.age >= b.cfg.react) { seenAny = true; break; } }
   if (seenAny) {
     var rc = b.cfg.react, base = bossHits(w, me, side, -1, false, rc);
     if (base > 0) {
       var duck = bossHits(w, me, side, -1, true, rc);
-      if (me.onGround) {
-        var now = bossHits(w, me, side, 0, false, rc), later = bossHits(w, me, side, 3, false, rc);
+      if (me.onGround) {   // 着地の待ち（lag）が残っていれば、跳べるのはその後
+        var now = bossHits(w, me, side, lag, false, rc), later = bossHits(w, me, side, lag + 3, false, rc);
         if (now < base && now <= duck && now < later) { inp.jump = true; b.duckT = 0; b.dodgeCd = 2; return; }
         if (duck < base && duck <= now) { b.duckT = 6; return; }
       } else if (duck < base) { b.duckT = 4; return; }
     }
   }
-  if (op.chg > 0 && me.onGround && beamHitsMe(op, me, false) && !beamHitsMe(op, me, true)) { inp.jump = true; b.dodgeCd = 2; return; }
-  // 振りかぶり（槍・ハンマー）：当たる瞬間に高さが 40 以上離れていれば当たらない。4フレームあれば跳んで間に合う
-  var mW = weaponOf(op);
-  if (op.swT >= 4 && mW.kind === 'melee' && me.onGround && Math.abs(op.y - me.y) < 40 &&
-      Math.abs(me.x - op.x) <= mW.range + 10 && sign(me.x - op.x) === op.dir) { inp.jump = true; b.dodgeCd = 2; }
+  if (op.chg > 0 && weaponOf(op).charge - op.chg >= b.cfg.react && beamHitsAfter(w, me, op, false) && !beamHitsAfter(w, me, op, true)) { inp.jump = true; b.dodgeCd = 2; return; }
+  // 振りかぶり（槍・ハンマー）：当たる瞬間に高さが 40 以上離れていれば当たらない。4フレームあれば跳んで間に合う。
+  // 跳べない（着地の待ち）なら、振りかぶっている間は向きが変わらないので、相手の背中側へくぐり抜けるか、届かない所まで下がる
+  var mW = weaponOf(op), ax = Math.abs(me.x - op.x);
+  if (op.swT > 0 && mW.kind === 'melee' && Math.abs(op.y - me.y) < 40 && ax <= mW.range + 10 && sign(me.x - op.x) === op.dir) {
+    var spd = SPEED * (weaponOf(me).move || 1), T = op.swT - 2;
+    if (me.onGround && (ax + 2) / spd <= T) b.forceMv = { dir: -op.dir, t: op.swT };            // 背中側へくぐる（着地の後すぐ斬り返せる）
+    else if (me.onGround && op.swT >= 6 + lag) { inp.jump = true; b.dodgeCd = 2; }               // 跳ぶ（跳んでから 40 離れるまで約4フレーム）
+    else if ((mW.range + 2 - ax) / spd <= T) b.forceMv = { dir: op.dir, t: op.swT };           // 届かない所まで下がる
+  }
 }
 
 // 飛んでいるグレネードが、どこで爆発するかを最後までたどる（当たり方は stepGrenade と同じ）。
@@ -1117,11 +1143,29 @@ function predictTopY(w, c, t) {
   for (var k = 0; k < t && k < 90; k++) { vy += GRAVITY; y += vy; if (vy > 0 && y + CHAR_H >= floor) return floor - CHAR_H; }
   return y;
 }
-
+// 鬼帝の近接の間合い：近接どうしなら、相手の届く距離のすぐ外に立ち、踏み込んできたら先に斬る。
+// 振れない間（振った後・相手が上から落ちてくる）は下がり、相手が空振りして動けない間は詰める
+function bossFootsies(b, w, me, op, W, dist, dy, toOp, inp) {
+  var oW = weaponOf(op);
+  if (W.kind !== 'melee' || oW.kind !== 'melee' || dist > 200 || b.evadeGren) return false;
+  var safe = oW.range + 8, wall = me.x < 30 || me.x > WORLD_W - CHAR_W - 30;
+  var mv = 0;
+  if (dist < safe && !wall && (me.cool > 1 || dy >= 36 || W.range < oW.range)) mv = -toOp;   // 今は斬れない → 相手の届く外へ下がる
+  else if (op.cool > 10 && dy < 36 && dist > W.range - 6) mv = toOp;                        // 相手が振った直後 → 詰める
+  else if (dist > W.range + 40) mv = toOp;                                                  // 遠い → 間合いまで寄る
+  inp.left = mv < 0; inp.right = mv > 0;
+  if (!mv && me.dir !== toOp) { inp.left = toOp < 0; inp.right = toOp > 0; }                // 止まるときは相手の方を向く
+  return true;
+}
 // 今撃てば当たりそうか
 function aimOk(b, w, me, op, W, dist, dy, toOp) {
   var cfg = b.cfg;
   if (W.kind === 'melee') {                         // 届く距離でも、低いレベルほど空振りする（タイミングを外す）
+    if (cfg.boss) {   // 鬼帝：相手が次のフレームで動く先（歩く・落ちてくる）まで読んで、相手より先に振る
+      var nx = op.x + op.vx, ny = op.onGround ? op.y : op.y + op.vy + GRAVITY;
+      b.swingDir = sign(nx - me.x);                  // 相手の真下をくぐる瞬間など、左右が入れかわる先の向きで振る
+      return Math.abs(nx - me.x) <= W.range - 1 && Math.abs(nx - me.x) >= 1 && Math.abs(ny - me.y) < 39;
+    }
     if (dist > W.range + 24 || Math.abs(op.y - me.y) >= 36) return false;
     if (dist > W.range - 6) return b.rnd() < cfg.whiff * 0.15;
     return true;
@@ -1190,7 +1234,7 @@ function think(b, w, side) {
   // 武器：距離に合うものへ持ち替える
   if (--b.weaponT <= 0 && me.burst <= 0 && me.chg <= 0 && b.spray <= 0) {
     b.weaponT = 18 + Math.floor(R() * 24);
-    b.meleeOk = R() < cfg.melee;
+    b.meleeOk = R() < cfg.melee || (cfg.boss && WEAPONS[op.load[op.slot]].kind === 'melee');   // 鬼帝：近接で来る相手には、届く距離で先に斬る
     if (R() < cfg.smart) {
       var best = me.slot, bestS = -1e9;
       for (var s = 0; s < 3; s++) {
@@ -1250,14 +1294,19 @@ function think(b, w, side) {
   // 撃たれそうな瞬間：同じ高さで相手がこちらを向き、今すぐ撃てる → ときどき跳んで射線を外す（賢いCPUほど）
   if (cfg.boss) bossDodge(b, w, me, op, side, inp);
   var opWn = WEAPONS[op.load[op.slot]];
-  if (cfg.smart >= 0.85 && !cfg.boss && me.onGround && dy < 26 && op.dir === -toOp && canFire(op) && opWn.kind !== 'melee' &&
+  if (cfg.smart >= 0.85 && !cfg.boss && me.onGround && dy < 26 && op.dir === -toOp && canFire(op) && opWn.kind !== 'melee' && opWn.kind !== 'beam' &&
       dist < opWn.range && dist > 60 && b.dodgeCd <= 0 && R() < 0.035 * cfg.dodge) { inp.jump = true; b.dodgeCd = cfg.react; }
   if (op.chg > 0) {
     if (!b.seenChg && !cfg.boss && op.chg <= 14 && dy < 30 && op.dir === -toOp) {
       b.seenChg = true;
-      if (R() < cfg.dodge && me.onGround) inp.jump = true;
+      b.chgDodge = R() < cfg.dodge;
+      if (b.chgDodge && me.onGround && cfg.smart < 1) inp.jump = true;
     }
-  } else b.seenChg = false;
+    // 賢いCPU（鬼神）：着地の待ちも数えて、ジャンプが間に合う瞬間に跳ぶ（空中なら、着地して跳べるようになるのを待つ）
+    if (b.seenChg && b.chgDodge && cfg.smart >= 1 && !cfg.boss && beamHitsAfter(w, me, op, false) && !beamHitsAfter(w, me, op, true)) inp.jump = true;
+  } else { b.seenChg = false; b.chgDodge = false; }
+  // レールガンで狙われている間は、よけ以外で跳ばない（着地の瞬間は跳べないので、そこを撃たれる）
+  var railRisk = cfg.smart >= 1 && railThreat(me, op);
 
   // 動き
   if (++b.moveT >= cfg.mvI || (b.air && me.onGround)) {
@@ -1280,7 +1329,9 @@ function think(b, w, side) {
       tx = b.edgeX + (b.node && b.edgeX < (b.node.x1 + b.node.x2) / 2 ? -8 : 8);
       if (!me.onGround) b.air = e.to;
     } else if (Math.abs(me.x - tx) <= 4 && me.onGround) {
-      if (e.type === 'up' || e.type === 'leap') { if (landReady(w, me)) { jumpNow = true; b.air = e.to; } }   // 着地の待ちが明けるまで、端で待つ
+      // 着地の待ちが明けるまで、端で待つ。レールガンが撃てる状態の相手の前では、相手がリロードするまで待つ（着地の瞬間を撃たれるので。待ちすぎたら行く）
+      var railHold = railRisk && (op.chg > 0 || ++b.railWait < 150);
+      if (e.type === 'up' || e.type === 'leap') { if (landReady(w, me) && !railHold) { jumpNow = true; b.air = e.to; b.railWait = 0; } }
       else { b.edge = null; b.moveT = 999; }
     }
   } else if (b.goalX !== null && b.goalX !== undefined) {
@@ -1304,11 +1355,11 @@ function think(b, w, side) {
   }
   // 壁に引っかかったら跳ぶ
   var moving = inp.left || inp.right;
-  if (moving && me.onGround && Math.abs(me.x - b.lastX) < 0.2) { if (++b.stuckT > 8) { inp.jump = true; b.stuckT = 0; } }
+  if (moving && me.onGround && Math.abs(me.x - b.lastX) < 0.2) { if (++b.stuckT > (railRisk ? 60 : 8)) { inp.jump = true; b.stuckT = 0; } }
   else b.stuckT = 0;
   b.lastX = me.x;
   // たまに跳ぶ
-  if (++b.jumpT > cfg.jumpF && me.onGround && b.spray <= 0) { if (R() < 0.4) inp.jump = true; b.jumpT = 0; }
+  if (++b.jumpT > cfg.jumpF && me.onGround && b.spray <= 0) { if (R() < 0.4 && !railRisk) inp.jump = true; b.jumpT = 0; }
   if (b.duckT > 0) { b.duckT--; inp.duck = true; }
 
   // 射撃
@@ -1320,7 +1371,7 @@ function think(b, w, side) {
     else b.spray = 0;
   }
   // ナイフで詰めてくる相手には迷わず撃つ
-  if (ready && b.wait > 3 && WEAPONS[op.load[op.slot]].kind === 'melee' && dist < 160) b.wait = 3;
+  if (ready && b.wait > (cfg.boss ? 0 : 3) && WEAPONS[op.load[op.slot]].kind === 'melee' && dist < 160) b.wait = cfg.boss ? 0 : 3;
   if (ready && b.wait >= 0) {
     if (b.wait > 0) b.wait--;
     else {
@@ -1337,6 +1388,7 @@ function think(b, w, side) {
     if (dist > W.range * 0.55) press = true;                                       // 届く距離まで詰める
     else { inp.left = false; inp.right = false; if (me.dir !== toOp) faceOp = true; }   // 届いたら止まって相手の方を向く（走り抜けない）
   }
+  if (cfg.boss && !inp.shoot && bossFootsies(b, w, me, op, W, dist, dy, toOp, inp)) press = false;
   // 端に追い詰められてナイフで迫られたら、相手の頭上を跳び越えて逃げる
   if (W.kind !== 'melee' && WEAPONS[op.load[op.slot]].kind === 'melee' && dist < 70 && me.onGround &&
       (me.x < 40 || me.x > WORLD_W - CHAR_W - 40 || b.stuckT > 3) && R() < cfg.dodge) { inp.jump = true; b.evadeT = 30; b.evadeDir = toOp; b.evadeGren = false; b.evadeJump = 0; }
@@ -1347,6 +1399,8 @@ function think(b, w, side) {
   }
   else if (press || (faceOp && me.dir !== toOp)) { inp.left = toOp < 0; inp.right = toOp > 0; }   // 相手の方を向く
   else if (faceOp && ((inp.left && toOp > 0) || (inp.right && toOp < 0))) { inp.left = false; inp.right = false; }   // 背を向けずに止まって撃つ
+  if (cfg.boss && inp.shoot && W.kind === 'melee' && b.swingDir) { inp.left = b.swingDir < 0; inp.right = b.swingDir > 0; }
+  if (b.forceMv && b.forceMv.t-- > 0) { inp.left = b.forceMv.dir < 0; inp.right = b.forceMv.dir > 0; inp.shoot = false; inp.fire = false; } else b.forceMv = null;
   keepFooting(b, w, me, inp);
   b.lastInp = inp;
   return inp;
