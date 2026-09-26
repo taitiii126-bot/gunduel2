@@ -5452,7 +5452,7 @@ function drawAvatar(g,o){
   g.fillStyle=skin;g.fill();g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
   drawEar(g,skin,headCX,headCY,headR,d);
   // 顔のパーツ → 髪（髪は顔の部分をよけて描く）→ 帽子。ニット帽の髪型は、帽子をかぶると描かない
-  drawFace(g,L,headCX,headCY,headR,d,eyeC,hairC,skin,!!o.blink||fl>.45);
+  drawFace(g,WP&&WP.face?Object.assign({},L,WP.face):L,headCX,headCY,headR,d,eyeC,hairC,skin,!!o.blink||fl>.45);   // 勝ちポーズ中は表情も変える
   if(!(cut&&L.hair===5))drawHair(g,L.hair,hairC,headCX,headCY,headR,d,cut);
   if(o.boss){   // 角と、光る目
     drawBossHorns(g,headCX,headCY,headR,d);
@@ -5508,22 +5508,35 @@ function winPose(pose,t,d){
     case 3:   // バク宙：深く沈んでため → 空中でひざを抱えて一回転 → ひざで受けて着地 → 掲げる
       winHop(o,t,.22,.72,52,10);
       if(t>=.22&&t<.94){k=(t-.22)/.72;o.spin=-d*(k*k*(3-2*k))*Math.PI*2;o.bx=-d*Math.sin(k*Math.PI)*8;}
-      if(t>=1.05){k=Math.min(1,(t-1.05)*5);o.gx=d*4*k;o.gy=-22*k;o.rot=-d*1.35*k;}
+      if(t>=1.05){k=Math.min(1,(t-1.05)*5);o.gx=d*10*k;o.gy=-20*k;o.rot=-d*1.35*k;}
       break;
     case 4:   // 祝砲：足を開いて踏んばり、空へ3発（撃つたびに反動でひざが沈む）
-      o.gx=d*5*up;o.gy=-22*up;o.rot=-d*1.3*up;o.spread=3;o.sq=1.5;
+      o.gx=d*11*up;o.gy=-20*up;o.rot=-d*1.3*up;o.spread=3;o.sq=1.5;
       for(k=0;k<3;k++){var st=t-.35-k*.42;if(st>=0&&st<.16){var f=1-st/.16;o.flash=st<.12?1-st/.12:0;o.gy+=4*f;o.rot+=d*.18*f;o.sq+=2.5*f;}}
       break;
     case 5:   // ステップ：ひざでリズムを取り、左右の足を交互に上げる
       k=Math.sin(t*8);o.bx=k*6;o.sq=2.5+Math.abs(Math.cos(t*8))*2.5;o.spread=2;
       o.lift[0]=Math.max(0,k)*7;o.lift[1]=Math.max(0,-k)*7;
-      o.gy=-16*up;o.rot=-d*(1.1+.45*k)*up;o.gx=d*4*up;
+      o.gy=-15*up;o.rot=-d*(1.1+.45*k)*up;o.gx=d*10*up;
       break;
     default:  // 掲げる：銃を空へ掲げて、3回小さく跳ねる（だんだん低く）
-      o.gx=d*4*up;o.gy=-22*up;o.rot=-d*1.35*up;
+      o.gx=d*10*up;o.gy=-20*up;o.rot=-d*1.35*up;
       winHop(o,t,.2,.34,15);winHop(o,t,.7,.3,11);winHop(o,t,1.16,.26,7);
   }
+  o.face=winFace(pose,t,o);
   return o;
+}
+// 勝ちポーズの表情（目・口・まゆ・ウインク・ほおの赤み）。eyes 4＝にっこり目、3＝見開く、2＝ねむそう（クール）、1＝するどい
+// mouth 1＝にっこり、2＝大笑い、4＝すぼめる、5＝にやり、6＝叫ぶ
+function winFace(pose,t,o){
+  switch(pose){
+    case 1:return t<1.7?{eyes:0,mouth:5,brows:1,wink:t>.5&&t<1.3}:{eyes:2,mouth:5,brows:1};              // くるくる：得意げににやり、途中でウインク
+    case 2:return o.smoke>.2&&t<1.6?{eyes:2,mouth:4,brows:1}:{eyes:2,mouth:5,brows:1};                    // 硝煙：クールに煙をふっ → にやり
+    case 3:return o.air?{eyes:3,mouth:6,brows:0}:t<.22?{eyes:1,mouth:0,brows:1}:{eyes:4,mouth:2,blush:true};   // バク宙：ため→叫んで回る→満面の笑み
+    case 4:return o.flash>0||o.sq>2.5?{eyes:1,mouth:6,brows:1}:{eyes:1,mouth:2,brows:1};                  // 祝砲：撃つたびに叫ぶ
+    case 5:return{eyes:4,mouth:Math.sin(t*8)>0?2:1,blush:true};                                           // ステップ：楽しそうに
+    default:return o.hop>2?{eyes:4,mouth:6,blush:true}:{eyes:4,mouth:2,blush:true};                       // 掲げる：大喜び
+  }
 }
 // 勝ちポーズの脚：腰と足首の位置から、ひざの位置を計算する（ひざは前に曲がる）
 function avLeg(g,hx,hy,ax,ay,d,T){
@@ -5629,8 +5642,16 @@ function drawFace(g,L,hx,hy,r,d,eyeC,hairC,skin,blink){
     });
   }
   // 目（奥の目は少し細い：ななめを向いているので）
+  if(L.blush){   // ほおの赤み（うれしい・照れ）
+    g.fillStyle='rgba(255,110,120,.35)';
+    [hx+d*r*.62,hx-d*r*.02].forEach(function(cx,i){g.beginPath();g.ellipse(cx,hy+r*.42,r*(i?.13:.17),r*.08,0,0,Math.PI*2);g.fill();});
+  }
   EX.forEach(function(ex,i){
     var w=es*(i?.85:1),h=es;
+    if(L.wink&&i===0){   // ウインク：手前の目だけつぶる（>の形）
+      g.beginPath();g.moveTo(ex-d*w*1.1,ey-h*.45);g.lineTo(ex+d*w*1.0,ey+h*.15);g.lineTo(ex-d*w*1.1,ey+h*.6);
+      g.lineWidth=r*.08;g.strokeStyle=OUTLINE;g.stroke();return;
+    }
     if(blink&&L.eyes!==4){
       g.beginPath();g.moveTo(ex-w*1.15,ey+h*.25);g.quadraticCurveTo(ex,ey+h*.7,ex+w*1.15,ey+h*.25);
       g.lineWidth=r*.085;g.strokeStyle=OUTLINE;g.stroke();return;
@@ -5708,6 +5729,10 @@ function drawMouth(g,st,mx,my,r,d){
       g.lineWidth=r*.055;g.stroke();break;
     case 3:g.beginPath();g.arc(mx,my+mw*.85,mw,Math.PI*1.22,Math.PI*1.78);g.stroke();break;   // への字
     case 4:g.beginPath();g.ellipse(mx,my,mw*.42,mw*.52,0,0,Math.PI*2);g.fillStyle='#4A1016';g.fill();g.lineWidth=r*.04;g.stroke();break;   // おちょぼ
+    case 5:g.beginPath();g.moveTo(mx-d*mw*.75,my+mw*.05);g.quadraticCurveTo(mx+d*mw*.1,my+mw*.3,mx+d*mw*.85,my-mw*.45);g.stroke();break;   // にやり（勝ちポーズ用：片方だけ上がる）
+    case 6:   // 叫ぶ：大きく開いた口（勝ちポーズ用）
+      g.beginPath();g.ellipse(mx,my+mw*.35,mw*.75,mw*.95,0,0,Math.PI*2);g.fillStyle='#4A1016';g.fill();g.lineWidth=r*.05;g.stroke();
+      g.save();g.clip();g.beginPath();g.ellipse(mx,my+mw*1.05,mw*.5,mw*.35,0,0,Math.PI*2);g.fillStyle='#D9545F';g.fill();g.restore();break;
     default:g.beginPath();g.moveTo(mx-mw*.7,my);g.quadraticCurveTo(mx,my+mw*.14,mx+mw*.7,my);g.stroke();   // ふつう
   }
 }
