@@ -431,6 +431,7 @@ var ja = {
 
   'pf.kicker': 'Profile',
   'pf.title': 'プロフィール',
+  'pf.tab.card': 'カード', 'pf.tab.look': '見た目', 'pf.tab.stats': '戦績',
   'pf.name': '名前',
   'pf.namePh': 'プレイヤー名',
   'pf.bio': 'ひとこと',
@@ -1124,6 +1125,7 @@ var en = {
 
   'pf.kicker': 'Profile',
   'pf.title': 'Profile',
+  'pf.tab.card': 'Card', 'pf.tab.look': 'Look', 'pf.tab.stats': 'Stats',
   'pf.name': 'Name',
   'pf.namePh': 'Player name',
   'pf.bio': 'Bio',
