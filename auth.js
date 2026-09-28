@@ -189,7 +189,9 @@ function addPassXp(pr, add) {
     if (rw.lucky) pr.misCrates = (pr.misCrates || 0) + rw.lucky;
     if (rw.chaos) pr.misChaos = (pr.misChaos || 0) + rw.chaos;
     if (rw.coins) pr.coins = (pr.coins || 0) + rw.coins;
-    got.push(Object.assign({ tier: t }, rw));
+    let dup = false;
+    if (rw.item) { if (pr.inv.indexOf(rw.item) < 0) pr.inv.push(rw.item); else { dup = true; pr.coins = (pr.coins || 0) + SIM.PASS_ITEM_COINS; } }   // スキン（持っていたらコイン）
+    got.push(Object.assign({ tier: t, dup }, rw));
   }
   return got;
 }

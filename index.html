@@ -1263,6 +1263,13 @@ body.demo #bg-shade{opacity:1;}
 .pt span{font-size:10.5px;font-weight:800;color:var(--tx-2);text-align:center;line-height:1.3;min-height:2.6em;}
 .pt.big{border-color:rgba(200,144,255,.6);background:linear-gradient(180deg,rgba(120,60,200,.35),rgba(8,10,18,.8));}
 .pt.got{opacity:.55;}
+.pt canvas.rwc{width:60px;height:60px;}
+.lb-d canvas.rwc{width:36px;height:36px;}
+.pt.skin{border-color:rgba(255,197,61,.55);background:linear-gradient(180deg,rgba(255,197,61,.18),rgba(8,10,18,.8));}
+.pt.skin.r2{border-color:rgba(180,92,255,.6);background:linear-gradient(180deg,rgba(180,92,255,.2),rgba(8,10,18,.8));}
+.pt.skin.excl{border-color:#FFD34A;box-shadow:0 0 22px -6px rgba(255,211,74,.9);}
+.pt.skin.excl::before{content:'EXCLUSIVE';position:absolute;top:-8px;left:50%;transform:translateX(-50%);padding:1px 6px;border-radius:5px;background:linear-gradient(180deg,#FFE27A,#E0A21E);color:#1a1300;font-family:var(--f-ui);font-size:8.5px;font-weight:900;letter-spacing:.06em;}
+.pass-track{padding-top:12px;}
 .pt.cur{border-color:var(--gold);box-shadow:0 0 18px -4px rgba(255,197,61,.8);opacity:1;}
 .pt-ok{position:absolute;top:4px;right:6px;color:#6BE38F;font-size:13px;}
 .pi{display:block;width:40px;height:40px;background-size:contain;background-repeat:no-repeat;background-position:center;}
@@ -2182,8 +2189,8 @@ body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=37"></script>
-<script src="lang.js?v=41"></script>
+<script src="sim.js?v=38"></script>
+<script src="lang.js?v=42"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3130,15 +3137,18 @@ function seaText(i){var d=SIM.SEASON_MISSIONS[i];return t('mis.'+d.k,{n:d.n,w:d.
 // パスXPを足す（ゲスト用。ログイン中はサーバーの答えを使う）→ 上がった段の報酬
 function passAddLocal(add){
   ecoSea();var b=SIM.passTierOf(profile.pass.xp).tier;profile.pass.xp+=add;var a=SIM.passTierOf(profile.pass.xp).tier,got=[];
-  for(var tt=b+1;tt<=a;tt++){var rw=SIM.passReward(tt);if(rw.lucky)profile.misCrates+=rw.lucky;if(rw.chaos)profile.misChaos+=rw.chaos;if(rw.coins)profile.coins+=rw.coins;got.push(Object.assign({tier:tt},rw));}
+  for(var tt=b+1;tt<=a;tt++){var rw=SIM.passReward(tt),dp=false;if(rw.lucky)profile.misCrates+=rw.lucky;if(rw.chaos)profile.misChaos+=rw.chaos;if(rw.coins)profile.coins+=rw.coins;
+    if(rw.item){if(profile.inv.indexOf(rw.item)<0){profile.inv.push(rw.item);ecoMarkNew(rw.item);}else{dp=true;profile.coins+=SIM.PASS_ITEM_COINS;}}got.push(Object.assign({tier:tt,dup:dp},rw));}
   return got;
 }
 function passTierFx(tiers){
   if(!tiers||!tiers.length)return;
   var last=tiers[tiers.length-1];showLevelUp(0,t('pass.tierUp',{n:last.tier}));SFX.levelUp();
-  tiers.forEach(function(x){note(t('pass.got',{n:x.tier,r:rewardText(x)}));});
+  tiers.forEach(function(x){note(t('pass.got',{n:x.tier,r:rewardText(x)}));if(x.item&&!x.dup)ecoMarkNew(x.item);});
+  var sk=tiers.filter(function(x){return x.item&&!x.dup;}).pop();   // スキンをもらったら、バッジと同じ演出で見せる
+  if(sk){var it=SIM.ITEM_BY_ID[sk.item];setTimeout(function(){if(CR.on)return;openCrateScreen('lucky');CR.res={kind:'lucky',r:it.r,n:1,items:[{item:sk.item,dup:false}]};CR.tier=it.r;crateBurst();},900);}
 }
-function rewardText(rw){return rw.chaos?t('eco.chaos')+(rw.chaos>1?' ×'+rw.chaos:''):rw.lucky?t('eco.lucky'):t('pass.coins',{n:rw.coins});}
+function rewardText(rw){if(rw.item)return itemName(rw.item)+(rw.chaos?' + '+t('eco.chaos')+' ×'+rw.chaos:'');return rw.chaos?t('eco.chaos')+(rw.chaos>1?' ×'+rw.chaos:''):rw.lucky?t('eco.lucky'):t('pass.coins',{n:rw.coins});}
 // シーズンミッションを終える
 function ecoSeaClaim(i,cb){
   var Z=ecoSea(),d=SIM.SEASON_MISSIONS[i],day=SIM.dayKey();
@@ -3211,7 +3221,7 @@ function renderHomeEco(){
   var cb=document.getElementById('he-crate'),cn=document.getElementById('he-crate-n');
   cb.classList.toggle('has',n>0);cn.style.display=n>0?'':'none';cn.textContent=n;
   drawCrateIcon();
-  var M=ecoMis(),left=Math.max(1,Math.ceil((Date.parse(M.day+'T00:00:00Z')+864e5-Date.now())/36e5)),ready=0;
+  var M=ecoMis(),left=Math.max(1,Math.ceil((SIM.dayEnd(M.day)-Date.now())/36e5)),ready=0;
   var h='<p class="he-mh"><b>'+esc(t('eco.missions'))+' <em>'+esc(t('eco.reward',{xp:SIM.MISSION_XP}))+'</em></b><small>'+esc(t('eco.misReset',{h:left}))+'</small></p>'+
     '<p class="he-bonus'+(M.c.every(Boolean)?' got':'')+'">'+esc(t('eco.allBonus'))+'</p>';
   M.ids.forEach(function(id,i){
@@ -3240,7 +3250,7 @@ function showShopScreen(){showScreen('shop-screen');SHOP.confirm=-1;renderShop()
 function renderShop(){
   var body=document.getElementById('shop-body');if(!body)return;
   ensureProfileShape();
-  var day=SIM.dayKey(),left=Math.max(1,Math.ceil((Date.parse(day+'T00:00:00Z')+864e5-Date.now())/36e5)),offers=SIM.shopOffers(day,shopWho()),gf=SIM.shopGift(day);
+  var day=SIM.dayKey(),left=Math.max(1,Math.ceil((SIM.dayEnd(day)-Date.now())/36e5)),offers=SIM.shopOffers(day,shopWho()),gf=SIM.shopGift(day);
   document.getElementById('shop-left').textContent=t('shop.left',{h:left});
   document.getElementById('shop-coins').innerHTML='<i class="pi coin"></i><b>'+profile.coins+'</b>';
   var h='<h3 class="pass-h">'+esc(t('shop.gift'))+'</h3><div class="shop-row">'+
@@ -3296,7 +3306,7 @@ function shopDo(body,local,done){
 function shopReveal(o){renderShop();renderHomeEco();openCrateScreen('lucky');CR.res={kind:'lucky',r:o.r,n:1,items:[{item:o.item,dup:false}]};CR.tier=o.r;crateBurst();}
 // ---- シーズンパスの画面：上に今の段、横に30段の報酬、下にシーズンミッション ----
 function showPassScreen(){showScreen('pass-screen');renderPass();var cur=document.querySelector('#pass-track .pt.cur');if(cur)cur.scrollIntoView({inline:'center',block:'nearest'});}
-function passIcon(rw){return rw.chaos?'<i class="pi chaos"></i>':rw.lucky?'<i class="pi lucky"></i>':'<i class="pi coin"></i>';}
+function passIcon(rw){return rwCanvas(rw,120);}
 function renderPass(){
   var el=document.getElementById('pass-track');if(!el)return;
   var Z=ecoSea(),P=SIM.passTierOf(profile.pass.xp),day=SIM.dayKey(),un=SIM.seasonUnlocked(Z.got,day),left=Math.max(1,Math.ceil(SIM.seasonLeftMs()/864e5));
@@ -3308,8 +3318,8 @@ function renderPass(){
     '<div class="pt-coins"><i class="pi coin"></i><b>'+profile.coins+'</b></div>';
   var h='';
   for(var k=1;k<=SIM.PASS_TIERS;k++){var rw=SIM.passReward(k),got=k<=P.tier,cur=k===P.tier+1;
-    h+='<div class="pt'+(got?' got':'')+(cur?' cur':'')+(rw.chaos?' big':'')+'"><small>'+k+'</small>'+passIcon(rw)+'<span>'+esc(rewardText(rw))+'</span>'+(got?'<b class="pt-ok">✓</b>':'')+'</div>';}
-  el.innerHTML=h;
+    h+='<div class="pt'+(got?' got':'')+(cur?' cur':'')+(rw.chaos?' big':'')+(rw.item?' skin r'+SIM.ITEM_BY_ID[rw.item].r+(SIM.ITEM_BY_ID[rw.item].pass?' excl':''):'')+'"><small>'+k+'</small>'+passIcon(rw)+'<span>'+esc(rewardText(rw))+'</span>'+(got?'<b class="pt-ok">✓</b>':'')+'</div>';}
+  el.innerHTML=h;drawRewardCanvases(el,0);
   var m='';
   SIM.SEASON_MISSIONS.forEach(function(d,i){
     if(i>=un)return;var p=Math.min(d.n,Z.p[i]),done=p>=d.n,got=!!Z.got[i];
@@ -3323,8 +3333,33 @@ function renderPass(){
 var LB={shown:false};
 function loginReady(){ensureProfileShape();return !!SIM.loginStep(profile.login,SIM.dayKey());}
 function flameCls(n){return n>=100?'fl-rb':n>=30?'fl-pu':n>=7?'fl-bl':'';}
-function rewardShort(rw){var a=[];if(rw.xp)a.push(rw.xp+'XP');if(rw.lucky)a.push(t('eco.lucky')+(rw.lucky>1?' ×'+rw.lucky:''));if(rw.chaos)a.push(t('eco.chaos')+(rw.chaos>1?' ×'+rw.chaos:''));if(rw.coins)a.push(t('pass.coins',{n:rw.coins}));return a.join(' + ');}
-function rewardIcon(rw){return rw.chaos?'<i class="pi chaos"></i>':rw.lucky?'<i class="pi lucky"></i>':rw.coins?'<i class="pi coin"></i>':'<i class="pi xpi">XP</i>';}
+function rewardShort(rw){var a=[];if(rw.item)a.push(itemName(rw.item));if(rw.xp)a.push(rw.xp+'XP');if(rw.lucky)a.push(t('eco.lucky')+(rw.lucky>1?' ×'+rw.lucky:''));if(rw.chaos)a.push(t('eco.chaos')+(rw.chaos>1?' ×'+rw.chaos:''));if(rw.coins)a.push(t('pass.coins',{n:rw.coins}));return a.join(' + ');}
+function rewardIcon(rw){return rwCanvas(rw,90);}
+// 報酬の絵（キャンバス）：スキン＝アイテムの絵、バッジ＝本物のバッジ、コイン＝金貨、XP＝緑の玉
+function rwCanvas(rw,px){return'<canvas class="rwc" width="'+px+'" height="'+px+'" data-rw="'+esc(JSON.stringify(rw))+'"></canvas>';}
+function drawCoin(g,x,y,rad,tm){
+  var sx=Math.abs(Math.cos((tm||0)*1.2))*.25+.75;g.save();g.translate(x,y);g.scale(sx,1);
+  g.fillStyle='#9A6A10';g.beginPath();g.arc(0,rad*.08,rad,0,Math.PI*2);g.fill();
+  var gr=g.createRadialGradient(-rad*.3,-rad*.35,rad*.1,0,0,rad);gr.addColorStop(0,'#FFF4B8');gr.addColorStop(.55,'#FFD34A');gr.addColorStop(1,'#D09414');
+  g.fillStyle=gr;g.beginPath();g.arc(0,0,rad,0,Math.PI*2);g.fill();g.lineWidth=rad*.1;g.strokeStyle='#8A5A0A';g.stroke();
+  g.beginPath();g.arc(0,0,rad*.72,0,Math.PI*2);g.lineWidth=rad*.07;g.strokeStyle='rgba(138,90,10,.55)';g.stroke();
+  g.fillStyle='#B07A10';g.beginPath();for(var i=0;i<10;i++){var a=-Math.PI/2+i*Math.PI/5,rr=(i%2?.2:.46)*rad;g.lineTo(Math.cos(a)*rr,Math.sin(a)*rr);}g.closePath();g.fill();
+  g.fillStyle='rgba(255,255,255,.55)';g.beginPath();g.ellipse(-rad*.35,-rad*.4,rad*.22,rad*.12,-.6,0,Math.PI*2);g.fill();g.restore();
+}
+function drawRewardCanvases(root,tm){
+  (root||document).querySelectorAll('canvas.rwc').forEach(function(cv){
+    var rw;try{rw=JSON.parse(cv.getAttribute('data-rw'));}catch(e){return;}
+    var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);
+    if(rw.item){var it=SIM.ITEM_BY_ID[rw.item];if(it){var col=it.r>=4?hueCol(tm*120,60):RAR_COL[it.r],gl=g.createRadialGradient(W/2,W/2,W*.1,W/2,W/2,W*.5);gl.addColorStop(0,col);gl.addColorStop(1,'rgba(0,0,0,0)');g.globalAlpha=.45;g.fillStyle=gl;g.fillRect(0,0,W,W);g.globalAlpha=1;
+      g.save();if(it.key==='hat'||it.key==='emote'){g.translate(W/2,W*.42);drawItemArt(g,it,W/190,tm);}else{g.translate(W/2,W*.3);drawItemArt(g,it,W/120,tm);}g.restore();}}
+    else if(rw.chaos)drawBadge(g,W/2,W/2,W/200,2,'chaos',tm,{glowA:.35});
+    else if(rw.lucky)drawBadge(g,W/2,W/2,W/200,1,'lucky',tm,{glowA:.35});
+    else if(rw.coins)drawCoin(g,W/2,W/2,W*.34,tm);
+    else if(rw.xp){var xg=g.createRadialGradient(W*.42,W*.38,W*.05,W/2,W/2,W*.36);xg.addColorStop(0,'#B8FFCB');xg.addColorStop(1,'#1F8A48');g.fillStyle=xg;g.beginPath();g.arc(W/2,W/2,W*.34,0,Math.PI*2);g.fill();g.lineWidth=W*.04;g.strokeStyle='#0E4A24';g.stroke();
+      g.font='900 '+Math.round(W*.26)+'px '+UI_FONT;g.textAlign='center';g.textBaseline='middle';g.fillStyle='#fff';g.fillText('XP',W/2,W/2+W*.01);}
+    if(rw.chaos>1||rw.lucky>1){g.font='900 '+Math.round(W*.2)+'px '+UI_FONT;g.textAlign='right';g.textBaseline='bottom';g.lineWidth=W*.05;g.strokeStyle='#000';g.strokeText('×'+(rw.chaos||rw.lucky),W*.96,W*.98);g.fillStyle='#fff';g.fillText('×'+(rw.chaos||rw.lucky),W*.96,W*.98);}
+  });
+}
 // 今日まで続いている日数（今日まだ受け取っていなくても、昨日までつながっていれば表示する）
 function streakNow(){var L=profile.login||{},g=L.day?SIM.dayNum(SIM.dayKey())-SIM.dayNum(L.day):99;return g<=1+(L.shields|0)?(L.streak|0):0;}
 function renderLoginBonus(){
@@ -3337,7 +3372,7 @@ function renderLoginBonus(){
   document.getElementById('lb-shields').innerHTML=sh;document.getElementById('lb-shields').title=t('login.shieldHint');
   var h='';SIM.LOGIN_REWARDS.forEach(function(rw,i){var done=ready?i<idx:i<(idx===0&&L.count?7:idx),today=ready&&i===idx;
     h+='<div class="lb-d'+(done?' done':'')+(today?' today':'')+(i===6?' big':'')+'"><small>'+esc(t('login.day',{n:i+1}))+'</small>'+rewardIcon(rw)+'<span>'+esc(rewardShort(rw))+'</span>'+(done?'<b class="pt-ok">✓</b>':'')+'</div>';});
-  el.innerHTML=h;
+  el.innerHTML=h;drawRewardCanvases(el,0);
   var next=null;Object.keys(SIM.STREAK_MS).map(Number).sort(function(a,b){return a-b;}).some(function(d){if(d>st){next=d;return true;}return false;});
   document.getElementById('lb-next').innerHTML=next?esc(t('login.next',{d:next,n:next-st,r:rewardShort(SIM.STREAK_MS[next])})):'';
   // 今月のカレンダー（受け取った日に炎の印）
@@ -4903,7 +4938,7 @@ function showScreen(id){
   setDemo(id==='mode-screen');   // ホームだけ背景でCPU同士が戦う
   setDemoOn(PREVIEW,id==='stage-screen');
   if(id==='mode-screen'){renderHomeBar();renderHomeEco();maybeLoginBonus();}
-  if(id==='mode-screen'||id==='profile-screen'||id==='shop-screen')startCardLoop();
+  if(id==='mode-screen'||id==='profile-screen'||id==='shop-screen'||id==='pass-screen')startCardLoop();
   bgmSync();
   window.scrollTo(0,0);
   showNextInvite();              // 待っていた招待があれば出す（CPU戦・オンライン対戦の途中は出さない）
@@ -4919,8 +4954,8 @@ function drawHomeHero(tm){
   var r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1),W=Math.round(r.width*dpr),H=Math.round(r.height*dpr);if(!W||!H)return;
   if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
   var g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);
-  var s=Math.min(H/150,W/95),gx=W/2,gy=H-16*dpr;
-  var sp=g.createRadialGradient(gx,gy-H*.35,10,gx,gy-H*.3,H*.6);sp.addColorStop(0,'rgba(255,214,120,.22)');sp.addColorStop(1,'rgba(255,214,120,0)');g.fillStyle=sp;g.fillRect(0,0,W,H);   // スポットライト
+  var s=Math.min(H/165,W/100),gx=W/2,gy=H-15*s;   // 足元の金の輪が下で切れないよう、輪の高さ分あける
+  var sr=Math.min(W*.5,H*.55),sp=g.createRadialGradient(gx,gy-H*.38,10,gx,gy-H*.38,sr);sp.addColorStop(0,'rgba(255,214,120,.22)');sp.addColorStop(1,'rgba(255,214,120,0)');g.fillStyle=sp;g.fillRect(0,0,W,H);   // スポットライト（キャンバスの端までに消えるので、四角い境目が出ない）
   var fl=g.createRadialGradient(gx,gy,0,gx,gy,70*s);fl.addColorStop(0,'rgba(255,200,110,.35)');fl.addColorStop(.5,'rgba(0,0,0,.35)');fl.addColorStop(1,'rgba(0,0,0,0)');
   g.fillStyle=fl;g.beginPath();g.ellipse(gx,gy,70*s,13*s,0,0,Math.PI*2);g.fill();
   g.strokeStyle='rgba(255,197,61,.35)';g.lineWidth=2*dpr;g.beginPath();g.ellipse(gx,gy,52*s,9*s,0,0,Math.PI*2);g.stroke();
@@ -6812,11 +6847,11 @@ function drawTorso(g,fit,T,topY,hipY,d){
   g.fillStyle=dev?'#E8C66A':T.trim;g.beginPath();g.moveTo(-6,topY);g.lineTo(d*1,topY+7);g.lineTo(6,topY);g.closePath();g.fill();
 }
 // ---- 宝箱の服（5〜20）：胴の形はいつもと同じ。腕はチームの色のままなので、敵味方は見分けられる ----
-var OUTFIT_TAIL={10:'#806345',15:'#7E1A1A',18:'#2E1B18',19:'#6E0F22'},OUTFIT_TAIL_PLAIN={10:1,18:1};   // OUTFIT_TAIL_PLAIN：すそに金のふちを付けない   // 後ろにすそがある服（ロングコート）
+var OUTFIT_TAIL={10:'#806345',15:'#7E1A1A',18:'#2E1B18',19:'#6E0F22',21:'#E2DAC6'},OUTFIT_TAIL_PLAIN={10:1,18:1};   // OUTFIT_TAIL_PLAIN：すそに金のふちを付けない   // 後ろにすそがある服（ロングコート）
 function drawOutfitX(g,fit,T,topY,hipY,d,tm){
   var tw=12.5,bw=10.5,long=!!OUTFIT_TAIL[fit],botY=long?Math.min(hipY+9,-8):hipY,hw=long?bw+2:bw,i,k,x,y;
   function tp(){g.beginPath();g.moveTo(-tw,topY+4);g.quadraticCurveTo(-tw,topY,-tw+4,topY);g.lineTo(tw-4,topY);g.quadraticCurveTo(tw,topY,tw,topY+4);g.lineTo(bw,hipY);if(botY!==hipY){g.lineTo(hw,botY);g.lineTo(-hw,botY);}g.lineTo(-bw,hipY);g.closePath();}
-  var base={5:'#B8955E',6:T.jacket,7:T.jacket,8:'#EFE8DA',9:'#C8553D',10:'#9A7B55',11:'#2E2A33',12:'#3A6EA5',13:'#23355E',14:'#F4F1EA',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#3B2420',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
+  var base={21:'#F2ECDD',5:'#B8955E',6:T.jacket,7:T.jacket,8:'#EFE8DA',9:'#C8553D',10:'#9A7B55',11:'#2E2A33',12:'#3A6EA5',13:'#23355E',14:'#F4F1EA',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#3B2420',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
   tp();g.fillStyle=base;g.fill();
   g.save();tp();g.clip();
   g.fillStyle='rgba(0,0,0,.22)';g.fillRect(d>0?-tw-1:2,topY-1,tw-1,botY-topY+2);   // 奥側の影
@@ -6911,6 +6946,13 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
       g.strokeStyle='#E8C66A';g.lineWidth=1.3;g.beginPath();g.moveTo(-8,topY+6);g.quadraticCurveTo(0,topY+14,8,topY+6);g.stroke();
       g.beginPath();g.arc(0,topY+13,2.2,0,Math.PI*2);g.fillStyle='#34D399';g.fill();
       g.save();g.globalCompositeOperation='lighter';g.fillStyle='rgba(120,255,190,'+(.25+.2*Math.sin(tm*3)).toFixed(2)+')';g.beginPath();g.arc(0,topY+13,5,0,Math.PI*2);g.fill();g.restore();break;
+    case 21:  // 伝説の保安官コート（シーズンパス限定）：白いロングコートに金のふち、2列の金ボタンと、胸の大きな金の星
+      g.fillStyle='#E8C66A';g.fillRect(-2,topY,1.6,botY-topY);g.fillRect(.4,topY,1.6,botY-topY);
+      g.fillStyle='#FFF1B0';for(y=topY+6;y<botY-3;y+=5.5){[-4.5,4.5].forEach(function(xx){g.beginPath();g.arc(xx,y,1,0,Math.PI*2);g.fill();});}
+      g.strokeStyle='#E8C66A';g.lineWidth=1.2;g.beginPath();g.moveTo(-tw,topY+.8);g.lineTo(tw,topY+.8);g.stroke();
+      x=-d*7;y=topY+9;g.beginPath();for(i=0;i<12;i++){var sa5=-Math.PI/2+i*Math.PI/6,sr5=i%2?2.6:5.2;g.lineTo(x+Math.cos(sa5)*sr5,y+Math.sin(sa5)*sr5);}g.closePath();g.fillStyle='#F2C14E';g.fill();g.lineWidth=.8;g.strokeStyle='#7A5410';g.stroke();   // 星のバッジ
+      for(k=0;k<3;k++){var sp6=(tm*1.2+k*.33)%1;if(sp6<.4){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=1-sp6/.4;starPath(g,((k*9)%20)-10,topY+5+((k*13)%18),2.6,.7,4);g.fillStyle='#FFF6C8';g.fill();g.restore();}}
+      break;
     case 20:  // 冥王の鎧（ミシック）：黒鋼の板を重ねた鎧。赤い紋様が脈打ち、胸の核が光る
       var pl=.5+.5*Math.sin(tm*3.4),ah=botY-topY;
       var mg=g.createLinearGradient(-tw,0,tw,0);mg.addColorStop(0,'#07060C');mg.addColorStop(.5,'#2A2536');mg.addColorStop(1,'#07060C');g.fillStyle=mg;g.fillRect(-tw,topY,tw*2,ah);
@@ -6938,14 +6980,14 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
     });
   }
   if(fit===16){g.fillStyle='#B7C0CE';g.strokeStyle=OUTLINE;g.lineWidth=1;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*13.5,topY+5);g.quadraticCurveTo(sd*14,topY-3,sd*6,topY-1.5);g.lineTo(sd*6,topY+3);g.closePath();g.fill();g.stroke();});}   // 肩当て
-  if(fit===13){   // 騎兵隊：金の肩章と、下がる房
+  if(fit===13||fit===21){   // 騎兵隊・伝説の保安官：金の肩章と、下がる房
     [-1,1].forEach(function(sd){g.fillStyle='#E8C66A';g.strokeStyle=OUTLINE;g.lineWidth=1;g.beginPath();g.ellipse(sd*10,topY+.5,5,2.6,0,0,Math.PI*2);g.fill();g.stroke();
       g.strokeStyle='#E8C66A';g.lineWidth=1;for(var fq=0;fq<5;fq++){var fx=sd*(6.5+fq*1.8);g.beginPath();g.moveTo(fx,topY+2.5);g.lineTo(fx+sd*.3,topY+6+Math.sin(tm*4+fq)*.4);g.stroke();}});
   }
   if(fit===18){   // 賞金稼ぎ：立てた高いえり
     g.fillStyle='#2E1B18';g.strokeStyle=OUTLINE;g.lineWidth=1;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*2.5,topY+3);g.lineTo(sd*4,topY-6);g.lineTo(sd*9,topY-3);g.lineTo(sd*7,topY+2);g.closePath();g.fill();g.stroke();});
   }
-  if(fit!==13&&fit!==16&&fit!==18&&fit!==20&&fit!==14&&fit!==10){g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);}   // ベルト
+  if(fit!==13&&fit!==16&&fit!==18&&fit!==20&&fit!==14&&fit!==10&&fit!==21){g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);}   // ベルト
 }
 // ---- 宝箱の首もと（4〜19）。体の後ろに出る物（マント・翼・龍の尾）は drawNeckBack ----
 function drawNeckBack(g,neck,acc,t,hipY,d,wind,tm){
@@ -7221,9 +7263,10 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
       shine(-.7,-.96,-.3,-1.24,.3,-1.22,.07);
       break;
     case 13:  // ヘッドホン：頭の上のバンドと、耳のカップ（自分の色）
-      g.beginPath();H.M(-.86,-.24);H.C(-1.04,-1.46,1.02,-1.5,.9,-.3);H.L(.76,-.32);H.C(.84,-1.3,-.9,-1.26,-.72,-.26);g.closePath();paint('#2A2733');
-      p=H.at(-.12,.02);rrPath(g,p[0]-r*.26,p[1]-r*.36,r*.52,r*.72,r*.2);paint(acc);
-      g.beginPath();g.arc(p[0],p[1],r*.14,0,Math.PI*2);g.fillStyle='rgba(255,255,255,.35)';g.fill();
+      g.beginPath();H.M(-.74,-.12);H.C(-1.02,-1.22,.36,-1.46,.86,-.66);H.L(.72,-.58);H.C(.3,-1.26,-.84,-1.08,-.58,-.12);g.closePath();paint('#2A2733');   // バンド：耳から頭の上を通って向こう側へ
+      p=H.at(-.64,.14);g.beginPath();g.ellipse(p[0],p[1],r*.3,r*.38,0,0,Math.PI*2);paint(acc);   // 耳のカップ（耳にぴったり重ねる）
+      g.beginPath();g.ellipse(p[0],p[1],r*.17,r*.23,0,0,Math.PI*2);g.fillStyle=shadeHex(acc,-.35);g.fill();
+      g.beginPath();g.arc(p[0]-d*r*.06,p[1]-r*.12,r*.07,0,Math.PI*2);g.fillStyle='rgba(255,255,255,.45)';g.fill();
       break;
     case 14:  // ねこ耳：頭の上に三角の耳（内側はピンク）
       [[-.62,-.9,-.86,-1.62,-.18,-1.16],[.2,-1.12,.66,-1.66,.84,-.86]].forEach(function(e){
@@ -7317,6 +7360,18 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
       g.strokeStyle=egr;g.lineWidth=r*.09;g.shadowColor='#5FE6FF';g.shadowBlur=10*eyeG;g.beginPath();H.M(-.74,.06);H.Q(0,.19,.74,.06);g.stroke();g.restore();
       g.beginPath();H.M(-.12,-1.02);H.L(0,-2.02);H.L(.34,-1.22);H.L(.12,-1.04);g.closePath();   // 頭頂の刃のとさか
       var cgr=g.createLinearGradient.apply(g,H.at(0,-1).concat(H.at(.1,-2)));cgr.addColorStop(0,'#1C2029');cgr.addColorStop(1,'#5FE6FF');g.fillStyle=cgr;g.fill();g.stroke();
+      break;
+    case 24:  // 伝説の保安官ハット（シーズンパス限定）：白いテンガロンに金のふちと帯、正面に金の星。光が走る
+      var hc='#F2ECDD',hb=H.at(.06,-.6);
+      g.beginPath();g.ellipse(hb[0],hb[1],r*1.5,r*.32,-d*.08,0,Math.PI*2);paint(shadeHex(hc,-.12));
+      g.beginPath();g.ellipse(hb[0],hb[1],r*1.5,r*.32,-d*.08,0,Math.PI*2);g.lineWidth=r*.07;g.strokeStyle='#E8C66A';g.stroke();g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+      g.beginPath();H.M(-.82,-.62);H.C(-.94,-1.3,-.64,-1.62,-.22,-1.5);H.Q(.02,-1.38,.22,-1.52);H.C(.66,-1.62,.94,-1.3,.84,-.62);g.closePath();paint(hc);
+      g.save();g.clip();g.beginPath();H.M(-1.2,-.62);H.L(1.2,-.62);H.L(1.2,-.9);H.L(-1.2,-.88);g.closePath();g.fillStyle='#E8C66A';g.fill();
+      var sx2=((tm*.6)%1.8-.4)*2.4-1.2,s1=H.at(sx2,-1.6),s2=H.at(sx2+.5,-.6),sg2=g.createLinearGradient(s1[0],s1[1],s2[0],s2[1]);sg2.addColorStop(0,'rgba(255,255,255,0)');sg2.addColorStop(.5,'rgba(255,255,255,.55)');sg2.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sg2;g.fillRect(hx-r*1.6,hy-r*1.8,r*3.2,r*1.4);
+      g.restore();
+      g.beginPath();H.M(-.82,-.64);H.L(.84,-.64);g.stroke();
+      p=H.at(.34,-.76);g.beginPath();for(i=0;i<10;i++){var sa3=-Math.PI/2+i*Math.PI/5,sr3=(i%2?.1:.24)*r;g.lineTo(p[0]+Math.cos(sa3)*sr3,p[1]+Math.sin(sa3)*sr3);}g.closePath();g.fillStyle='#FFF1B0';g.fill();g.lineWidth=1;g.strokeStyle='#8A6410';g.stroke();   // 金の星
+      for(k=0;k<3;k++){var sp4=(tm*1.1+k*.33)%1;if(sp4<.5){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=1-sp4*2;p=H.at(-.9+k*.9,-1.35+(k%2)*.25);starPath(g,p[0],p[1],r*.16,r*.04,4);g.fillStyle='#FFF6C8';g.fill();g.restore();}}
       break;
   }
 }
@@ -7422,9 +7477,9 @@ function winFxBack(g,WP,d,tm){
   var t=WP.t,k,i,a,x,y;
   g.save();
   if(WP.wfx==='fw'){   // 花火：弾が上がって、はじける
-    for(k=0;k<3;k++){var ft=t-.3-k*.38;if(ft<0)continue;var bx=d*(20+k*14)+(k-1)*18,by0=-70,by1=-170-k*18;
-      if(ft<.42){var u=ft/.42;y=by0+(by1-by0)*(1-(1-u)*(1-u));g.fillStyle='#FFF1B8';g.beginPath();g.arc(bx,y,2,0,Math.PI*2);g.fill();g.fillStyle='rgba(255,220,150,.35)';g.fillRect(bx-.8,y,1.6,18);}
-      else{var e=ft-.42;if(e>1.4)continue;var col=['#FF5C8A','#5CC8FF','#FFD84A'][k],R=10+e*70*(1-e*.25),fa=Math.max(0,1-e/1.4);
+    for(k=0;k<3;k++){var ft=t-.3-k*.38;if(ft<0)continue;var mx0=d*28,bx=mx0+(k-1)*26,by0=-92,by1=-138-k*10;   // 銃口（掲げた銃の先）から上がる
+      if(ft<.42){var u=ft/.42,ee=1-(1-u)*(1-u),rx=mx0+(bx-mx0)*ee;y=by0+(by1-by0)*ee;g.fillStyle='#FFF1B8';g.beginPath();g.arc(rx,y,2,0,Math.PI*2);g.fill();g.fillStyle='rgba(255,220,150,.35)';g.fillRect(rx-.8,y,1.6,14);}
+      else{var e=ft-.42;if(e>1.4)continue;var col=['#FF5C8A','#5CC8FF','#FFD84A'][k],R=8+e*44*(1-e*.25),fa=Math.max(0,1-e/1.4);
         g.save();g.globalCompositeOperation='lighter';
         for(i=0;i<18;i++){a=i/18*Math.PI*2;x=bx+Math.cos(a)*R;y=by1+Math.sin(a)*R+e*e*22;g.globalAlpha=fa;g.fillStyle=i%3?col:'#FFFFFF';g.beginPath();g.arc(x,y,2.2*fa+.6,0,Math.PI*2);g.fill();
           g.globalAlpha=fa*.35;g.strokeStyle=col;g.lineWidth=1;g.beginPath();g.moveTo(bx+Math.cos(a)*R*.55,by1+Math.sin(a)*R*.55+e*e*12);g.lineTo(x,y);g.stroke();}
@@ -8901,6 +8956,10 @@ function cardLoop(ts){
   if(pc&&pc.offsetParent){any=true;renderCardCanvas(pc,myCardData(),tm);}
   var hb=document.getElementById('hb-tier');
   if(hb&&hb.offsetParent){any=true;drawHomeBarTier(tm);}   // ホームのバーの紋章（最高ティアは動く）
+  var ptk=document.getElementById('pass-track');
+  if(ptk&&ptk.offsetParent){any=true;drawRewardCanvases(ptk,tm);}
+  var lbw=document.getElementById('lb-week');
+  if(lbw&&lbw.offsetParent){any=true;drawRewardCanvases(lbw,tm);}
   var sb=document.getElementById('shop-body');
   if(sb&&sb.offsetParent){any=true;drawShopArt(tm);}
   var hh=document.getElementById('home-hero');

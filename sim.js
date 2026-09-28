@@ -154,7 +154,7 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 24, outfit: 21, neck: 20, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 25, outfit: 22, neck: 20, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent', 'win'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
 // ---- 宝箱から出るアイテム（帽子・服・首もと＝50種、勝ちポーズ＝10種、エモート＝16種）とレアリティ ----
@@ -166,18 +166,19 @@ var PITY_AT = 25;               // これだけ開けてもレジェンダリー
 var LOOK_BASE = { hat: 6, outfit: 5, neck: 4, win: 7 };
 // [番号, レアリティ]。名前と絵はブラウザ側（lang.js の item.<id>、index.html の描き方）
 var ITEM_RAR = {
-  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4]],
-  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4]],
+  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4], [24, 4]],
+  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4], [21, 4]],
   neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4]],
   win: [[7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 2], [13, 2], [14, 3], [15, 3], [16, 4]]   // 勝ちポーズ
 };
 // エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
 var EMOTE_N = 20, EMOTE_FREE = 4;
 var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4];
+var PASS_ONLY = { h24: 1, o21: 1 };   // シーズンパスでしか手に入らない（バッジ・ショップには出ない）
 var ITEMS = [];   // { id:'h6', key:'hat', idx:6, r:1 } / { id:'e6', key:'emote', idx:6, r:1 }
 (function () {
   var pre = { hat: 'h', outfit: 'o', neck: 'n', win: 'w' };
-  Object.keys(ITEM_RAR).forEach(function (k) { ITEM_RAR[k].forEach(function (a) { ITEMS.push({ id: pre[k] + a[0], key: k, idx: a[0], r: a[1] }); }); });
+  Object.keys(ITEM_RAR).forEach(function (k) { ITEM_RAR[k].forEach(function (a) { var id = pre[k] + a[0], it = { id: id, key: k, idx: a[0], r: a[1] }; if (PASS_ONLY[id]) it.pass = true; ITEMS.push(it); }); });
   for (var e = EMOTE_FREE; e < EMOTE_N; e++) ITEMS.push({ id: 'e' + e, key: 'emote', idx: e, r: EMOTE_RAR[e] });
 })();
 var ITEM_BY_ID = {};
@@ -216,7 +217,7 @@ function rollCrate(rnd, inv, pity) {
   for (r = RARITY_W.length - 1; r >= 0; r--) { acc += RARITY_W[r]; if (x < acc) break; }
   if (r < 0) r = 0;
   if ((pity || 0) + 1 >= PITY_AT && r < 3) r = 3;   // 天井：まとめてハズレが続かないように
-  var pool = ITEMS.filter(function (it) { return it.r === r; }), fresh = pool.filter(function (it) { return !(inv && inv.indexOf(it.id) >= 0); });
+  var pool = ITEMS.filter(function (it) { return it.r === r && !it.pass; }), fresh = pool.filter(function (it) { return !(inv && inv.indexOf(it.id) >= 0); });
   var list = fresh.length ? fresh : pool, it = list[Math.floor(rnd() * list.length)];
   return { item: it.id, r: r, dup: !fresh.length };
 }
@@ -231,7 +232,7 @@ function rollChaos(rnd, inv, pity) {
   if ((pity || 0) + 1 >= PITY_AT && r < 3) r = 3;
   var y = rnd() * 100, n = 1; acc = 0;
   for (var i = 0; i < CHAOS_SPLIT.length; i++) { acc += CHAOS_SPLIT[i][1]; if (y < acc) { n = CHAOS_SPLIT[i][0]; break; } }
-  var have = (inv || []).slice(), pool = ITEMS.filter(function (it) { return it.r === r; }), items = [];
+  var have = (inv || []).slice(), pool = ITEMS.filter(function (it) { return it.r === r && !it.pass; }), items = [];
   for (var k = 0; k < n; k++) {   // 分かれた分は、まだ持っていない物から順に（全部持っていたら、かぶり＝経験値）
     var fresh = pool.filter(function (it) { return have.indexOf(it.id) < 0; }), list = fresh.length ? fresh : pool, it = list[Math.floor(rnd() * list.length)];
     items.push({ item: it.id, dup: !fresh.length }); if (fresh.length) have.push(it.id);
@@ -299,7 +300,7 @@ function shopOffers(day, who) {
   var h = hashStr(day + '|' + (who || 'guest')), next = function () { h = Math.imul(h ^ (h >>> 13), 2246822507) >>> 0; return h; };
   var want = [0, 0, 1, 1, 2, 3], used = {}, out = [];
   want.forEach(function (r) {
-    var pool = ITEMS.filter(function (it) { return it.r === r && !used[it.id]; }), it = pool[next() % pool.length];
+    var pool = ITEMS.filter(function (it) { return it.r === r && !used[it.id] && !it.pass; }), it = pool[next() % pool.length];
     used[it.id] = 1; out.push({ item: it.id, r: r, price: SHOP_PRICE[r] });
   });
   var sale = next() % out.length; out[sale].sale = true; out[sale].price = Math.round(out[sale].price * 0.7 / 10) * 10;
@@ -313,8 +314,12 @@ function passTierOf(pxp) {
   return { tier: t, cur: x, need: t < PASS_TIERS ? passCost(t) : 0 };
 }
 // 段ごとの報酬：5の倍数はカオスバッジ、最後（30段）はカオスバッジ3つ、ほかは奇数でラッキーバッジ・偶数でコイン
+// スキン（見た目）の段：20段目と30段目はパス限定の「伝説の保安官」
+var PASS_ITEMS = { 4: 'o13', 8: 'n16', 12: 'w14', 16: 'h20', 20: 'h24', 24: 'o19', 30: 'o21' };
+var PASS_ITEM_COINS = 400;   // すでに持っていたスキンの代わりのコイン
 function passReward(tier) {
-  if (tier >= PASS_TIERS) return { chaos: 3 };
+  if (tier >= PASS_TIERS) return { item: PASS_ITEMS[PASS_TIERS], chaos: 3 };
+  if (PASS_ITEMS[tier]) return { item: PASS_ITEMS[tier] };
   if (tier % 5 === 0) return { chaos: 1 };
   return tier % 2 ? { lucky: 1 } : { coins: 150 };
 }
@@ -324,7 +329,10 @@ function seasonUnlocked(got, today) {
   (got || []).forEach(function (d) { if (d && d < today) n++; });
   return Math.min(SEASON_MISSIONS.length, n);
 }
-function dayKey(t) { var d = new Date(t == null ? Date.now() : t); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
+// 1日の始まり：シンガポール時間（UTC+8）の朝7時＝世界標準時の23時。日付はその時刻で切り替わる
+var DAY_SHIFT_MS = 60 * 60000;
+function dayEnd(day) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || ''); return m ? Date.UTC(+m[1], +m[2] - 1, +m[3] + 1) - DAY_SHIFT_MS : 0; }   // その日が終わる時刻（ms）
+function dayKey(t) { var d = new Date((t == null ? Date.now() : t) + DAY_SHIFT_MS); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
 function dailyMissions(day) {
   var h = 2166136261; for (var i = 0; i < day.length; i++) { h ^= day.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
   var pick = [], used = {};
@@ -1885,7 +1893,9 @@ var api = {
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
+  DAY_SHIFT_MS: DAY_SHIFT_MS, dayEnd: dayEnd,
   LOGIN_REWARDS: deepFreeze(LOGIN_REWARDS), STREAK_MS: deepFreeze(STREAK_MS), SHIELD_MAX: SHIELD_MAX, dayNum: dayNum, loginStep: loginStep,
+  PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift,
   SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
