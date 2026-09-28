@@ -164,9 +164,33 @@ function keepServerOwned(next, old) {
   next.misCrates = old ? old.misCrates : 0;
   next.chaosOpened = old ? old.chaosOpened || 0 : 0;
   next.misChaos = old ? old.misChaos || 0 : 0;
+  next.pass = old && old.pass ? old.pass : { s: 0, xp: 0 };
+  next.coins = old ? old.coins || 0 : 0;
+  if (next.sea && old && old.sea && old.sea.s === next.sea.s) next.sea.got = old.sea.got.slice(); else if (next.sea) next.sea.got = next.sea.got.map(() => '');
   next.pity = old ? old.pity : 0;
   next.look = SIM.lookOwned(next.look, next.inv);
   next.emo = SIM.cleanEmotes(next.emo, next.inv);
+}
+// シーズンが変わっていたら、パスとシーズンミッションを白紙に戻す
+function seasonFresh(pr) {
+  const s = SIM.seasonNo();
+  if (!pr.pass || pr.pass.s !== s) pr.pass = { s, xp: 0 };
+  if (!pr.sea || pr.sea.s !== s) pr.sea = { s, p: SIM.SEASON_MISSIONS.map(() => 0), got: SIM.SEASON_MISSIONS.map(() => '') };
+}
+// パスXPを足して、上がった段の報酬を渡す（ラッキー＝misCrates、カオス＝misChaos、コイン）
+function addPassXp(pr, add) {
+  seasonFresh(pr);
+  const before = SIM.passTierOf(pr.pass.xp).tier;
+  pr.pass.xp += add;
+  const after = SIM.passTierOf(pr.pass.xp).tier, got = [];
+  for (let t = before + 1; t <= after; t++) {
+    const rw = SIM.passReward(t);
+    if (rw.lucky) pr.misCrates = (pr.misCrates || 0) + rw.lucky;
+    if (rw.chaos) pr.misChaos = (pr.misChaos || 0) + rw.chaos;
+    if (rw.coins) pr.coins = (pr.coins || 0) + rw.coins;
+    got.push(Object.assign({ tier: t }, rw));
+  }
+  return got;
 }
 // 保存してあるプロフィール（整えた形）。まだ無ければ白紙から
 function serverProfile(u) {
@@ -439,7 +463,22 @@ const auth = {
     if (u.misGot.length === 3) pr.misChaos = (pr.misChaos || 0) + 1;   // その日の3つを全部終えた → カオスバッジ
     pr.xp = (pr.xp || 0) + SIM.MISSION_XP;
     if (pr.mis && pr.mis.day === day) pr.mis.c[i] = true;
-    return saveServerProfile(u, pr, { claimed: i });
+    const tiers = addPassXp(pr, SIM.DAILY_PXP);
+    return saveServerProfile(u, pr, { claimed: i, tiers });
+  },
+  // シーズンミッションを終える（出ている物だけ・1つにつき1回）→ パスXP
+  seasonClaim(uid, i) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    i = Math.floor(+i);
+    if (!(i >= 0 && i < SIM.SEASON_MISSIONS.length)) return { error: 'bad' };
+    const pr = serverProfile(u), day = SIM.dayKey();
+    seasonFresh(pr);
+    if (pr.sea.got[i]) return { error: 'claimed' };
+    if (i >= SIM.seasonUnlocked(pr.sea.got, day)) return { error: 'locked' };
+    pr.sea.got[i] = day;
+    const tiers = addPassXp(pr, SIM.SEASON_MIS_PXP);
+    return saveServerProfile(u, pr, { sclaimed: i, tiers });
   },
   // 宝箱を1つ開ける：まだ開けていない宝箱があれば、サーバーの乱数で中身を決めて持ち物に足す
   crateOpen(uid, kind) {

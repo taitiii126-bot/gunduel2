@@ -261,6 +261,33 @@ var MISSIONS = [
   { k: 'nodmg', n: 1 }, { k: 'roll', n: 15 }, { k: 'rolldodge', n: 3 }, { k: 'emote', n: 3 }, { k: 'online', n: 2 }, { k: 'hard', n: 1 }
 ];
 var MISSION_XP = 120;
+// ---- シーズンミッション（1か月＝1シーズン）：15個。最初は3つ。1つ終えるごとに、次の日にもう1つ増える ----
+// 終えるとパスXP。パスXPでシーズンパスの段が上がり、段ごとに報酬（最初の段は安く、だんだん高く）
+var SEASON_MISSIONS = [
+  { k: 'win', n: 15 }, { k: 'kill', n: 60 }, { k: 'rounds', n: 40 }, { k: 'rolldodge', n: 30 }, { k: 'killw', n: 15, w: 3 },
+  { k: 'online', n: 10 }, { k: 'nodmg', n: 8 }, { k: 'hard', n: 5 }, { k: 'killw', n: 20, w: 5 }, { k: 'play', n: 40 },
+  { k: 'killw', n: 10, w: 1 }, { k: 'emote', n: 30 }, { k: 'win', n: 40 }, { k: 'roll', n: 200 }, { k: 'killw', n: 10, w: 11 }
+];
+var SEASON_FIRST = 3, SEASON_MIS_PXP = 400, DAILY_PXP = 100;   // 最初に出ている数・シーズンミッション1つのパスXP・デイリー1つのパスXP
+var PASS_TIERS = 30;
+function passCost(k) { return 80 + k * 25; }             // k 段目（0から）から次へ上がるのに要るパスXP
+function passTierOf(pxp) {
+  var t = 0, x = Math.max(0, Math.floor(+pxp) || 0);
+  while (t < PASS_TIERS && x >= passCost(t)) { x -= passCost(t); t++; }
+  return { tier: t, cur: x, need: t < PASS_TIERS ? passCost(t) : 0 };
+}
+// 段ごとの報酬：5の倍数はカオスバッジ、最後（30段）はカオスバッジ3つ、ほかは奇数でラッキーバッジ・偶数でコイン
+function passReward(tier) {
+  if (tier >= PASS_TIERS) return { chaos: 3 };
+  if (tier % 5 === 0) return { chaos: 1 };
+  return tier % 2 ? { lucky: 1 } : { coins: 150 };
+}
+// 出ているシーズンミッションの数：最初の3つ＋前の日までに終えた数（最大15）
+function seasonUnlocked(got, today) {
+  var n = SEASON_FIRST;
+  (got || []).forEach(function (d) { if (d && d < today) n++; });
+  return Math.min(SEASON_MISSIONS.length, n);
+}
 function dayKey(t) { var d = new Date(t == null ? Date.now() : t); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
 function dailyMissions(day) {
   var h = 2166136261; for (var i = 0; i < day.length; i++) { h ^= day.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
@@ -1822,6 +1849,7 @@ var api = {
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
+  SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,

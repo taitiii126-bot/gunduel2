@@ -1181,6 +1181,36 @@ body.demo #bg-shade{opacity:1;}
 .he-mh{display:flex;justify-content:space-between;align-items:baseline;margin:0;font-size:12px;color:var(--tx-2);}
 .he-mh small{font-size:11px;color:var(--tx-3);}
 .he-m{display:grid;grid-template-columns:1fr 84px 64px;gap:8px;align-items:center;min-height:24px;font-size:12.5px;color:var(--tx-1);}
+.pass-top{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:14px 18px;border-radius:16px;background:linear-gradient(135deg,rgba(157,116,255,.25),rgba(255,197,61,.12));border:1px solid rgba(255,197,61,.35);margin-bottom:12px;}
+.pt-tier{display:flex;align-items:baseline;gap:4px;font-family:var(--f-ui);}
+.pt-tier small{font-size:11px;letter-spacing:.2em;color:var(--tx-3);margin-right:4px;}
+.pt-tier b{font-size:38px;font-weight:900;color:var(--gold);line-height:1;}
+.pt-tier span{font-size:14px;color:var(--tx-3);}
+.pt-bar{position:relative;height:22px;border-radius:11px;background:rgba(0,0,0,.4);overflow:hidden;}
+.pt-fill{height:100%;background:linear-gradient(90deg,#9D74FF,#FFC53D);box-shadow:0 0 18px rgba(255,197,61,.6);transition:width .6s var(--ease);}
+.pt-bar em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-family:var(--f-ui);font-size:12px;font-weight:800;color:#fff;text-shadow:0 1px 3px #000;}
+.pt-coins{display:flex;align-items:center;gap:6px;font-family:var(--f-ui);font-size:18px;font-weight:900;color:#FFD34A;}
+.pass-track{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 12px;scroll-snap-type:x proximity;}
+.pt{position:relative;flex:none;width:86px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:8px 4px 10px;border-radius:14px;background:rgba(8,10,18,.7);border:1px solid var(--line);scroll-snap-align:center;}
+.pt small{font-family:var(--f-ui);font-size:11px;font-weight:800;color:var(--tx-3);}
+.pt span{font-size:10.5px;font-weight:800;color:var(--tx-2);text-align:center;line-height:1.3;min-height:2.6em;}
+.pt.big{border-color:rgba(200,144,255,.6);background:linear-gradient(180deg,rgba(120,60,200,.35),rgba(8,10,18,.8));}
+.pt.got{opacity:.55;}
+.pt.cur{border-color:var(--gold);box-shadow:0 0 18px -4px rgba(255,197,61,.8);opacity:1;}
+.pt-ok{position:absolute;top:4px;right:6px;color:#6BE38F;font-size:13px;}
+.pi{display:block;width:40px;height:40px;background-size:contain;background-repeat:no-repeat;background-position:center;}
+.pi.coin{background-image:radial-gradient(circle at 40% 35%,#FFF1A8 0 18%,#FFD34A 19% 55%,#C9901A 56% 62%,transparent 63%);}
+.pi.lucky{background-image:radial-gradient(circle,#3FA0FF 0 30%,transparent 31%),conic-gradient(from 0deg,#8CC8FF 0 8%,transparent 8% 16.6%,#8CC8FF 16.6% 24.6%,transparent 24.6% 33.3%,#8CC8FF 33.3% 41.3%,transparent 41.3% 50%,#8CC8FF 50% 58%,transparent 58% 66.6%,#8CC8FF 66.6% 74.6%,transparent 74.6% 83.3%,#8CC8FF 83.3% 91.3%,transparent 91.3%);border-radius:50%;}
+.pi.chaos{background-image:radial-gradient(circle,#C890FF 0 28%,#15101E 29% 62%,transparent 63%);border-radius:50%;box-shadow:0 0 14px rgba(200,144,255,.7);}
+.pt-coins .pi{width:24px;height:24px;}
+.pass-h{margin:8px 0 4px;font-size:15px;}
+.pass-note{margin:0 0 8px;font-size:12px;color:var(--tx-3);}
+.pass-mis{display:flex;flex-direction:column;gap:8px;padding:10px 14px;border-radius:14px;background:rgba(8,10,18,.62);border:1px solid var(--line);}
+.pass-mis .he-m{grid-template-columns:1fr 110px 72px;font-size:13.5px;min-height:30px;}
+.pass-mis .he-mt small{font-size:11px;color:#C890FF;font-weight:800;}
+.lvup b{white-space:nowrap;}
+@media (max-width:560px){.lvup b{font-size:34px;}.pass-top{grid-template-columns:auto 1fr;row-gap:8px;padding:10px 12px;}.pt-coins{grid-column:1 / -1;justify-self:end;margin-top:-4px;}.pass-mis .he-m{grid-template-columns:1fr 80px 62px;font-size:12.5px;}.pass-mis .he-mt small{display:none;}}
+.lvup.pass b{background:linear-gradient(180deg,#F2E6FF,#C890FF 55%,#7A3CD6);-webkit-background-clip:text;background-clip:text;}
 .he-bonus{margin:-2px 0 2px;font-size:11.5px;font-weight:800;color:#C890FF;}
 .he-bonus.got{color:#6BE38F;}
 .cr-kinds{display:flex;gap:8px;justify-content:center;margin-bottom:6px;}
@@ -1611,6 +1641,7 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
         <button class="sub-btn" onclick="showRankScreen()"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg><span data-i18n="menu.rank"></span></button>
         <button class="sub-btn sb-crate" id="he-crate" onclick="openCrateScreen()"><span class="sb-ic"><canvas id="he-crate-cv" width="96" height="96"></canvas><span class="mb-badge" id="he-crate-n" style="display:none;"></span></span><span data-i18n="menu.crate"></span></button>
         <button class="sub-btn" id="he-misbtn" onclick="openMissions()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10l1.5 1.5 3-3M8.5 16l1.5 1.5 3-3M15 11h1.5M15 17h1.5"/></svg><span class="mb-badge" id="he-mis-n" style="display:none;"></span></span><span data-i18n="menu.missions"></span></button>
+        <button class="sub-btn" id="he-passbtn" onclick="showPassScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14 5v12" stroke-dasharray="2 2"/></svg><span class="mb-badge" id="he-pass-n" style="display:none;"></span></span><span data-i18n="menu.pass"></span></button>
         <button class="sub-btn" onclick="startRange()"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg><span data-i18n="menu.range"></span></button>
       </div>
       <div id="login-bar" style="display:none;">
@@ -1727,6 +1758,20 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
     <div id="rank-head" class="rk-row rk-head"><span class="rk-no">#</span><span class="rk-who" data-i18n="rank.player"></span><span class="rk-tier" data-i18n="rank.tier"></span><span class="rk-rate" data-i18n="rank.rate"></span><span class="rk-wr" data-i18n="rank.winrate"></span></div>
     <div id="rank-list"></div>
     <div id="rank-me"></div>
+    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
+  </div>
+
+  <div id="pass-screen" class="screen menu wide" style="display:none;">
+    <div class="scr-head">
+      <span class="kicker">SEASON PASS</span>
+      <h2 class="scr-title" id="pass-title"></h2>
+      <p class="pill" id="pass-left"></p>
+    </div>
+    <div class="pass-top" id="pass-top"></div>
+    <div class="pass-track" id="pass-track"></div>
+    <h3 class="pass-h" data-i18n="pass.missions"></h3>
+    <p class="pass-note" id="pass-note"></p>
+    <div class="pass-mis" id="pass-mis"></div>
     <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
@@ -1996,8 +2041,8 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=34"></script>
-<script src="lang.js?v=37"></script>
+<script src="sim.js?v=35"></script>
+<script src="lang.js?v=38"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2871,7 +2916,9 @@ function ensureProfileShape(){
   // 宝箱・レベル・ミッション（ログイン中は、持ち物などはサーバーの値が本物）
   profile.xp=Math.max(0,Math.floor(+profile.xp||0));
   profile.inv=SIM.cleanInv(profile.inv);
-  profile.opened=Math.max(0,Math.floor(+profile.opened||0));profile.misCrates=Math.max(0,Math.floor(+profile.misCrates||0));profile.pity=Math.max(0,Math.floor(+profile.pity||0));profile.chaosOpened=Math.max(0,Math.floor(+profile.chaosOpened||0));profile.misChaos=Math.max(0,Math.floor(+profile.misChaos||0));
+  profile.opened=Math.max(0,Math.floor(+profile.opened||0));profile.misCrates=Math.max(0,Math.floor(+profile.misCrates||0));profile.pity=Math.max(0,Math.floor(+profile.pity||0));profile.chaosOpened=Math.max(0,Math.floor(+profile.chaosOpened||0));profile.coins=Math.max(0,Math.floor(+profile.coins||0));
+  if(!profile.pass||typeof profile.pass!=='object')profile.pass={s:0,xp:0};if(!profile.sea||typeof profile.sea!=='object'||!Array.isArray(profile.sea.p))profile.sea={s:0,p:[],got:[]};
+  profile.misChaos=Math.max(0,Math.floor(+profile.misChaos||0));
   profile.emo=SIM.cleanEmotes(profile.emo,profile.inv);
   if(!profile.mis||typeof profile.mis!=='object')profile.mis={};
   if(!Array.isArray(profile.newItems))profile.newItems=[];   // まだ見ていない新しいアイテム（見た目の編集で「NEW」）
@@ -2922,7 +2969,45 @@ function ecoTrack(kind,n,w){
     M.p[i]=Math.min(d.n,M.p[i]+(n||1));hit=true;
     if(M.p[i]>=d.n){note(t('eco.misDone',{m:missionText(id)}));SFX.misDone();}
   });
+  var Z=ecoSea(),day=SIM.dayKey(),un=SIM.seasonUnlocked(Z.got,day);   // シーズンミッション（出ている物だけ数える）
+  SIM.SEASON_MISSIONS.forEach(function(d,i){
+    if(i>=un||Z.got[i]||d.k!==kind||(d.w&&d.w!==w)||Z.p[i]>=d.n)return;
+    Z.p[i]=Math.min(d.n,Z.p[i]+(n||1));hit=true;
+    if(Z.p[i]>=d.n){note(t('eco.seaDone',{m:seaText(i)}));SFX.misDone();}
+  });
   if(hit){saveProfile();renderHomeEco();}
+}
+// シーズン（パス・シーズンミッション）：シーズンが変わっていたら白紙に
+function ecoSea(){
+  ensureProfileShape();var s=SIM.seasonNo(),N=SIM.SEASON_MISSIONS.length;
+  if(profile.pass.s!==s)profile.pass={s:s,xp:0};
+  if(profile.sea.s!==s)profile.sea={s:s,p:[],got:[]};
+  for(var i=0;i<N;i++){profile.sea.p[i]=profile.sea.p[i]|0;profile.sea.got[i]=profile.sea.got[i]||'';}
+  return profile.sea;
+}
+function seaText(i){var d=SIM.SEASON_MISSIONS[i];return t('mis.'+d.k,{n:d.n,w:d.w?wName(d.w):''});}
+// パスXPを足す（ゲスト用。ログイン中はサーバーの答えを使う）→ 上がった段の報酬
+function passAddLocal(add){
+  ecoSea();var b=SIM.passTierOf(profile.pass.xp).tier;profile.pass.xp+=add;var a=SIM.passTierOf(profile.pass.xp).tier,got=[];
+  for(var tt=b+1;tt<=a;tt++){var rw=SIM.passReward(tt);if(rw.lucky)profile.misCrates+=rw.lucky;if(rw.chaos)profile.misChaos+=rw.chaos;if(rw.coins)profile.coins+=rw.coins;got.push(Object.assign({tier:tt},rw));}
+  return got;
+}
+function passTierFx(tiers){
+  if(!tiers||!tiers.length)return;
+  var last=tiers[tiers.length-1];showLevelUp(0,t('pass.tierUp',{n:last.tier}));SFX.levelUp();
+  tiers.forEach(function(x){note(t('pass.got',{n:x.tier,r:rewardText(x)}));});
+}
+function rewardText(rw){return rw.chaos?t('eco.chaos')+(rw.chaos>1?' ×'+rw.chaos:''):rw.lucky?t('eco.lucky'):t('pass.coins',{n:rw.coins});}
+// シーズンミッションを終える
+function ecoSeaClaim(i,cb){
+  var Z=ecoSea(),d=SIM.SEASON_MISSIONS[i],day=SIM.dayKey();
+  if(!d||Z.got[i]||Z.p[i]<d.n||i>=SIM.seasonUnlocked(Z.got,day)||ECO.busy)return;
+  if(AUTH.user&&AUTH.token&&STORE_ACC){
+    ECO.busy=true;
+    ecoApi({op:'sclaim',i:i},function(r){ECO.busy=false;if(r&&!r.error){ecoAdopt(r);SFX.coin();passTierFx(r.tiers);renderPass();renderHomeEco();cb&&cb(true);}else{note(t('eco.err'));cb&&cb(false);}});
+    return;
+  }
+  Z.got[i]=day;SFX.coin();passTierFx(passAddLocal(SIM.SEASON_MIS_PXP));saveProfile();renderPass();renderHomeEco();cb&&cb(true);
 }
 function missionText(id){var d=SIM.MISSIONS[id];return t('mis.'+d.k,{n:d.n,w:d.w?wName(d.w):''});}
 // ミッションの報酬を受け取る（宝箱1つ＋経験値）
@@ -2931,11 +3016,11 @@ function ecoClaim(i,cb){
   if(!d||M.c[i]||M.p[i]<d.n||ECO.busy)return;
   if(AUTH.user&&AUTH.token&&STORE_ACC){
     ECO.busy=true;
-    ecoApi({op:'claim',i:i},function(r){ECO.busy=false;if(r&&!r.error){M.c[i]=true;var lv0=ecoLevel().lv;ecoAdopt(r);if(ecoLevel().lv>lv0){SFX.levelUp();showLevelUp(ecoLevel().lv);}SFX.coin();renderHomeEco();cb&&cb(true);}
+    ecoApi({op:'claim',i:i},function(r){ECO.busy=false;if(r&&!r.error){M.c[i]=true;var lv0=ecoLevel().lv;ecoAdopt(r);if(ecoLevel().lv>lv0){SFX.levelUp();showLevelUp(ecoLevel().lv);}SFX.coin();passTierFx(r.tiers);renderHomeEco();cb&&cb(true);}
       else{if(r&&r.error==='claimed'){M.c[i]=true;saveProfile();renderHomeEco();}cb&&cb(false);}});
     return;
   }
-  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();   // 3つ全部終えたら、カオスバッジ
+  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();passTierFx(passAddLocal(SIM.DAILY_PXP));   // 3つ全部終えたら、カオスバッジ
 ecoAddXp(SIM.MISSION_XP);saveProfile();renderHomeEco();cb&&cb(true);
 }
 // 宝箱を開ける → cb({item,r,dup})
@@ -2959,7 +3044,7 @@ function ecoMarkNew(id){if(profile.newItems.indexOf(id)<0)profile.newItems.push(
 // サーバーの答えで、宝箱まわりの値を合わせる（版も進める）
 function ecoAdopt(r){
   var p=r&&r.profile;if(!p)return;
-  ['xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(r.rev){SYNC.rev=Math.max(SYNC.rev,+r.rev);saveSyncMeta();}
   ensureProfileShape();writeProfileLocal();
 }
@@ -2998,7 +3083,34 @@ function renderHomeEco(){
   document.getElementById('he-mis').innerHTML=h;
   var mn=document.getElementById('he-mis-n');mn.style.display=ready?'':'none';mn.textContent=ready;
   document.getElementById('he-misbtn').classList.toggle('has',ready>0);
+  var Z=ecoSea(),un=SIM.seasonUnlocked(Z.got,SIM.dayKey()),sr=0;SIM.SEASON_MISSIONS.forEach(function(d,i){if(i<un&&!Z.got[i]&&Z.p[i]>=d.n)sr++;});
+  var pn=document.getElementById('he-pass-n');if(pn){pn.style.display=sr?'':'none';pn.textContent=sr;document.getElementById('he-passbtn').classList.toggle('has',sr>0);}
   var mc=document.getElementById('mis-crate');mc.style.display=n>0?'':'none';mc.textContent=t('eco.crate')+' '+t('eco.crateN',{n:n});
+}
+// ---- シーズンパスの画面：上に今の段、横に30段の報酬、下にシーズンミッション ----
+function showPassScreen(){showScreen('pass-screen');renderPass();var cur=document.querySelector('#pass-track .pt.cur');if(cur)cur.scrollIntoView({inline:'center',block:'nearest'});}
+function passIcon(rw){return rw.chaos?'<i class="pi chaos"></i>':rw.lucky?'<i class="pi lucky"></i>':'<i class="pi coin"></i>';}
+function renderPass(){
+  var el=document.getElementById('pass-track');if(!el)return;
+  var Z=ecoSea(),P=SIM.passTierOf(profile.pass.xp),day=SIM.dayKey(),un=SIM.seasonUnlocked(Z.got,day),left=Math.max(1,Math.ceil(SIM.seasonLeftMs()/864e5));
+  document.getElementById('pass-title').textContent=t('pass.title',{n:SIM.seasonNo()});
+  document.getElementById('pass-left').textContent=t('pass.left',{d:left});
+  var max=P.tier>=SIM.PASS_TIERS;
+  document.getElementById('pass-top').innerHTML='<div class="pt-tier"><small>TIER</small><b>'+P.tier+'</b><span>/ '+SIM.PASS_TIERS+'</span></div>'+
+    '<div class="pt-bar"><div class="pt-fill" style="width:'+(max?100:Math.round(P.cur/P.need*100))+'%"></div><em>'+(max?t('eco.max'):P.cur+' / '+P.need+' '+t('pass.pxp'))+'</em></div>'+
+    '<div class="pt-coins"><i class="pi coin"></i><b>'+profile.coins+'</b></div>';
+  var h='';
+  for(var k=1;k<=SIM.PASS_TIERS;k++){var rw=SIM.passReward(k),got=k<=P.tier,cur=k===P.tier+1;
+    h+='<div class="pt'+(got?' got':'')+(cur?' cur':'')+(rw.chaos?' big':'')+'"><small>'+k+'</small>'+passIcon(rw)+'<span>'+esc(rewardText(rw))+'</span>'+(got?'<b class="pt-ok">✓</b>':'')+'</div>';}
+  el.innerHTML=h;
+  var m='';
+  SIM.SEASON_MISSIONS.forEach(function(d,i){
+    if(i>=un)return;var p=Math.min(d.n,Z.p[i]),done=p>=d.n,got=!!Z.got[i];
+    m+='<div class="he-m'+(got?' got':done?' done':'')+'"><span class="he-mt">'+esc(seaText(i))+'<small> +'+SIM.SEASON_MIS_PXP+' '+esc(t('pass.pxp'))+'</small></span><span class="he-mp"><i style="width:'+Math.round(p/d.n*100)+'%"></i><em>'+p+'/'+d.n+'</em></span>'+
+      (got?'<span class="he-mc">✓</span>':done?'<button class="he-claim" onclick="ecoSeaClaim('+i+')">'+esc(t('eco.claim'))+'</button>':'<span></span>')+'</div>';});
+  document.getElementById('pass-mis').innerHTML=m;
+  var rest=SIM.SEASON_MISSIONS.length-un;
+  document.getElementById('pass-note').textContent=rest>0?t('pass.more',{n:rest}):t('pass.all');
 }
 function openMissions(){renderHomeEco();document.getElementById('mis-modal').classList.add('show');}
 function closeMissions(){document.getElementById('mis-modal').classList.remove('show');}
@@ -3012,9 +3124,9 @@ function drawCrateIcon(tm){
   var ch=ecoChaos()>0;drawBadge(g,48,48,.5,ch?2:has?1:0,ch?'chaos':'lucky',tm,{glowA:has?.4:0,rot:has?Math.sin(tm*9)*Math.max(0,Math.sin(tm*1.3))*.08:0});
 }
 // レベルが上がったとき：画面の上に大きく出す
-function showLevelUp(lv){
-  var el=document.createElement('div');el.className='lvup';
-  el.innerHTML='<b>LEVEL UP!</b><span>'+esc(t('eco.lv',{lv:lv}))+'</span>';
+function showLevelUp(lv,txt){
+  var el=document.createElement('div');el.className='lvup'+(txt?' pass':'');
+  el.innerHTML=txt?'<b>PASS UP!</b><span>'+esc(txt)+'</span>':'<b>LEVEL UP!</b><span>'+esc(t('eco.lv',{lv:lv}))+'</span>';
   document.body.appendChild(el);setTimeout(function(){el.remove();},2600);
 }
 
@@ -4067,7 +4179,7 @@ function saveSyncMeta(){try{localStorage.setItem('gunduel_sync',JSON.stringify({
 function profileDoc(){
   ensureProfileShape();
   return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
-    xp:profile.xp,emo:profile.emo,mis:profile.mis};   // 持ち物・開けた数はサーバーが決めるので送らない
+    xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea};   // 持ち物・開けた数はサーバーが決めるので送らない
 }
 function profileChanged(){if(!STORE_ACC)return;SYNC.dirty=true;SYNC.seq++;saveSyncMeta();pushProfileSoon(1500);}
 function pushProfileSoon(ms){
@@ -4104,7 +4216,7 @@ function pushProfile(){
 // サーバーの内容で手元を置きかえる（送り返さない）
 function adoptProfile(p){
   if(!p||typeof p!=='object')return;
-  ['name','bio','title','look','bg','bestTier','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['name','bio','title','look','bg','bestTier','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
   ensureProfileShape();writeProfileLocal();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
@@ -4518,7 +4630,7 @@ function renderPresDot(){
 // ============================================================
 // 画面遷移
 // ============================================================
-var SCREENS=['tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen'];
+var SCREENS=['tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen'];
 var currentScreen='';
 function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
@@ -10368,7 +10480,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
