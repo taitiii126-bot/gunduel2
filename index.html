@@ -2189,7 +2189,7 @@ body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=38"></script>
+<script src="sim.js?v=39"></script>
 <script src="lang.js?v=42"></script>
 <script>
 /*
@@ -2987,6 +2987,77 @@ document.addEventListener('keydown',function(e){
   trapBuf=(trapBuf+e.key.toLowerCase()).slice(-10);
   if(/(godmode|aimbot|wallhack|cheat)$/.test(trapBuf)){trapBuf='';cheatTrap();}
 });
+
+// ---- ズルの検知（CPU戦もオンラインも）：ログイン中ならサーバーに報告し、サーバーがBANする ----
+//   確かな証拠（1回でBAN）：試合の値の書き換え／スクリプトが作った入力（isTrusted=false・ボタンの関数を直接呼ぶ）／時間の進み方の操作
+//   動きのクセ（オンラインと同じ基準・1試合1点）：狙いが合った瞬間の射撃・反応の速さ・一定すぎる連打・瞬間回避・高速切り替え
+//   報告は端末に残してから送る（送れなくても、次に開いたときに送る）
+var AC={watch:null,sent:{},synth:0,clk:null,busy:false};
+function acLive(){return (gameMode==='ai'||gameMode==='online')&&onGameScreen()&&!matchOver;}
+function acQueue(){try{var q=JSON.parse(localStorage.getItem('gd_acq')||'[]');return Array.isArray(q)?q.filter(function(r){return r&&Date.now()-r.at<86400000;}):[];}catch(e){return [];}}
+function acSave(q){try{localStorage.setItem('gd_acq',JSON.stringify(q.slice(-10)));}catch(e){}}
+function acReport(kind,detail){
+  if(AC.sent[kind])return;AC.sent[kind]=1;   // 1試合で同じ種類は1回だけ
+  var q=acQueue();q.push({kind:kind,detail:String(detail||'').slice(0,60),diff:gameMode==='ai'?String(difficulty):gameMode,at:Date.now()});acSave(q);
+  acFlush();
+}
+function acFlush(){
+  if(AC.busy||!AUTH.token)return;
+  var q=acQueue();if(!q.length)return;
+  var r=q[0];AC.busy=true;
+  fetch(httpBase()+'/api/report',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},body:JSON.stringify({kind:r.kind,detail:r.detail,diff:r.diff})})
+    .then(function(res){return res.json().catch(function(){return {};}).then(function(j){return {st:res.status,j:j};});})
+    .then(function(o){
+      AC.busy=false;
+      if(o.st===429||o.st>=500)return;   // 混んでいる：あとで送り直す
+      acSave(acQueue().filter(function(x){return !(x.at===r.at&&x.kind===r.kind);}));
+      if((o.j&&o.j.banned)||o.st===403){acBanned();return;}
+      acFlush();
+    }).catch(function(){AC.busy=false;});
+}
+function acBanned(){
+  acSave([]);
+  if(AUTH.token)doLogout();
+  alert(t('login.banned'));
+}
+// スクリプトが作った入力：ゲームには渡さない。続いたら報告
+function acSynthetic(src){
+  if(!acLive())return;
+  AC.synth++;
+  if(AC.synth>=3)acReport('synthetic',src);
+}
+function acTrusted(e){if(e&&e.isTrusted===false){acSynthetic(e.type);return false;}return true;}
+// ボタン（ontouchstart="doJump()" など）から呼ばれる関数：本物の操作のイベントの中でしか動かない
+var AC_GUARD={doAttack:1,attackUp:1,doDuck:1,doHeal:1,doJump:1,doReload:1,setKey:1,setWeapon:1,doRoll:1};
+function acGuard(f){
+  var hasEv='event' in window;
+  return function(){
+    var e=window.event;
+    if(e&&e.isTrusted===false){acSynthetic(f.name);return;}
+    if(!e&&hasEv&&acLive()){acSynthetic(f.name+'()');return;}
+    return f.apply(this,arguments);
+  };
+}
+// ゲームが使うブラウザの機能が書き換えられていないか（プライバシー系の拡張機能でも書き換わることがあるので、記録だけ）
+function acNative(){
+  var bad=[],chk=function(n,f){try{if(typeof f!=='function'||!/\[native code\]\s*\}\s*$/.test(Function.prototype.toString.call(f)))bad.push(n);}catch(e){bad.push(n);}};
+  chk('raf',window.requestAnimationFrame);chk('perf',performance.now);chk('date',Date.now);chk('rand',Math.random);
+  if(navigator.getGamepads)chk('pad',navigator.getGamepads);
+  chk('ael',EventTarget.prototype.addEventListener);
+  if(bad.length)acReport('native',bad.join(','));
+}
+// 時間の進み方：画面の時計（rAF）と、ふつうの時計（Date）がずれ続けたら、スロー・早送りの操作
+function acClock(ts){
+  if(gameMode!=='ai'||!acLive()||document.hidden){AC.clk=null;return;}
+  var c=AC.clk,now=Date.now();
+  if(!c){AC.clk={t:ts,d:now,bad:0};return;}
+  var dt=ts-c.t;if(dt<5000)return;
+  var dd=now-c.d;
+  if(dd>=3000&&dd<=15000){c.bad=Math.abs(dt/dd-1)>0.15?c.bad+1:0;if(c.bad>=3)acReport('speed',Math.round(dt/dd*100)+'%');}
+  c.t=ts;c.d=now;
+}
+setTimeout(function(){acFlush();},5000);   // 前に送れなかった報告
+function acMatchStart(){AC.watch=SIM.newWatch();AC.sent={};AC.synth=0;AC.clk=null;acNative();acFlush();}
 
 // ---- コンソール（開発者ツール）を開いたら、開発者の Taito と Kota が出てきて質問する ----
 //   「まちがえた」→ 称号「嘘つき」、「チートを使おうとしている」→ 称号「ノースキル」（どちらも、そのまま付ける）
@@ -5885,6 +5956,7 @@ function initLocalRound(){
   useStage(selectedStage);
   lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;
   lw.guardOn=true;SIM.guardSave(lw);   // 外から値を書き換えられていないか見張る
+  if(AC.watch)SIM.watchRound(AC.watch);
   aiBrain=SIM.newBrain(difficulty);
   playerSlot=0;lp.wantSlot=0;clearPending();
   lRoundOver=false;clearFx();
@@ -5893,10 +5965,13 @@ function initLocalRound(){
 function gameUpdateLocal(){
   if(lRoundOver||!lw)return;
   if(RINTRO&&RINTRO.freeze&&(!RINTRO.t0||performance.now()-RINTRO.t0<RI_READY))return;   // 「READY」の間は動かない
-  SIM.setInput(lp,playerInput());
+  var pin=playerInput();SIM.setInput(lp,pin);
   SIM.setInput(lai,SIM.think(aiBrain,lw,'b'));
+  var V=AC.watch,hit=V?SIM.watchPre(V,lw,'a','b',pin):'';
   var ev=[];SIM.step(lw,ev);
-  if(lw.tamper&&!aiTamper){aiTamper=true;note(t('c.cheatFound'));cheatTrap();}   // ズルが見つかった試合は記録しない
+  if(V)hit=hit||SIM.watchPost(V,lw,ev,'a','b');
+  if(hit)acReport(hit,V.detail);   // 動きのクセ：本人には知らせず報告だけ（オンラインと同じ）
+  if(lw.tamper&&!aiTamper){aiTamper=true;note(t('c.cheatFound'));cheatTrap();acReport('tamper',lw.tamperAt);}   // ズルが見つかった試合は記録しない
   handleEvents(ev,'a',localStyle);
   if(ev.some(function(e){return e.t==='heal'&&e.who==='a';}))updateHealBtn();
   if(lp.dead||lai.dead)endRoundL(lp.dead&&lai.dead?null:(lp.dead?'ai':'player'));
@@ -6234,14 +6309,14 @@ function startAI(){
   var boss=difficulty===EMP;
   cpuLoad=boss?SIM.emperorLoadout():SIM.cpuLoadout();cpuLook=boss?EMPEROR_LOOK:SIM.randomLook();
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;
-  presenceStatus('cpu');achMatchStart();
+  presenceStatus('cpu');achMatchStart();acMatchStart();
   if(INV.cur){INV.queue.unshift(INV.cur);INV.cur=null;hideInviteToast();}   // 表示中の招待は試合のあとで出し直す
   showGameScreen('ai');initLocalRound();unlockDifficulty();
   if(boss)startBossIntro();else startLobby(10);
   startLoop();
 }
 function myTierKey(){return TIER_LADDER[computeTierIndex()].key;}
-function resetOnlineState(){TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
+function resetOnlineState(){AC.sent={};AC.synth=0;TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
 function startPingLoop(){
   if(pingTimer)clearInterval(pingTimer);
   pingTimer=setInterval(function(){
@@ -6369,7 +6444,7 @@ function handleBindUp(k){
 }
 function onGameScreen(){return document.getElementById('game-screen').style.display!=='none';}
 document.addEventListener('keydown',function(e){
-  if(listeningFor)return;
+  if(listeningFor||!acTrusted(e))return;
   var k=e.key.toLowerCase();
   if(e.key==='Escape'&&onGameScreen()){leaveMatch();e.preventDefault();return;}   // 対戦中でもESCでメニューへ（途中なら一度確認）
   if(matchOver&&k==='r'&&onGameScreen()){doRematch();e.preventDefault();return;}
@@ -6387,19 +6462,19 @@ document.addEventListener('keydown',function(e){
   if(k===keybinds.attack||k===keybinds.jump)e.preventDefault();
   handleBindDown(k,e.repeat);
 });
-document.addEventListener('keyup',function(e){if(listeningFor)return;handleBindUp(e.key.toLowerCase());});
+document.addEventListener('keyup',function(e){if(listeningFor||!acTrusted(e))return;handleBindUp(e.key.toLowerCase());});
 window.addEventListener('blur',function(){keys={};if(gameMode==='online')sendInput();});
 // マウスのボタンを割り当てている場合の操作（ゲーム画面の上だけで反応させる）
 (function(){
   var cv=document.getElementById('c');
   cv.addEventListener('mousedown',function(e){
-    if(listeningFor)return;e.preventDefault();
+    if(listeningFor||!acTrusted(e))return;e.preventDefault();
     if(bossIntro||unlockFx||slayFx){skipOverlayFx();return;}   // 演出の間は、クリック・タップでとばす
     if(matchOver&&isTouch){doRematch();return;}   // スマホは画面タップで再戦
     handleBindDown('mouse'+e.button,false);
   });
   cv.addEventListener('contextmenu',function(e){e.preventDefault();});
-  window.addEventListener('mouseup',function(e){if(listeningFor)return;handleBindUp('mouse'+e.button);});
+  window.addEventListener('mouseup',function(e){if(listeningFor||!acTrusted(e))return;handleBindUp('mouse'+e.button);});
 })();
 // 移動・しゃがみの押しっぱなし状態をまとめて変える（変わったときだけオンラインに送る）
 function setMoveKeys(l,r,dn){
@@ -6451,13 +6526,13 @@ window.addEventListener('orientationchange',updateMland);
   function place(el,x,y){el.style.left=typeof x==='string'?x:x+'px';el.style.top=typeof y==='string'?y:y+'px';}
   function rest(){place(base,'34%','66%');place(knob,'34%','66%');zone.classList.remove('on');}   // 割合で置く（隠れていて大きさが0のときでもずれない）
   zone.addEventListener('pointerdown',function(e){
-    e.preventDefault();if(sid!==null)return;
+    e.preventDefault();if(sid!==null||!acTrusted(e))return;
     if(overlayFxOn()){skipOverlayFx();return;}
     sid=e.pointerId;try{zone.setPointerCapture(sid);}catch(er){}
     var r=zone.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;place(base,ox,oy);place(knob,ox,oy);zone.classList.add('on');flick=false;
   });
   zone.addEventListener('pointermove',function(e){
-    if(e.pointerId!==sid)return;
+    if(e.pointerId!==sid||!acTrusted(e))return;
     var r=zone.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,dx=x-ox,dy=y-oy,R=(base.offsetWidth/2)||40,len=Math.sqrt(dx*dx+dy*dy)||1;
     if(len>R*1.5){ox=x-dx/len*R*1.5;oy=y-dy/len*R*1.5;dx=x-ox;dy=y-oy;len=R*1.5;place(base,ox,oy);}   // 指が離れすぎたら、台がついてくる
     var k=len>R?R/len:1;place(knob,ox+dx*k,oy+dy*k);
@@ -6470,7 +6545,7 @@ window.addEventListener('orientationchange',updateMland);
   function btn(id,down,up){
     var el=document.getElementById(id);if(!el)return;
     el.addEventListener('pointerdown',function(e){
-      e.preventDefault();
+      e.preventDefault();if(!acTrusted(e))return;
       if(matchOver&&(id==='tp-atk'||id==='tp-jump')){doRematch();return;}
       if(overlayFxOn()){skipOverlayFx();return;}
       try{el.setPointerCapture(e.pointerId);}catch(er){}
@@ -6481,7 +6556,7 @@ window.addEventListener('orientationchange',updateMland);
   }
   btn('tp-atk',doAttack,attackUp);btn('tp-jump',doJump);btn('tp-reload',doReload);btn('tp-heal',doHeal);btn('tp-roll',doRoll);
   document.querySelectorAll('#tp-weps .tp-w').forEach(function(b){
-    b.addEventListener('pointerdown',function(e){e.preventDefault();setWeapon(+b.getAttribute('data-w'));});
+    b.addEventListener('pointerdown',function(e){e.preventDefault();if(acTrusted(e))setWeapon(+b.getAttribute('data-w'));});
   });
   // 画面をさわったら、ゲームパッドの表示からタッチの表示へ戻す
   document.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'&&GP.used)setPadMode(false);},{passive:true});
@@ -10718,7 +10793,7 @@ function drawScene(){
 var FRAME_MS=1000/60,lastTime=0,accumulator=0;
 function loop(ts){
   if(!loopRunning)return;
-  pollPad();
+  pollPad();acClock(ts);
   if(lastTime===0)lastTime=ts;var delta=ts-lastTime;lastTime=ts;if(delta>200)delta=200;
   fxAutoTick(delta);
   accumulator+=delta;
@@ -10829,7 +10904,7 @@ function drawBgFx(tm){
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
- partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint].forEach(function(f){window[f.name]=f;});
+ partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得

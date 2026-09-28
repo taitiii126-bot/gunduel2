@@ -78,25 +78,18 @@ function decideStage(opts, votes) {
   return top[Math.floor(Math.random() * top.length)];
 }
 
-// ---- 自動操作（BOT・マクロ）の検知基準 ----
-// どれも「人間には続けて出せない数字」を、十分な回数そろったときだけ疑う（誤検知を避けるため厳しめ）
-const BOT_MIN_SHOTS = +process.env.BOT_MIN_SHOTS || 20;   // これだけ撃つまでは判定しない
-const BOT_ALIGNED_RATIO = 0.9;     // 撃った弾のうち、狙いが合っている瞬間に撃った割合
-const BOT_INSTANT_RATIO = 0.8;     // 狙いが合った（かつ撃てる）瞬間から2フレーム以内に撃った割合
-const BOT_INSTANT_FRAMES = 2;      // 2フレーム ≒ 0.033秒（人間の反応は速くても0.15秒前後）
-const MACRO_TOGGLES_PER_SEC = 30;  // 左右・しゃがみの切り替えが1秒にこれ以上
+// ---- 自動操作（BOT・マクロ・自動回避）の検知 ----
+// 判定そのものは sim.js の SIM.watchPre / watchPost（CPU戦と同じ基準）。ここでは理由の文だけ持つ
+const MACRO_TOGGLES_PER_SEC = 30;  // 左右・しゃがみの切り替えが1秒にこれ以上（通信で届いた入力の数で見る）
 const MACRO_SECONDS = 3;           // それが連続でこの秒数続いたら疑う
 const ACTIVE_MIN_INPUTS = 10;      // 1試合でこれ未満しか操作していなければ「放置」
-const DODGE_INSTANT_FRAMES = 6;    // 自分を狙った弾が出てから6フレーム（0.1秒）以内に跳んだら「瞬間回避」
-const DODGE_GROUNDED_FRAMES = 15;  // 直前まで15フレーム以上地面にいたときだけ数える（連続ジャンプは対象外）
-const DODGE_MIN_THREATS = +process.env.DODGE_MIN_THREATS || 8;   // 狙われた回数がこれ未満なら判定しない
-const DODGE_MIN_COUNT = 6;         // 瞬間回避がこの回数以上
-const DODGE_RATIO = 0.6;           // かつ、狙われた弾の6割以上を瞬間回避
-const REACT_MIN_SAMPLES = 25;      // 反応の速さ：狙いが合ってから撃つまでを、これだけ集めてから判定
-const REACT_MEDIAN_FRAMES = 5;     // その真ん中の値が5フレーム（約0.083秒）以下なら疑う（人間は速い人でも0.15秒前後）
-const RHYTHM_MIN_SAMPLES = 30;     // 撃つ間隔：ボタンを押し直した間隔を、これだけ集めてから判定
-const RHYTHM_MAX_GAP = 40;         // 間隔がこれより長いもの（様子見など）は数えない
-const RHYTHM_MAX_SD = 0.5;         // 間隔のばらつき（標準偏差）がこのフレーム数未満なら、機械的に一定＝マクロの疑い
+const WATCH_LABEL = {
+  instant: '狙いが合った瞬間に撃ち続けている（自動射撃の疑い）',
+  react: '反応が人間離れして速い（自動射撃の疑い）',
+  rhythm: '撃つ間隔が機械的に一定（マクロの疑い）',
+  dodge: '撃たれた瞬間に避け続けている（自動回避の疑い）',
+  macro: '入力の切り替えが人間離れした速さ（マクロの疑い）',
+};
 
 const SLOTS = ['a', 'b'];
 // 相手に見せる名前とティアは、そのまま信用せず長さと文字種を落とす（見えない制御文字は取り除く）
@@ -227,7 +220,7 @@ class Room {
   }
   resetStats(p) {
     Object.assign(p, { acts: 0, shots: 0, alignedShots: 0, instantShots: 0, togSec: 0, togN: 0, fastSecs: 0,
-      threats: 0, instantDodges: 0, suspect: '', reacts: [], lastPull: -1, gaps: [] });
+      threats: 0, instantDodges: 0, suspect: '', reacts: [], lastPull: -1, gaps: [], watch: SIM.newWatch() });
   }
   hostIp() { return this.players.a ? this.players.a.ip : ''; }
 
@@ -381,6 +374,7 @@ class Room {
       if (p) {
         p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
         p.input.slot = 0; p.input.fire = false; p.alignedFrame = -1; p.readyFrame = -1; p.lastPull = -1;
+        if (p.watch) SIM.watchRound(p.watch);
       }
     }
     this.phase = 'playing';
@@ -469,105 +463,34 @@ class Room {
     if (this.hooks.onClose) this.hooks.onClose(this);
   }
 
-  // 相手を撃てる位置か（高さが合っていて、射程内で、相手の方を向いている）
-  aimedAt(c, t) {
-    const W = SIM.weaponOf(c);
-    const reach = W.kind === 'grenade' ? 320 : W.range;
-    return !t.dead && Math.abs(t.y - c.y) < 24 && Math.abs(t.x - c.x) <= reach && Math.sign(t.x - c.x) === c.dir;
-  }
-  // 撃った1回ぶんのBOT検知：狙いが合った瞬間（かつ撃てるようになった瞬間）から撃つまでのフレーム数
-  // 押しっぱなしの連射は「押した瞬間」ではないので数えない
-  countShot(slot, aimed) {
-    const p = this.players[slot];
-    if (!p) return;
-    p.shots++;
-    if (aimed && p.alignedFrame >= 0) {
-      p.alignedShots++;
-      const rt = this.frame - Math.max(p.alignedFrame, p.readyFrame);
-      if (rt <= BOT_INSTANT_FRAMES) p.instantShots++;
-      if (p.readyFrame >= 0 && rt >= 0 && p.reacts.length < 400) p.reacts.push(rt);
-    }
-    // 押し直した間隔（押しっぱなしの連射は、押した瞬間だけ数えるのでここには来ない）
-    if (p.lastPull >= 0) { const gap = this.frame - p.lastPull; if (gap <= RHYTHM_MAX_GAP && p.gaps.length < 400) p.gaps.push(gap); }
-    p.lastPull = this.frame;
-    p.readyFrame = -1;
-    this.checkReact(p);
-    this.checkRhythm(p);
-    if (p.shots >= BOT_MIN_SHOTS && p.alignedShots / p.shots >= BOT_ALIGNED_RATIO &&
-        p.alignedShots > 0 && p.instantShots / p.alignedShots >= BOT_INSTANT_RATIO) {
-      this.flag(p, '狙いが合った瞬間に撃ち続けている（自動射撃の疑い）');
-    }
-  }
-  // 弾が出た瞬間に跳んで避けるのを、人間には無理な割合で続けていないか
-  // 反応の速さ：狙いが合って（撃てるようになって）から撃つまでの真ん中の値が、人間には続けて出せない速さ
-  checkReact(p) {
-    const r = p.reacts;
-    if (p.suspect || r.length < REACT_MIN_SAMPLES) return;
-    const m = r.slice().sort((a, b) => a - b)[r.length >> 1];
-    if (m <= REACT_MEDIAN_FRAMES) this.flag(p, `反応が人間離れして速い（自動射撃の疑い：${r.length}回の真ん中 ${Math.round(m * 1000 / 60)}ms）`);
-  }
-  // 撃つ間隔：人間は押す間隔が必ずばらつく。フレーム単位でそろい続けるのは自動化ツール
-  checkRhythm(p) {
-    const g = p.gaps;
-    if (p.suspect || g.length < RHYTHM_MIN_SAMPLES) return;
-    const n = g.length, mean = g.reduce((a, b) => a + b, 0) / n;
-    const sd = Math.sqrt(g.reduce((a, b) => a + (b - mean) * (b - mean), 0) / n);
-    if (mean >= 3 && sd < RHYTHM_MAX_SD) this.flag(p, `撃つ間隔が機械的に一定（マクロの疑い：${n}回・平均${mean.toFixed(1)}フレーム・ばらつき${sd.toFixed(2)}）`);
-  }
-  checkDodge(slot, groundSince) {
-    const p = this.players[slot];
-    const f = this.world.frame;   // 着地したフレームと弾が出たフレームは、どちらも sim のフレーム番号
-    if (!p || groundSince < 0 || f - groundSince < DODGE_GROUNDED_FRAMES) return;
-    for (const b of this.world.shots) {
-      if (b.threat && b.target === slot && !b.dodgeChecked && f - b.spawn <= DODGE_INSTANT_FRAMES) {
-        b.dodgeChecked = true;
-        p.instantDodges++;
-        if (p.threats >= DODGE_MIN_THREATS && p.instantDodges >= DODGE_MIN_COUNT && p.instantDodges / p.threats >= DODGE_RATIO) {
-          this.flag(p, '撃たれた瞬間に避け続けている（自動回避の疑い）');
-        }
-        break;
-      }
-    }
+  // 見張りが引っかかったとき（1試合に1回だけ）
+  watchHit(p, code) {
+    if (!code) return;
+    const d = p.watch.detail ? '：' + p.watch.detail : '';
+    this.flag(p, (WATCH_LABEL[code] || code) + d);
   }
   tick() {
     if (this.phase !== 'playing') return;
     this.frame++;
-    const w = this.world, groundSince = {}, aimed = {};
+    const w = this.world;
     for (const s of SLOTS) {
       const p = this.players[s], c = w.chars[s];
       if (p) {
         if (p.bot) this.botInput(p, s);
         const inp = p.input;
-        SIM.setInput(c, { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
-          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq });
+        const i = { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
+          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq };
+        SIM.setInput(c, i);
         p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
-        // BOT検知用：狙いが合い始めたフレームと、撃てるようになったフレームを覚える
-        // 撃つ瞬間の狙い（このフレームの動きより前の位置で判定する。とどめの一撃も「狙いが合っていた」に数える）
-        aimed[s] = !c.dead && this.aimedAt(c, w.chars[other(s)]);
-        if (aimed[s]) { if (p.alignedFrame < 0) p.alignedFrame = this.frame; }
-        else p.alignedFrame = -1;
-        if (SIM.canFire(c)) { if (p.readyFrame < 0) p.readyFrame = this.frame; }
+        // 自動操作の見張り（CPU戦と同じ SIM.watch*。基準は sim.js の WATCH）
+        if (!p.bot && p.watch) this.watchHit(p, SIM.watchPre(p.watch, w, s, other(s), i));
       } else SIM.setInput(c, { left: false, right: false, duck: false, fire: false });
-      groundSince[s] = c.groundSince;
     }
     const ev = [];
     SIM.step(w, ev);
-    for (const e of ev) {
-      if (e.t === 'pull' && e.edge) this.countShot(e.who, aimed[e.who]);
-      else if (e.t === 'fire' && !e.beam) {
-        // 相手が地上にいて、このままなら当たる弾は「狙われた弾」として数える（自動回避の検知用）
-        const c = w.chars[e.who], t = w.chars[other(e.who)], tp = this.players[other(e.who)];
-        const W = SIM.WEAPONS[e.wid];
-        if (W.kind !== 'bullet' && W.kind !== 'pellet') continue;
-        const threat = aimed[e.who] && t.onGround;
-        let marked = false;
-        for (const b of w.shots) {
-          if (b.sid !== e.sid) continue;
-          b.spawn = w.frame; b.target = other(e.who); b.dodgeChecked = false;
-          b.threat = threat && !marked; marked = true;
-        }
-        if (threat && tp) tp.threats++;
-      } else if (e.t === 'jump') this.checkDodge(e.who, groundSince[e.who]);
+    for (const s of SLOTS) {
+      const p = this.players[s];
+      if (p && !p.bot && p.watch) this.watchHit(p, SIM.watchPost(p.watch, w, ev, s, other(s)));
     }
     const fx = packFx(ev);
     const ad = w.chars.a.dead, bd = w.chars.b.dead;

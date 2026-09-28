@@ -43,9 +43,12 @@ const BANNED_IDS = new Set((process.env.BANNED_DISCORD_IDS || '').split(',').map
 // 怪しいプレイの自動対応：最近（FLAG_DAYS日以内）に検知された試合の数で段階を上げる
 const FLAG_DAYS = +process.env.FLAG_DAYS || 30;
 const SUSPECT_POOL_FLAGS = +process.env.SUSPECT_POOL_FLAGS || 2;   // これ以上：ランクマッチは怪しい人どうしでしか組まない（本人には知らせない）
-const AUTO_BAN_FLAGS = +process.env.AUTO_BAN_FLAGS || 4;           // これ以上：自動で一時BAN
-const AUTO_BAN_DAYS = +process.env.AUTO_BAN_DAYS || 7;
-const recentFlags = u => (Array.isArray(u.flagLog) ? u.flagLog : []).filter(f => Date.now() - f.at < FLAG_DAYS * 86400000).length;
+const AUTO_BAN_FLAGS = +process.env.AUTO_BAN_FLAGS || 3;           // これ以上：自動でBAN（確かな証拠は1回でこの点数になる）
+const AUTO_BAN_DAYS = +process.env.AUTO_BAN_DAYS || 7;             // 1回目のBANの日数。2回目は BAN2_DAYS、3回目からは永久
+const BAN2_DAYS = +process.env.BAN2_DAYS || 30;
+const PERMA_BAN = Date.UTC(9999, 0, 1);
+const IP_BAN_DAYS = +process.env.IP_BAN_DAYS || 3;                 // BANした人のIPも、この日数（BANより短ければその日数）止める
+const recentFlags = u => (Array.isArray(u.flagLog) ? u.flagLog : []).filter(f => Date.now() - f.at < FLAG_DAYS * 86400000).reduce((a, f) => a + (f.p == null ? 1 : f.p), 0);
 const tempBanned = u => !!u.banUntil && u.banUntil > Date.now();
 // 称号「信頼のハッカー」を贈る人。フレンドコード（8文字）か Discord の ID をカンマ区切りで環境変数に書く。
 // 例: GIFT_HACKER_IDS=ABCD2345 　書けば付き、消せば外れる（コードには誰も書かない）
@@ -403,20 +406,37 @@ const auth = {
 
   // 怪しいプレイを検知した回数をアカウントに残す（BANするかの判断材料）
   // 返り値：{ recent: 最近の検知数, action: 'none'|'pool'|'ban', until: BANが解ける時刻 }
-  flag(uid, reason) {
+  // pts：証拠の重さ（記録だけは0、ふつうの検知は1、改ざん・自動入力など確かな証拠は AUTO_BAN_FLAGS で即BAN）。ip：BANしたときに一緒に止めるIP
+  // BANは回数で重くなる：1回目 AUTO_BAN_DAYS 日 → 2回目 BAN2_DAYS 日 → 3回目から永久
+  flag(uid, reason, pts, ip) {
     const u = db.users[uid];
     if (!u) return null;
+    const p = pts === 0 ? 0 : Math.max(1, Math.min(AUTO_BAN_FLAGS, Math.round(+pts || 1)));   // 0は記録だけ
     u.flags = (u.flags || 0) + 1; u.lastFlag = String(reason).slice(0, 120); u.lastFlagAt = Date.now();
-    u.flagLog = (Array.isArray(u.flagLog) ? u.flagLog : []).concat([{ at: Date.now(), r: String(reason).slice(0, 120) }]).slice(-30);
+    u.flagLog = (Array.isArray(u.flagLog) ? u.flagLog : []).concat([{ at: Date.now(), r: String(reason).slice(0, 120), p }]).slice(-30);
     const recent = recentFlags(u);
     let action = recent >= SUSPECT_POOL_FLAGS ? 'pool' : 'none';
-    if (recent >= AUTO_BAN_FLAGS && !tempBanned(u)) {
-      u.banUntil = Date.now() + AUTO_BAN_DAYS * 86400000; action = 'ban';
+    if (p > 0 && recent >= AUTO_BAN_FLAGS && !tempBanned(u)) {
+      u.bans = (u.bans || 0) + 1;
+      u.banUntil = u.bans >= 3 ? PERMA_BAN : Date.now() + (u.bans === 2 ? BAN2_DAYS : AUTO_BAN_DAYS) * 86400000;
+      u.banReason = String(reason).slice(0, 120);
+      action = u.bans >= 3 ? 'perma' : 'ban';
       for (const [k, t] of Object.entries(db.tokens)) if (t.uid === uid) delete db.tokens[k];   // ログイン状態も消す
+      if (ip) auth.banIp(ip, Math.min(u.banUntil, Date.now() + IP_BAN_DAYS * 86400000));
     }
+    else if (tempBanned(u)) action = 'banned';   // すでにBAN中
     touch();
-    return { recent, action, until: u.banUntil || 0, total: u.flags };
+    return { recent, action, until: u.banUntil || 0, total: u.flags, bans: u.bans || 0 };
   },
+  // BANした人のIPを一時的に止める（ゲストでの抜け道をふさぐ。同じIPの他人を巻き込まないよう短め）
+  banIp(ip, until) {
+    if (!ip) return;
+    const m = db.meta.ipBans = db.meta.ipBans && typeof db.meta.ipBans === 'object' ? db.meta.ipBans : {};
+    for (const k of Object.keys(m)) if (m[k] <= Date.now()) delete m[k];
+    m[ip] = Math.max(m[ip] || 0, until); touch();
+  },
+  ipBanned(ip) { const m = db.meta.ipBans; return !!ip && !!m && m[ip] > Date.now(); },
+  banInfo(uid) { const u = db.users[uid]; return u && tempBanned(u) ? { until: u.banUntil, perma: u.banUntil >= PERMA_BAN, reason: u.banReason || '' } : null; },
   // ランクマッチで、怪しい人どうしでしか組ませないか
   inSuspectPool(uid) { const u = db.users[uid]; return !!u && recentFlags(u) >= SUSPECT_POOL_FLAGS; },
   isBanned(uid) { const u = db.users[uid]; return BANNED_IDS.has(String(uid)) || (!!u && tempBanned(u)); },

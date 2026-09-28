@@ -207,27 +207,61 @@ function postAdmin(embed) {
     body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }) })
     .then(r => { if (!r.ok) log('admin webhook failed', r.status); }).catch(e => log('admin webhook error', e.message));
 }
-function onSuspect(p, reason, room) {
-  const r = p.uid ? auth.flag(p.uid, reason) : null;
+function onSuspect(p, reason, room, pts) {
+  const r = p.uid ? auth.flag(p.uid, reason, pts, p.ip) : null;
   const act = !r ? 'ゲストのため記録のみ（IPで止めるなら BANNED_IPS）'
-    : r.action === 'ban' ? `自動で一時BAN（${new Date(r.until).toISOString().slice(0, 10)} まで）`
+    : pts === 0 ? '記録のみ（点数なし）'
+    : r.action === 'perma' ? '自動で永久BAN（3回目）'
+    : r.action === 'banned' ? 'すでにBAN中'
+    : r.action === 'ban' ? `自動で一時BAN（${r.bans}回目・${new Date(r.until).toISOString().slice(0, 10)} まで）`
     : r.action === 'pool' ? 'ランクマッチは怪しい人どうしでしか組まない' : '記録のみ';
   log('SUSPECT', 'discord=' + (p.uid || '-'), 'name=' + p.name + (p.discord ? ' (' + p.discord + ')' : ''), 'ip=' + p.ip, reason, '→', act);
   postAdmin({
-    title: r && r.action === 'ban' ? '自動で一時BANしました' : '怪しいプレイを検知しました',
-    color: r && r.action === 'ban' ? 0xFF4D5E : 0xFBBF24,
+    title: r && r.action === 'perma' ? '自動で永久BANしました' : r && r.action === 'ban' ? '自動で一時BANしました' : '怪しいプレイを検知しました',
+    color: r && (r.action === 'ban' || r.action === 'perma') ? 0xFF4D5E : 0xFBBF24,
     description: mdEscape(reason),
     fields: [
       { name: 'プレイヤー', value: mdEscape(p.name) + (p.uid ? `\n<@${p.uid}>（${mdEscape(p.discord || '')}）\nID: ${p.uid}` : '\nゲスト'), inline: true },
       { name: '最近30日の検知', value: r ? `${r.recent}回（通算${r.total}回）` : '-', inline: true },
       { name: '対応', value: act, inline: false },
-      { name: '部屋', value: (room && room.id ? room.id : '-') + (room && room.ranked ? '（ランク）' : ''), inline: true },
+      { name: '部屋', value: room && room.cpu ? 'CPU戦（' + mdEscape(room.cpu) + '）' : (room && room.id ? room.id : '-') + (room && room.ranked ? '（ランク）' : ''), inline: true },
       { name: 'IP', value: '||' + (p.ip || '-') + '||', inline: true },
     ],
     footer: { text: '永久BANは BANNED_DISCORD_IDS に ID を追加' },
     timestamp: new Date().toISOString(),
   });
-  if (r && r.action === 'ban' && p.ws) { try { p.ws.close(); } catch (e) {} }
+  if (r && (r.action === 'ban' || r.action === 'perma') && p.ws) { try { p.ws.close(); } catch (e) {} }
+  return r;
+}
+
+// CPU戦（ブラウザの中で動く対戦）で見つかったズルの報告。報告できるのは自分のアカウントのことだけ
+// 点数：改ざん・作られた入力・時間の操作は確かな証拠なので1回でBAN。動きのクセ（反応の速さなど）はオンラインと同じ1点。0は記録だけ
+const CHEAT_KINDS = {
+  tamper: [3, 'ゲームの値を書き換えた（CPU戦）'],
+  synthetic: [3, 'スクリプトが作った入力で操作した（CPU戦）'],
+  speed: [3, 'ゲームの時間の進み方を操作した（CPU戦）'],
+  native: [0, 'ゲームが使うブラウザの機能が書き換わっている（CPU戦・拡張機能でも起きるので記録だけ）'],
+  instant: [1, '狙いが合った瞬間に撃ち続けている（CPU戦・自動射撃の疑い）'],
+  react: [1, '反応が人間離れして速い（CPU戦・自動射撃の疑い）'],
+  rhythm: [1, '撃つ間隔が機械的に一定（CPU戦・マクロの疑い）'],
+  dodge: [1, '撃たれた瞬間に避け続けている（CPU戦・自動回避の疑い）'],
+  macro: [1, '入力の切り替えが人間離れした速さ（CPU戦・マクロの疑い）'],
+};
+const cheatReports = limiter(6, 60 * 1000);
+const cheatSeen = new Map();   // 同じ人・同じ種類の報告は10分に1回だけ数える（通信のやり直しで二重に数えない）
+function cheatReport(u, m, ip) {
+  const kind = m && typeof m.kind === 'string' && Object.prototype.hasOwnProperty.call(CHEAT_KINDS, m.kind) ? m.kind : '';
+  if (!kind) return { error: 'bad' };
+  const key = u.id + ':' + kind, now = Date.now();
+  for (const [k, t] of cheatSeen) if (now - t > 10 * 60 * 1000) cheatSeen.delete(k);
+  if (cheatSeen.has(key)) return { ok: true, banned: auth.isBanned(u.id) };
+  cheatSeen.set(key, now);
+  const [pts, label] = CHEAT_KINDS[kind];
+  const detail = typeof m.detail === 'string' ? m.detail.replace(/[^\w .:\/#±%+-]/g, '').slice(0, 60) : '';
+  const diff = typeof m.diff === 'string' ? m.diff.replace(/\W/g, '').slice(0, 12) : '';
+  const r = onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, label + (detail ? '：' + detail : ''), { cpu: diff || '?' }, pts);
+  const b = auth.banInfo(u.id);
+  return { ok: true, banned: !!b, until: b ? b.until : 0, perma: !!(b && b.perma), action: r ? r.action : 'none' };
 }
 
 function openRoom() {
@@ -856,7 +890,7 @@ const server = http.createServer((req, res) => {
   const ip = clientIp(req);
   cors(req, res);
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
-  if (BANNED_IPS.has(ip)) return json(res, 403, { error: '利用停止されています' });
+  if (BANNED_IPS.has(ip) || auth.ipBanned(ip)) return json(res, 403, { error: '利用停止されています', banned: true });
   // yourIp はサーバーから見えている自分のIP（Railwayで正しく判定できているかの確認用）
   if (url === '/health') return json(res, 200, { ok: true, rooms: rooms.size, connections: sockets.size, online: presence.count(), uptime: Math.round(process.uptime()), accounts: auth.stats().users, yourIp: ip });
   // Discord のスラッシュコマンド（/info）。署名を確かめてから答える
@@ -936,6 +970,13 @@ const server = http.createServer((req, res) => {
       json(res, r.error ? 400 : 200, r);
     });
   }
+  // CPU戦のズルの報告（POST { kind, detail, diff }）
+  if (url === '/api/report' && req.method === 'POST') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!cheatReports.hit(u.id)) return json(res, 429, { error: 'busy' });
+    return readJson(req, m => { const r = cheatReport(u, m, ip); json(res, r.error ? 400 : 200, r); });
+  }
   // フレンドの一覧（GET）と、申請・承認・拒否・解除（POST { op, fid }）
   if (url === '/api/friends') {
     const u = auth.verify(bearer(req));
@@ -995,7 +1036,7 @@ const server = http.createServer((req, res) => {
 });
 
 attach(server, ws => {
-  if (BANNED_IPS.has(ws.ip)) { ws.destroy(); return; }
+  if (BANNED_IPS.has(ws.ip) || auth.ipBanned(ws.ip)) { ws.destroy(); return; }
   if (sockets.size >= MAX_CONNS) { ws.close(); return; }
   let same = 0;
   for (const s of sockets) if (s.ip === ws.ip) same++;
