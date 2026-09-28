@@ -270,6 +270,24 @@ var SEASON_MISSIONS = [
 ];
 var SEASON_FIRST = 3, SEASON_MIS_PXP = 400, DAILY_PXP = 100;   // 最初に出ている数・シーズンミッション1つのパスXP・デイリー1つのパスXP
 var PASS_TIERS = 30;
+// ---- ログインボーナス（7日で1周）と連続記録 ----
+var LOGIN_REWARDS = [{ xp: 100 }, { lucky: 1 }, { coins: 150 }, { lucky: 1 }, { xp: 200 }, { lucky: 2 }, { chaos: 1 }];
+var STREAK_MS = { 3: { chaos: 1 }, 7: { coins: 500 }, 14: { chaos: 2 }, 30: { chaos: 3, coins: 1000 }, 50: { chaos: 3, coins: 1500 }, 100: { chaos: 5, coins: 3000 } };
+var SHIELD_MAX = 2;
+function dayNum(day) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || ''); return m ? Math.round(Date.UTC(+m[1], +m[2] - 1, +m[3]) / 864e5) : 0; }
+// その日の受け取り：L＝{day, streak, best, count, shields, hist:[日付]}。返り値 {L, reward, ms, used}（used＝使った盾の数）
+function loginStep(L, today) {
+  L = L || {}; var o = { day: L.day || '', streak: L.streak | 0, best: L.best | 0, count: L.count | 0, shields: L.shields | 0, hist: (L.hist || []).slice(-60) };
+  if (o.day === today) return null;
+  var gap = o.day ? dayNum(today) - dayNum(o.day) : 99, used = 0;
+  if (gap === 1) o.streak++;
+  else if (gap > 1 && gap - 1 <= o.shields && o.streak > 0) { used = gap - 1; o.shields -= used; o.streak++; }
+  else o.streak = 1;
+  var reward = LOGIN_REWARDS[o.count % 7];
+  o.count++; o.day = today; o.best = Math.max(o.best, o.streak); o.hist.push(today);
+  if (o.streak % 7 === 0 && o.shields < SHIELD_MAX) o.shields++;
+  return { L: o, reward: reward, ms: STREAK_MS[o.streak] || null, used: used };
+}
 // ---- ショップ（毎日入れかわる）：無料ギフト・今日のおすすめ6つ（1つはセール）・バッジ ----
 var SHOP_PRICE = [150, 300, 700, 1600, 3500];     // レアリティごとのコイン
 var SHOP_BADGE = { lucky: 250, chaos: 900 };
@@ -1867,6 +1885,7 @@ var api = {
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
+  LOGIN_REWARDS: deepFreeze(LOGIN_REWARDS), STREAK_MS: deepFreeze(STREAK_MS), SHIELD_MAX: SHIELD_MAX, dayNum: dayNum, loginStep: loginStep,
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift,
   SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
