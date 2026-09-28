@@ -41,10 +41,13 @@ var GRAVITY = 0.55, JUMP_F = -13, SPEED = 3.4;
 var REGEN_IDLE = 120, REGEN_INT = 120, REGEN_AMT = 20;   // 2秒のあいだ撃たず撃たれずなら、2秒ごとに20回復
 var SWAP_FRAMES = 10;      // 持ち替えてから撃てるまで
 var BUFFER_FRAMES = 6;     // 押した入力を少しだけ覚えておく（押し損ね・通信のゆらぎの吸収）
-var LAND_LAG = 14;         // 着地してから次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
+var LAND_LAG = 14;         // 空中で撃った（攻撃した）跳びの着地から、次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
+// 回避ロール：地上ですばやく転がる。最初の ROLL_IF フレームは弾・攻撃が当たらない。終わってから ROLL_CD フレームは次を出せない
+var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
+var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 7;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発
+var PROTO = 9;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -151,9 +154,102 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 6, outfit: 5, neck: 4, accent: 8, win: 7 };   // win＝勝ちポーズ
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 24, outfit: 21, neck: 20, accent: 8, win: 7 };   // win＝勝ちポーズ
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent', 'win'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
+// ---- 宝箱から出るアイテム（帽子・服・首もと＝50種、エモート＝16種）とレアリティ ----
+// レアリティ：0=コモン 1=レア 2=エピック 3=レジェンダリー 4=ミシック。出やすさは RARITY_W（合計100）
+var RARITY_KEYS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
+var RARITY_W = [56, 28, 11.5, 4, 0.5];
+var PITY_AT = 25;               // これだけ開けてもレジェンダリー以上が出なければ、次は必ずレジェンダリー以上
+// 見た目：それぞれ LOOK_BASE より前はみんなが最初から持っている（開発者だけの物を含む）。そこから後ろが宝箱の物
+var LOOK_BASE = { hat: 6, outfit: 5, neck: 4 };
+// [番号, レアリティ]。名前と絵はブラウザ側（lang.js の item.<id>、index.html の描き方）
+var ITEM_RAR = {
+  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4]],
+  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4]],
+  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4]]
+};
+// エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
+var EMOTE_N = 20, EMOTE_FREE = 4;
+var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4];
+var ITEMS = [];   // { id:'h6', key:'hat', idx:6, r:1 } / { id:'e6', key:'emote', idx:6, r:1 }
+(function () {
+  var pre = { hat: 'h', outfit: 'o', neck: 'n' };
+  Object.keys(ITEM_RAR).forEach(function (k) { ITEM_RAR[k].forEach(function (a) { ITEMS.push({ id: pre[k] + a[0], key: k, idx: a[0], r: a[1] }); }); });
+  for (var e = EMOTE_FREE; e < EMOTE_N; e++) ITEMS.push({ id: 'e' + e, key: 'emote', idx: e, r: EMOTE_RAR[e] });
+})();
+var ITEM_BY_ID = {};
+ITEMS.forEach(function (it) { ITEM_BY_ID[it.id] = it; });
+function itemOf(key, idx) { var pre = { hat: 'h', outfit: 'o', neck: 'n', emote: 'e' }[key]; return pre ? ITEM_BY_ID[pre + idx] || null : null; }
+// 持ち物（アイテムの id の配列）を整える：知らない id・重なりを落とす
+function cleanInv(v) {
+  var o = [];
+  if (Array.isArray(v)) v.forEach(function (x) { x = String(x); if (ITEM_BY_ID[x] && o.indexOf(x) < 0) o.push(x); });
+  return o;
+}
+// 見た目のうち、持っていない宝箱の物を「なし・最初の物」に戻す（inv が null のときは、宝箱の物を全部外す）
+function lookOwned(look, inv) {
+  var o = {}; Object.keys(look || {}).forEach(function (k) { o[k] = look[k]; });
+  ['hat', 'outfit', 'neck'].forEach(function (k) {
+    var it = itemOf(k, o[k]);
+    if (it && !(inv && inv.indexOf(it.id) >= 0)) o[k] = 0;
+  });
+  return o;
+}
+// 装備するエモート（4つ）：最初からある物か、持っている物だけ
+function cleanEmotes(v, inv) {
+  var o = [], def = [0, 1, 2, 3];
+  for (var i = 0; i < 4; i++) {
+    var n = Array.isArray(v) ? Math.floor(+v[i]) : NaN;
+    var ok = n >= 0 && n < EMOTE_N && (n < EMOTE_FREE || (inv && inv.indexOf('e' + n) >= 0)) && o.indexOf(n) < 0;
+    o.push(ok ? n : -1);
+  }
+  for (var j = 0; j < 4; j++) if (o[j] < 0) { for (var d = 0; d < def.length; d++) if (o.indexOf(def[d]) < 0) { o[j] = def[d]; break; } }
+  return o;
+}
+// 宝箱を1つ開ける：rnd=0〜1の乱数（サーバーは暗号の乱数）、inv=今の持ち物、pity=前のレジェンダリー以上から開けた数
+// 返り値 { item, dup, r }：dup=持っていた物（そのレアリティを全部持っていたとき）→ 経験値に替える
+function rollCrate(rnd, inv, pity) {
+  var r, x = rnd() * 100, acc = 0;
+  for (r = RARITY_W.length - 1; r >= 0; r--) { acc += RARITY_W[r]; if (x < acc) break; }
+  if (r < 0) r = 0;
+  if ((pity || 0) + 1 >= PITY_AT && r < 3) r = 3;   // 天井：まとめてハズレが続かないように
+  var pool = ITEMS.filter(function (it) { return it.r === r; }), fresh = pool.filter(function (it) { return !(inv && inv.indexOf(it.id) >= 0); });
+  var list = fresh.length ? fresh : pool, it = list[Math.floor(rnd() * list.length)];
+  return { item: it.id, r: r, dup: !fresh.length };
+}
+var DUP_XP = [30, 60, 120, 250, 500];   // かぶったときにもらえる経験値
+// ---- レベル（経験値で上がる）：次のレベルまでに要る経験値は、レベルが上がるほど少しずつ増える ----
+var LEVEL_MAX = 100;
+function xpToNext(lv) { return 100 + (lv - 1) * 20; }
+function levelOf(xp) {
+  var lv = 1, need = xpToNext(1), x = Math.max(0, Math.floor(+xp) || 0);
+  while (lv < LEVEL_MAX && x >= need) { x -= need; lv++; need = xpToNext(lv); }
+  return { lv: lv, cur: x, need: need };
+}
+// もらえる宝箱の数（合計）：最初の1つ＋レベルが上がるたびに1つ（5の倍数のレベルは2つ）＋ミッションで手に入れた数
+function cratesEarned(xp, misCrates) {
+  var lv = levelOf(xp).lv, n = 1;
+  for (var l = 2; l <= lv; l++) n += l % 5 === 0 ? 2 : 1;
+  return n + Math.max(0, Math.floor(+misCrates) || 0);
+}
+// ---- デイリーミッション：日付から、その日の3つを決める（みんな同じ日は同じミッション） ----
+// k=数えるもの n=目標の数 w=武器（キルのとき）
+var MISSIONS = [
+  { k: 'win', n: 2 }, { k: 'win', n: 3 }, { k: 'rounds', n: 5 }, { k: 'rounds', n: 8 }, { k: 'play', n: 3 },
+  { k: 'kill', n: 5 }, { k: 'kill', n: 10 }, { k: 'killw', n: 3, w: 2 }, { k: 'killw', n: 3, w: 4 }, { k: 'killw', n: 3, w: 3 },
+  { k: 'killw', n: 2, w: 1 }, { k: 'killw', n: 3, w: 6 }, { k: 'killw', n: 2, w: 5 }, { k: 'killw', n: 2, w: 10 },
+  { k: 'nodmg', n: 1 }, { k: 'roll', n: 15 }, { k: 'rolldodge', n: 3 }, { k: 'emote', n: 3 }, { k: 'online', n: 2 }, { k: 'hard', n: 1 }
+];
+var MISSION_XP = 120;
+function dayKey(t) { var d = new Date(t == null ? Date.now() : t); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
+function dailyMissions(day) {
+  var h = 2166136261; for (var i = 0; i < day.length; i++) { h ^= day.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  var pick = [], used = {};
+  while (pick.length < 3) { h = Math.imul(h ^ (h >>> 13), 2246822507) >>> 0; var j = h % MISSIONS.length, key = MISSIONS[j].k + (MISSIONS[j].w || ''); if (!used[key]) { used[key] = 1; pick.push(j); } }
+  return pick;
+}
 // ---- シーズンバッジ：シーズンごとに、その間にログインした全員へ1つ配る記念のアイコン ----
 // badges = 持っているバッジの番号の配列（1以上＝シーズン番号、0＝開発者だけのバッジ）
 // sel = 見せるバッジ（-1=出さない、null=自動：開発者は0、ほかは一番新しいシーズン）。返り値の null は「出さない」
@@ -192,6 +288,8 @@ function randomLook(rnd) {
   o.hat = r() < 0.45 ? 0 : 1 + Math.floor(r() * (LOOK_DEV.hat - 1));   // 開発者だけの物は出さない
   o.outfit = Math.floor(r() * LOOK_DEV.outfit);
   o.neck = r() < 0.55 ? 0 : 1 + Math.floor(r() * (LOOK_DEV.neck - 1));
+  // ときどき、宝箱のアイテムも身につける（CPUの見た目にも楽しみを。持ち物の確認はない：CPUは画面の中だけ）
+  ['hat', 'outfit', 'neck'].forEach(function (k) { if (r() < 0.22) { var L = ITEMS.filter(function (it) { return it.key === k && it.r <= 3; }); o[k] = L[Math.floor(r() * L.length)].idx; } });
   o.accent = Math.floor(r() * LOOK_SIZES.accent);
   o.win = Math.floor(r() * LOOK_DEV.win);   // 開発者の勝ちポーズは出さない
   return o;
@@ -208,9 +306,10 @@ function newChar(side, x, y, dir, loadout) {
     load: load, slot: 0, ammo: load.map(function (id) { return WEAPONS[id].mag; }),
     cool: 0, coolMax: 1, rl: 0, rlMax: 1, rlSlot: 0, burst: 0, burstT: 0, chg: 0,
     swT: 0, recT: 0, kbT: 0, bx: 0, by: 0, bdir: 0,
-    healUsed: false, idle: 0, regen: 0, groundSince: -1, lastShot: -999,
+    healUsed: false, idle: 0, regen: 0, groundSince: -1, airShot: false, lastShot: -999,
     inL: false, inR: false, inDuck: false, inFire: false, wantSlot: 0,
-    jumpBuf: 0, shootBuf: 0, healReq: false, reloadReq: false
+    jumpBuf: 0, shootBuf: 0, healReq: false, reloadReq: false,
+    rollT: 0, rollCD: 0, rollDir: 1, rollBuf: 0
   };
 }
 function weaponOf(c) { return WEAPONS[c.load[c.slot]]; }
@@ -223,10 +322,13 @@ function setInput(c, i) {
   if (i.shoot) c.shootBuf = BUFFER_FRAMES;
   if (i.heal) c.healReq = true;
   if (i.reload) c.reloadReq = true;
+  if (i.roll) c.rollBuf = BUFFER_FRAMES;
 }
+// ロール中の無敵（転がり始めから ROLL_IF フレーム）
+function rollSafe(c) { return !!c && c.rollT > ROLL_T - ROLL_IF; }
 function canFire(c) {
   var W = weaponOf(c);
-  return !c.dead && c.cool <= 0 && c.rl <= 0 && c.burst <= 0 && c.chg <= 0 && c.swT <= 0 && c.recT <= 0 && c.kbT <= 0 &&
+  return !c.dead && c.cool <= 0 && c.rl <= 0 && c.burst <= 0 && c.chg <= 0 && c.swT <= 0 && c.recT <= 0 && c.kbT <= 0 && !(c.rollT > 0) &&
     (W.mag === 0 || c.ammo[c.slot] > 0);
 }
 function muzzleY(c) { return c.y + (c.ducking ? CHAR_H - 18 : 22); }
@@ -372,19 +474,30 @@ function stepChar(w, c, t, ev, vis) {
     c.reloadReq = false;
     if (W.mag > 0 && c.ammo[c.slot] < W.mag && c.rl <= 0 && c.burst <= 0 && c.chg <= 0) startReload(c, ev);
   }
+  // 回避ロール：地上で、ほかの動作をしていないとき。着地の待ちの間は出せない（ジャンプと同じ）
+  if (c.rollT > 0) { c.rollT--; busy = true; }
+  else if (c.rollCD > 0) c.rollCD--;
+  if (c.rollBuf > 0) {
+    var rWait = c.onGround && c.groundSince >= 0 && w.frame - c.groundSince < landLag(c);
+    if (c.onGround && !busy && c.kbT <= 0 && c.chg <= 0 && c.burst <= 0 && !(c.rollCD > 0) && !rWait) {
+      c.rollT = ROLL_T; c.rollCD = ROLL_CD; c.rollBuf = 0; c.rollDir = c.inL ? -1 : c.inR ? 1 : c.dir; busy = true;
+      ev.push({ t: 'roll', who: c.side, dir: c.rollDir });
+    } else c.rollBuf--;
+  }
   if (c.jumpBuf > 0) {
-    var landWait = c.onGround && c.groundSince >= 0 && w.frame - c.groundSince < LAND_LAG;
+    var landWait = c.onGround && c.groundSince >= 0 && w.frame - c.groundSince < landLag(c);
     if (c.onGround && !busy && c.kbT <= 0 && !landWait) { c.vy = JUMP_F; c.jumpBuf = 0; ev.push({ t: 'jump', who: c.side }); }
     else if (!landWait) c.jumpBuf--;   // 着地の待ちの間は、押したジャンプを覚えておき、待ちが明けたら跳ぶ
   }
   // 向きと移動（撃つより先に向きを決めるので、振り向きながら撃てる）
   var sp = SPEED * (W.move || 1) * (c.chg > 0 ? 0.4 : 1);
   if (c.kbT > 0) { c.kbT--; c.vx *= 0.9; }         // 吹き飛ばされている間は操作がきかない
+  else if (c.rollT > 0) c.vx = c.rollDir * SPEED * ROLL_SPD * (c.rollT < 5 ? 0.5 : 1);   // 転がる（最後は少しゆるめる）
   else if (busy) c.vx *= 0.5;                       // 振りかぶり・硬直の間は止まる
   else if (c.inL) { c.vx = -sp; if (c.chg <= 0) c.dir = -1; }
   else if (c.inR) { c.vx = sp; if (c.chg <= 0) c.dir = 1; }
   else c.vx *= 0.5;
-  c.ducking = c.inDuck;
+  c.ducking = c.inDuck || c.rollT > 0;
   // 射撃
   if (c.burst > 0 && --c.burstT <= 0) { c.burst--; c.burstT = W.gap; fireRound(w, c, W, ev, t, vis); shot = true; }
   if (c.chg > 0 && --c.chg === 0) { fireBeam(w, c, t, W, ev, vis); shot = true; }
@@ -399,7 +512,9 @@ function stepChar(w, c, t, ev, vis) {
     else c.shootBuf--;
   }
   physics(w, c, ev);
-  if (c.onGround) { if (c.groundSince < 0) c.groundSince = w.frame; } else c.groundSince = -1;
+  if (c.onGround) { if (c.groundSince < 0) c.groundSince = w.frame; }
+  else { if (c.groundSince >= 0) c.airShot = false; c.groundSince = -1; }   // 地面を離れたら、この跳びで撃ったかを数え直す
+  if (shot && !c.onGround) c.airShot = true;                               // 空中で撃った・振った → 着地の待ちが長くなる
   // 自然回復
   if (shot || c.hit > 0) { c.idle = 0; c.regen = 0; }
   else if (++c.idle >= REGEN_IDLE && c.hpFrac < MAX_HP && ++c.regen >= REGEN_INT) {
@@ -443,7 +558,7 @@ function meleeHit(w, c, t, W, ev, vis) {
   for (var j = 0; j < got.length; j++) {
     var u = got[j];
     damage(w, u, W.dmg, c.side, ev, vis, u.x + CHAR_W / 2 - c.dir * 6, c.y + 22, c.dir, sid);
-    if (W.kb && !vis && !u.dead && !u.target) {      // 吹き飛ばす（しばらく操作できない）。射撃場の的は動かない
+    if (W.kb && !vis && !u.dead && !u.target && !rollSafe(u)) {      // 吹き飛ばす（しばらく操作できない）。射撃場の的は動かない
       u.vx = c.dir * W.kb; u.vy = Math.min(u.vy, -W.kbUp); u.kbT = W.kbT; u.onGround = false;
       u.swT = 0; u.recT = 0; u.chg = 0; u.burst = 0;
     }
@@ -486,6 +601,7 @@ function fireBeam(w, c, t, W, ev, vis) {
   --c.ammo[c.slot];   // 自動ではリロードしない
 }
 function damage(w, t, dmg, by, ev, vis, x, y, kdir, sid) {
+  if (rollSafe(t)) { if (!vis) ev.push({ t: 'rolldodge', who: t.side, by: by }); return; }   // ロールの無敵中は当たらない
   if (vis) { ev.push({ t: 'vhit', who: t.side, x: x, y: y }); return; }
   t.hp = Math.max(0, t.hp - dmg); t.hpFrac = t.hp; t.hit = HIT_FRAMES; t.idle = 0; t.regen = 0;
   ev.push({ t: 'hit', who: t.side, by: by, dmg: dmg, x: x, y: y, sid: sid });
@@ -522,7 +638,11 @@ function stepShots(w, ev, vis, only) {
     if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
     if (w.targets || w.teams) {                        // 射撃場・チーム戦：いちばん先に触れた相手に当たる（味方はすり抜ける）
       var fl = foes(w, b.own);
-      for (var k = 0; k < fl.length && !t; k++) if (!fl[k].dead && hits(b, fl[k])) t = fl[k];
+      for (var k = 0; k < fl.length && !t; k++) if (!fl[k].dead && hits(b, fl[k]) && !(rollSafe(fl[k]) && b.rd)) t = fl[k];
+    }
+    if (t && !t.dead && hits(b, t) && rollSafe(t)) {   // ロールですり抜けた（弾は消えずに進む）
+      if (!b.rd && !vis) { b.rd = 1; ev.push({ t: 'rolldodge', who: t.side, by: b.own }); }
+      out.push(b); continue;
     }
     if (t && !t.dead && hits(b, t)) {
       // オンラインの先読み（w.ghost）：当たったかどうかはサーバーが決めるので、ここでは通り抜けさせる
@@ -613,7 +733,7 @@ function packChar(c) {
   return { x: r1(c.x), y: r1(c.y), vx: r1(c.vx), vy: r1(c.vy), dir: c.dir, hp: c.hp, hit: c.hit, dead: c.dead,
     ducking: c.ducking, onGround: c.onGround, slot: c.slot, wid: c.load[c.slot], am: c.ammo.slice(),
     cool: c.cool, coolMax: c.coolMax, rl: c.rl, rlMax: c.rlMax, chg: c.chg, heal: c.healUsed,
-    sw: c.swT, rc: c.recT, kb: c.kbT, bx: r1(c.bx), by: r1(c.by), bd: c.bdir };
+    sw: c.swT, rc: c.recT, kb: c.kbT, bx: r1(c.bx), by: r1(c.by), bd: c.bdir, ro: c.rollT, rcd: c.rollCD, rd: c.rollDir };
 }
 function packShots(w) {
   return w.shots.map(function (b) { return { k: b.k, w: b.w, x: r1(b.x), y: r1(b.y), vx: r1(b.vx), vy: r1(b.vy), own: b.own }; });
@@ -629,11 +749,11 @@ function packShots(w) {
 // hpT=回復を使うHP / hCh=1秒あたりの実行率 / strafe=撃ち合い中に左右へ動く頻度 / cover=リロード中に隠れる率 / smart=距離に合う武器を選ぶ率
 // melee=近くの相手にナイフで斬りかかる率（空振りは whiff）
 var AI_LEVELS = {
-  easy:   { react: 20, see: 140, mvI: 20, dodge: 0.15, jumpF: 60,  wMin: 80, wMax: 160, hTol: 40, whiff: 0.42, hpT: 20, hCh: 0.50, strafe: 0.30, cover: 0.20, smart: 0.50, melee: 0.05 },
-  normal: { react: 16, see: 175, mvI: 16, dodge: 0.35, jumpF: 80,  wMin: 46, wMax: 96,   hTol: 32, whiff: 0.33, hpT: 40, hCh: 0.55, strafe: 0.50, cover: 0.40, smart: 0.70, melee: 0.12 },
-  hard:   { react: 12, see: 215, mvI: 12, dodge: 0.50, jumpF: 100, wMin: 32, wMax: 66,  hTol: 26, whiff: 0.22, hpT: 40, hCh: 0.70, strafe: 0.65, cover: 0.60, smart: 0.85, melee: 0.25 },
-  pro:    { react: 9,  see: 255, mvI: 10, dodge: 0.58, jumpF: 130, wMin: 22, wMax: 50,  hTol: 20, whiff: 0.10, hpT: 40, hCh: 0.85, strafe: 0.75, cover: 0.75, smart: 0.95, melee: 0.30 },
-  god:    { react: 7,  see: 300, mvI: 7,  dodge: 0.76, jumpF: 170, wMin: 10,  wMax: 24,  hTol: 14, whiff: 0.04, hpT: 40, hCh: 0.95, strafe: 0.85, cover: 0.90, smart: 1.00, melee: 0.45 },
+  easy:   { react: 20, see: 140, mvI: 20, dodge: 0.15, jumpF: 60,  wMin: 80, wMax: 160, hTol: 40, whiff: 0.42, hpT: 20, hCh: 0.50, strafe: 0.30, cover: 0.20, smart: 0.50, melee: 0.05, roll: 0 },
+  normal: { react: 16, see: 175, mvI: 16, dodge: 0.35, jumpF: 80,  wMin: 46, wMax: 96,   hTol: 32, whiff: 0.33, hpT: 40, hCh: 0.55, strafe: 0.50, cover: 0.40, smart: 0.70, melee: 0.12, roll: 0.12 },
+  hard:   { react: 12, see: 215, mvI: 12, dodge: 0.50, jumpF: 100, wMin: 32, wMax: 66,  hTol: 26, whiff: 0.22, hpT: 40, hCh: 0.70, strafe: 0.65, cover: 0.60, smart: 0.85, melee: 0.25, roll: 0.25 },
+  pro:    { react: 9,  see: 255, mvI: 10, dodge: 0.58, jumpF: 130, wMin: 22, wMax: 50,  hTol: 20, whiff: 0.10, hpT: 40, hCh: 0.85, strafe: 0.75, cover: 0.75, smart: 0.95, melee: 0.30, roll: 0.35 },
+  god:    { react: 7,  see: 300, mvI: 7,  dodge: 0.76, jumpF: 170, wMin: 10,  wMax: 24,  hTol: 14, whiff: 0.04, hpT: 40, hCh: 0.95, strafe: 0.85, cover: 0.90, smart: 1.00, melee: 0.45, roll: 0.45 },
   // 隠しボス「鬼帝」：反応・精度・回避・判断をすべて最高に。体力・無敵・壁抜けなどのルールは人と同じ。
   // boss：弾が届く瞬間を計算してよけ、相手の移動先を読んで撃つ。lapse：ごくまれに判断が遅れる（1フレームあたりの確率と長さ）
   emperor: { react: 3, see: 520, mvI: 5, dodge: 1.00, jumpF: 240, wMin: 2, wMax: 5, hTol: 8, whiff: 0, hpT: 45, hCh: 1.00, strafe: 0.90, cover: 1.00, smart: 1.00, melee: 0.50, boss: true, lapse: 1 / 5400, lapseLen: 36 }
@@ -988,7 +1108,7 @@ function beamHitsAfter(w, me, op, press) {
   for (var k = 1; k <= op.chg; k++) {
     var fr = w.frame + k;
     if (buf > 0) {
-      var wait = ground && since >= 0 && fr - since < LAND_LAG;
+      var wait = ground && since >= 0 && fr - since < landLag(me);
       if (ground && !wait) { vy = JUMP_F; ground = false; buf = 0; }
       else if (!wait) buf--;
     }
@@ -1007,7 +1127,7 @@ function railThreat(me, op) {
 // 何もしなければ当たるなら、跳ぶ・しゃがむのうち一番当たらない方を選ぶ。跳ぶのは「今跳ばないと間に合わない」瞬間まで待つ
 function bossDodge(b, w, me, op, side, inp) {
   if (b.dodgeCd > 0) return;
-  var lag = me.onGround && me.groundSince >= 0 ? Math.max(0, LAND_LAG - (w.frame + 1 - me.groundSince)) : 0;
+  var lag = me.onGround && me.groundSince >= 0 ? Math.max(0, landLag(me) - (w.frame + 1 - me.groundSince)) : 0;
   var seenAny = false;
   for (var i = 0; i < w.shots.length; i++) { var sh = w.shots[i]; if (!mine(w, side, sh.own) && sh.k !== 'g' && sh.age >= b.cfg.react) { seenAny = true; break; } }
   if (seenAny) {
@@ -1132,7 +1252,9 @@ function tacBand(b, W, op) {
   return [lo, hi];
 }
 // 次のフレームで跳べるか（着地の待ち LAND_LAG が明けているか）。think は step の前なので、次のフレームで数える
-function landReady(w, c) { return !(c.onGround && c.groundSince >= 0 && w.frame + 1 - c.groundSince < LAND_LAG); }
+function landReady(w, c) { return !(c.onGround && c.groundSince >= 0 && w.frame + 1 - c.groundSince < landLag(c)); }
+// 着地してから次に跳べるまでのフレーム数：空中で撃った跳びなら長く、撃たずに跳んだなら短く
+function landLag(c) { return c.airShot ? LAND_LAG : LAND_LAG_SOFT; }
 // 相手が今から t フレーム後にいる高さ（空中なら、落ちてくる先まで読む）
 function predictTopY(w, c, t) {
   if (c.onGround || t <= 0) return c.y;
@@ -1266,6 +1388,16 @@ function think(b, w, side) {
 
   // 回避：向かってくる弾・溜め中のレールガン・近くに落ちるグレネード
   if (b.seenN > 60) { b.seen = {}; b.seenN = 0; }
+  // ロールでよけると決めた弾：届く直前に転がる（転がれなければ跳ぶ）
+  if (b.rollSid) {
+    var rs = null;
+    for (var ri = 0; ri < w.shots.length; ri++) if (w.shots[ri].sid === b.rollSid) { rs = w.shots[ri]; break; }
+    if (!rs || sign(rs.vx) !== sign(mx - rs.x)) b.rollSid = 0;
+    else if (Math.abs(rs.x - mx) / Math.max(1, Math.abs(rs.vx)) <= 7) {
+      b.rollSid = 0;
+      if (me.onGround && !(me.rollCD > 0) && me.rollT <= 0) inp.roll = true; else if (me.onGround) inp.jump = true;
+    }
+  }
   if (b.dodgeCd > 0) b.dodgeCd--;
   for (var i = 0; i < w.shots.length && b.dodgeCd <= 0; i++) {
     var sh = w.shots[i];
@@ -1287,7 +1419,8 @@ function think(b, w, side) {
     if (Math.abs(sh.y - (me.y + CHAR_H / 2)) < 30 && Math.abs(sh.x - mx) < cfg.see && sign(sh.vx) === sign(mx - sh.x)) {
       b.seen[sh.sid] = 1; b.seenN++; b.dodgeCd = cfg.react;   // 判断したら、次の判断まで反応時間ぶん空く
       if (R() < cfg.dodge) {
-        if (me.onGround) inp.jump = true;
+        if (me.onGround && cfg.roll && !(me.rollCD > 0) && R() < cfg.roll) b.rollSid = sh.sid;   // ロールでくぐる
+        else if (me.onGround) inp.jump = true;
         else if (sh.y < me.y + 12) b.duckT = 14;
       }
     }
@@ -1666,10 +1799,14 @@ function titleOk(id, ctx) {
 
 var api = {
   VW: VW, VH: VH, WORLD_W: WORLD_W, GND: GND, MAX_HP: MAX_HP, CHAR_W: CHAR_W, CHAR_H: CHAR_H, DUCK_H: DUCK_H, HIT_FRAMES: HIT_FRAMES,
-  GRAVITY: GRAVITY, JUMP_F: JUMP_F, LAND_LAG: LAND_LAG, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
+  GRAVITY: GRAVITY, JUMP_F: JUMP_F, LAND_LAG: LAND_LAG, LAND_LAG_SOFT: LAND_LAG_SOFT, landLag: landLag, ROLL_T: ROLL_T, ROLL_IF: ROLL_IF, ROLL_CD: ROLL_CD, rollSafe: rollSafe, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
+  RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
+  EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
+  rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
+  MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
   cleanBadges: cleanBadges, cleanBadgeSel: cleanBadgeSel, badgeShown: badgeShown, randomLook: randomLook,
   cleanLoadout: cleanLoadout, newWorld: newWorld, newRangeWorld: newRangeWorld,
   TEAM_SLOTS: deepFreeze(TEAM_SLOTS.slice()), teamOf: teamOf, newTeamWorld: newTeamWorld, stepTeam: stepTeam, teamResult: teamResult, foes: foes, newTarget: newTarget, stepRange: stepRange, newChar: newChar, setInput: setInput, step: step,

@@ -81,6 +81,7 @@ const loginTries = limiter(20, 10 * 60 * 1000);   // ログイン：10分で20�
 const joinFails = limiter(10, 10 * 60 * 1000);    // 部屋番号の入力ミス：10分で10回まで（総当たり対策）
 const devtoolsReports = limiter(4, 10 * 60 * 1000);   // コンソールを開いた知らせ：同じIPから10分で4回まで（いたずら対策）
 const profileSaves = limiter(30, 60 * 1000);      // プロフィールの保存：1人1分で30回まで
+const crateHits = limiter(40, 60 * 1000);         // 宝箱を開ける・ミッションの報酬：1人1分で40回まで
 const lookups = limiter(60, 60 * 1000);           // フレンドIDでの検索：1分で60回まで（総当たり対策）
 const friendOps = limiter(30, 60 * 1000);         // フレンド申請・承認など：1人1分で30回まで
 const inviteTries = limiter(12, 60 * 1000);       // 対戦の招待：1人1分で12回まで
@@ -743,6 +744,9 @@ function onMessage(ws, raw) {
     case 'input':
       if (ws.room && m.input && typeof m.input === 'object') ws.room.input(ws.slot, m.input);
       break;
+    case 'emote':
+      if (ws.room && ws.room.emote) ws.room.emote(ws.slot, m.id);
+      break;
     case 'ping':
       if (ws.room) ws.room.ping(ws.slot, m);
       break;
@@ -920,6 +924,16 @@ const server = http.createServer((req, res) => {
     return readJson(req, m => {
       if (!m || !m.profile || typeof m.profile !== 'object') return json(res, 400, { error: 'リクエストが不正です' });
       json(res, 200, auth.saveProfile(u.id, m.profile, m.base));
+    });
+  }
+  // 宝箱を開ける（POST { op:'open' }）／デイリーミッションの報酬を受け取る（POST { op:'claim', i }）。中身はサーバーが決める
+  if (url === '/api/crate' && req.method === 'POST') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!crateHits.hit(u.id)) return json(res, 429, { error: '操作が多すぎます。少し待ってください' });
+    return readJson(req, m => {
+      const r = m && m.op === 'claim' ? auth.missionClaim(u.id, m.i) : m && m.op === 'open' ? auth.crateOpen(u.id) : { error: 'bad' };
+      json(res, r.error ? 400 : 200, r);
     });
   }
   // フレンドの一覧（GET）と、申請・承認・拒否・解除（POST { op, fid }）

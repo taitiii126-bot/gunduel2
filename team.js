@@ -81,13 +81,13 @@ class TeamRoom {
       name: G.cleanName(info && info.name), discord: acc ? G.cleanName(acc.name) : '',
       // 2v2 のティアとレートは、ログイン中ならサーバーが持っている本物（ゲストは未ランク）
       tier: acc && acc.tier2Key ? acc.tier2Key : '', rate: acc ? (acc.rate2 || SIM.RATE_START) : SIM.RATE_START,
-      loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look, !!(acc && acc.dev)),
+      loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
       title: G.cleanTitle(info && info.title, acc), bio: G.cleanBio(info && info.bio), bg: G.cleanBg(info && info.bg),
       rec: acc ? { w: G.cleanCount(acc.wins), l: G.cleanCount(acc.losses), kind: 'online' }
                : { w: G.cleanCount(info && info.cpu && info.cpu.w), l: G.cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },
       srtt: -1, spingT: 0, rematch: false, acts: 0, suspect: '', left: false, done: false,
       input: { left: false, right: false, duck: false, fire: false, slot: 0 },
-      jumpReq: false, shootReq: false, healReq: false, reloadReq: false,
+      jumpReq: false, shootReq: false, healReq: false, reloadReq: false, rollReq: false,
     };
     if (!this.hostSlot) this.hostSlot = s;
     ws.room = this; ws.slot = s;
@@ -292,7 +292,7 @@ class TeamRoom {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p) {
-        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false;
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
         p.input.slot = 0; p.input.fire = false;
         if (p.bot) p.brain = SIM.newBrain(p.brain.cfg);
       } else this.world.chars[s].dead = true;   // 誰もいない場所（ありえないが念のため）は倒れている扱い
@@ -321,16 +321,26 @@ class TeamRoom {
     }
   }
 
+  // エモート：持っている物だけ、1.5秒に1回まで。部屋の全員に配る
+  emote(slot, id) {
+    const p = this.players[slot]; if (!p || p.bot) return;
+    const n = Math.floor(+id), now = Date.now();
+    if (!(n >= 0 && n < SIM.EMOTE_N) || now - (p.emoT || 0) < 1400) return;
+    if (!require('./auth').ownsEmote(p.uid, n)) return;
+    p.emoT = now;
+    this.broadcast({ type: 'emote', slot, id: n });
+  }
   input(slot, i) {
     const p = this.players[slot]; if (!p || p.bot) return;
     const left = !!i.left, right = !!i.right, duck = !!i.duck;
-    if (this.phase === 'playing' && (left || right || duck || i.jump || i.shoot || i.heal || i.reload)) p.acts++;
+    if (this.phase === 'playing' && (left || right || duck || i.jump || i.shoot || i.heal || i.reload || i.roll)) p.acts++;
     p.input.left = left; p.input.right = right; p.input.duck = duck; p.input.fire = !!i.fire;
     if (i.slot === 0 || i.slot === 1 || i.slot === 2) p.input.slot = i.slot;
     if (i.jump) p.jumpReq = true;
     if (i.shoot) p.shootReq = true;
     if (i.heal) p.healReq = true;
     if (i.reload) p.reloadReq = true;
+    if (i.roll) p.rollReq = true;
   }
   botInput(p, slot) {
     const c = this.world.chars[slot];
@@ -341,6 +351,7 @@ class TeamRoom {
     if (inp.shoot) p.shootReq = true;
     if (inp.heal) p.healReq = true;
     if (inp.reload) p.reloadReq = true;
+    if (inp.roll) p.rollReq = true;
     p.acts++;
   }
 
@@ -380,8 +391,8 @@ class TeamRoom {
         if (p.bot) this.botInput(p, s);
         const inp = p.input;
         SIM.setInput(c, { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
-          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq });
-        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false;
+          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq });
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
       } else SIM.setInput(c, { left: false, right: false, duck: false, fire: false });
     }
     const ev = [];

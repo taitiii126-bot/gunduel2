@@ -71,6 +71,14 @@ function cleanEmperor(e) {
   return { w: int(e.w, 0, 999999, 0), l: int(e.l, 0, 999999, 0), beat: e.beat === true, seen: e.seen === true };
 }
 
+// デイリーミッションの進み具合（数えるのはブラウザ。宝箱と経験値を渡すのはサーバーで、1日3つまで）
+function cleanMis(m) {
+  m = m && typeof m === 'object' ? m : {};
+  const day = typeof m.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.day) ? m.day : '';
+  const p = [0, 1, 2].map(i => int(Array.isArray(m.p) ? m.p[i] : 0, 0, 9999, 0));
+  const c = [0, 1, 2].map(i => !!(Array.isArray(m.c) && m.c[i]));
+  return { day, p, c };
+}
 // ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
 function clean(v, ctx, rtier) {
   v = v && typeof v === 'object' ? v : {};
@@ -98,7 +106,16 @@ function clean(v, ctx, rtier) {
     name: text(v.name, 12) || 'プレイヤー',
     bio: text(v.bio, 40),
     title: validTitle(v.title, ctx, proofOf),
-    look: SIM.cleanLook(v.look, !!(ctx && ctx.dev)),
+    look: SIM.lookOwned(SIM.cleanLook(v.look, !!(ctx && ctx.dev)), SIM.cleanInv(v.inv)),   // 持っていない宝箱の物は外す
+    // 宝箱・レベル：inv（持ち物）・opened（開けた数）・misCrates（ミッションでもらった宝箱）・pity（天井のカウント）は
+    // サーバーが決める値。ブラウザから届いた値は auth.saveProfile で前の値に置きかえる
+    xp: int(v.xp, 0, 99999999, 0),
+    inv: SIM.cleanInv(v.inv),
+    opened: int(v.opened, 0, 999999, 0),
+    misCrates: int(v.misCrates, 0, 999999, 0),
+    pity: int(v.pity, 0, 999, 0),
+    emo: SIM.cleanEmotes(v.emo, SIM.cleanInv(v.inv)),
+    mis: cleanMis(v.mis),
     badge: SIM.cleanBadgeSel(v.badge, ctx && ctx.badges),   // 見せるシーズンバッジ（持っているものだけ）   // 開発者だけの見た目は、開発者のときだけ残す
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない
@@ -130,13 +147,14 @@ function merge(old, inc) {
   const oe = cleanEmperor(old.emperor), ie = cleanEmperor(inc.emperor);
   out.emperor = { w: Math.max(oe.w, ie.w), l: Math.max(oe.l, ie.l), beat: oe.beat || ie.beat, seen: oe.seen || ie.seen };
   out.epoch = Math.max(+old.epoch || 0, +inc.epoch || 0);
+  out.xp = Math.max(old.xp || 0, inc.xp || 0);
   return out;
 }
 
 // 一瞬で全部そろえるチート対策：前の保存からの時間で、増えていい量を決める
 // 1試合にかかる最短の秒数（余裕をもたせた値）。0 にすると、この制限を切れる
 const MIN_MATCH_SEC = process.env.PROFILE_MIN_MATCH_SEC != null ? +process.env.PROFILE_MIN_MATCH_SEC : 15;
-const PER_MATCH = { kills: 3, stages: 1, stats: 1, evt: 3, emperor: 1, best: 1 };
+const PER_MATCH = { kills: 3, stages: 1, stats: 1, evt: 3, emperor: 1, best: 1, xp: 140 };
 function sumOf(o) { let n = 0; for (const k of Object.keys(o || {})) n += +o[k] || 0; return n; }
 function statsSum(p) { let n = 0; for (const d of DIFFS) { const s = (p.stats && p.stats[d]) || {}; n += (+s.w || 0) + (+s.l || 0); } return n; }
 // old（前に保存した分）から見て、増えすぎている記録は前の値に戻す。戻すと裏づけも消えるので称号も落ちる
@@ -150,6 +168,7 @@ function limitGrowth(old, next, dtMs, ctx) {
   if (statsSum(next) - statsSum(old) > matches * PER_MATCH.stats) { next.stats = old.stats; next.tierProgress = old.tierProgress; over.push('stats'); }
   if ((next.emperor.w + next.emperor.l) - (old.emperor.w + old.emperor.l) > matches * PER_MATCH.emperor) { next.emperor = old.emperor; over.push('emperor'); }
   if (next.ach.best - old.ach.best > matches * PER_MATCH.best) { next.ach.best = old.ach.best; over.push('best'); }
+  if ((next.xp || 0) - (old.xp || 0) > matches * PER_MATCH.xp) { next.xp = old.xp || 0; over.push('xp'); }
   if (!over.length) return next;
   // 記録を戻したので、裏づけのなくなった称号も落とす
   const proofOf = { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor };

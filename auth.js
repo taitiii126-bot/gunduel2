@@ -157,6 +157,26 @@ const FIRST_TEN = 10;
 Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, FIRST_TEN)
   .forEach(u => { if (!u.pioneer10) { u.pioneer10 = true; dirty = true; } });
 // 称号の確認に使う本人の情報
+// サーバーが決める値（持ち物・開けた数・ミッションの宝箱・天井）は、前にサーバーが保存した値を使う
+function keepServerOwned(next, old) {
+  next.inv = old ? old.inv.slice() : [];
+  next.opened = old ? old.opened : 0;
+  next.misCrates = old ? old.misCrates : 0;
+  next.pity = old ? old.pity : 0;
+  next.look = SIM.lookOwned(next.look, next.inv);
+  next.emo = SIM.cleanEmotes(next.emo, next.inv);
+}
+// 保存してあるプロフィール（整えた形）。まだ無ければ白紙から
+function serverProfile(u) {
+  const pr = P.clean(u.profile || {}, titleCtx(u), rateState(u).tier);
+  return pr;
+}
+function saveServerProfile(u, pr, extra) {
+  u.profile = pr;
+  u.profileRev = (u.profileRev || 0) + 1; u.profileAt = u.profileAt || Date.now();
+  touch();
+  return Object.assign({ rev: u.profileRev, profile: pr }, extra || {});
+}
 const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, badges: u.badges || [] });
 
 // ---- レート ----
@@ -392,6 +412,7 @@ const auth = {
     const merged = !!u.profile && Math.floor(+base) !== rev;
     const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
     let next = merged ? P.merge(old, inc) : inc;
+    keepServerOwned(next, old);   // 持ち物・開けた数などは、ブラウザから届いた値を使わない
     // 一瞬で記録がそろうのはおかしいので、増えすぎた分は前の値に戻す
     next = P.limitGrowth(old, next, Date.now() - (u.profileAt || 0), ctx);
     if (next.over) { console.log(new Date().toISOString(), 'profile: 増えすぎた記録を戻しました', u.id, next.over.join(',')); delete next.over; }
@@ -400,6 +421,39 @@ const auth = {
     touch();
     return { rev: u.profileRev, merged, profile: u.profile };
   },
+  // ---- 宝箱とミッション（中身を決めるのはサーバー） ----
+  // ミッションの報酬を受け取る（その日の i 番目。1日3つまで）→ 宝箱1つ＋経験値
+  missionClaim(uid, i) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    i = Math.floor(+i);
+    if (!(i >= 0 && i < 3)) return { error: 'bad' };
+    const day = SIM.dayKey();
+    if (u.misDay !== day) { u.misDay = day; u.misGot = []; }
+    if (u.misGot.indexOf(i) >= 0) return { error: 'claimed' };
+    const pr = serverProfile(u);
+    u.misGot.push(i);
+    pr.misCrates = (pr.misCrates || 0) + 1;
+    pr.xp = (pr.xp || 0) + SIM.MISSION_XP;
+    if (pr.mis && pr.mis.day === day) pr.mis.c[i] = true;
+    return saveServerProfile(u, pr, { claimed: i });
+  },
+  // 宝箱を1つ開ける：まだ開けていない宝箱があれば、サーバーの乱数で中身を決めて持ち物に足す
+  crateOpen(uid) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    const pr = serverProfile(u);
+    if ((pr.opened || 0) >= SIM.cratesEarned(pr.xp, pr.misCrates)) return { error: 'no_crate' };
+    const res = SIM.rollCrate(() => crypto.randomInt(0, 1 << 30) / (1 << 30), pr.inv, pr.pity);
+    if (res.dup) pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r];
+    else pr.inv.push(res.item);
+    pr.opened = (pr.opened || 0) + 1;
+    pr.pity = res.r >= 3 ? 0 : (pr.pity || 0) + 1;
+    return saveServerProfile(u, pr, { item: res.item, r: res.r, dup: res.dup });
+  },
+  // オンライン対戦で見せる見た目・エモート：持ち物を確かめる（ゲストは宝箱の物を外す）
+  ownedLook(uid, look) { const u = uid && db.users[uid]; return SIM.lookOwned(look, u && u.profile ? SIM.cleanInv(u.profile.inv) : null); },
+  ownsEmote(uid, n) { n = Math.floor(+n); if (!(n >= 0 && n < SIM.EMOTE_N)) return false; if (n < SIM.EMOTE_FREE) return true; const u = uid && db.users[uid]; return !!(u && u.profile && SIM.cleanInv(u.profile.inv).indexOf('e' + n) >= 0); },
   user(uid) { return db.users[uid] || null; },
   rollSeason, seasonTop,                              // シーズン（テストから呼べるように）
   users() { return Object.values(db.users); },
