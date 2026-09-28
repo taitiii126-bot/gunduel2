@@ -139,6 +139,8 @@ function packFx(ev) {
       case 'boom': out.push({ t: 'boom', who: e.who, x: r1(e.x), y: r1(e.y), r: e.r }); break;
       case 'spark': out.push({ t: 'spark', x: r1(e.x), y: r1(e.y), own: e.own }); break;
       case 'heal': out.push({ t: 'heal', who: e.who, x: r1(e.x), y: r1(e.y) }); break;
+      case 'roll': out.push({ t: 'roll', who: e.who, dir: e.dir }); break;
+      case 'rolldodge': out.push({ t: 'rolldodge', who: e.who, by: e.by }); break;
     }
   }
   return out;
@@ -183,14 +185,14 @@ class Room {
       name: cleanName(info && info.name), discord: acc ? cleanName(acc.name) : '', 
       // ティアとレートは、ログイン中ならサーバーが持っている本物（ゲストだけ自己申告）
       tier: acc && acc.tierKey ? acc.tierKey : cleanTier(info && info.tier), rate: acc ? acc.rate : 0,
-      loadout: SIM.cleanLoadout(info && info.loadout, false), look: SIM.cleanLook(info && info.look, !!(acc && acc.dev)),
+      loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
       title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg),
       // 勝率：ログイン済みはサーバーが持っているオンライン戦績、ゲストは本人が送ってきたCPU戦の成績
       rec: acc ? { w: cleanCount(acc.wins), l: cleanCount(acc.losses), kind: 'online' }
                : { w: cleanCount(info && info.cpu && info.cpu.w), l: cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },
       srtt: -1, spingT: 0, rematch: false,
       input: { left: false, right: false, duck: false, fire: false, slot: 0 },
-      jumpReq: false, shootReq: false, healReq: false, reloadReq: false,
+      jumpReq: false, shootReq: false, healReq: false, reloadReq: false, rollReq: false,
       alignedFrame: -1, readyFrame: -1,
     };
     this.resetStats(this.players[slot]);
@@ -220,6 +222,7 @@ class Room {
     if (inp.shoot) p.shootReq = true;
     if (inp.heal) p.healReq = true;
     if (inp.reload) p.reloadReq = true;
+    if (inp.roll) p.rollReq = true;
     p.acts++;
   }
   resetStats(p) {
@@ -376,7 +379,7 @@ class Room {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p) {
-        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false;
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
         p.input.slot = 0; p.input.fire = false; p.alignedFrame = -1; p.readyFrame = -1; p.lastPull = -1;
       }
     }
@@ -405,11 +408,20 @@ class Room {
     }
   }
 
+  // エモート：持っている物だけ、1.5秒に1回まで。部屋の全員に配る
+  emote(slot, id) {
+    const p = this.players[slot]; if (!p || p.bot) return;
+    const n = Math.floor(+id), now = Date.now();
+    if (!(n >= 0 && n < SIM.EMOTE_N) || now - (p.emoT || 0) < 1400) return;
+    if (!require('./auth').ownsEmote(p.uid, n)) return;
+    p.emoT = now;
+    this.broadcast({ type: 'emote', slot, id: n });
+  }
   input(slot, i) {
     const p = this.players[slot]; if (!p) return;
     const left = !!i.left, right = !!i.right, duck = !!i.duck;
     if (this.phase === 'playing') {
-      if (left || right || duck || i.jump || i.shoot || i.heal || i.reload) p.acts++;
+      if (left || right || duck || i.jump || i.shoot || i.heal || i.reload || i.roll) p.acts++;
       // 切り替えの速さを数える（マクロ検知）
       const changes = (left !== p.input.left) + (right !== p.input.right) + (duck !== p.input.duck);
       if (changes) {
@@ -429,6 +441,7 @@ class Room {
     if (i.shoot) p.shootReq = true;
     if (i.heal) p.healReq = true;
     if (i.reload) p.reloadReq = true;
+    if (i.roll) p.rollReq = true;
   }
   flag(p, reason) {
     if (!p || p.bot || p.suspect) return;
@@ -526,8 +539,8 @@ class Room {
         if (p.bot) this.botInput(p, s);
         const inp = p.input;
         SIM.setInput(c, { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
-          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq });
-        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false;
+          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq });
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
         // BOT検知用：狙いが合い始めたフレームと、撃てるようになったフレームを覚える
         // 撃つ瞬間の狙い（このフレームの動きより前の位置で判定する。とどめの一撃も「狙いが合っていた」に数える）
         aimed[s] = !c.dead && this.aimedAt(c, w.chars[other(s)]);
