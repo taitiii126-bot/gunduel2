@@ -6836,8 +6836,9 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
       g.save();g.clip();g.fillStyle='#2E9D5C';g.beginPath();H.M(-1,-.64);H.L(1,-.64);H.L(1,-.84);H.L(-1,-.84);g.closePath();g.fill();g.restore();
       break;
     case 18:  // コック帽：ふくらんだ白い帽子
-      g.beginPath();H.M(-.72,-.66);H.L(-.76,-1.1);H.C(-1.3,-1.3,-.9,-1.9,-.4,-1.66);H.C(-.3,-2.05,.4,-2.05,.44,-1.66);H.C(.96,-1.9,1.28,-1.3,.78,-1.1);H.L(.74,-.66);g.closePath();paint('#FBF8F1');
-      g.beginPath();H.M(-.76,-.66);H.L(.76,-.66);H.L(.76,-.92);H.L(-.76,-.92);g.closePath();paint('#EDE7DA');
+      g.beginPath();H.M(-.92,-.62);H.L(-.9,-1.02);H.C(-1.45,-1.25,-1.05,-1.95,-.46,-1.72);H.C(-.34,-2.12,.42,-2.12,.5,-1.72);H.C(1.1,-1.95,1.46,-1.25,.92,-1.02);H.L(.94,-.62);g.closePath();paint('#FBF8F1');   // ふくらみ（頭の幅に合わせる）
+      g.save();g.clip();g.strokeStyle='rgba(120,110,95,.28)';g.lineWidth=r*.05;[[-.44,-1.7,-.36,-1.05],[.48,-1.7,.4,-1.05]].forEach(function(q){g.beginPath();H.M(q[0],q[1]);H.Q(q[0]*.7,(q[1]+q[3])/2,q[2],q[3]);g.stroke();});g.restore();g.strokeStyle=OUTLINE;g.lineWidth=1.5;   // ひだ
+      g.beginPath();H.M(-1.02,-.3);H.Q(0,-.52,1.02,-.32);H.L(.98,-.7);H.Q(0,-.9,-.98,-.68);g.closePath();paint('#EDE7DA');   // 額にかかる帯
       break;
     case 19:  // 魔法使いの帽子（レジェンダリー）：高いとんがりに、またたく星
       c=H.at(.04,-.62);g.beginPath();g.ellipse(c[0],c[1],r*1.5,r*.3,-d*.06,0,Math.PI*2);paint('#3B1F6E');
