@@ -79,6 +79,15 @@ function cleanMis(m) {
   const c = [0, 1, 2].map(i => !!(Array.isArray(m.c) && m.c[i]));
   return { day, p, c };
 }
+// シーズンミッション（15個）：s＝シーズン番号、p＝進み具合（ブラウザが数える）、got＝終えた日（サーバーが決める）
+function cleanSea(m) {
+  m = m && typeof m === 'object' ? m : {};
+  const N = SIM.SEASON_MISSIONS.length, day = x => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : '';
+  return { s: int(m.s, 0, 99999, 0), p: Array.from({ length: N }, (_, i) => int(Array.isArray(m.p) ? m.p[i] : 0, 0, 99999, 0)),
+    got: Array.from({ length: N }, (_, i) => day(Array.isArray(m.got) ? m.got[i] : '')) };
+}
+// シーズンパス：s＝シーズン番号、xp＝パスXP
+function cleanPass(m) { m = m && typeof m === 'object' ? m : {}; return { s: int(m.s, 0, 99999, 0), xp: int(m.xp, 0, 9999999, 0) }; }
 // ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
 function clean(v, ctx, rtier) {
   v = v && typeof v === 'object' ? v : {};
@@ -118,6 +127,7 @@ function clean(v, ctx, rtier) {
     pity: int(v.pity, 0, 999, 0),
     emo: SIM.cleanEmotes(v.emo, SIM.cleanInv(v.inv)),
     mis: cleanMis(v.mis),
+    sea: cleanSea(v.sea), pass: cleanPass(v.pass), coins: int(v.coins, 0, 99999999, 0),   // シーズン・パス・コイン（パスとコインと sea.got はサーバーが決める）
     badge: SIM.cleanBadgeSel(v.badge, ctx && ctx.badges),   // 見せるシーズンバッジ（持っているものだけ）   // 開発者だけの見た目は、開発者のときだけ残す
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない
@@ -150,6 +160,7 @@ function merge(old, inc) {
   out.emperor = { w: Math.max(oe.w, ie.w), l: Math.max(oe.l, ie.l), beat: oe.beat || ie.beat, seen: oe.seen || ie.seen };
   out.epoch = Math.max(+old.epoch || 0, +inc.epoch || 0);
   out.xp = Math.max(old.xp || 0, inc.xp || 0);
+  if (old.sea && inc.sea && old.sea.s === inc.sea.s) out.sea = Object.assign({}, inc.sea, { p: inc.sea.p.map((x, i) => Math.max(x, old.sea.p[i] || 0)) });
   return out;
 }
 

@@ -47,7 +47,7 @@ var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
 var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 9;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール
+var PROTO = 10;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -60,16 +60,16 @@ var PROTO = 9;             // 通信の形式。変えたら上げる（古い�
 // band=CPUが保とうとする距離
 var WEAPONS = {
   1:  { id: 1,  key: 'knife',    kind: 'melee',   range: 46,  dmg: 40, rate: 26, mag: 0,  reload: 0,   spd: 0,  wind: 0, rec: 0, color: '#D1D5DB', band: [0, 34] },
-  2:  { id: 2,  key: 'pistol',   kind: 'bullet',  range: 276, dmg: 20, rate: 0,  mag: 1,  reload: 52,  spd: 10, color: '#FACC15', band: [140, 250] },
+  2:  { id: 2,  key: 'pistol',   kind: 'bullet',  range: 276, dmg: 20, rate: 0,  mag: 1,  reload: 44,  spd: 10, color: '#FACC15', band: [140, 250] },
   3:  { id: 3,  key: 'sniper',   kind: 'bullet',  range: 558, dmg: 40, rate: 0,  mag: 1,  reload: 115, spd: 18, color: '#60A5FA', band: [300, 520] },
   4:  { id: 4,  key: 'smg',      kind: 'bullet',  range: 190, dmg: 8,  rate: 7,  mag: 15, reload: 130, spd: 11, color: '#F472B6', band: [70, 165], auto: true },
   5:  { id: 5,  key: 'shotgun',  kind: 'pellet',  range: 140, dmg: 7,  rate: 48, mag: 2,  reload: 135, spd: 10, pellets: 5, color: '#FB923C', band: [30, 100] },
   6:  { id: 6,  key: 'ar',       kind: 'bullet',  range: 330, dmg: 11, rate: 11, mag: 10, reload: 125, spd: 12, color: '#34D399', band: [170, 300], auto: true },
   7:  { id: 7,  key: 'burst',    kind: 'bullet',  range: 380, dmg: 10, rate: 42, mag: 9,  reload: 120, spd: 13, burst: 3, gap: 4, color: '#2DD4BF', band: [200, 340] },
-  8:  { id: 8,  key: 'revolver', kind: 'bullet',  range: 300, dmg: 22, rate: 40, mag: 5,  reload: 175, spd: 12, color: '#F59E0B', band: [150, 270] },
+  8:  { id: 8,  key: 'revolver', kind: 'bullet',  range: 300, dmg: 22, rate: 40, mag: 5,  reload: 140, spd: 12, color: '#F59E0B', band: [150, 270] },
   9:  { id: 9,  key: 'lmg',      kind: 'bullet',  range: 300, dmg: 7,  rate: 7,  mag: 20, reload: 220, spd: 11, move: 0.75, color: '#A3E635', band: [140, 270], auto: true },
-  10: { id: 10, key: 'grenade',  kind: 'grenade', range: 210, dmg: 45, sdmg: 35, rate: 54, mag: 3,  reload: 160, spd: 6.2, splash: 55, color: '#FB7185', band: [130, 215] },
-  11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 34, rate: 0,  mag: 1,  reload: 180, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
+  10: { id: 10, key: 'grenade',  kind: 'grenade', range: 210, dmg: 45, sdmg: 35, rate: 54, mag: 4,  reload: 160, spd: 6.2, splash: 70, color: '#FB7185', band: [130, 215] },
+  11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 34, rate: 0,  mag: 1,  reload: 155, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
   12: { id: 12, key: 'knuckle',  kind: 'melee',   range: 34,  dmg: 13, rate: 9,  mag: 0,  reload: 0,   spd: 0,  wind: 0,  rec: 2,  auto: true, color: '#E5E7EB', band: [0, 24] },
   13: { id: 13, key: 'spear',    kind: 'melee',   range: 96,  dmg: 46, rate: 48, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, color: '#FCD34D', band: [36, 84] },
   14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] }
@@ -261,6 +261,51 @@ var MISSIONS = [
   { k: 'nodmg', n: 1 }, { k: 'roll', n: 15 }, { k: 'rolldodge', n: 3 }, { k: 'emote', n: 3 }, { k: 'online', n: 2 }, { k: 'hard', n: 1 }
 ];
 var MISSION_XP = 120;
+// ---- シーズンミッション（1か月＝1シーズン）：15個。最初は3つ。1つ終えるごとに、次の日にもう1つ増える ----
+// 終えるとパスXP。パスXPでシーズンパスの段が上がり、段ごとに報酬（最初の段は安く、だんだん高く）
+var SEASON_MISSIONS = [
+  { k: 'win', n: 15 }, { k: 'kill', n: 60 }, { k: 'rounds', n: 40 }, { k: 'rolldodge', n: 30 }, { k: 'killw', n: 15, w: 3 },
+  { k: 'online', n: 10 }, { k: 'nodmg', n: 8 }, { k: 'hard', n: 5 }, { k: 'killw', n: 20, w: 5 }, { k: 'play', n: 40 },
+  { k: 'killw', n: 10, w: 1 }, { k: 'emote', n: 30 }, { k: 'win', n: 40 }, { k: 'roll', n: 200 }, { k: 'killw', n: 10, w: 11 }
+];
+var SEASON_FIRST = 3, SEASON_MIS_PXP = 400, DAILY_PXP = 100;   // 最初に出ている数・シーズンミッション1つのパスXP・デイリー1つのパスXP
+var PASS_TIERS = 30;
+// ---- ショップ（毎日入れかわる）：無料ギフト・今日のおすすめ6つ（1つはセール）・バッジ ----
+var SHOP_PRICE = [150, 300, 700, 1600, 3500];     // レアリティごとのコイン
+var SHOP_BADGE = { lucky: 250, chaos: 900 };
+var DUP_COINS = [20, 40, 80, 160, 320];           // バッジでかぶったときのコイン
+var MIS_COINS = 50, SEA_COINS = 100;              // デイリー・シーズンミッションのコイン
+function hashStr(str) { var h = 2166136261; for (var i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; } return h; }
+// その日・その人のおすすめ：コモン2・レア2・エピック1・レジェンダリー1。who＝アカウントのid（ゲストは 'guest'）
+function shopOffers(day, who) {
+  var h = hashStr(day + '|' + (who || 'guest')), next = function () { h = Math.imul(h ^ (h >>> 13), 2246822507) >>> 0; return h; };
+  var want = [0, 0, 1, 1, 2, 3], used = {}, out = [];
+  want.forEach(function (r) {
+    var pool = ITEMS.filter(function (it) { return it.r === r && !used[it.id]; }), it = pool[next() % pool.length];
+    used[it.id] = 1; out.push({ item: it.id, r: r, price: SHOP_PRICE[r] });
+  });
+  var sale = next() % out.length; out[sale].sale = true; out[sale].price = Math.round(out[sale].price * 0.7 / 10) * 10;
+  return out;
+}
+function shopGift(day) { return hashStr('gift' + day) % 2 ? { lucky: 1 } : { coins: 100 }; }
+function passCost(k) { return 80 + k * 25; }             // k 段目（0から）から次へ上がるのに要るパスXP
+function passTierOf(pxp) {
+  var t = 0, x = Math.max(0, Math.floor(+pxp) || 0);
+  while (t < PASS_TIERS && x >= passCost(t)) { x -= passCost(t); t++; }
+  return { tier: t, cur: x, need: t < PASS_TIERS ? passCost(t) : 0 };
+}
+// 段ごとの報酬：5の倍数はカオスバッジ、最後（30段）はカオスバッジ3つ、ほかは奇数でラッキーバッジ・偶数でコイン
+function passReward(tier) {
+  if (tier >= PASS_TIERS) return { chaos: 3 };
+  if (tier % 5 === 0) return { chaos: 1 };
+  return tier % 2 ? { lucky: 1 } : { coins: 150 };
+}
+// 出ているシーズンミッションの数：最初の3つ＋前の日までに終えた数（最大15）
+function seasonUnlocked(got, today) {
+  var n = SEASON_FIRST;
+  (got || []).forEach(function (d) { if (d && d < today) n++; });
+  return Math.min(SEASON_MISSIONS.length, n);
+}
 function dayKey(t) { var d = new Date(t == null ? Date.now() : t); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
 function dailyMissions(day) {
   var h = 2166136261; for (var i = 0; i < day.length; i++) { h ^= day.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
@@ -1822,6 +1867,8 @@ var api = {
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
+  SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift,
+  SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
