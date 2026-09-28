@@ -41,10 +41,11 @@ var GRAVITY = 0.55, JUMP_F = -13, SPEED = 3.4;
 var REGEN_IDLE = 120, REGEN_INT = 120, REGEN_AMT = 20;   // 2秒のあいだ撃たず撃たれずなら、2秒ごとに20回復
 var SWAP_FRAMES = 10;      // 持ち替えてから撃てるまで
 var BUFFER_FRAMES = 6;     // 押した入力を少しだけ覚えておく（押し損ね・通信のゆらぎの吸収）
-var LAND_LAG = 14;         // 着地してから次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
+var LAND_LAG = 14;         // 空中で撃った（攻撃した）跳びの着地から、次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
+var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 7;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発
+var PROTO = 8;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -208,7 +209,7 @@ function newChar(side, x, y, dir, loadout) {
     load: load, slot: 0, ammo: load.map(function (id) { return WEAPONS[id].mag; }),
     cool: 0, coolMax: 1, rl: 0, rlMax: 1, rlSlot: 0, burst: 0, burstT: 0, chg: 0,
     swT: 0, recT: 0, kbT: 0, bx: 0, by: 0, bdir: 0,
-    healUsed: false, idle: 0, regen: 0, groundSince: -1, lastShot: -999,
+    healUsed: false, idle: 0, regen: 0, groundSince: -1, airShot: false, lastShot: -999,
     inL: false, inR: false, inDuck: false, inFire: false, wantSlot: 0,
     jumpBuf: 0, shootBuf: 0, healReq: false, reloadReq: false
   };
@@ -373,7 +374,7 @@ function stepChar(w, c, t, ev, vis) {
     if (W.mag > 0 && c.ammo[c.slot] < W.mag && c.rl <= 0 && c.burst <= 0 && c.chg <= 0) startReload(c, ev);
   }
   if (c.jumpBuf > 0) {
-    var landWait = c.onGround && c.groundSince >= 0 && w.frame - c.groundSince < LAND_LAG;
+    var landWait = c.onGround && c.groundSince >= 0 && w.frame - c.groundSince < landLag(c);
     if (c.onGround && !busy && c.kbT <= 0 && !landWait) { c.vy = JUMP_F; c.jumpBuf = 0; ev.push({ t: 'jump', who: c.side }); }
     else if (!landWait) c.jumpBuf--;   // 着地の待ちの間は、押したジャンプを覚えておき、待ちが明けたら跳ぶ
   }
@@ -399,7 +400,9 @@ function stepChar(w, c, t, ev, vis) {
     else c.shootBuf--;
   }
   physics(w, c, ev);
-  if (c.onGround) { if (c.groundSince < 0) c.groundSince = w.frame; } else c.groundSince = -1;
+  if (c.onGround) { if (c.groundSince < 0) c.groundSince = w.frame; }
+  else { if (c.groundSince >= 0) c.airShot = false; c.groundSince = -1; }   // 地面を離れたら、この跳びで撃ったかを数え直す
+  if (shot && !c.onGround) c.airShot = true;                               // 空中で撃った・振った → 着地の待ちが長くなる
   // 自然回復
   if (shot || c.hit > 0) { c.idle = 0; c.regen = 0; }
   else if (++c.idle >= REGEN_IDLE && c.hpFrac < MAX_HP && ++c.regen >= REGEN_INT) {
@@ -988,7 +991,7 @@ function beamHitsAfter(w, me, op, press) {
   for (var k = 1; k <= op.chg; k++) {
     var fr = w.frame + k;
     if (buf > 0) {
-      var wait = ground && since >= 0 && fr - since < LAND_LAG;
+      var wait = ground && since >= 0 && fr - since < landLag(me);
       if (ground && !wait) { vy = JUMP_F; ground = false; buf = 0; }
       else if (!wait) buf--;
     }
@@ -1007,7 +1010,7 @@ function railThreat(me, op) {
 // 何もしなければ当たるなら、跳ぶ・しゃがむのうち一番当たらない方を選ぶ。跳ぶのは「今跳ばないと間に合わない」瞬間まで待つ
 function bossDodge(b, w, me, op, side, inp) {
   if (b.dodgeCd > 0) return;
-  var lag = me.onGround && me.groundSince >= 0 ? Math.max(0, LAND_LAG - (w.frame + 1 - me.groundSince)) : 0;
+  var lag = me.onGround && me.groundSince >= 0 ? Math.max(0, landLag(me) - (w.frame + 1 - me.groundSince)) : 0;
   var seenAny = false;
   for (var i = 0; i < w.shots.length; i++) { var sh = w.shots[i]; if (!mine(w, side, sh.own) && sh.k !== 'g' && sh.age >= b.cfg.react) { seenAny = true; break; } }
   if (seenAny) {
@@ -1132,7 +1135,9 @@ function tacBand(b, W, op) {
   return [lo, hi];
 }
 // 次のフレームで跳べるか（着地の待ち LAND_LAG が明けているか）。think は step の前なので、次のフレームで数える
-function landReady(w, c) { return !(c.onGround && c.groundSince >= 0 && w.frame + 1 - c.groundSince < LAND_LAG); }
+function landReady(w, c) { return !(c.onGround && c.groundSince >= 0 && w.frame + 1 - c.groundSince < landLag(c)); }
+// 着地してから次に跳べるまでのフレーム数：空中で撃った跳びなら長く、撃たずに跳んだなら短く
+function landLag(c) { return c.airShot ? LAND_LAG : LAND_LAG_SOFT; }
 // 相手が今から t フレーム後にいる高さ（空中なら、落ちてくる先まで読む）
 function predictTopY(w, c, t) {
   if (c.onGround || t <= 0) return c.y;
@@ -1666,7 +1671,7 @@ function titleOk(id, ctx) {
 
 var api = {
   VW: VW, VH: VH, WORLD_W: WORLD_W, GND: GND, MAX_HP: MAX_HP, CHAR_W: CHAR_W, CHAR_H: CHAR_H, DUCK_H: DUCK_H, HIT_FRAMES: HIT_FRAMES,
-  GRAVITY: GRAVITY, JUMP_F: JUMP_F, LAND_LAG: LAND_LAG, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
+  GRAVITY: GRAVITY, JUMP_F: JUMP_F, LAND_LAG: LAND_LAG, LAND_LAG_SOFT: LAND_LAG_SOFT, landLag: landLag, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
