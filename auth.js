@@ -463,6 +463,7 @@ const auth = {
     if (u.misGot.length === 3) pr.misChaos = (pr.misChaos || 0) + 1;   // その日の3つを全部終えた → カオスバッジ
     pr.xp = (pr.xp || 0) + SIM.MISSION_XP;
     if (pr.mis && pr.mis.day === day) pr.mis.c[i] = true;
+    pr.coins = (pr.coins || 0) + SIM.MIS_COINS;
     const tiers = addPassXp(pr, SIM.DAILY_PXP);
     return saveServerProfile(u, pr, { claimed: i, tiers });
   },
@@ -477,8 +478,40 @@ const auth = {
     if (pr.sea.got[i]) return { error: 'claimed' };
     if (i >= SIM.seasonUnlocked(pr.sea.got, day)) return { error: 'locked' };
     pr.sea.got[i] = day;
+    pr.coins = (pr.coins || 0) + SIM.SEA_COINS;
     const tiers = addPassXp(pr, SIM.SEASON_MIS_PXP);
     return saveServerProfile(u, pr, { sclaimed: i, tiers });
+  },
+  // ショップ：op='gift'（1日1回の無料ギフト）/ 'buy'（slot＝おすすめの番号）/ 'badge'（kind＝lucky|chaos）
+  shop(uid, m) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    const pr = serverProfile(u), day = SIM.dayKey();
+    pr.coins = pr.coins || 0;
+    if (m.op === 'gift') {
+      if (u.giftDay === day) return { error: 'claimed' };
+      u.giftDay = day;
+      const gf = SIM.shopGift(day);
+      if (gf.lucky) pr.misCrates = (pr.misCrates || 0) + gf.lucky;
+      if (gf.coins) pr.coins += gf.coins;
+      return saveServerProfile(u, pr, { gift: gf });
+    }
+    if (m.op === 'buy') {
+      const offers = SIM.shopOffers(day, u.fid || uid), slot = Math.floor(+m.slot), of = offers[slot];
+      if (!of) return { error: 'bad' };
+      if (pr.inv.indexOf(of.item) >= 0) return { error: 'owned' };
+      if (pr.coins < of.price) return { error: 'coins' };
+      pr.coins -= of.price; pr.inv.push(of.item);
+      return saveServerProfile(u, pr, { bought: of.item });
+    }
+    if (m.op === 'badge') {
+      const kind = m.kind === 'chaos' ? 'chaos' : 'lucky', price = SIM.SHOP_BADGE[kind];
+      if (pr.coins < price) return { error: 'coins' };
+      pr.coins -= price;
+      if (kind === 'chaos') pr.misChaos = (pr.misChaos || 0) + 1; else pr.misCrates = (pr.misCrates || 0) + 1;
+      return saveServerProfile(u, pr, { badge: kind });
+    }
+    return { error: 'bad' };
   },
   // 宝箱を1つ開ける：まだ開けていない宝箱があれば、サーバーの乱数で中身を決めて持ち物に足す
   crateOpen(uid, kind) {
@@ -488,14 +521,14 @@ const auth = {
     if (kind === 'chaos') {   // カオスバッジ：分かれた分もまとめて決める
       if ((pr.chaosOpened || 0) >= SIM.chaosEarned(pr.xp, pr.misChaos)) return { error: 'no_crate' };
       const res = SIM.rollChaos(() => crypto.randomInt(0, 1 << 30) / (1 << 30), pr.inv, pr.pity);
-      res.items.forEach(x => { if (x.dup) pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r]; else pr.inv.push(x.item); });
+      res.items.forEach(x => { if (x.dup) { pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r]; pr.coins = (pr.coins || 0) + SIM.DUP_COINS[res.r]; } else pr.inv.push(x.item); });
       pr.chaosOpened = (pr.chaosOpened || 0) + 1;
       pr.pity = res.r >= 3 ? 0 : (pr.pity || 0) + 1;
       return saveServerProfile(u, pr, { kind: 'chaos', r: res.r, n: res.n, items: res.items });
     }
     if ((pr.opened || 0) >= SIM.cratesEarned(pr.xp, pr.misCrates)) return { error: 'no_crate' };
     const res = SIM.rollCrate(() => crypto.randomInt(0, 1 << 30) / (1 << 30), pr.inv, pr.pity);
-    if (res.dup) pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r];
+    if (res.dup) { pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r]; pr.coins = (pr.coins || 0) + SIM.DUP_COINS[res.r]; }
     else pr.inv.push(res.item);
     pr.opened = (pr.opened || 0) + 1;
     pr.pity = res.r >= 3 ? 0 : (pr.pity || 0) + 1;

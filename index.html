@@ -1181,6 +1181,31 @@ body.demo #bg-shade{opacity:1;}
 .he-mh{display:flex;justify-content:space-between;align-items:baseline;margin:0;font-size:12px;color:var(--tx-2);}
 .he-mh small{font-size:11px;color:var(--tx-3);}
 .he-m{display:grid;grid-template-columns:1fr 84px 64px;gap:8px;align-items:center;min-height:24px;font-size:12.5px;color:var(--tx-1);}
+.shop-coins{display:flex;align-items:center;justify-content:flex-end;gap:6px;margin:-6px 0 6px;font-family:var(--f-ui);font-size:22px;font-weight:900;color:#FFD34A;}
+.shop-coins .pi{width:28px;height:28px;}
+.shop-row{display:flex;gap:12px;flex-wrap:wrap;}
+.shop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+@media (max-width:560px){.shop-grid{grid-template-columns:repeat(2,1fr);}}
+.shop-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:4px;padding:10px 10px 12px;border-radius:16px;background:rgba(8,10,18,.75);border:1px solid var(--line);color:#fff;min-width:150px;}
+.shop-card canvas{width:110px;height:110px;}
+.shop-row .shop-card canvas{width:72px;height:72px;}
+.shop-card b{font-size:13px;font-weight:900;text-align:center;}
+.shop-card small{font-size:11px;color:var(--tx-3);}
+.shop-card.rar{--rc:#AEB6C4;border-color:color-mix(in srgb,var(--rc) 60%,transparent);background:radial-gradient(circle at 50% 30%,color-mix(in srgb,var(--rc) 28%,transparent),rgba(8,10,18,.85) 70%);}
+.shop-card.r1{--rc:#3FA0FF;}.shop-card.r2{--rc:#B45CFF;}.shop-card.r3{--rc:#FFB020;}.shop-card.r4{--rc:#FF5CD6;}
+.shop-card.done{opacity:.5;}
+.shop-card.gift{background:linear-gradient(135deg,rgba(52,211,153,.25),rgba(8,10,18,.8));border-color:rgba(52,211,153,.6);animation:crPulse 1.6s ease-in-out infinite;}
+.shop-card.gift.done{animation:none;}
+.shop-card.chaos{border-color:rgba(200,144,255,.6);background:linear-gradient(180deg,rgba(120,60,200,.3),rgba(8,10,18,.85));}
+.shop-card .pi.big{width:72px;height:72px;}
+.shop-price{display:inline-flex;align-items:center;gap:5px;margin-top:4px;padding:7px 14px;border-radius:10px;background:linear-gradient(180deg,#FFD66B,#E0A21E);color:#1a1300;font-family:var(--f-ui);font-weight:900;font-size:14px;}
+.shop-price .pi{width:18px;height:18px;}
+.shop-price s{opacity:.6;font-size:11px;margin-right:2px;}
+.shop-price.free{background:linear-gradient(180deg,#6BE38F,#2FA85A);color:#062010;}
+.shop-price.own{background:rgba(255,255,255,.1);color:var(--tx-2);}
+.shop-price.poor{filter:grayscale(.7) brightness(.8);}
+.shop-price.confirm{background:linear-gradient(180deg,#FF8A6B,#E0402A);color:#fff;animation:newPulse .8s ease-in-out infinite;}
+.shop-sale{position:absolute;top:8px;left:8px;padding:2px 7px;border-radius:6px;background:#E0402A;color:#fff;font-style:normal;font-family:var(--f-ui);font-size:12px;font-weight:900;transform:rotate(-8deg);}
 .pass-top{display:grid;grid-template-columns:auto 1fr auto;gap:16px;align-items:center;padding:14px 18px;border-radius:16px;background:linear-gradient(135deg,rgba(157,116,255,.25),rgba(255,197,61,.12));border:1px solid rgba(255,197,61,.35);margin-bottom:12px;}
 .pt-tier{display:flex;align-items:baseline;gap:4px;font-family:var(--f-ui);}
 .pt-tier small{font-size:11px;letter-spacing:.2em;color:var(--tx-3);margin-right:4px;}
@@ -1199,7 +1224,7 @@ body.demo #bg-shade{opacity:1;}
 .pt.cur{border-color:var(--gold);box-shadow:0 0 18px -4px rgba(255,197,61,.8);opacity:1;}
 .pt-ok{position:absolute;top:4px;right:6px;color:#6BE38F;font-size:13px;}
 .pi{display:block;width:40px;height:40px;background-size:contain;background-repeat:no-repeat;background-position:center;}
-.pi.coin{background-image:radial-gradient(circle at 40% 35%,#FFF1A8 0 18%,#FFD34A 19% 55%,#C9901A 56% 62%,transparent 63%);}
+.pi.coin{background-image:radial-gradient(circle closest-side,#FFF1A8 0 28%,#FFD34A 30% 78%,#C9901A 80% 96%,transparent 98%);}
 .pi.lucky{background-image:radial-gradient(circle,#3FA0FF 0 30%,transparent 31%),conic-gradient(from 0deg,#8CC8FF 0 8%,transparent 8% 16.6%,#8CC8FF 16.6% 24.6%,transparent 24.6% 33.3%,#8CC8FF 33.3% 41.3%,transparent 41.3% 50%,#8CC8FF 50% 58%,transparent 58% 66.6%,#8CC8FF 66.6% 74.6%,transparent 74.6% 83.3%,#8CC8FF 83.3% 91.3%,transparent 91.3%);border-radius:50%;}
 .pi.chaos{background-image:radial-gradient(circle,#C890FF 0 28%,#15101E 29% 62%,transparent 63%);border-radius:50%;box-shadow:0 0 14px rgba(200,144,255,.7);}
 .pt-coins .pi{width:24px;height:24px;}
@@ -1641,6 +1666,7 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
         <button class="sub-btn" onclick="showRankScreen()"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg><span data-i18n="menu.rank"></span></button>
         <button class="sub-btn sb-crate" id="he-crate" onclick="openCrateScreen()"><span class="sb-ic"><canvas id="he-crate-cv" width="96" height="96"></canvas><span class="mb-badge" id="he-crate-n" style="display:none;"></span></span><span data-i18n="menu.crate"></span></button>
         <button class="sub-btn" id="he-misbtn" onclick="openMissions()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10l1.5 1.5 3-3M8.5 16l1.5 1.5 3-3M15 11h1.5M15 17h1.5"/></svg><span class="mb-badge" id="he-mis-n" style="display:none;"></span></span><span data-i18n="menu.missions"></span></button>
+        <button class="sub-btn" id="he-shopbtn" onclick="showShopScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h16l-1.2 10.5a1.5 1.5 0 0 1-1.5 1.5H6.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2"/></svg><span class="mb-badge" id="he-shop-n" style="display:none;">!</span></span><span data-i18n="menu.shop"></span></button>
         <button class="sub-btn" id="he-passbtn" onclick="showPassScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14 5v12" stroke-dasharray="2 2"/></svg><span class="mb-badge" id="he-pass-n" style="display:none;"></span></span><span data-i18n="menu.pass"></span></button>
         <button class="sub-btn" onclick="startRange()"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg><span data-i18n="menu.range"></span></button>
       </div>
@@ -1758,6 +1784,17 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
     <div id="rank-head" class="rk-row rk-head"><span class="rk-no">#</span><span class="rk-who" data-i18n="rank.player"></span><span class="rk-tier" data-i18n="rank.tier"></span><span class="rk-rate" data-i18n="rank.rate"></span><span class="rk-wr" data-i18n="rank.winrate"></span></div>
     <div id="rank-list"></div>
     <div id="rank-me"></div>
+    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
+  </div>
+
+  <div id="shop-screen" class="screen menu wide" style="display:none;">
+    <div class="scr-head">
+      <span class="kicker">SHOP</span>
+      <h2 class="scr-title" data-i18n="shop.title"></h2>
+      <p class="pill" id="shop-left"></p>
+    </div>
+    <div class="shop-coins" id="shop-coins"></div>
+    <div id="shop-body"></div>
     <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
@@ -2041,8 +2078,8 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=35"></script>
-<script src="lang.js?v=38"></script>
+<script src="sim.js?v=36"></script>
+<script src="lang.js?v=39"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3007,7 +3044,7 @@ function ecoSeaClaim(i,cb){
     ecoApi({op:'sclaim',i:i},function(r){ECO.busy=false;if(r&&!r.error){ecoAdopt(r);SFX.coin();passTierFx(r.tiers);renderPass();renderHomeEco();cb&&cb(true);}else{note(t('eco.err'));cb&&cb(false);}});
     return;
   }
-  Z.got[i]=day;SFX.coin();passTierFx(passAddLocal(SIM.SEASON_MIS_PXP));saveProfile();renderPass();renderHomeEco();cb&&cb(true);
+  Z.got[i]=day;profile.coins+=SIM.SEA_COINS;SFX.coin();passTierFx(passAddLocal(SIM.SEASON_MIS_PXP));saveProfile();renderPass();renderHomeEco();cb&&cb(true);
 }
 function missionText(id){var d=SIM.MISSIONS[id];return t('mis.'+d.k,{n:d.n,w:d.w?wName(d.w):''});}
 // ミッションの報酬を受け取る（宝箱1つ＋経験値）
@@ -3020,7 +3057,7 @@ function ecoClaim(i,cb){
       else{if(r&&r.error==='claimed'){M.c[i]=true;saveProfile();renderHomeEco();}cb&&cb(false);}});
     return;
   }
-  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();passTierFx(passAddLocal(SIM.DAILY_PXP));   // 3つ全部終えたら、カオスバッジ
+  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();profile.coins+=SIM.MIS_COINS;passTierFx(passAddLocal(SIM.DAILY_PXP));   // 3つ全部終えたら、カオスバッジ
 ecoAddXp(SIM.MISSION_XP);saveProfile();renderHomeEco();cb&&cb(true);
 }
 // 宝箱を開ける → cb({item,r,dup})
@@ -3036,7 +3073,7 @@ function ecoOpen(kind,cb){
   var res;
   if(kind==='chaos'){res=SIM.rollChaos(Math.random,profile.inv,profile.pity);res.kind='chaos';profile.chaosOpened++;}
   else{var one=SIM.rollCrate(Math.random,profile.inv,profile.pity);res={kind:'lucky',r:one.r,n:1,items:[{item:one.item,dup:one.dup}]};profile.opened++;}
-  res.items.forEach(function(x){if(x.dup)profile.xp+=SIM.DUP_XP[res.r];else{profile.inv.push(x.item);ecoMarkNew(x.item);}});
+  res.items.forEach(function(x){if(x.dup){profile.xp+=SIM.DUP_XP[res.r];profile.coins+=SIM.DUP_COINS[res.r];}else{profile.inv.push(x.item);ecoMarkNew(x.item);}});
   profile.pity=res.r>=3?0:profile.pity+1;
   saveProfile();cb&&cb(res);
 }
@@ -3084,9 +3121,72 @@ function renderHomeEco(){
   var mn=document.getElementById('he-mis-n');mn.style.display=ready?'':'none';mn.textContent=ready;
   document.getElementById('he-misbtn').classList.toggle('has',ready>0);
   var Z=ecoSea(),un=SIM.seasonUnlocked(Z.got,SIM.dayKey()),sr=0;SIM.SEASON_MISSIONS.forEach(function(d,i){if(i<un&&!Z.got[i]&&Z.p[i]>=d.n)sr++;});
+  var sn=document.getElementById('he-shop-n');if(sn){sn.style.display=giftReady()?'':'none';document.getElementById('he-shopbtn').classList.toggle('has',giftReady());}
   var pn=document.getElementById('he-pass-n');if(pn){pn.style.display=sr?'':'none';pn.textContent=sr;document.getElementById('he-passbtn').classList.toggle('has',sr>0);}
   var mc=document.getElementById('mis-crate');mc.style.display=n>0?'':'none';mc.textContent=t('eco.crate')+' '+t('eco.crateN',{n:n});
 }
+// ---- ショップ：今日の無料ギフト・今日のおすすめ（6つ・1つはセール）・バッジ ----
+var SHOP={confirm:-1,ct:0};
+function shopWho(){return AUTH.user&&AUTH.user.fid||'guest';}
+function giftReady(){ensureProfileShape();return profile.giftDay!==SIM.dayKey();}
+function showShopScreen(){showScreen('shop-screen');SHOP.confirm=-1;renderShop();}
+function renderShop(){
+  var body=document.getElementById('shop-body');if(!body)return;
+  ensureProfileShape();
+  var day=SIM.dayKey(),left=Math.max(1,Math.ceil((Date.parse(day+'T00:00:00Z')+864e5-Date.now())/36e5)),offers=SIM.shopOffers(day,shopWho()),gf=SIM.shopGift(day);
+  document.getElementById('shop-left').textContent=t('shop.left',{h:left});
+  document.getElementById('shop-coins').innerHTML='<i class="pi coin"></i><b>'+profile.coins+'</b>';
+  var h='<h3 class="pass-h">'+esc(t('shop.gift'))+'</h3><div class="shop-row">'+
+    '<button class="shop-card gift'+(giftReady()?'':' done')+'" onclick="shopGiftClaim()"'+(giftReady()?'':' disabled')+'>'+(gf.lucky?'<canvas data-sb="lucky" width="120" height="120"></canvas>':'<i class="pi coin big"></i>')+
+    '<b>'+esc(gf.lucky?t('eco.lucky'):t('pass.coins',{n:gf.coins}))+'</b><span class="shop-price free">'+esc(giftReady()?t('shop.free'):t('eco.claimed'))+'</span></button></div>';
+  h+='<h3 class="pass-h">'+esc(t('shop.daily'))+'</h3><div class="shop-grid">';
+  offers.forEach(function(o,i){
+    var it=SIM.ITEM_BY_ID[o.item],own=itemOwned(o.item),cf=SHOP.confirm===i;
+    h+='<div class="shop-card rar r'+o.r+(own?' done':'')+(o.sale?' sale':'')+'">'+(o.sale?'<em class="shop-sale">-30%</em>':'')+'<canvas data-si="'+o.item+'" width="220" height="220"></canvas>'+
+      '<b>'+esc(itemName(o.item))+'</b><small>'+esc(rarName(o.r))+'</small>'+
+      (own?'<span class="shop-price own">'+esc(t('shop.owned'))+'</span>':'<button class="shop-price'+(cf?' confirm':'')+(profile.coins<o.price?' poor':'')+'" onclick="shopBuy('+i+')">'+(cf?esc(t('shop.sure')):'<i class="pi coin"></i>'+(o.sale?'<s>'+SIM.SHOP_PRICE[o.r]+'</s>':'')+o.price)+'</button>')+'</div>';
+  });
+  h+='</div><h3 class="pass-h">'+esc(t('shop.badges'))+'</h3><div class="shop-row">';
+  ['lucky','chaos'].forEach(function(k){var pr=SIM.SHOP_BADGE[k],cf=SHOP.confirm===k;
+    h+='<div class="shop-card'+(k==='chaos'?' chaos':'')+'"><canvas data-sb="'+k+'" width="120" height="120"></canvas><b>'+esc(t('eco.'+k))+'</b>'+
+      '<button class="shop-price'+(cf?' confirm':'')+(profile.coins<pr?' poor':'')+'" onclick="shopBadge(\''+k+'\')">'+(cf?esc(t('shop.sure')):'<i class="pi coin"></i>'+pr)+'</button></div>';});
+  h+='</div><p class="pass-note">'+esc(t('shop.how'))+'</p>';
+  body.innerHTML=h;
+  drawShopArt(0);
+}
+function drawShopArt(tm){
+  document.querySelectorAll('#shop-body canvas[data-si]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);g.save();g.translate(W/2,W*.42);drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],W/190,tm);g.restore();});
+  document.querySelectorAll('#shop-body canvas[data-sb]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var k=cv.getAttribute('data-sb');drawBadge(g,W/2,W/2,W/190,k==='chaos'?2:1,k,tm,{glowA:.3});});
+}
+// 1回目のタップで「購入する？」、2回目で買う（押しまちがい防止）
+function shopArm(key){if(SHOP.confirm!==key){SHOP.confirm=key;SHOP.ct=Date.now();SFX.switchW();renderShop();return false;}SHOP.confirm=-1;return true;}
+function shopBuy(i){
+  var o=SIM.shopOffers(SIM.dayKey(),shopWho())[i];if(!o||itemOwned(o.item))return;
+  if(profile.coins<o.price){note(t('shop.poor'));SFX.dry();return;}
+  if(!shopArm(i))return;
+  shopDo({op:'buy',slot:i},function(){profile.coins-=o.price;profile.inv.push(o.item);},function(){ecoMarkNew(o.item);SFX.coin();shopReveal(o);});
+}
+function shopBadge(k){
+  var pr=SIM.SHOP_BADGE[k];if(profile.coins<pr){note(t('shop.poor'));SFX.dry();return;}
+  if(!shopArm(k))return;
+  shopDo({op:'badge',kind:k},function(){profile.coins-=pr;if(k==='chaos')profile.misChaos++;else profile.misCrates++;},function(){SFX.coin();note(t('shop.gotBadge',{b:t('eco.'+k)}));renderShop();renderHomeEco();});
+}
+function shopGiftClaim(){
+  if(!giftReady())return;var gf=SIM.shopGift(SIM.dayKey());
+  shopDo({op:'gift'},function(){if(gf.lucky)profile.misCrates+=gf.lucky;if(gf.coins)profile.coins+=gf.coins;},function(){profile.giftDay=SIM.dayKey();writeProfileLocal();SFX.coin();note(t('shop.gotGift',{r:gf.lucky?t('eco.lucky'):t('pass.coins',{n:gf.coins})}));renderShop();renderHomeEco();});
+}
+// ログイン中はサーバーで買う（コインと持ち物はサーバーが決める）。ゲストはこの端末の中だけ
+function shopDo(body,local,done){
+  if(ECO.busy)return;
+  if(AUTH.user&&AUTH.token&&STORE_ACC){
+    ECO.busy=true;
+    ecoApi(body,function(r){ECO.busy=false;if(r&&!r.error){ecoAdopt(r);done();}else{if(r&&r.error==='claimed'){profile.giftDay=SIM.dayKey();writeProfileLocal();renderShop();}note(t(r&&r.error==='coins'?'shop.poor':'eco.err'));}});
+    return;
+  }
+  local();saveProfile();done();
+}
+// 買ったアイテムは、バッジと同じ演出で見せる
+function shopReveal(o){renderShop();renderHomeEco();openCrateScreen('lucky');CR.res={kind:'lucky',r:o.r,n:1,items:[{item:o.item,dup:false}]};CR.tier=o.r;crateBurst();}
 // ---- シーズンパスの画面：上に今の段、横に30段の報酬、下にシーズンミッション ----
 function showPassScreen(){showScreen('pass-screen');renderPass();var cur=document.querySelector('#pass-track .pt.cur');if(cur)cur.scrollIntoView({inline:'center',block:'nearest'});}
 function passIcon(rw){return rw.chaos?'<i class="pi chaos"></i>':rw.lucky?'<i class="pi lucky"></i>':'<i class="pi coin"></i>';}
@@ -4630,7 +4730,7 @@ function renderPresDot(){
 // ============================================================
 // 画面遷移
 // ============================================================
-var SCREENS=['tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen'];
+var SCREENS=['tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen','shop-screen'];
 var currentScreen='';
 function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
@@ -4640,7 +4740,7 @@ function showScreen(id){
   setDemo(id==='mode-screen');   // ホームだけ背景でCPU同士が戦う
   setDemoOn(PREVIEW,id==='stage-screen');
   if(id==='mode-screen'){renderHomeBar();renderHomeEco();}
-  if(id==='mode-screen'||id==='profile-screen')startCardLoop();
+  if(id==='mode-screen'||id==='profile-screen'||id==='shop-screen')startCardLoop();
   bgmSync();
   window.scrollTo(0,0);
   showNextInvite();              // 待っていた招待があれば出す（CPU戦・オンライン対戦の途中は出さない）
@@ -8620,6 +8720,8 @@ function cardLoop(ts){
   if(pc&&pc.offsetParent){any=true;renderCardCanvas(pc,myCardData(),tm);}
   var hb=document.getElementById('hb-tier');
   if(hb&&hb.offsetParent){any=true;drawHomeBarTier(tm);}   // ホームのバーの紋章（最高ティアは動く）
+  var sb=document.getElementById('shop-body');
+  if(sb&&sb.offsetParent){any=true;drawShopArt(tm);}
   var hc=document.getElementById('he-crate-cv');
   if(hc&&hc.offsetParent){any=true;drawCrateIcon(tm);}   // 宝箱があるときは、ホームの箱がゆれる
   var fc=document.getElementById('fr-card'),fp=frOpen&&findFriend(frOpen);
@@ -10480,7 +10582,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
