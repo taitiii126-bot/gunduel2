@@ -154,34 +154,35 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 24, outfit: 21, neck: 20, accent: 8, win: 7 };   // win＝勝ちポーズ
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 24, outfit: 21, neck: 20, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent', 'win'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
-// ---- 宝箱から出るアイテム（帽子・服・首もと＝50種、エモート＝16種）とレアリティ ----
+// ---- 宝箱から出るアイテム（帽子・服・首もと＝50種、勝ちポーズ＝10種、エモート＝16種）とレアリティ ----
 // レアリティ：0=コモン 1=レア 2=エピック 3=レジェンダリー 4=ミシック。出やすさは RARITY_W（合計100）
 var RARITY_KEYS = ['common', 'rare', 'epic', 'legendary', 'mythic'];
 var RARITY_W = [56, 28, 11.5, 4, 0.5];
 var PITY_AT = 25;               // これだけ開けてもレジェンダリー以上が出なければ、次は必ずレジェンダリー以上
 // 見た目：それぞれ LOOK_BASE より前はみんなが最初から持っている（開発者だけの物を含む）。そこから後ろが宝箱の物
-var LOOK_BASE = { hat: 6, outfit: 5, neck: 4 };
+var LOOK_BASE = { hat: 6, outfit: 5, neck: 4, win: 7 };
 // [番号, レアリティ]。名前と絵はブラウザ側（lang.js の item.<id>、index.html の描き方）
 var ITEM_RAR = {
   hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4]],
   outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4]],
-  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4]]
+  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4]],
+  win: [[7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 2], [13, 2], [14, 3], [15, 3], [16, 4]]   // 勝ちポーズ
 };
 // エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
 var EMOTE_N = 20, EMOTE_FREE = 4;
 var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4];
 var ITEMS = [];   // { id:'h6', key:'hat', idx:6, r:1 } / { id:'e6', key:'emote', idx:6, r:1 }
 (function () {
-  var pre = { hat: 'h', outfit: 'o', neck: 'n' };
+  var pre = { hat: 'h', outfit: 'o', neck: 'n', win: 'w' };
   Object.keys(ITEM_RAR).forEach(function (k) { ITEM_RAR[k].forEach(function (a) { ITEMS.push({ id: pre[k] + a[0], key: k, idx: a[0], r: a[1] }); }); });
   for (var e = EMOTE_FREE; e < EMOTE_N; e++) ITEMS.push({ id: 'e' + e, key: 'emote', idx: e, r: EMOTE_RAR[e] });
 })();
 var ITEM_BY_ID = {};
 ITEMS.forEach(function (it) { ITEM_BY_ID[it.id] = it; });
-function itemOf(key, idx) { var pre = { hat: 'h', outfit: 'o', neck: 'n', emote: 'e' }[key]; return pre ? ITEM_BY_ID[pre + idx] || null : null; }
+function itemOf(key, idx) { var pre = { hat: 'h', outfit: 'o', neck: 'n', win: 'w', emote: 'e' }[key]; return pre ? ITEM_BY_ID[pre + idx] || null : null; }
 // 持ち物（アイテムの id の配列）を整える：知らない id・重なりを落とす
 function cleanInv(v) {
   var o = [];
@@ -191,7 +192,7 @@ function cleanInv(v) {
 // 見た目のうち、持っていない宝箱の物を「なし・最初の物」に戻す（inv が null のときは、宝箱の物を全部外す）
 function lookOwned(look, inv) {
   var o = {}; Object.keys(look || {}).forEach(function (k) { o[k] = look[k]; });
-  ['hat', 'outfit', 'neck'].forEach(function (k) {
+  ['hat', 'outfit', 'neck', 'win'].forEach(function (k) {
     var it = itemOf(k, o[k]);
     if (it && !(inv && inv.indexOf(it.id) >= 0)) o[k] = 0;
   });
@@ -291,7 +292,7 @@ function randomLook(rnd) {
   // ときどき、宝箱のアイテムも身につける（CPUの見た目にも楽しみを。持ち物の確認はない：CPUは画面の中だけ）
   ['hat', 'outfit', 'neck'].forEach(function (k) { if (r() < 0.22) { var L = ITEMS.filter(function (it) { return it.key === k && it.r <= 3; }); o[k] = L[Math.floor(r() * L.length)].idx; } });
   o.accent = Math.floor(r() * LOOK_SIZES.accent);
-  o.win = Math.floor(r() * LOOK_DEV.win);   // 開発者の勝ちポーズは出さない
+  o.win = r() < 0.2 ? 7 + Math.floor(r() * 7) : Math.floor(r() * LOOK_DEV.win);   // 開発者の勝ちポーズは出さない。ときどき宝箱の物（ミシック・レジェンダリーは出さない）
   return o;
 }
 
