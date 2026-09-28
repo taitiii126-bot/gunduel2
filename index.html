@@ -1376,11 +1376,6 @@ body.demo #bg-shade{opacity:1;}
   #mode-screen h1 span{display:block;white-space:nowrap;}
   .home-bar{width:auto;max-width:640px;margin:0 0 12px;justify-self:start;}
   #mode-screen .home-bar{align-self:flex-start;}
-  .home-main{display:grid;grid-template-columns:minmax(0,1fr) 460px;column-gap:64px;row-gap:12px;align-items:center;text-align:left;}
-  .home-main>.logo{grid-column:1;grid-row:1 / span 3;margin:0;position:relative;}
-  .home-main>.play-grid{grid-column:2;grid-row:1;grid-template-columns:1fr;gap:12px;}
-  .home-main>.sub-grid{grid-column:2;grid-row:2;grid-template-columns:1fr 1fr;margin-top:0;}
-  .home-main>#login-bar{grid-column:2;grid-row:3;align-items:stretch;margin-top:4px;}
   #login-bar .login-btn{max-width:none;}
   .login-note{text-align:left;}
   /* ロゴ：2段にして、DUEL を右にずらす */
@@ -1465,11 +1460,6 @@ body.mland .back-btn{margin-top:8px;padding:8px;min-height:38px;}
 body.mland #mode-screen{max-width:none;min-height:0;padding-top:0;}
 body.mland .home-bar{width:auto;max-width:min(520px,62vw);margin:0 0 6px;padding:5px 12px 5px 5px;grid-template-columns:38px minmax(0,1fr) auto 16px;gap:10px;}
 body.mland .home-bar .hb-av{width:38px;height:38px;}
-body.mland .home-main{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);column-gap:22px;row-gap:8px;align-items:center;text-align:left;}
-body.mland .home-main>.logo{grid-column:1;grid-row:1 / span 3;margin:0;}
-body.mland .home-main>.play-grid{grid-column:2;grid-row:1;gap:8px;}
-body.mland .home-main>.sub-grid{grid-column:2;grid-row:2;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:0;}
-body.mland .home-main>#login-bar{grid-column:2;grid-row:3;margin-top:0;align-items:stretch;}
 body.mland .logo-mark{margin:0 0 6px;width:30px;height:30px;}
 body.mland #mode-screen h1{justify-content:flex-start;font-size:clamp(40px,12vh,64px);}
 body.mland .logo-tag{margin-top:8px;}
@@ -1597,6 +1587,57 @@ body:has(#profile-screen:not([style*="none"])) #wrap{max-width:1120px;}
 /* スマホ横持ち：カードを小さく左に固定 */
 body.mland .pf-layout{grid-template-columns:minmax(0,210px) minmax(0,1fr);gap:12px;}
 body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:none;}
+
+/* ---- 起動画面 ---- */
+#splash{position:fixed;inset:0;z-index:400;display:grid;place-items:center;align-content:center;gap:28px;background:radial-gradient(ellipse at 50% 45%,#2A1E48 0%,#0A0A14 60%,#030306 100%);cursor:pointer;transition:opacity .6s ease,visibility .6s;}
+#splash.out{opacity:0;visibility:hidden;}
+#splash .sp-logo{margin:0;text-align:center;}
+#splash .logo-mark{width:78px;height:78px;margin:0 auto 18px;animation:spMark 1s cubic-bezier(.2,1.4,.4,1) both;}
+#splash h1{display:flex;justify-content:center;gap:.22em;font-family:'Chakra Petch',sans-serif;font-style:italic;font-weight:700;font-size:clamp(64px,16vw,190px);line-height:.9;letter-spacing:-.03em;}
+#splash h1 .l1{color:var(--tx);animation:spL 0.7s .15s cubic-bezier(.2,1.2,.4,1) both;}
+#splash h1 .l2{padding-right:.08em;background:linear-gradient(100deg,#FFE7A3 0%,#FFC53D 40%,#FFF6D0 50%,#FFC53D 60%,#D99400 100%);background-size:250% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 10px 40px rgba(255,180,0,.45));animation:spR .7s .3s cubic-bezier(.2,1.2,.4,1) both,spShine 1.6s 1s ease-in-out infinite;}
+#splash .logo-tag{margin-top:22px;font-size:13px;animation:spFade .6s .8s both;}
+#splash .logo p{display:none;}
+#splash .sp-tap{margin:0;font-family:var(--f-ui);font-size:13px;font-weight:700;letter-spacing:.4em;color:var(--tx-3);animation:spFade .6s 1.1s both,newPulse 1.4s 1.7s ease-in-out infinite;}
+@keyframes spMark{from{opacity:0;transform:scale(2.4) rotate(-120deg);}}
+@keyframes spL{from{opacity:0;transform:translateX(-60px) skewX(-12deg);}}
+@keyframes spR{from{opacity:0;transform:translateX(60px) skewX(-12deg);}}
+@keyframes spFade{from{opacity:0;transform:translateY(8px);}}
+@keyframes spShine{0%{background-position:100% 0;}100%{background-position:-50% 0;}}
+/* ---- ホーム：左にシーズンまわり、真ん中に自分のキャラ、右に対戦 ---- */
+.home-main{display:flex;flex-direction:column;gap:12px;}
+.home-hero{order:1;position:relative;display:block;width:100%;height:min(38vh,340px);padding:0;background:none;border:0;cursor:pointer;}
+.home-hero canvas{width:100%;height:100%;display:block;}
+.hh-edit{position:absolute;left:50%;bottom:6px;transform:translateX(-50%);padding:4px 12px;border-radius:99px;background:rgba(8,10,18,.7);border:1px solid var(--line);font-size:11px;font-weight:800;color:var(--tx-2);opacity:0;transition:opacity .2s;white-space:nowrap;}
+.home-hero:hover .hh-edit,.home-hero:focus-visible .hh-edit{opacity:1;}
+.home-main>.play-grid{order:2;}
+.home-side{order:3;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.home-main>.sub-grid{order:4;grid-template-columns:repeat(4,1fr);margin-top:0;}
+.home-main>#login-bar{order:5;}
+@media (max-width:560px){.home-main>.sub-grid{grid-template-columns:1fr 1fr;}}
+.side-btn{position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:rgba(15,18,27,.9);border:1px solid var(--line);color:var(--tx);font-size:14px;font-weight:900;text-align:left;transition:.18s var(--ease);}
+.side-btn:hover{transform:translateY(-2px);border-color:var(--line-2);}
+.side-btn .sb-ic{flex:none;width:30px;height:30px;display:grid;place-items:center;}
+.side-btn svg.i{width:24px;height:24px;color:var(--gold);}
+.side-btn canvas{width:34px;height:34px;}
+.side-btn.has{border-color:rgba(255,197,61,.7);box-shadow:0 0 22px -8px rgba(255,197,61,.8);animation:crPulse 1.6s ease-in-out infinite;}
+@media (min-width:1000px){
+  #mode-screen{max-width:1240px;}
+  .home-main{display:grid;grid-template-columns:230px minmax(0,1fr) 420px;grid-template-rows:auto auto auto;column-gap:28px;row-gap:12px;align-items:center;text-align:left;}
+  .home-side{grid-column:1;grid-row:1 / span 3;grid-template-columns:1fr;align-self:center;}
+  .side-btn{padding:16px 16px;font-size:15px;}
+  .home-hero{grid-column:2;grid-row:1 / span 3;height:min(62vh,560px);}
+  .home-main>.play-grid{grid-column:3;grid-row:1;grid-template-columns:1fr;}
+  .home-main>.sub-grid{grid-column:3;grid-row:2;grid-template-columns:1fr 1fr;}
+  .home-main>#login-bar{grid-column:3;grid-row:3;}
+}
+body.mland .home-main{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.2fr);column-gap:14px;row-gap:6px;align-items:center;text-align:left;}
+body.mland .home-side{grid-column:1;grid-row:1 / span 3;grid-template-columns:1fr;gap:6px;}
+body.mland .side-btn{padding:7px 10px;font-size:12px;}
+body.mland .home-hero{grid-column:2;grid-row:1 / span 3;height:62vh;}
+body.mland .home-main>.play-grid{grid-column:3;grid-row:1;}
+body.mland .home-main>.sub-grid{grid-column:3;grid-row:2;grid-template-columns:1fr 1fr;}
+body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
 </style>
 </head>
 <body>
@@ -1642,13 +1683,16 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
       <svg class="i hb-arrow" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg>
     </button>
     <div class="home-main">
-      <div class="logo">
-        <div class="logo-mark"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/></svg></div>
-        <h1><span class="l1">GUN</span><span class="l2">DUEL</span></h1>
-        <div class="logo-tag">1 ON 1 · <b>FIRST TO 3</b></div>
-        <p data-i18n="home.tagline"></p>
+      <!-- 左：シーズンパス・ミッション・ショップ・バッジ -->
+      <div class="home-side">
+        <button class="side-btn" id="he-passbtn" onclick="showPassScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14 5v12" stroke-dasharray="2 2"/></svg><span class="mb-badge" id="he-pass-n" style="display:none;"></span></span><span data-i18n="menu.pass"></span></button>
+        <button class="side-btn" id="he-misbtn" onclick="openMissions()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10l1.5 1.5 3-3M8.5 16l1.5 1.5 3-3M15 11h1.5M15 17h1.5"/></svg><span class="mb-badge" id="he-mis-n" style="display:none;"></span></span><span data-i18n="menu.missions"></span></button>
+        <button class="side-btn" id="he-shopbtn" onclick="showShopScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h16l-1.2 10.5a1.5 1.5 0 0 1-1.5 1.5H6.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2"/></svg><span class="mb-badge" id="he-shop-n" style="display:none;">!</span></span><span data-i18n="menu.shop"></span></button>
+        <button class="side-btn sb-crate" id="he-crate" onclick="openCrateScreen()"><span class="sb-ic"><canvas id="he-crate-cv" width="96" height="96"></canvas><span class="mb-badge" id="he-crate-n" style="display:none;"></span></span><span data-i18n="menu.crate"></span></button>
       </div>
-      <!-- 真ん中：対戦を始める大きなボタン -->
+      <!-- 真ん中：自分のキャラ（押すと見た目の変更へ） -->
+      <button class="home-hero" onclick="showProfileScreen();pfTab('look')" data-i18n-title="home.heroHint"><canvas id="home-hero"></canvas><span class="hh-edit" data-i18n="home.heroEdit"></span></button>
+      <!-- 右：対戦を始める大きなボタン -->
       <div class="play-grid">
         <button class="play-btn primary" onclick="showStageScreen()">
           <span class="pb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2.5"/><rect x="9.5" y="9.5" width="5" height="5" rx="1"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg></span>
@@ -1664,10 +1708,6 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
         <button class="sub-btn" onclick="showLoadoutScreen('mode')"><svg class="i" viewBox="0 0 24 24"><path d="M3 10h13l2-2h3v4h-3l-1 1H9l-1 5H5l1-5H3z"/><path d="M11 13v2"/></svg><span data-i18n="menu.loadout"></span></button>
         <button class="sub-btn" onclick="showFriendsScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.2A5.5 5.5 0 0 1 21.5 20"/></svg><span class="mb-badge" id="fr-badge" style="display:none;"></span></span><span data-i18n="menu.friends"></span></button>
         <button class="sub-btn" onclick="showRankScreen()"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg><span data-i18n="menu.rank"></span></button>
-        <button class="sub-btn sb-crate" id="he-crate" onclick="openCrateScreen()"><span class="sb-ic"><canvas id="he-crate-cv" width="96" height="96"></canvas><span class="mb-badge" id="he-crate-n" style="display:none;"></span></span><span data-i18n="menu.crate"></span></button>
-        <button class="sub-btn" id="he-misbtn" onclick="openMissions()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10l1.5 1.5 3-3M8.5 16l1.5 1.5 3-3M15 11h1.5M15 17h1.5"/></svg><span class="mb-badge" id="he-mis-n" style="display:none;"></span></span><span data-i18n="menu.missions"></span></button>
-        <button class="sub-btn" id="he-shopbtn" onclick="showShopScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h16l-1.2 10.5a1.5 1.5 0 0 1-1.5 1.5H6.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2"/></svg><span class="mb-badge" id="he-shop-n" style="display:none;">!</span></span><span data-i18n="menu.shop"></span></button>
-        <button class="sub-btn" id="he-passbtn" onclick="showPassScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14 5v12" stroke-dasharray="2 2"/></svg><span class="mb-badge" id="he-pass-n" style="display:none;"></span></span><span data-i18n="menu.pass"></span></button>
         <button class="sub-btn" onclick="startRange()"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg><span data-i18n="menu.range"></span></button>
       </div>
       <div id="login-bar" style="display:none;">
@@ -2077,9 +2117,19 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
   <i class="inv-bar"></i>
 </div>
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
+<!-- 起動画面：大きなロゴを見せてからホームへ（押すとすぐ閉じる） -->
+<div id="splash" onclick="hideSplash()">
+  <div class="logo sp-logo">
+        <div class="logo-mark"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="2" fill="currentColor" stroke="none"/><path d="M12 1.5v5M12 17.5v5M1.5 12h5M17.5 12h5"/></svg></div>
+        <h1><span class="l1">GUN</span><span class="l2">DUEL</span></h1>
+        <div class="logo-tag">1 ON 1 · <b>FIRST TO 3</b></div>
+        <p data-i18n="home.tagline"></p>
+      </div>
+  <p class="sp-tap">TAP TO START</p>
+</div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
 <script src="sim.js?v=36"></script>
-<script src="lang.js?v=39"></script>
+<script src="lang.js?v=40"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4745,6 +4795,24 @@ function showScreen(id){
   window.scrollTo(0,0);
   showNextInvite();              // 待っていた招待があれば出す（CPU戦・オンライン対戦の途中は出さない）
   flushTitleNotes();
+}
+// 起動画面：2.4秒たつか、押すと消える
+var SPLASH={on:true};
+function hideSplash(){if(!SPLASH.on)return;SPLASH.on=false;var el=document.getElementById('splash');if(el){el.classList.add('out');setTimeout(function(){el.remove();},700);}}
+setTimeout(hideSplash,2400);
+// ホームの真ん中の自分のキャラ：立って息をし、まばたき。8秒ごとに勝ちポーズ
+function drawHomeHero(tm){
+  var cv=document.getElementById('home-hero');if(!cv||!cv.offsetParent)return;
+  var r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1),W=Math.round(r.width*dpr),H=Math.round(r.height*dpr);if(!W||!H)return;
+  if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
+  var g=cv.getContext('2d');g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);
+  var s=Math.min(H/150,W/95),gx=W/2,gy=H-16*dpr;
+  var sp=g.createRadialGradient(gx,gy-H*.35,10,gx,gy-H*.3,H*.6);sp.addColorStop(0,'rgba(255,214,120,.22)');sp.addColorStop(1,'rgba(255,214,120,0)');g.fillStyle=sp;g.fillRect(0,0,W,H);   // スポットライト
+  var fl=g.createRadialGradient(gx,gy,0,gx,gy,70*s);fl.addColorStop(0,'rgba(255,200,110,.35)');fl.addColorStop(.5,'rgba(0,0,0,.35)');fl.addColorStop(1,'rgba(0,0,0,0)');
+  g.fillStyle=fl;g.beginPath();g.ellipse(gx,gy,70*s,13*s,0,0,Math.PI*2);g.fill();
+  g.strokeStyle='rgba(255,197,61,.35)';g.lineWidth=2*dpr;g.beginPath();g.ellipse(gx,gy,52*s,9*s,0,0,Math.PI*2);g.stroke();
+  var cyc=tm%9,wt=cyc-5.4,L=profile.look;
+  drawAvatar(g,{x:gx-2*s,y:gy,s:s,dir:1,look:L,team:TEAM.me,wid:(loadout&&loadout[0])||2,bob:Math.sin(tm*2.1)*.8,blink:(tm%4.2)<.13,tm:tm,win:wt>0&&wt<3.4?{pose:L.win|0,t:wt}:null});
 }
 function showModeScreen(){disconnectWS();showScreen('mode-screen');}
 // ホーム上のプロフィールのバー（顔・名前・称号・ティア）
@@ -8722,6 +8790,8 @@ function cardLoop(ts){
   if(hb&&hb.offsetParent){any=true;drawHomeBarTier(tm);}   // ホームのバーの紋章（最高ティアは動く）
   var sb=document.getElementById('shop-body');
   if(sb&&sb.offsetParent){any=true;drawShopArt(tm);}
+  var hh=document.getElementById('home-hero');
+  if(hh&&hh.offsetParent){any=true;drawHomeHero(tm);}
   var hc=document.getElementById('he-crate-cv');
   if(hc&&hc.offsetParent){any=true;drawCrateIcon(tm);}   // 宝箱があるときは、ホームの箱がゆれる
   var fc=document.getElementById('fr-card'),fp=frOpen&&findFriend(frOpen);
@@ -10582,7 +10652,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
