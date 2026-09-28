@@ -162,6 +162,8 @@ function keepServerOwned(next, old) {
   next.inv = old ? old.inv.slice() : [];
   next.opened = old ? old.opened : 0;
   next.misCrates = old ? old.misCrates : 0;
+  next.chaosOpened = old ? old.chaosOpened || 0 : 0;
+  next.misChaos = old ? old.misChaos || 0 : 0;
   next.pity = old ? old.pity : 0;
   next.look = SIM.lookOwned(next.look, next.inv);
   next.emo = SIM.cleanEmotes(next.emo, next.inv);
@@ -434,22 +436,31 @@ const auth = {
     const pr = serverProfile(u);
     u.misGot.push(i);
     pr.misCrates = (pr.misCrates || 0) + 1;
+    if (u.misGot.length === 3) pr.misChaos = (pr.misChaos || 0) + 1;   // その日の3つを全部終えた → カオスバッジ
     pr.xp = (pr.xp || 0) + SIM.MISSION_XP;
     if (pr.mis && pr.mis.day === day) pr.mis.c[i] = true;
     return saveServerProfile(u, pr, { claimed: i });
   },
   // 宝箱を1つ開ける：まだ開けていない宝箱があれば、サーバーの乱数で中身を決めて持ち物に足す
-  crateOpen(uid) {
+  crateOpen(uid, kind) {
     const u = db.users[uid];
     if (!u) return { error: 'not_found' };
     const pr = serverProfile(u);
+    if (kind === 'chaos') {   // カオスバッジ：分かれた分もまとめて決める
+      if ((pr.chaosOpened || 0) >= SIM.chaosEarned(pr.xp, pr.misChaos)) return { error: 'no_crate' };
+      const res = SIM.rollChaos(() => crypto.randomInt(0, 1 << 30) / (1 << 30), pr.inv, pr.pity);
+      res.items.forEach(x => { if (x.dup) pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r]; else pr.inv.push(x.item); });
+      pr.chaosOpened = (pr.chaosOpened || 0) + 1;
+      pr.pity = res.r >= 3 ? 0 : (pr.pity || 0) + 1;
+      return saveServerProfile(u, pr, { kind: 'chaos', r: res.r, n: res.n, items: res.items });
+    }
     if ((pr.opened || 0) >= SIM.cratesEarned(pr.xp, pr.misCrates)) return { error: 'no_crate' };
     const res = SIM.rollCrate(() => crypto.randomInt(0, 1 << 30) / (1 << 30), pr.inv, pr.pity);
     if (res.dup) pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r];
     else pr.inv.push(res.item);
     pr.opened = (pr.opened || 0) + 1;
     pr.pity = res.r >= 3 ? 0 : (pr.pity || 0) + 1;
-    return saveServerProfile(u, pr, { item: res.item, r: res.r, dup: res.dup });
+    return saveServerProfile(u, pr, { kind: 'lucky', item: res.item, r: res.r, dup: res.dup, n: 1, items: [{ item: res.item, dup: res.dup }] });
   },
   // オンライン対戦で見せる見た目・エモート：持ち物を確かめる（ゲストは宝箱の物を外す）
   ownedLook(uid, look) { const u = uid && db.users[uid]; return SIM.lookOwned(look, u && u.profile ? SIM.cleanInv(u.profile.inv) : null); },

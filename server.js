@@ -932,7 +932,7 @@ const server = http.createServer((req, res) => {
     if (!u) return json(res, 401, { error: '未ログイン' });
     if (!crateHits.hit(u.id)) return json(res, 429, { error: '操作が多すぎます。少し待ってください' });
     return readJson(req, m => {
-      const r = m && m.op === 'claim' ? auth.missionClaim(u.id, m.i) : m && m.op === 'open' ? auth.crateOpen(u.id) : { error: 'bad' };
+      const r = m && m.op === 'claim' ? auth.missionClaim(u.id, m.i) : m && m.op === 'open' ? auth.crateOpen(u.id, m.kind === 'chaos' ? 'chaos' : 'lucky') : { error: 'bad' };
       json(res, r.error ? 400 : 200, r);
     });
   }
