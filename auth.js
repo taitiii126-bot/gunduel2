@@ -166,6 +166,7 @@ function keepServerOwned(next, old) {
   next.misChaos = old ? old.misChaos || 0 : 0;
   next.pass = old && old.pass ? old.pass : { s: 0, xp: 0 };
   next.coins = old ? old.coins || 0 : 0;
+  next.login = old && old.login ? old.login : { day: '', streak: 0, best: 0, count: 0, shields: 0, hist: [] };
   if (next.sea && old && old.sea && old.sea.s === next.sea.s) next.sea.got = old.sea.got.slice(); else if (next.sea) next.sea.got = next.sea.got.map(() => '');
   next.pity = old ? old.pity : 0;
   next.look = SIM.lookOwned(next.look, next.inv);
@@ -188,7 +189,9 @@ function addPassXp(pr, add) {
     if (rw.lucky) pr.misCrates = (pr.misCrates || 0) + rw.lucky;
     if (rw.chaos) pr.misChaos = (pr.misChaos || 0) + rw.chaos;
     if (rw.coins) pr.coins = (pr.coins || 0) + rw.coins;
-    got.push(Object.assign({ tier: t }, rw));
+    let dup = false;
+    if (rw.item) { if (pr.inv.indexOf(rw.item) < 0) pr.inv.push(rw.item); else { dup = true; pr.coins = (pr.coins || 0) + SIM.PASS_ITEM_COINS; } }   // スキン（持っていたらコイン）
+    got.push(Object.assign({ tier: t, dup }, rw));
   }
   return got;
 }
@@ -481,6 +484,20 @@ const auth = {
     pr.coins = (pr.coins || 0) + SIM.SEA_COINS;
     const tiers = addPassXp(pr, SIM.SEASON_MIS_PXP);
     return saveServerProfile(u, pr, { sclaimed: i, tiers });
+  },
+  // ログインボーナス（1日1回）：連続記録を進めて、7日カレンダーの報酬と節目の報酬を渡す
+  loginBonus(uid) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    const pr = serverProfile(u), st = SIM.loginStep(pr.login, SIM.dayKey());
+    if (!st) return { error: 'claimed' };
+    pr.login = st.L;
+    [st.reward, st.ms].forEach(rw => { if (!rw) return;
+      if (rw.xp) pr.xp = (pr.xp || 0) + rw.xp;
+      if (rw.lucky) pr.misCrates = (pr.misCrates || 0) + rw.lucky;
+      if (rw.chaos) pr.misChaos = (pr.misChaos || 0) + rw.chaos;
+      if (rw.coins) pr.coins = (pr.coins || 0) + rw.coins; });
+    return saveServerProfile(u, pr, { reward: st.reward, ms: st.ms, used: st.used });
   },
   // ショップ：op='gift'（1日1回の無料ギフト）/ 'buy'（slot＝おすすめの番号）/ 'badge'（kind＝lucky|chaos）
   shop(uid, m) {
