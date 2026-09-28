@@ -1976,7 +1976,7 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
 <script src="sim.js?v=32"></script>
-<script src="lang.js?v=33"></script>
+<script src="lang.js?v=34"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -6398,19 +6398,36 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
       g.strokeStyle='#E8C66A';g.lineWidth=1.3;g.beginPath();g.moveTo(-8,topY+6);g.quadraticCurveTo(0,topY+14,8,topY+6);g.stroke();
       g.beginPath();g.arc(0,topY+13,2.2,0,Math.PI*2);g.fillStyle='#34D399';g.fill();
       g.save();g.globalCompositeOperation='lighter';g.fillStyle='rgba(120,255,190,'+(.25+.2*Math.sin(tm*3)).toFixed(2)+')';g.beginPath();g.arc(0,topY+13,5,0,Math.PI*2);g.fill();g.restore();break;
-    case 20:  // 銀河のスーツ（ミシック）：服の中を星雲と星が流れる
-      var ng=g.createRadialGradient(Math.sin(tm*.5)*6,topY+14+Math.cos(tm*.4)*5,1,0,topY+14,22);ng.addColorStop(0,'rgba(190,90,255,.9)');ng.addColorStop(.5,'rgba(60,70,220,.6)');ng.addColorStop(1,'rgba(10,10,40,0)');
-      g.fillStyle=ng;g.fillRect(-tw,topY,tw*2,botY-topY);
-      for(k=0;k<14;k++){x=((k*7.7+tm*3)%26)-13;y=topY+((k*13.3+tm*1.2*(1+k%3))%(botY-topY));var a=.4+.6*Math.abs(Math.sin(tm*2+k));g.fillStyle='rgba(255,255,255,'+a.toFixed(2)+')';g.fillRect(x,y,k%4?1:1.6,k%4?1:1.6);}
+    case 20:  // 冥王の鎧（ミシック）：黒鋼の板を重ねた鎧。赤い紋様が脈打ち、胸の核が光る
+      var pl=.5+.5*Math.sin(tm*3.4),ah=botY-topY;
+      var mg=g.createLinearGradient(-tw,0,tw,0);mg.addColorStop(0,'#07060C');mg.addColorStop(.5,'#2A2536');mg.addColorStop(1,'#07060C');g.fillStyle=mg;g.fillRect(-tw,topY,tw*2,ah);
+      for(i=0;i<4;i++){var py=topY+8+i*5.2;g.fillStyle='rgba(0,0,0,.45)';g.beginPath();g.moveTo(-tw,py+1.2);g.quadraticCurveTo(0,py+4.2,tw,py+1.2);g.lineTo(tw,py+2.2);g.quadraticCurveTo(0,py+5.2,-tw,py+2.2);g.fill();
+        g.strokeStyle='rgba(170,160,200,.35)';g.lineWidth=.6;g.beginPath();g.moveTo(-tw,py);g.quadraticCurveTo(0,py+3,tw,py);g.stroke();}
+      g.save();g.globalCompositeOperation='lighter';g.strokeStyle='rgba(255,40,80,'+(.3+.4*pl).toFixed(2)+')';g.lineWidth=.8;g.shadowColor='#FF2050';g.shadowBlur=4*pl;
+      g.beginPath();g.moveTo(-tw+2,topY+2);g.lineTo(0,topY+12);g.lineTo(tw-2,topY+2);g.moveTo(0,topY+12);g.lineTo(0,botY-2);g.moveTo(-6,topY+19);g.lineTo(0,topY+15);g.lineTo(6,topY+19);g.moveTo(-8,botY-5);g.lineTo(-3,botY-9);g.moveTo(8,botY-5);g.lineTo(3,botY-9);g.stroke();
+      var cy=topY+11,cgr2=g.createRadialGradient(0,cy,0,0,cy,5.5);cgr2.addColorStop(0,'rgba(255,200,225,.8)');cgr2.addColorStop(.4,'rgba(255,40,100,'+(.3+.3*pl).toFixed(2)+')');cgr2.addColorStop(1,'rgba(120,0,60,0)');g.fillStyle=cgr2;g.beginPath();g.arc(0,cy,5.5,0,Math.PI*2);g.fill();
+      g.restore();
+      g.fillStyle='#1A0810';g.strokeStyle='#C9A24A';g.lineWidth=.8;g.beginPath();g.moveTo(0,topY+7.5);g.lineTo(3.2,topY+11);g.lineTo(0,topY+14.5);g.lineTo(-3.2,topY+11);g.closePath();g.fill();g.stroke();
+      g.fillStyle='rgba(255,90,130,'+(.7+.3*pl).toFixed(2)+')';g.beginPath();g.moveTo(0,topY+8.8);g.lineTo(1.9,topY+11);g.lineTo(0,topY+13.2);g.lineTo(-1.9,topY+11);g.closePath();g.fill();
       break;
   }
   g.restore();
   tp();g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
+  if(fit===20){   // 冥王の鎧：とげのある大きな肩当てと、肩から立ちのぼる黒い炎
+    [-1,1].forEach(function(sd){
+      g.beginPath();g.moveTo(sd*17.5,topY+9);g.quadraticCurveTo(sd*19.5,topY-2,sd*12,topY-5);g.lineTo(sd*15,topY-13);g.lineTo(sd*9,topY-5.5);g.lineTo(sd*8,topY-11);g.lineTo(sd*4.5,topY-3.5);g.lineTo(sd*4.5,topY+3.5);g.closePath();
+      var pg=g.createLinearGradient(0,topY-10,0,topY+7);pg.addColorStop(0,'#4A4458');pg.addColorStop(1,'#0B0912');g.fillStyle=pg;g.fill();g.strokeStyle=OUTLINE;g.lineWidth=1;g.stroke();
+      g.strokeStyle='rgba(255,40,80,.6)';g.lineWidth=.7;g.beginPath();g.moveTo(sd*6,topY+1);g.quadraticCurveTo(sd*13,topY-3,sd*16.5,topY+6);g.stroke();
+      g.save();g.globalCompositeOperation='lighter';
+      for(var q=0;q<3;q++){var ph=(tm*1.3+q*.33+(sd>0?.15:0))%1,fx=sd*(9+q*2)+Math.sin(tm*5+q)*1.5,fy=topY-6-ph*14;
+        var fgr=g.createRadialGradient(fx,fy,0,fx,fy,4.5*(1-ph)+1);fgr.addColorStop(0,'rgba(190,90,255,'+(.55*(1-ph)).toFixed(2)+')');fgr.addColorStop(1,'rgba(60,0,120,0)');g.fillStyle=fgr;g.beginPath();g.arc(fx,fy,4.5*(1-ph)+1,0,Math.PI*2);g.fill();}
+      g.restore();
+    });
+  }
   if(fit===16||fit===13){g.fillStyle=fit===16?'#B7C0CE':'#2E2229';g.strokeStyle=OUTLINE;g.lineWidth=1;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*13.5,topY+5);g.quadraticCurveTo(sd*14,topY-3,sd*6,topY-1.5);g.lineTo(sd*6,topY+3);g.closePath();g.fill();g.stroke();});}   // 肩当て
   if(fit!==13&&fit!==16&&fit!==18&&fit!==20&&fit!==14){g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);}   // ベルト
 }
-var NECK_ORBIT=null;
-// ---- 宝箱の首もと（4〜19）。体の後ろに出る物（マント・翼・龍の尾・星の輪の奥）は drawNeckBack ----
+// ---- 宝箱の首もと（4〜19）。体の後ろに出る物（マント・翼・龍の尾）は drawNeckBack ----
 function drawNeckBack(g,neck,acc,t,hipY,d,wind,tm){
   var i,k;
   g.save();g.lineJoin='round';g.lineCap='round';g.strokeStyle=OUTLINE;g.lineWidth=1.5;
@@ -6435,25 +6452,25 @@ function drawNeckBack(g,neck,acc,t,hipY,d,wind,tm){
     avLimb(g,pts,6,'#C8323C');
     g.fillStyle='#E8C66A';for(k=2;k<pts.length-2;k+=2){g.beginPath();g.arc(pts[k],pts[k+1]-1.5,1.1,0,Math.PI*2);g.fill();}
     var ex=pts[pts.length-2],ey=pts[pts.length-1];g.beginPath();g.moveTo(ex,ey-4);g.lineTo(ex-d*6,ey);g.lineTo(ex,ey+4);g.closePath();g.fillStyle='#E8C66A';g.fill();g.lineWidth=1;g.stroke();
-  }else if(neck===19){orbit(g,t,d,tm,-1);}   // 星の軌道の奥半分
-  g.restore();
-  function orbit(g2,t2,d2,tm2,side){
-    g2.save();g2.globalCompositeOperation='lighter';
-    for(var j=0;j<2;j++){var ry=6+j*4,rx=20+j*6,cy=t2+12+j*6;
-      g2.beginPath();g2.ellipse(0,cy,rx,ry,j?.25:-.2,side<0?Math.PI:0,side<0?Math.PI*2:Math.PI);g2.lineWidth=1.1;g2.strokeStyle='rgba(180,160,255,.55)';g2.stroke();
-      for(var q=0;q<4;q++){var an=tm2*(1.4+j*.5)+q*Math.PI/2+j,sy=Math.sin(an);if((sy<0?-1:1)!==side)continue;var ca=Math.cos(j?.25:-.2),sa=Math.sin(j?.25:-.2),ox=Math.cos(an)*rx,oy=sy*ry;
-        starPath(g2,ox*ca-oy*sa,cy+ox*sa+oy*ca,2.6,.8,4);g2.fillStyle=q%2?'#FFE9A0':'#C8B8FF';g2.fill();}}
-    g2.restore();
+  }else if(neck===19){   // 堕天の翼（ミシック）：背中から広がる大きな黒い翼。ふちは紫に光り、黒い羽根が舞う
+    var fb=Math.sin(tm*3)*.14;
+    [-1,1].forEach(function(sd){
+      g.save();g.translate(-d*3,t+5);g.rotate(sd>0?-.5-fb:.2+fb);g.scale(-d,1);
+      var lay=[[1,'#07060C'],[.8,'#16121F'],[.58,'#2A2238']];
+      lay.forEach(function(L,li){var k2=L[0];
+        g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(14*k2,-20*k2,40*k2,-18*k2);
+        for(var f=0;f<5;f++){var fx=40*k2-f*8*k2,fy=-18*k2+f*6*k2;g.lineTo(fx-1*k2,fy+10*k2);g.lineTo(fx-6*k2,fy+6*k2);}
+        g.quadraticCurveTo(8*k2,10*k2,2,6);g.closePath();g.fillStyle=L[1];g.fill();g.lineWidth=li?0.8:1.4;g.strokeStyle=li?'rgba(0,0,0,.6)':OUTLINE;g.stroke();});
+      g.save();g.globalCompositeOperation='lighter';g.strokeStyle='rgba(170,90,255,'+(.45+.3*Math.sin(tm*4)).toFixed(2)+')';g.lineWidth=1.1;g.shadowColor='#A060FF';g.shadowBlur=6;
+      g.beginPath();g.moveTo(2,-2);g.quadraticCurveTo(14,-20,40,-18);g.stroke();g.restore();
+      g.restore();
+    });
+    g.save();g.globalCompositeOperation='lighter';var dg=g.createRadialGradient(-d*14,t+4,0,-d*14,t+4,34);dg.addColorStop(0,'rgba(120,40,220,.28)');dg.addColorStop(1,'rgba(60,0,120,0)');g.fillStyle=dg;g.fillRect(-d*14-34,t-30,68,68);g.restore();
+    for(k=0;k<3;k++){var ph=(tm*.45+k*.33)%1,px=-d*(16+k*9)+Math.sin(tm*2+k)*4,py=t-8+ph*44;   // 舞い落ちる黒い羽根
+      g.save();g.globalAlpha=Math.sin(ph*Math.PI)*.9;g.translate(px,py);g.rotate(Math.sin(tm*3+k)*.8);g.fillStyle='#0E0B16';g.beginPath();g.ellipse(0,0,1.3,3.6,0,0,Math.PI*2);g.fill();g.strokeStyle='rgba(170,90,255,.6)';g.lineWidth=.5;g.stroke();g.restore();}
   }
-}
-NECK_ORBIT=function(g,t,d,tm){   // 星の軌道の手前半分（胴より後に描く）
-  g.save();g.globalCompositeOperation='lighter';
-  for(var j=0;j<2;j++){var ry=6+j*4,rx=20+j*6,cy=t+12+j*6;
-    g.beginPath();g.ellipse(0,cy,rx,ry,j?.25:-.2,0,Math.PI);g.lineWidth=1.1;g.strokeStyle='rgba(200,180,255,.8)';g.stroke();
-    for(var q=0;q<4;q++){var an=tm*(1.4+j*.5)+q*Math.PI/2+j,sy=Math.sin(an);if(sy<0)continue;var ca=Math.cos(j?.25:-.2),sa=Math.sin(j?.25:-.2),ox=Math.cos(an)*rx,oy=sy*ry;
-      starPath(g,ox*ca-oy*sa,cy+ox*sa+oy*ca,3,.9,4);g.fillStyle=q%2?'#FFF1B0':'#DCD0FF';g.fill();}}
   g.restore();
-};
+}
 function drawNeckX(g,neck,acc,t,d,tm){
   var i,k,x;
   g.save();g.lineJoin='round';g.lineCap='round';g.strokeStyle=OUTLINE;g.lineWidth=1.2;
@@ -6500,8 +6517,10 @@ function drawNeckX(g,neck,acc,t,d,tm){
       g.save();g.globalCompositeOperation='lighter';g.fillStyle='rgba(255,120,60,'+(.18+.12*Math.sin(tm*4)).toFixed(2)+')';g.beginPath();g.ellipse(0,t,14,7,0,0,Math.PI*2);g.fill();g.restore();break;
     case 18:  // 天使の翼（前は胸の小さな羽根飾り）
       g.beginPath();g.ellipse(d*1,t+3,3,1.6,0,0,Math.PI*2);g.fillStyle='#FFFFFF';g.fill();g.lineWidth=.9;g.stroke();break;
-    case 19:  // 星の軌道（手前）
-      NECK_ORBIT(g,t,d,tm);break;
+    case 19:  // 堕天の翼（前は、黒い鎖の留め具と紫の宝石）
+      g.strokeStyle='#2A2433';g.lineWidth=1.4;g.beginPath();g.moveTo(-7,t+1);g.quadraticCurveTo(0,t+5,7,t+1);g.stroke();
+      g.beginPath();g.moveTo(d*1,t+1.4);g.lineTo(d*1+2.6,t+4);g.lineTo(d*1,t+6.6);g.lineTo(d*1-2.6,t+4);g.closePath();g.fillStyle='#8A3CFF';g.fill();g.lineWidth=.9;g.strokeStyle=OUTLINE;g.stroke();
+      g.save();g.globalCompositeOperation='lighter';g.fillStyle='rgba(190,130,255,'+(.35+.3*Math.sin(tm*4)).toFixed(2)+')';g.beginPath();g.arc(d*1,t+4,4.5,0,Math.PI*2);g.fill();g.restore();break;
   }
   g.restore();
 }
@@ -6740,26 +6759,43 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
         var sp=Math.max(0,Math.sin(tm*3+j*1.6));if(sp>.6){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=(sp-.6)/.4;starPath(g,p[0],p[1],r*.26,r*.05,4);g.fillStyle='#FFFFFF';g.fill();g.restore();}});
       p=H.at(0,-.82);g.beginPath();g.arc(p[0],p[1],r*.1,0,Math.PI*2);g.fillStyle=acc;g.fill();g.lineWidth=1;g.stroke();
       break;
-    case 22:  // 天使の輪（ミシック）：頭の上に浮かぶ光の輪
-      var fy=Math.sin(tm*2.2)*.06;c=H.at(.04,-1.62+fy);
-      g.save();g.globalCompositeOperation='lighter';
-      var hg=g.createRadialGradient(c[0],c[1],0,c[0],c[1],r*1.3);hg.addColorStop(0,'rgba(255,245,200,.5)');hg.addColorStop(1,'rgba(255,220,120,0)');g.fillStyle=hg;g.fillRect(c[0]-r*1.4,c[1]-r*1.4,r*2.8,r*2.8);
-      g.beginPath();g.ellipse(c[0],c[1],r*.78,r*.2,0,0,Math.PI*2);g.lineWidth=r*.14;g.strokeStyle='rgba(255,236,170,.95)';g.shadowColor='#FFE9A0';g.shadowBlur=12;g.stroke();
-      g.lineWidth=r*.05;g.strokeStyle='#FFFFFF';g.stroke();
-      for(k=0;k<3;k++){var ang=tm*1.5+k*2.1;p=[c[0]+Math.cos(ang)*r*.78,c[1]+Math.sin(ang)*r*.2];starPath(g,p[0],p[1],r*.12,r*.03,4);g.fillStyle='#FFFFFF';g.fill();}
-      g.restore();
+    case 22:  // 魔王の角冠（ミシック）：黒い額当てから、大きくそり返る角。角の先で紫の炎がゆらぐ
+      var pul=.5+.5*Math.sin(tm*4);
+      [-1,1].forEach(function(sd){   // 角：付け根は太く、外へ張り出してから後ろへそり返る
+        g.beginPath();H.M(sd*.22,-.92);H.C(sd*.5,-1.75,sd*1.25,-1.95,sd*1.9,-2.3);H.C(sd*1.45,-1.85,sd*1.3,-1.45,sd*1.36,-1.05);H.Q(sd*1.2,-.7,sd*.9,-.58);g.closePath();
+        var hgr=g.createLinearGradient.apply(g,H.at(sd*.5,-.8).concat(H.at(sd*1.95,-2.3)));hgr.addColorStop(0,'#2A2233');hgr.addColorStop(.7,'#120E18');hgr.addColorStop(1,'#6A2BD6');
+        g.fillStyle=hgr;g.fill();g.stroke();
+        g.save();g.strokeStyle='rgba(180,120,255,.35)';g.lineWidth=r*.04;for(var q=1;q<4;q++){var a1=H.at(sd*(.36+q*.26),-1.12-q*.22),a2=H.at(sd*(.92+q*.16),-.78-q*.28);g.beginPath();g.moveTo(a1[0],a1[1]);g.lineTo(a2[0],a2[1]);g.stroke();}g.restore();
+        var tp=H.at(sd*1.9,-2.3);g.save();g.globalCompositeOperation='lighter';
+        for(var f=0;f<3;f++){var fh=(.35+.25*Math.sin(tm*11+f*2+sd))*r,fx=tp[0]+Math.sin(tm*7+f)*r*.06;
+          var fgr=g.createRadialGradient(fx,tp[1]-fh*.4,0,fx,tp[1]-fh*.4,fh);fgr.addColorStop(0,'rgba(230,180,255,.9)');fgr.addColorStop(.4,'rgba(150,60,255,.6)');fgr.addColorStop(1,'rgba(80,0,160,0)');
+          g.fillStyle=fgr;g.beginPath();g.ellipse(fx,tp[1]-fh*.45,fh*.38,fh*.75,0,0,Math.PI*2);g.fill();}
+        g.restore();
+      });
+      g.beginPath();H.M(-.98,-.5);H.Q(0,-1.02,.98,-.5);H.L(.94,-.72);H.Q(0,-1.22,-.94,-.72);g.closePath();paint('#1A1622');   // 額当て
+      g.save();g.clip();g.strokeStyle='rgba(200,40,70,'+(.45+.45*pul).toFixed(2)+')';g.lineWidth=r*.04;g.beginPath();H.M(-.9,-.62);H.Q(0,-1.1,.9,-.62);g.stroke();g.restore();
+      g.strokeStyle=OUTLINE;g.lineWidth=1.5;
+      p=H.at(0,-.9);g.beginPath();H.M(0,-1.14);H.L(.14,-.9);H.L(0,-.7);H.L(-.14,-.9);g.closePath();paint('#D0204A');   // 赤い宝石
+      g.save();g.globalCompositeOperation='lighter';var gg=g.createRadialGradient(p[0],p[1],0,p[0],p[1],r*.55);gg.addColorStop(0,'rgba(255,80,110,'+(.5+.4*pul).toFixed(2)+')');gg.addColorStop(1,'rgba(255,0,60,0)');g.fillStyle=gg;g.fillRect(p[0]-r*.6,p[1]-r*.6,r*1.2,r*1.2);g.restore();
       break;
-    case 23:  // 不死鳥の冠（ミシック）：燃えさかる炎の羽根
-      g.save();g.globalCompositeOperation='lighter';
-      for(k=0;k<7;k++){
-        var u=(k-3)/3,fl=Math.sin(tm*9+k*1.3)*.08,base=H.at(u*.7,-.9+Math.abs(u)*.12),tip=H.at(u*1.05-d*0,-1.9+Math.abs(u)*.5+fl);
-        var fg=g.createLinearGradient(base[0],base[1],tip[0],tip[1]);fg.addColorStop(0,'rgba(255,90,40,.95)');fg.addColorStop(.5,'rgba(255,190,60,.9)');fg.addColorStop(1,'rgba(255,250,200,0)');
-        g.beginPath();g.moveTo(base[0]-r*.14,base[1]);g.quadraticCurveTo(tip[0]-r*.12,(base[1]+tip[1])/2,tip[0],tip[1]);g.quadraticCurveTo(tip[0]+r*.12,(base[1]+tip[1])/2,base[0]+r*.14,base[1]);g.closePath();g.fillStyle=fg;g.fill();
-      }
-      for(k=0;k<5;k++){var pp=(tm*1.4+k*.2)%1;p=H.at((k-2)*.3+Math.sin(tm*3+k)*.1,-1.3-pp*1.1);g.fillStyle='rgba(255,210,120,'+(1-pp).toFixed(2)+')';g.beginPath();g.arc(p[0],p[1],r*.05*(1-pp)+.4,0,Math.PI*2);g.fill();}
-      g.restore();
-      g.beginPath();H.M(-.9,-.5);H.Q(0,-1.06,.92,-.54);H.L(.9,-.76);H.Q(0,-1.26,-.9,-.72);g.closePath();paint('#E8C66A');
-      p=H.at(0,-.92);g.beginPath();g.arc(p[0],p[1],r*.12,0,Math.PI*2);paint('#FF5A2A');
+    case 23:  // 竜騎士の兜（ミシック）：黒鋼の兜。目の高さに光る細い覗き穴、横に竜の翼の飾り、頭頂に刃のとさか
+      var eyeG=.55+.45*Math.sin(tm*3.2);
+      [-1,1].forEach(function(sd){   // 竜の翼の飾り（左右に張り出す刃）
+        g.beginPath();H.M(sd*.86,-.55);H.L(sd*1.7,-1.6);H.L(sd*1.46,-1.1);H.L(sd*2.05,-1.2);H.L(sd*1.56,-.8);H.L(sd*1.95,-.62);H.L(sd*1.04,-.22);g.closePath();
+        var wgr=g.createLinearGradient.apply(g,H.at(sd*.9,-.4).concat(H.at(sd*1.7,-1.1)));wgr.addColorStop(0,'#3A4150');wgr.addColorStop(1,'#9AA6BC');g.fillStyle=wgr;g.fill();g.stroke();
+      });
+      g.beginPath();H.M(-1.1,.34);H.C(-1.24,-1.34,1.24,-1.34,1.1,.34);H.Q(0,.5,-1.1,.34);g.closePath();   // 兜の本体（目の少し下まで）
+      var bgr=g.createLinearGradient(0,hy-r*1.3,0,hy+r*.4);bgr.addColorStop(0,'#4A5264');bgr.addColorStop(.45,'#1C2029');bgr.addColorStop(1,'#0C0E14');g.fillStyle=bgr;g.fill();g.stroke();
+      g.save();g.clip();
+      g.strokeStyle='rgba(150,170,200,.35)';g.lineWidth=r*.035;g.beginPath();H.M(-1.1,-.36);H.Q(0,-.6,1.1,-.36);g.stroke();g.beginPath();H.M(0,-1.3);H.L(0,-.2);g.stroke();
+      var sh=((tm*.5)%1.8)-.4;g.globalCompositeOperation='lighter';var s1=H.at(sh*2.2-1.1,-1.2),s2=H.at(sh*2.2-.7,.4),sgr=g.createLinearGradient(s1[0],s1[1],s2[0],s2[1]);sgr.addColorStop(0,'rgba(255,255,255,0)');sgr.addColorStop(.5,'rgba(200,230,255,.28)');sgr.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sgr;g.fillRect(hx-r*1.4,hy-r*1.5,r*2.8,r*2.2);
+      g.restore();g.strokeStyle=OUTLINE;g.lineWidth=1.5;
+      g.beginPath();H.M(-.86,-.02);H.Q(0,.14,.86,-.02);H.L(.8,.12);H.Q(0,.28,-.8,.12);g.closePath();g.fillStyle='#05060A';g.fill();   // 覗き穴
+      g.save();g.globalCompositeOperation='lighter';var e1=H.at(-.84,.05),e2=H.at(.84,.05),egr=g.createLinearGradient(e1[0],e1[1],e2[0],e2[1]);
+      egr.addColorStop(0,'rgba(60,220,255,0)');egr.addColorStop(.5,'rgba(120,240,255,'+(.7+.3*eyeG).toFixed(2)+')');egr.addColorStop(1,'rgba(60,220,255,0)');
+      g.strokeStyle=egr;g.lineWidth=r*.09;g.shadowColor='#5FE6FF';g.shadowBlur=10*eyeG;g.beginPath();H.M(-.74,.06);H.Q(0,.19,.74,.06);g.stroke();g.restore();
+      g.beginPath();H.M(-.12,-1.02);H.L(0,-2.02);H.L(.34,-1.22);H.L(.12,-1.04);g.closePath();   // 頭頂の刃のとさか
+      var cgr=g.createLinearGradient.apply(g,H.at(0,-1).concat(H.at(.1,-2)));cgr.addColorStop(0,'#1C2029');cgr.addColorStop(1,'#5FE6FF');g.fillStyle=cgr;g.fill();g.stroke();
       break;
   }
 }
