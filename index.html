@@ -1997,7 +1997,7 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
 <div id="note-toast" class="note-toast" role="status" aria-live="polite"></div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
 <script src="sim.js?v=34"></script>
-<script src="lang.js?v=36"></script>
+<script src="lang.js?v=37"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -6433,18 +6433,21 @@ function drawTorso(g,fit,T,topY,hipY,d){
   g.fillStyle=dev?'#E8C66A':T.trim;g.beginPath();g.moveTo(-6,topY);g.lineTo(d*1,topY+7);g.lineTo(6,topY);g.closePath();g.fill();
 }
 // ---- 宝箱の服（5〜20）：胴の形はいつもと同じ。腕はチームの色のままなので、敵味方は見分けられる ----
-var OUTFIT_TAIL={15:'#7E1A1A',19:'#6E0F22'};   // 後ろにすそがある服（ロングコート）
+var OUTFIT_TAIL={10:'#806345',15:'#7E1A1A',18:'#2E1B18',19:'#6E0F22'},OUTFIT_TAIL_PLAIN={10:1,18:1};   // OUTFIT_TAIL_PLAIN：すそに金のふちを付けない   // 後ろにすそがある服（ロングコート）
 function drawOutfitX(g,fit,T,topY,hipY,d,tm){
   var tw=12.5,bw=10.5,long=!!OUTFIT_TAIL[fit],botY=long?Math.min(hipY+9,-8):hipY,hw=long?bw+2:bw,i,k,x,y;
   function tp(){g.beginPath();g.moveTo(-tw,topY+4);g.quadraticCurveTo(-tw,topY,-tw+4,topY);g.lineTo(tw-4,topY);g.quadraticCurveTo(tw,topY,tw,topY+4);g.lineTo(bw,hipY);if(botY!==hipY){g.lineTo(hw,botY);g.lineTo(-hw,botY);}g.lineTo(-bw,hipY);g.closePath();}
-  var base={5:'#F4F1EA',6:T.jacket,7:T.jacket,8:'#2A2733',9:'#C8553D',10:'#23202A',11:'#4A4F5E',12:'#3A6EA5',13:'#2A1F24',14:'#EEF1F6',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#1B2233',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
+  var base={5:'#B8955E',6:T.jacket,7:T.jacket,8:'#EFE8DA',9:'#C8553D',10:'#9A7B55',11:'#2E2A33',12:'#3A6EA5',13:'#23355E',14:'#F4F1EA',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#3B2420',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
   tp();g.fillStyle=base;g.fill();
   g.save();tp();g.clip();
   g.fillStyle='rgba(0,0,0,.22)';g.fillRect(d>0?-tw-1:2,topY-1,tw-1,botY-topY+2);   // 奥側の影
   switch(fit){
-    case 5:   // タンクトップ：白いシャツにチームの色のふち
-      g.fillStyle=T.jacket;g.fillRect(-tw,topY,5,hipY-topY);g.fillRect(tw-5,topY,5,hipY-topY);
-      g.fillStyle=T.light;g.beginPath();g.moveTo(-5,topY);g.quadraticCurveTo(d*1,topY+8,5,topY);g.fill();break;
+    case 5:   // 金鉱掘りの作業着：黄土色のネルシャツに、つりズボンの肩ひもと、胸のつぎあて
+      g.fillStyle='#E8DCC0';g.beginPath();g.moveTo(-4.5,topY);g.lineTo(d*1,topY+8);g.lineTo(4.5,topY);g.closePath();g.fill();   // 下着のえり
+      g.strokeStyle='rgba(90,60,30,.35)';g.lineWidth=.8;for(y=topY+4;y<hipY;y+=4){g.beginPath();g.moveTo(-tw,y);g.lineTo(tw,y);g.stroke();}   // ネルのしま
+      rrPath(g,d>0?-8:2,topY+9,6,6,1);g.fillStyle='#8C6A3C';g.fill();g.setLineDash([1.2,1.2]);g.strokeStyle='#F0E2C0';g.lineWidth=.7;g.stroke();g.setLineDash([]);   // つぎあて
+      [-6,5].forEach(function(xx){g.fillStyle='#5A3A1E';g.fillRect(xx,topY,2.6,hipY-topY);g.fillStyle='#C9A24A';g.beginPath();g.arc(xx+1.3,topY+4,1.1,0,Math.PI*2);g.fill();});   // 肩ひもと真ちゅうのボタン
+      break;
     case 6:   // チェックシャツ
       g.strokeStyle=hexA(T.shade,.9);g.lineWidth=2.2;for(i=-12;i<=12;i+=5){g.beginPath();g.moveTo(i,topY);g.lineTo(i,botY);g.stroke();}
       for(y=topY+3;y<botY;y+=5){g.beginPath();g.moveTo(-tw,y);g.lineTo(tw,y);g.stroke();}
@@ -6452,30 +6455,55 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
     case 7:   // ジャージ：白い2本線とファスナー
       g.fillStyle='#FFFFFF';g.fillRect(-tw+1.5,topY,1.6,hipY-topY);g.fillRect(-tw+4,topY,1.6,hipY-topY);g.fillRect(tw-3.1,topY,1.6,hipY-topY);g.fillRect(tw-5.6,topY,1.6,hipY-topY);
       g.strokeStyle='#D8DCE4';g.lineWidth=1.2;g.beginPath();g.moveTo(d*1,topY+2);g.lineTo(d*1,hipY);g.stroke();break;
-    case 8:   // 星のTシャツ：黒地に自分の星
-      starPath(g,d*1.5,topY+13,5.5,2.4,5);g.fillStyle=T.light;g.fill();g.lineWidth=1;g.strokeStyle=OUTLINE;g.stroke();break;
+    case 8:   // 保安官のベスト：白いシャツに茶色い革のベスト、ループタイ、胸に金の星のバッジ
+      g.fillStyle='#7A4A26';g.beginPath();g.moveTo(-tw,topY);g.lineTo(-3,topY);g.lineTo(-1.2,hipY);g.lineTo(-tw,hipY);g.closePath();g.fill();
+      g.beginPath();g.moveTo(tw,topY);g.lineTo(3,topY);g.lineTo(1.2,hipY);g.lineTo(tw,hipY);g.closePath();g.fill();
+      g.strokeStyle='#4A2A12';g.lineWidth=1;g.beginPath();g.moveTo(-3,topY);g.lineTo(-1.2,hipY);g.moveTo(3,topY);g.lineTo(1.2,hipY);g.stroke();
+      g.strokeStyle='rgba(255,230,190,.25)';g.lineWidth=.8;g.beginPath();g.moveTo(-tw+2,topY+3);g.lineTo(-tw+2,hipY);g.moveTo(tw-2,topY+3);g.lineTo(tw-2,hipY);g.stroke();   // 縫い目
+      g.strokeStyle='#16131C';g.lineWidth=.8;g.beginPath();g.moveTo(-1,topY+1);g.lineTo(-.6,topY+14);g.moveTo(1,topY+1);g.lineTo(.6,topY+14);g.stroke();   // ループタイ
+      g.fillStyle='#2FB5A8';g.beginPath();g.arc(0,topY+4,1.6,0,Math.PI*2);g.fill();
+      x=-d*6.5;y=topY+10;g.beginPath();for(i=0;i<12;i++){var sa=-Math.PI/2+i*Math.PI/6,sr=i%2?2.4:4.6;g.lineTo(x+Math.cos(sa)*sr,y+Math.sin(sa)*sr);}g.closePath();g.fillStyle='#F2C14E';g.fill();g.lineWidth=.8;g.strokeStyle='#7A5410';g.stroke();   // 星のバッジ
+      g.fillStyle='#FFF1B0';g.beginPath();g.arc(x-.8,y-.8,1,0,Math.PI*2);g.fill();
+      break;
     case 9:   // ポンチョ：色の帯
       ['#E8B04A','#2E9D5C','#F4F1EA','#3A6EA5'].forEach(function(c,j){g.fillStyle=c;g.fillRect(-tw,topY+5+j*6,tw*2,2.4);});
       g.fillStyle='rgba(0,0,0,.2)';for(x=-tw;x<tw;x+=3){g.fillRect(x,hipY-2,1.4,3);}break;
-    case 10:  // 革ジャン：黒い革、斜めのファスナー、自分の色のえり
-      g.strokeStyle='#C9CED8';g.lineWidth=1.2;g.beginPath();g.moveTo(-d*4,topY+3);g.lineTo(d*4,hipY-1);g.stroke();
-      g.fillStyle='rgba(255,255,255,.18)';g.fillRect(d>0?tw-4:-tw,topY,3,hipY-topY);
-      g.fillStyle=T.shade;g.beginPath();g.moveTo(d*6,topY);g.lineTo(d*9,topY+6);g.lineTo(d*2,topY+9);g.closePath();g.fill();break;
-    case 11:  // スーツ：白いシャツと、自分の色のネクタイ
-      g.fillStyle='#F4F1EA';g.beginPath();g.moveTo(-4,topY);g.lineTo(d*1,topY+16);g.lineTo(4,topY);g.closePath();g.fill();
-      g.fillStyle=T.jacket;g.beginPath();g.moveTo(d*0,topY+2);g.lineTo(d*2,topY+2);g.lineTo(d*2.6,topY+13);g.lineTo(d*1,topY+15);g.lineTo(-d*.6,topY+13);g.closePath();g.fill();
-      g.fillStyle='#E0B84A';[topY+18,topY+23].forEach(function(yy){g.beginPath();g.arc(d*2.5,yy,.9,0,Math.PI*2);g.fill();});break;
+    case 10:  // ダスターコート：砂よけの長いコート。肩のケープと、ボタンの前立て
+      g.strokeStyle='rgba(60,40,20,.35)';g.lineWidth=.9;[-7,6].forEach(function(xx){g.beginPath();g.moveTo(xx,topY+10);g.quadraticCurveTo(xx+1.5,(topY+botY)/2+4,xx-1,botY);g.stroke();});   // 布のしわ
+      g.strokeStyle='#4A3420';g.lineWidth=1.3;g.beginPath();g.moveTo(d*1.5,topY+3);g.lineTo(d*2,botY);g.stroke();
+      g.fillStyle='#3A2818';for(y=topY+12;y<botY-2;y+=5){g.beginPath();g.arc(d*3.8,y,.9,0,Math.PI*2);g.fill();}
+      g.fillStyle='#B49670';g.beginPath();g.moveTo(-tw-1,topY);g.lineTo(tw+1,topY);g.lineTo(tw+1,topY+9);   // 肩のケープ（ふちが波打つ）
+      for(x=tw+1;x>-tw-1;x-=5){g.quadraticCurveTo(x-2.5,topY+11.5,x-5,topY+9);}g.closePath();g.fill();
+      g.strokeStyle='rgba(60,40,20,.55)';g.lineWidth=.9;g.beginPath();g.moveTo(tw+1,topY+9);for(x=tw+1;x>-tw-1;x-=5){g.quadraticCurveTo(x-2.5,topY+11.5,x-5,topY+9);}g.stroke();
+      g.fillStyle='#806345';g.beginPath();g.moveTo(-4.5,topY-1);g.lineTo(-1,topY+5);g.lineTo(-6.5,topY+4);g.closePath();g.fill();g.beginPath();g.moveTo(4.5,topY-1);g.lineTo(1,topY+5);g.lineTo(6.5,topY+4);g.closePath();g.fill();   // 立てたえり
+      break;
+    case 11:  // 列車強盗の衣装：黒いシャツに、X字に交差する2本の弾帯と、首の赤いバンダナ
+      [[-tw,topY+1,tw,hipY-2],[tw,topY+1,-tw,hipY-2]].forEach(function(L,j){
+        g.strokeStyle=j?'#5A3A1E':'#6E4A28';g.lineWidth=4;g.beginPath();g.moveTo(L[0],L[1]);g.lineTo(L[2],L[3]);g.stroke();
+        for(k=1;k<6;k++){var bx=L[0]+(L[2]-L[0])*k/6,by=L[1]+(L[3]-L[1])*k/6;g.fillStyle='#D9B24A';g.fillRect(bx-.8,by-2.2,1.6,2.6);g.fillStyle='#8C6A2A';g.fillRect(bx-.8,by+.2,1.6,.8);}});
+      g.fillStyle='#B8262E';g.beginPath();g.moveTo(-6,topY-.5);g.lineTo(6,topY-.5);g.lineTo(d*1,topY+10);g.closePath();g.fill();g.strokeStyle='#6E1218';g.lineWidth=.8;g.stroke();   // バンダナ
+      g.fillStyle='rgba(255,255,255,.8)';[[-3,topY+2],[2,topY+2.5],[d*.5,topY+6]].forEach(function(q){g.beginPath();g.arc(q[0],q[1],.55,0,Math.PI*2);g.fill();});
+      break;
     case 12:  // オーバーオール：デニムの胸当て（中のシャツはチームの色）
       g.fillStyle=T.jacket;g.fillRect(-tw,topY,tw*2,9);
       g.fillStyle='#3A6EA5';g.fillRect(-7,topY+6,14,hipY-topY);g.fillStyle='#2F5C8C';g.fillRect(-tw,topY+14,tw*2,hipY-topY);
       g.fillStyle='#E0B84A';[-4.5,4.5].forEach(function(xx){g.beginPath();g.arc(xx,topY+8,1.1,0,Math.PI*2);g.fill();});break;
-    case 13:  // 武者の鎧：黒い板を赤いひもでつなぐ
-      for(i=0;i<5;i++){y=topY+2+i*5.4;g.fillStyle=i%2?'#241A1F':'#2E2229';g.fillRect(-tw,y,tw*2,4.6);g.fillStyle='#C8323C';for(x=-tw+2;x<tw;x+=4)g.fillRect(x,y+4.2,1.2,1.4);}
-      g.fillStyle='#E8C66A';g.fillRect(-tw,topY,tw*2,1.6);break;
-    case 14:  // 宇宙服：白いスーツに、胸の操作パネルとランプ
-      rrPath(g,-5+d*1,topY+7,10,8,1.6);g.fillStyle='#B7C2D6';g.fill();g.lineWidth=1;g.strokeStyle=OUTLINE;g.stroke();
-      ['#34D399','#FFB020','#FF4D5E'].forEach(function(c,j){g.fillStyle=(Math.floor(tm*3)+j)%3===0?c:hexA(c,.35);g.beginPath();g.arc(-2.5+d*1+j*2.5,topY+11,1,0,Math.PI*2);g.fill();});
-      g.fillStyle=T.jacket;g.fillRect(-tw,hipY-7,tw*2,2.5);break;
+    case 13:  // 騎兵隊の制服：紺の上着に2列の金ボタン、黄色の飾りひもと、腰の飾り帯
+      g.fillStyle='#1A2848';g.fillRect(-1,topY,2,hipY-topY);
+      g.fillStyle='#E8C66A';for(y=topY+5;y<hipY-6;y+=5){[-4,4].forEach(function(xx){g.beginPath();g.arc(xx,y,1.1,0,Math.PI*2);g.fill();});}
+      g.strokeStyle='#E8B04A';g.lineWidth=1;g.beginPath();g.moveTo(-tw,topY+2);g.quadraticCurveTo(0,topY+5,tw,topY+2);g.stroke();
+      g.fillStyle='#E8B04A';g.fillRect(-tw,hipY-6,tw*2,4.5);g.fillStyle='#C8902A';g.fillRect(-tw,hipY-2.5,tw*2,1);   // 腰の飾り帯
+      break;
+    case 14:  // チャロジャケット：白いシャツに、金の刺しゅうの黒い短い上着と、赤い飾り帯
+      g.fillStyle='#16131C';g.beginPath();g.moveTo(-tw,topY);g.lineTo(-4,topY);g.quadraticCurveTo(-2,topY+10,-5,topY+18);g.lineTo(-tw,topY+18);g.closePath();g.fill();
+      g.beginPath();g.moveTo(tw,topY);g.lineTo(4,topY);g.quadraticCurveTo(2,topY+10,5,topY+18);g.lineTo(tw,topY+18);g.closePath();g.fill();
+      g.strokeStyle='#E8C66A';g.lineWidth=.8;[-1,1].forEach(function(sd){   // 金の刺しゅう（うず巻き）
+        g.beginPath();g.moveTo(sd*4,topY+1);g.quadraticCurveTo(sd*2.2,topY+10,sd*5,topY+17.5);g.stroke();
+        for(var q=0;q<3;q++){var cx=sd*(8+(q%2)*2),cy=topY+4+q*5;g.beginPath();g.arc(cx,cy,1.8,0,Math.PI*1.5);g.stroke();}});
+      g.fillStyle='#D8DCE4';[topY+6,topY+11,topY+16].forEach(function(yy){[-5,5].forEach(function(xx){g.beginPath();g.arc(xx,yy,.9,0,Math.PI*2);g.fill();});});   // 銀のボタン
+      g.fillStyle='#C8323C';g.fillRect(-tw,hipY-7,tw*2,5.5);g.fillStyle='#8E1A22';g.fillRect(-tw,hipY-4,tw*2,1);   // 赤い飾り帯
+      g.fillStyle='#C8323C';g.beginPath();g.moveTo(-2.5,topY+.5);g.lineTo(0,topY+2.5);g.lineTo(2.5,topY+.5);g.lineTo(2.5,topY+4.5);g.lineTo(0,topY+2.5);g.lineTo(-2.5,topY+4.5);g.closePath();g.fill();   // 小さな赤いリボン
+      break;
     case 15:  // 海賊のコート：赤いロングコートに金のふち
       g.strokeStyle='#E0B84A';g.lineWidth=1.4;g.beginPath();g.moveTo(d*2,topY+2);g.lineTo(d*2.5,botY);g.stroke();
       g.fillStyle='#E0B84A';[topY+8,topY+14,topY+20].forEach(function(yy){g.beginPath();g.arc(d*4.5,yy,1,0,Math.PI*2);g.fill();});
@@ -6491,9 +6519,14 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
       g.fillStyle='#F4F1EA';g.beginPath();g.moveTo(-2.4,topY);g.lineTo(d*1,topY+12);g.lineTo(2.4,topY);g.closePath();g.fill();
       g.fillStyle='#16131C';g.beginPath();g.moveTo(-3,topY+2);g.lineTo(0,topY+3.4);g.lineTo(3,topY+2);g.lineTo(3,topY+4.8);g.lineTo(0,topY+3.4);g.lineTo(-3,topY+4.8);g.closePath();g.fill();
       for(k=0;k<3;k++){var sp=(tm*1.3+k*.37)%1,px=((k*7.3)%20)-10,py=topY+4+((k*11)%20);if(sp<.4){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=1-sp/.4;starPath(g,px,py,3,.8,4);g.fillStyle='#FFFFFF';g.fill();g.restore();}}break;
-    case 18:  // 忍び装束：紺の着物に、帯と、合わせ目
-      g.strokeStyle='#0E1422';g.lineWidth=2;g.beginPath();g.moveTo(-6,topY);g.lineTo(d*4,topY+12);g.stroke();
-      g.fillStyle='#6B1D2A';g.fillRect(-tw,hipY-8,tw*2,4);g.fillStyle='#8A2A3A';g.fillRect(d*2,hipY-9,3,6);break;
+    case 18:  // 賞金稼ぎのロングコート：黒茶の革のロングコートに、斜めの弾帯と銀の金具
+      var lg2=g.createLinearGradient(-tw,0,tw,0);lg2.addColorStop(0,'rgba(255,255,255,0)');lg2.addColorStop(d>0?.72:.28,'rgba(255,220,200,.14)');lg2.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=lg2;g.fillRect(-tw,topY,tw*2,botY-topY);   // 革のつや
+      g.strokeStyle='#1E100D';g.lineWidth=1.2;g.beginPath();g.moveTo(-d*2,topY+4);g.lineTo(-d*1.5,botY);g.stroke();
+      g.strokeStyle='#4A2A18';g.lineWidth=3.6;g.beginPath();g.moveTo(d*tw,topY+2);g.lineTo(-d*tw,hipY-3);g.stroke();   // 斜めの弾帯
+      for(k=1;k<6;k++){x=d*tw+(-d*tw*2)*k/6;y=topY+2+(hipY-5-topY)*k/6;g.fillStyle='#C9CED8';g.fillRect(x-.7,y-2,1.4,2.4);}
+      g.fillStyle='#C9CED8';g.fillRect(-d*4-1.5,topY+15,3,3);g.fillStyle='#3B2420';g.fillRect(-d*4-.6,topY+15.9,1.2,1.2);   // 銀のバックル
+      g.fillStyle='#16110E';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4);g.fillStyle='#C9CED8';g.fillRect(d*3-2,hipY-3.5,4,4);g.fillStyle='#16110E';g.fillRect(d*3-1,hipY-2.5,2,2);   // ガンベルト
+      break;
     case 19:  // 王のローブ（レジェンダリー）：赤いビロードに白い毛皮のえりと、光る宝石の飾り
       g.fillStyle='#F4F1EA';g.fillRect(-tw,topY,tw*2,5.5);g.fillStyle='#16131C';for(x=-tw+2;x<tw;x+=4.5){g.fillRect(x,topY+2,1.2,1.8);}
       g.strokeStyle='#E8C66A';g.lineWidth=1.3;g.beginPath();g.moveTo(-8,topY+6);g.quadraticCurveTo(0,topY+14,8,topY+6);g.stroke();
@@ -6525,8 +6558,15 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
       g.restore();
     });
   }
-  if(fit===16||fit===13){g.fillStyle=fit===16?'#B7C0CE':'#2E2229';g.strokeStyle=OUTLINE;g.lineWidth=1;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*13.5,topY+5);g.quadraticCurveTo(sd*14,topY-3,sd*6,topY-1.5);g.lineTo(sd*6,topY+3);g.closePath();g.fill();g.stroke();});}   // 肩当て
-  if(fit!==13&&fit!==16&&fit!==18&&fit!==20&&fit!==14){g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);}   // ベルト
+  if(fit===16){g.fillStyle='#B7C0CE';g.strokeStyle=OUTLINE;g.lineWidth=1;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*13.5,topY+5);g.quadraticCurveTo(sd*14,topY-3,sd*6,topY-1.5);g.lineTo(sd*6,topY+3);g.closePath();g.fill();g.stroke();});}   // 肩当て
+  if(fit===13){   // 騎兵隊：金の肩章と、下がる房
+    [-1,1].forEach(function(sd){g.fillStyle='#E8C66A';g.strokeStyle=OUTLINE;g.lineWidth=1;g.beginPath();g.ellipse(sd*10,topY+.5,5,2.6,0,0,Math.PI*2);g.fill();g.stroke();
+      g.strokeStyle='#E8C66A';g.lineWidth=1;for(var fq=0;fq<5;fq++){var fx=sd*(6.5+fq*1.8);g.beginPath();g.moveTo(fx,topY+2.5);g.lineTo(fx+sd*.3,topY+6+Math.sin(tm*4+fq)*.4);g.stroke();}});
+  }
+  if(fit===18){   // 賞金稼ぎ：立てた高いえり
+    g.fillStyle='#2E1B18';g.strokeStyle=OUTLINE;g.lineWidth=1;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*2.5,topY+3);g.lineTo(sd*4,topY-6);g.lineTo(sd*9,topY-3);g.lineTo(sd*7,topY+2);g.closePath();g.fill();g.stroke();});
+  }
+  if(fit!==13&&fit!==16&&fit!==18&&fit!==20&&fit!==14&&fit!==10){g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);}   // ベルト
 }
 // ---- 宝箱の首もと（4〜19）。体の後ろに出る物（マント・翼・龍の尾）は drawNeckBack ----
 function drawNeckBack(g,neck,acc,t,hipY,d,wind,tm){
@@ -6639,14 +6679,14 @@ function devCircuit(g,T,topY,hipY,botY,d){
   g.restore();
 }
 // ロングコートの後ろのすそ（脚より先に描くので、脚の後ろに見える）。なびくほど後ろへ広がる
-function drawCoatTails(g,T,hipY,cr,air,d,wind,sw,col){
+function drawCoatTails(g,T,hipY,cr,air,d,wind,sw,col,plain){
   var h=hipY-3,len=cr?13:air?16:21,fl=(cr?6:air?7:3)+wind*4+Math.abs(sw)*.3;
   g.beginPath();g.moveTo(d*10.2,h);g.lineTo(-d*10.8,h);
   g.quadraticCurveTo(-d*(12+fl),h+len*.6,-d*(12.5+fl),h+len);
   g.quadraticCurveTo(-d*6,h+len+1.5,-d*1.5,h+len-1);g.lineTo(-d*.5,h+len*.55);g.lineTo(d*.8,h+len-1);
   g.quadraticCurveTo(d*6,h+len+.5,d*9.5,h+len-2);g.closePath();
   g.fillStyle=col||shadeHex(T.shade,-.12);g.fill();g.lineWidth=1.5;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
-  if(col){g.strokeStyle='rgba(232,198,106,.8)';g.lineWidth=1;g.beginPath();g.moveTo(-d*(12.5+fl)+d*1.5,h+len-1.2);g.quadraticCurveTo(-d*6,h+len+.4,-d*1.5,h+len-2);g.stroke();}   // 金のふち
+  if(col&&!plain){g.strokeStyle='rgba(232,198,106,.8)';g.lineWidth=1;g.beginPath();g.moveTo(-d*(12.5+fl)+d*1.5,h+len-1.2);g.quadraticCurveTo(-d*6,h+len+.4,-d*1.5,h+len-2);g.stroke();}   // 金のふち
   g.beginPath();g.moveTo(-d*(10+fl*.6),h+len-1.5);g.quadraticCurveTo(-d*6,h+len+.3,-d*2,h+len-1.6);g.lineWidth=1;g.strokeStyle='rgba(255,255,255,.16)';g.stroke();
 }
 // 首もと：1=バンダナ 2=スカーフ（なびく長い端は drawScarfTail）。t=胴の上の高さ
@@ -6931,7 +6971,7 @@ function drawAvatar(g,o){
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
   if(neck>=4)drawNeckBack(g,neck,acc,topY,hipY,d,wind,tm);   // マント・翼など、体の後ろに出る物
-  if(fit===1||fit===4||OUTFIT_TAIL[fit])drawCoatTails(g,T,hipY,cr,air,d,wind,sw,fit===4?'#0E0C14':OUTFIT_TAIL[fit]||null);
+  if(fit===1||fit===4||OUTFIT_TAIL[fit])drawCoatTails(g,T,hipY,cr,air,d,wind,sw,fit===4?'#0E0C14':OUTFIT_TAIL[fit]||null,!!OUTFIT_TAIL_PLAIN[fit]);
   // 勝ちポーズ：先に脚を描き、上半身は腰を中心に前へ傾ける（しゃがむほど前かがみ＝重心を足の上に保つ）
   if(WP){winLegs(g,WP,d,hipY,T);g.save();var ln=WP.air?0:WP.sq*.035;g.translate(0,hipY);g.rotate(d*ln);g.translate(0,-hipY);}
   // 奥の腕（銃を支える手）
