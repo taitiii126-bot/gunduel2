@@ -47,7 +47,7 @@ var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
 var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 9;             // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール
+var PROTO = 10;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -60,16 +60,16 @@ var PROTO = 9;             // 通信の形式。変えたら上げる（古い�
 // band=CPUが保とうとする距離
 var WEAPONS = {
   1:  { id: 1,  key: 'knife',    kind: 'melee',   range: 46,  dmg: 40, rate: 26, mag: 0,  reload: 0,   spd: 0,  wind: 0, rec: 0, color: '#D1D5DB', band: [0, 34] },
-  2:  { id: 2,  key: 'pistol',   kind: 'bullet',  range: 276, dmg: 20, rate: 0,  mag: 1,  reload: 52,  spd: 10, color: '#FACC15', band: [140, 250] },
+  2:  { id: 2,  key: 'pistol',   kind: 'bullet',  range: 276, dmg: 20, rate: 0,  mag: 1,  reload: 44,  spd: 10, color: '#FACC15', band: [140, 250] },
   3:  { id: 3,  key: 'sniper',   kind: 'bullet',  range: 558, dmg: 40, rate: 0,  mag: 1,  reload: 115, spd: 18, color: '#60A5FA', band: [300, 520] },
   4:  { id: 4,  key: 'smg',      kind: 'bullet',  range: 190, dmg: 8,  rate: 7,  mag: 15, reload: 130, spd: 11, color: '#F472B6', band: [70, 165], auto: true },
   5:  { id: 5,  key: 'shotgun',  kind: 'pellet',  range: 140, dmg: 7,  rate: 48, mag: 2,  reload: 135, spd: 10, pellets: 5, color: '#FB923C', band: [30, 100] },
   6:  { id: 6,  key: 'ar',       kind: 'bullet',  range: 330, dmg: 11, rate: 11, mag: 10, reload: 125, spd: 12, color: '#34D399', band: [170, 300], auto: true },
   7:  { id: 7,  key: 'burst',    kind: 'bullet',  range: 380, dmg: 10, rate: 42, mag: 9,  reload: 120, spd: 13, burst: 3, gap: 4, color: '#2DD4BF', band: [200, 340] },
-  8:  { id: 8,  key: 'revolver', kind: 'bullet',  range: 300, dmg: 22, rate: 40, mag: 5,  reload: 175, spd: 12, color: '#F59E0B', band: [150, 270] },
+  8:  { id: 8,  key: 'revolver', kind: 'bullet',  range: 300, dmg: 22, rate: 40, mag: 5,  reload: 140, spd: 12, color: '#F59E0B', band: [150, 270] },
   9:  { id: 9,  key: 'lmg',      kind: 'bullet',  range: 300, dmg: 7,  rate: 7,  mag: 20, reload: 220, spd: 11, move: 0.75, color: '#A3E635', band: [140, 270], auto: true },
-  10: { id: 10, key: 'grenade',  kind: 'grenade', range: 210, dmg: 45, sdmg: 35, rate: 54, mag: 3,  reload: 160, spd: 6.2, splash: 55, color: '#FB7185', band: [130, 215] },
-  11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 34, rate: 0,  mag: 1,  reload: 180, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
+  10: { id: 10, key: 'grenade',  kind: 'grenade', range: 210, dmg: 45, sdmg: 35, rate: 54, mag: 4,  reload: 160, spd: 6.2, splash: 70, color: '#FB7185', band: [130, 215] },
+  11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 34, rate: 0,  mag: 1,  reload: 155, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
   12: { id: 12, key: 'knuckle',  kind: 'melee',   range: 34,  dmg: 13, rate: 9,  mag: 0,  reload: 0,   spd: 0,  wind: 0,  rec: 2,  auto: true, color: '#E5E7EB', band: [0, 24] },
   13: { id: 13, key: 'spear',    kind: 'melee',   range: 96,  dmg: 46, rate: 48, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, color: '#FCD34D', band: [36, 84] },
   14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] }
