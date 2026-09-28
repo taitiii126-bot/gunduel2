@@ -113,6 +113,8 @@ function clean(v, ctx, rtier) {
     inv: SIM.cleanInv(v.inv),
     opened: int(v.opened, 0, 999999, 0),
     misCrates: int(v.misCrates, 0, 999999, 0),
+    chaosOpened: int(v.chaosOpened, 0, 999999, 0),   // 開けたカオスバッジの数
+    misChaos: int(v.misChaos, 0, 999999, 0),         // ミッションを3つ全部終えてもらったカオスバッジの数
     pity: int(v.pity, 0, 999, 0),
     emo: SIM.cleanEmotes(v.emo, SIM.cleanInv(v.inv)),
     mis: cleanMis(v.mis),

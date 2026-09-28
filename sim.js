@@ -221,6 +221,25 @@ function rollCrate(rnd, inv, pity) {
   return { item: it.id, r: r, dup: !fresh.length };
 }
 var DUP_XP = [30, 60, 120, 250, 500];   // かぶったときにもらえる経験値
+// カオスバッジ：必ずレア以上。開けると 2・4・8 個に分かれることがあり、分かれた物はすべて同じレアリティ
+var CHAOS_W = [0, 50, 30, 15, 5];            // レアリティごと（コモンは出ない）
+var CHAOS_SPLIT = [[1, 70], [2, 20], [4, 8], [8, 2]];   // [個数, 確率%]
+function rollChaos(rnd, inv, pity) {
+  var r, x = rnd() * 100, acc = 0;
+  for (r = CHAOS_W.length - 1; r >= 1; r--) { acc += CHAOS_W[r]; if (x < acc) break; }
+  if (r < 1) r = 1;
+  if ((pity || 0) + 1 >= PITY_AT && r < 3) r = 3;
+  var y = rnd() * 100, n = 1; acc = 0;
+  for (var i = 0; i < CHAOS_SPLIT.length; i++) { acc += CHAOS_SPLIT[i][1]; if (y < acc) { n = CHAOS_SPLIT[i][0]; break; } }
+  var have = (inv || []).slice(), pool = ITEMS.filter(function (it) { return it.r === r; }), items = [];
+  for (var k = 0; k < n; k++) {   // 分かれた分は、まだ持っていない物から順に（全部持っていたら、かぶり＝経験値）
+    var fresh = pool.filter(function (it) { return have.indexOf(it.id) < 0; }), list = fresh.length ? fresh : pool, it = list[Math.floor(rnd() * list.length)];
+    items.push({ item: it.id, dup: !fresh.length }); if (fresh.length) have.push(it.id);
+  }
+  return { r: r, n: n, items: items };
+}
+// カオスバッジの数（合計）：5の倍数のレベルごとに1つ＋その日のミッションを3つ全部終えた日の数
+function chaosEarned(xp, misChaos) { return Math.floor(levelOf(xp).lv / 5) + Math.max(0, Math.floor(+misChaos) || 0); }
 // ---- レベル（経験値で上がる）：次のレベルまでに要る経験値は、レベルが上がるほど少しずつ増える ----
 var LEVEL_MAX = 100;
 function xpToNext(lv) { return 100 + (lv - 1) * 20; }
@@ -229,11 +248,9 @@ function levelOf(xp) {
   while (lv < LEVEL_MAX && x >= need) { x -= need; lv++; need = xpToNext(lv); }
   return { lv: lv, cur: x, need: need };
 }
-// もらえる宝箱の数（合計）：最初の1つ＋レベルが上がるたびに1つ（5の倍数のレベルは2つ）＋ミッションで手に入れた数
+// もらえるラッキーバッジの数（合計）：最初の1つ＋レベルが上がるたびに1つ＋ミッションで手に入れた数（5の倍数のレベルは、別にカオスバッジ）
 function cratesEarned(xp, misCrates) {
-  var lv = levelOf(xp).lv, n = 1;
-  for (var l = 2; l <= lv; l++) n += l % 5 === 0 ? 2 : 1;
-  return n + Math.max(0, Math.floor(+misCrates) || 0);
+  return levelOf(xp).lv + Math.max(0, Math.floor(+misCrates) || 0);
 }
 // ---- デイリーミッション：日付から、その日の3つを決める（みんな同じ日は同じミッション） ----
 // k=数えるもの n=目標の数 w=武器（キルのとき）
@@ -1805,7 +1822,7 @@ var api = {
   STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
-  EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
+  EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
   cleanBadges: cleanBadges, cleanBadgeSel: cleanBadgeSel, badgeShown: badgeShown, randomLook: randomLook,
