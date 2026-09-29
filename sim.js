@@ -534,6 +534,196 @@ function step(w, ev) {
   guardSave(w);
 }
 
+// ---- 自動操作（BOT・マクロ・自動回避）の見張り：CPU戦（ブラウザ）で使う。サーバーのオンライン対戦と同じ考え方・同じ基準 ----
+// どれも「人間には続けて出せない数字」が、十分な回数そろったときだけ引っかかる
+var WATCH = {
+  minShots: 20, alignedRatio: 0.9, instantRatio: 0.8, instantFrames: 2,   // 狙いが合った瞬間（2フレーム以内）に撃ち続ける
+  calm: 12,                                                              // 反応の速さは「その前の12フレーム、ボタンを押していなかった」射撃だけで測る（連打は反応ではない）
+  reactMin: 6, reactMed: 3,                                              // その射撃が6回以上あり、狙いが合ってから撃つまでの真ん中の値が3フレーム（0.05秒）以下
+  rhythmMin: 30, rhythmMaxGap: 40, rhythmSd: 0.5,                         // 撃つ間隔のばらつきが0.5フレーム未満（機械的に一定）
+  dodgeFrames: 6, dodgeGround: 15, dodgeMinThreats: 8, dodgeMin: 6, dodgeRatio: 0.5,   // 弾が出て0.1秒以内に跳ぶ・転がるのを半分以上
+  togPerSec: 30, togSecs: 3                                              // 左右・しゃがみの切り替えが1秒30回以上を3秒続ける
+};
+function newWatch() {
+  return { shots: 0, aligned: 0, instant: 0, alignedFrame: -1, readyFrame: -1, reacts: [], gaps: [], lastPull: -1,
+    threats: 0, dodges: 0, live: {}, turn: -99, dir: 0, prevMe: null, selfAim: false, press: -1, press0: -1, clean: 0, togSec: -1, togN: 0, fast: 0, prev: null, aimed: false, foeAimed: false, ground: -1, hit: '' };
+}
+// ラウンドが変わると w.frame が0に戻るので、フレーム番号で覚えているものだけ消す（数えた回数は試合の終わりまで残す）
+function watchRound(V) { V.turn = -99; V.dir = 0; V.prevMe = null; V.selfAim = false; V.press = -1; V.press0 = -1; V.alignedFrame = -1; V.readyFrame = -1; V.lastPull = -1; V.live = {}; V.prev = null; V.togSec = -1; V.togN = 0; V.fast = 0; }
+function aimedAtW(c, t) {
+  var W = weaponOf(c), reach = W.kind === 'grenade' ? 320 : W.range;
+  return !t.dead && Math.abs(t.y - c.y) < 24 && Math.abs(t.x - c.x) <= reach && Math.sign(t.x - c.x) === c.dir;
+}
+function watchHit(V, code, detail) { if (!V.hit) { V.hit = code; V.detail = detail || ''; return code; } return ''; }
+// SIM.setInput のあと・SIM.step の前に呼ぶ。me=見張る側、inp=その人の入力
+function watchPre(V, w, me, foe, inp) {
+  var c = w.chars[me], t = w.chars[foe], f = w.frame;
+  V.aimed = !c.dead && aimedAtW(c, t);
+  V.foeAimed = !t.dead && aimedAtW(t, c);
+  // 自分が振り向いた・動いたことで狙いが合ったときは「反応」ではない（自分で決めて向いて撃つのは人間でも速い）
+  if (c.dir !== V.dir) { V.dir = c.dir; V.turn = f; }
+  if (V.aimed) { if (V.alignedFrame < 0) { V.alignedFrame = f; V.selfAim = f - V.turn <= WATCH.calm || (V.prevMe && (Math.abs(V.prevMe.x - c.x) > 0 || Math.abs(V.prevMe.y - c.y) > 0)); } } else V.alignedFrame = -1;
+  V.prevMe = { x: c.x, y: c.y };
+  if (canFire(c)) { if (V.readyFrame < 0) V.readyFrame = f; }
+  V.ground = c.groundSince; V.meGround = c.onGround;
+  if (!inp) return '';
+  if (inp.shoot) { V.press0 = V.press; V.press = f; }
+  var cur = { l: !!inp.left, r: !!inp.right, d: !!inp.duck }, p = V.prev, ch = p ? (cur.l !== p.l) + (cur.r !== p.r) + (cur.d !== p.d) : 0;
+  V.prev = cur;
+  if (!ch) return '';
+  var sec = Math.floor(f / 60);
+  if (sec !== V.togSec) { V.fast = (sec === V.togSec + 1 && V.togN > WATCH.togPerSec) ? V.fast + 1 : 0; V.togSec = sec; V.togN = 0; }
+  V.togN += ch;
+  if (V.togN > WATCH.togPerSec && V.fast + 1 >= WATCH.togSecs) return watchHit(V, 'macro', V.togN + '/s');
+  return '';
+}
+// SIM.step のあとに、そのフレームの ev を渡す。引っかかったら理由のコード（1試合に1回だけ）
+function watchPost(V, w, ev, me, foe) {
+  var f = w.frame, i, e, k, r = '';
+  for (k in V.live) if (f - V.live[k].at > 60) delete V.live[k];
+  for (i = 0; i < ev.length; i++) {
+    e = ev[i];
+    if (e.t === 'pull' && e.edge && e.who === me) r = r || watchShot(V, f);
+    else if (e.t === 'fire' && !e.beam && e.who === foe) {
+      var Wp = WEAPONS[e.wid];
+      if ((Wp.kind === 'bullet' || Wp.kind === 'pellet') && V.foeAimed && V.meGround && !V.live[e.sid]) { V.live[e.sid] = { at: f, done: false }; V.threats++; }
+    } else if ((e.t === 'jump' || e.t === 'roll') && e.who === me && V.ground >= 0 && f - V.ground >= WATCH.dodgeGround) {
+      for (k in V.live) {
+        var L = V.live[k];
+        if (!L.done && f - L.at <= WATCH.dodgeFrames) {
+          L.done = true; V.dodges++;
+          if (V.threats >= WATCH.dodgeMinThreats && V.dodges >= WATCH.dodgeMin && V.dodges / V.threats >= WATCH.dodgeRatio) r = r || watchHit(V, 'dodge', V.dodges + '/' + V.threats);
+          break;
+        }
+      }
+    }
+  }
+  return r;
+}
+function watchShot(V, f) {
+  V.shots++;
+  if (V.aimed && V.alignedFrame >= 0) {
+    V.aligned++;
+    var start = Math.max(V.alignedFrame, V.readyFrame), rt = f - start;
+    // 撃てるようになる前から押していた（連打・押しっぱなし）射撃は数えない。待ってから押した射撃だけが「反応」
+    var calm = V.readyFrame >= 0 && rt >= 0 && !(V.selfAim && V.alignedFrame >= V.readyFrame) && V.press === f - 1 && (V.press0 < 0 || V.press0 < start - WATCH.calm);
+    if (calm) {
+      V.clean++;
+      if (rt <= WATCH.instantFrames) V.instant++;
+      if (V.reacts.length < 400) V.reacts.push(rt);
+    }
+  }
+  if (V.lastPull >= 0) { var gap = f - V.lastPull; if (gap <= WATCH.rhythmMaxGap && V.gaps.length < 400) V.gaps.push(gap); }
+  V.lastPull = f; V.readyFrame = -1;
+  var R = V.reacts, G = V.gaps;
+  if (R.length >= WATCH.reactMin) {
+    var m = R.slice().sort(function (a, b) { return a - b; })[R.length >> 1];
+    if (m <= WATCH.reactMed) return watchHit(V, 'react', R.length + ':' + Math.round(m * 1000 / 60) + 'ms');
+  }
+  if (G.length >= WATCH.rhythmMin) {
+    var n = G.length, mean = 0, sd = 0, j;
+    for (j = 0; j < n; j++) mean += G[j]; mean /= n;
+    for (j = 0; j < n; j++) sd += (G[j] - mean) * (G[j] - mean); sd = Math.sqrt(sd / n);
+    if (mean >= 3 && sd < WATCH.rhythmSd) return watchHit(V, 'rhythm', n + ':' + mean.toFixed(1) + '±' + sd.toFixed(2));
+  }
+  if (V.shots >= WATCH.minShots && V.aligned / V.shots >= WATCH.alignedRatio && V.clean >= WATCH.reactMin && V.instant / V.clean >= WATCH.instantRatio) return watchHit(V, 'instant', V.instant + '/' + V.clean);
+  return '';
+}
+
+// ---- 試合の記録（称号・ミッション・経験値のもと）：CPU戦のやり直し計算・オンライン対戦・ブラウザで同じ数え方をする ----
+function newTally() { return { rounds: 0, roundsWon: 0, kills: {}, killList: [], nodmg: 0, closeCall: 0, pitDrop: 0, shots: 0, hits: 0, hitSids: {}, rolls: 0, rolldodges: 0, r: { dmg: 0, minHp: 100, fell: false } }; }
+function tallyRoundStart(T) { T.r = { dmg: 0, minHp: 100, fell: false }; }
+// me の目から見た、そのフレームの出来事を数える（1対1は相手が倒れたら自分のとどめ。2v2 は自分が倒した敵だけ）
+function tallyEvents(T, w, ev, me) {
+  for (var i = 0; i < ev.length; i++) {
+    var e = ev[i];
+    if (e.t === 'hit' && e.who === me) { T.r.dmg++; T.r.minHp = Math.min(T.r.minHp, w.chars[me].hp); }
+    else if (e.t === 'dead' && e.who !== me && (!w.teams || (e.by === me && teamOf(e.who) !== teamOf(me)))) {
+      if (e.fell) { T.r.fell = true; T.killList.push(0); continue; }
+      var wid = weaponOf(w.chars[me]).id;
+      T.kills[wid] = (T.kills[wid] || 0) + 1; T.killList.push(wid);
+    } else if (e.t === 'pull' && e.who === me) T.shots++;
+    else if (e.t === 'hit' && e.by === me && e.sid && !T.hitSids[e.sid]) { T.hitSids[e.sid] = 1; T.hits++; }
+    else if (e.t === 'roll' && e.who === me) T.rolls++;
+    else if (e.t === 'rolldodge' && e.who === me) T.rolldodges++;
+  }
+}
+function tallyRoundEnd(T, won, stage) {
+  T.rounds++;
+  if (!won) return;
+  T.roundsWon++;
+  if (T.r.dmg === 0) T.nodmg++;
+  if (T.r.minHp <= 10) T.closeCall++;
+  if (T.r.fell && stage === 'glacier') T.pitDrop++;
+}
+// 試合の経験値：遊んだ分＋勝ち＋取ったラウンド（オンラインは1.5倍）
+function matchXp(win, roundsWon, online) { var x = 40 + (win ? 40 : 0) + 8 * Math.max(0, roundsWon || 0); return online ? Math.round(x * 1.5) : x; }
+
+// ---- 確かめられる CPU 戦 ----
+// サーバーが試合ごとに種（seed）を配り、CPU の乱数・CPU の武器はその種から決める。ブラウザは自分の操作を1フレームずつ記録して送り、
+// サーバーが同じ試合を計算し直して、勝敗と記録を決める（ブラウザから届いた結果は使わない）
+function rng(seed) {
+  var a = seed >>> 0;
+  return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function cpuSeedLoad(seed, diff) { var r = rng((seed ^ 0x5bd1e995) >>> 0); return diff === 'emperor' ? emperorLoadout(r) : cpuLoadout(r); }
+function roundRng(seed, round) { return rng((seed + Math.imul(round + 1, 0x9E3779B1)) >>> 0); }
+// 1フレームの操作を数1つに：左1 右2 しゃがみ4 押しっぱなし8 跳ぶ16 撃つ32 回復64 リロード128 転がる256、武器の番号×512
+function packInput(i) {
+  return (i.left ? 1 : 0) | (i.right ? 2 : 0) | (i.duck ? 4 : 0) | (i.fire ? 8 : 0) | (i.jump ? 16 : 0) | (i.shoot ? 32 : 0) |
+    (i.heal ? 64 : 0) | (i.reload ? 128 : 0) | (i.roll ? 256 : 0) | ((i.slot === 1 || i.slot === 2 ? i.slot : 0) * 512);
+}
+function unpackInput(v) {
+  return { left: !!(v & 1), right: !!(v & 2), duck: !!(v & 4), fire: !!(v & 8), jump: !!(v & 16), shoot: !!(v & 32), heal: !!(v & 64), reload: !!(v & 128), roll: !!(v & 256), slot: (v >> 9) % 3 };
+}
+// 同じ操作が続くところはまとめる：「値.回数」を , でつなぐ（36進数）
+function logAdd(L, v) { var n = L.length; if (n && L[n - 1][0] === v) L[n - 1][1]++; else L.push([v, 1]); }
+function logEncode(L) { return L.map(function (x) { return x[0].toString(36) + (x[1] > 1 ? '.' + x[1].toString(36) : ''); }).join(','); }
+var REPLAY_MAX_FRAMES = 60 * 60 * 4;   // 1ラウンドは4分まで（それ以上の記録は受け付けない）
+function logDecode(s) {
+  if (typeof s !== 'string' || s.length > 400000) return null;
+  var out = [], parts = s ? s.split(',') : [], i;
+  for (i = 0; i < parts.length; i++) {
+    var m = /^([0-9a-z]{1,3})(?:\.([0-9a-z]{1,5}))?$/.exec(parts[i]);
+    if (!m) return null;
+    var v = parseInt(m[1], 36), n = m[2] ? parseInt(m[2], 36) : 1;
+    if (v > 1535 || n < 1 || out.length + n > REPLAY_MAX_FRAMES) return null;
+    for (var k = 0; k < n; k++) out.push(v);
+  }
+  return out;
+}
+// CPU戦を計算し直す。spec = { seed, diff, stage, loads: [ラウンドごとの自分の武器], logs: [ラウンドごとの操作の記録] }
+// 返り値：{ ok, why, win, straight, wins:[自分,CPU], frames, tally, watch: 自動操作の見張りの結果 }
+function replayCpu(spec) {
+  var diff = spec && spec.diff, stage = spec && spec.stage;
+  if (!AI_LEVELS[diff] || !STAGES[stage] || !Array.isArray(spec.logs) || !spec.logs.length || spec.logs.length > 5) return { ok: false, why: 'bad' };
+  var seed = spec.seed >>> 0, cpuLoad = cpuSeedLoad(seed, diff), T = newTally(), V = newWatch(), wa = 0, wb = 0, frames = 0, r;
+  for (r = 0; r < spec.logs.length; r++) {
+    if (wa >= 3 || wb >= 3) return { ok: false, why: 'extra_round' };
+    var inp = logDecode(spec.logs[r]);
+    if (!inp || !inp.length) return { ok: false, why: 'bad_log' };
+    var load = cleanLoadout(spec.loads && spec.loads[r], false);
+    var w = newWorld(stage, load, cpuLoad), a = w.chars.a, b = w.chars.b, brain = newBrain(diff, roundRng(seed, r));
+    tallyRoundStart(T); watchRound(V);
+    for (var f = 0; f < inp.length; f++) {
+      if (a.dead || b.dead) return { ok: false, why: 'desync', round: r, frame: f };   // 記録が試合より長い＝計算が合わない
+      var i = unpackInput(inp[f]);
+      setInput(a, i); setInput(b, think(brain, w, 'b'));
+      watchPre(V, w, 'a', 'b', i);
+      var ev = []; step(w, ev);
+      watchPost(V, w, ev, 'a', 'b');
+      tallyEvents(T, w, ev, 'a');
+    }
+    frames += inp.length;
+    if (!a.dead && !b.dead) return { ok: false, why: 'desync', round: r, frame: inp.length };   // 記録が先に終わった
+    var won = !a.dead && b.dead;
+    if (won) wa++; else if (a.dead && !b.dead) wb++;
+    tallyRoundEnd(T, won, stage);
+  }
+  if (wa < 3 && wb < 3) return { ok: false, why: 'unfinished' };
+  return { ok: true, win: wa >= 3, straight: wa >= 3 && wb === 0, wins: [wa, wb], frames: frames, tally: T, watch: V.hit ? { code: V.hit, detail: V.detail } : null, cpuLoad: cpuLoad };
+}
+
 // vis=true はオンラインの先読み用：見た目だけ動かし、ダメージは与えない（ダメージはサーバーが決める）
 function stepChar(w, c, t, ev, vis) {
   if (c.hit > 0) c.hit--;
@@ -1911,6 +2101,9 @@ var api = {
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
   TITLES: deepFreeze(TITLES), titleOk: titleOk,
   guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,
+  WATCH: deepFreeze(WATCH), newWatch: newWatch, watchRound: watchRound, watchPre: watchPre, watchPost: watchPost,
+  newTally: newTally, tallyRoundStart: tallyRoundStart, tallyEvents: tallyEvents, tallyRoundEnd: tallyRoundEnd, matchXp: matchXp,
+  rng: rng, cpuSeedLoad: cpuSeedLoad, roundRng: roundRng, packInput: packInput, unpackInput: unpackInput, logAdd: logAdd, logEncode: logEncode, logDecode: logDecode, replayCpu: replayCpu, REPLAY_MAX_FRAMES: REPLAY_MAX_FRAMES,
   SEASON_TZ_MIN: SEASON_TZ_MIN, SEASON_DROP: SEASON_DROP, seasonNo: seasonNo, seasonStart: seasonStart, seasonEnd: seasonEnd,
   seasonLeftMs: seasonLeftMs, seasonLeftDays: seasonLeftDays, seasonNextRate: seasonNextRate,
   PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles, upgradeProfile: upgradeProfile,

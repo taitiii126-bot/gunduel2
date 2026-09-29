@@ -2189,8 +2189,8 @@ body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=38"></script>
-<script src="lang.js?v=42"></script>
+<script src="sim.js?v=40"></script>
+<script src="lang.js?v=43"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2987,6 +2987,77 @@ document.addEventListener('keydown',function(e){
   trapBuf=(trapBuf+e.key.toLowerCase()).slice(-10);
   if(/(godmode|aimbot|wallhack|cheat)$/.test(trapBuf)){trapBuf='';cheatTrap();}
 });
+
+// ---- ズルの検知（CPU戦もオンラインも）：ログイン中ならサーバーに報告し、サーバーがBANする ----
+//   確かな証拠（1回でBAN）：試合の値の書き換え／スクリプトが作った入力（isTrusted=false・ボタンの関数を直接呼ぶ）／時間の進み方の操作
+//   動きのクセ（オンラインと同じ基準・1試合1点）：狙いが合った瞬間の射撃・反応の速さ・一定すぎる連打・瞬間回避・高速切り替え
+//   報告は端末に残してから送る（送れなくても、次に開いたときに送る）
+var AC={watch:null,sent:{},synth:0,clk:null,busy:false};
+function acLive(){return (gameMode==='ai'||gameMode==='online')&&onGameScreen()&&!matchOver;}
+function acQueue(){try{var q=JSON.parse(localStorage.getItem('gd_acq')||'[]');return Array.isArray(q)?q.filter(function(r){return r&&Date.now()-r.at<86400000;}):[];}catch(e){return [];}}
+function acSave(q){try{localStorage.setItem('gd_acq',JSON.stringify(q.slice(-10)));}catch(e){}}
+function acReport(kind,detail){
+  if(AC.sent[kind])return;AC.sent[kind]=1;   // 1試合で同じ種類は1回だけ
+  var q=acQueue();q.push({kind:kind,detail:String(detail||'').slice(0,60),diff:gameMode==='ai'?String(difficulty):gameMode,at:Date.now()});acSave(q);
+  acFlush();
+}
+function acFlush(){
+  if(AC.busy||!AUTH.token)return;
+  var q=acQueue();if(!q.length)return;
+  var r=q[0];AC.busy=true;
+  fetch(httpBase()+'/api/report',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},body:JSON.stringify({kind:r.kind,detail:r.detail,diff:r.diff})})
+    .then(function(res){return res.json().catch(function(){return {};}).then(function(j){return {st:res.status,j:j};});})
+    .then(function(o){
+      AC.busy=false;
+      if(o.st===429||o.st>=500)return;   // 混んでいる：あとで送り直す
+      acSave(acQueue().filter(function(x){return !(x.at===r.at&&x.kind===r.kind);}));
+      if((o.j&&o.j.banned)||o.st===403){acBanned();return;}
+      acFlush();
+    }).catch(function(){AC.busy=false;});
+}
+function acBanned(){
+  acSave([]);
+  if(AUTH.token)doLogout();
+  alert(t('login.banned'));
+}
+// スクリプトが作った入力：ゲームには渡さない。続いたら報告
+function acSynthetic(src){
+  if(!acLive())return;
+  AC.synth++;
+  if(AC.synth>=3)acReport('synthetic',src);
+}
+function acTrusted(e){if(e&&e.isTrusted===false){acSynthetic(e.type);return false;}return true;}
+// ボタン（ontouchstart="doJump()" など）から呼ばれる関数：本物の操作のイベントの中でしか動かない
+var AC_GUARD={doAttack:1,attackUp:1,doDuck:1,doHeal:1,doJump:1,doReload:1,setKey:1,setWeapon:1,doRoll:1};
+function acGuard(f){
+  var hasEv='event' in window;
+  return function(){
+    var e=window.event;
+    if(e&&e.isTrusted===false){acSynthetic(f.name);return;}
+    if(!e&&hasEv&&acLive()){acSynthetic(f.name+'()');return;}
+    return f.apply(this,arguments);
+  };
+}
+// ゲームが使うブラウザの機能が書き換えられていないか（プライバシー系の拡張機能でも書き換わることがあるので、記録だけ）
+function acNative(){
+  var bad=[],chk=function(n,f){try{if(typeof f!=='function'||!/\[native code\]\s*\}\s*$/.test(Function.prototype.toString.call(f)))bad.push(n);}catch(e){bad.push(n);}};
+  chk('raf',window.requestAnimationFrame);chk('perf',performance.now);chk('date',Date.now);chk('rand',Math.random);
+  if(navigator.getGamepads)chk('pad',navigator.getGamepads);
+  chk('ael',EventTarget.prototype.addEventListener);
+  if(bad.length)acReport('native',bad.join(','));
+}
+// 時間の進み方：画面の時計（rAF）と、ふつうの時計（Date）がずれ続けたら、スロー・早送りの操作
+function acClock(ts){
+  if(gameMode!=='ai'||!acLive()||document.hidden){AC.clk=null;return;}
+  var c=AC.clk,now=Date.now();
+  if(!c){AC.clk={t:ts,d:now,bad:0};return;}
+  var dt=ts-c.t;if(dt<5000)return;
+  var dd=now-c.d;
+  if(dd>=3000&&dd<=15000){c.bad=Math.abs(dt/dd-1)>0.15?c.bad+1:0;if(c.bad>=3)acReport('speed',Math.round(dt/dd*100)+'%');}
+  c.t=ts;c.d=now;
+}
+setTimeout(function(){acFlush();},5000);   // 前に送れなかった報告
+function acMatchStart(){AC.watch=SIM.newWatch();AC.sent={};AC.synth=0;AC.clk=null;acNative();acFlush();}
 
 // ---- コンソール（開発者ツール）を開いたら、開発者の Taito と Kota が出てきて質問する ----
 //   「まちがえた」→ 称号「嘘つき」、「チートを使おうとしている」→ 称号「ノースキル」（どちらも、そのまま付ける）
@@ -3880,7 +3951,7 @@ function doEmote(i){
   var me=gameMode==='ai'?'a':mySlot;if(!me)return;
   EMO.last=now;closeEmoteMenu();
   if(gameMode==='online'&&ws&&ws.readyState===1)ws.send(JSON.stringify({type:'emote',id:id}));
-  showEmote(me,id);ecoTrack('emote');
+  showEmote(me,id);ecoTrack('emote');if(gameMode==='ai'&&CV)CV.emotes++;
 }
 function showEmote(side,id){
   id=Math.floor(+id);if(!(id>=0&&id<SIM.EMOTE_N))return;
@@ -4477,7 +4548,7 @@ function saveSyncMeta(){try{localStorage.setItem('gunduel_sync',JSON.stringify({
 function profileDoc(){
   ensureProfileShape();
   return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
-    xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea};   // 持ち物・開けた数はサーバーが決めるので送らない
+    xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea,tzo:new Date().getTimezoneOffset()};   // 持ち物・開けた数・試合の記録はサーバーが決める（送っても使われない）
 }
 function profileChanged(){if(!STORE_ACC)return;SYNC.dirty=true;SYNC.seq++;saveSyncMeta();pushProfileSoon(1500);}
 function pushProfileSoon(ms){
@@ -4500,6 +4571,7 @@ function pushProfile(){
       if(tok!==AUTH.token)return;
       SYNC.rev=+d.rev||SYNC.rev;
       if(seq===SYNC.seq){SYNC.dirty=false;if(d.merged&&d.profile)adoptProfile(d.profile);}
+      if(d.profile&&!d.merged)srvAdopt(d.profile);   // 試合の記録・称号・ミッションはサーバーの値に合わせる
       saveSyncMeta();
       if(SYNC.dirty)pushProfileSoon(300);else setSyncState('saved');
     })
@@ -5519,7 +5591,7 @@ function leaveMatch(){
   escWarnAt=0;backToMenu();
 }
 function backToMenu(){
-  clearGameTimers();endWaitUI();
+  clearGameTimers();endWaitUI();CV=null;
   if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range');}
   loopRunning=false;lobbyPhase=false;gameMode='ai';
   flashMsg='';flashTimer=0;tierUp=null;killCam=null;matchOver=false;vsPhase=false;bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;
@@ -5885,6 +5957,7 @@ function initLocalRound(){
   useStage(selectedStage);
   lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;
   lw.guardOn=true;SIM.guardSave(lw);   // 外から値を書き換えられていないか見張る
+  if(AC.watch)SIM.watchRound(AC.watch);
   aiBrain=SIM.newBrain(difficulty);
   playerSlot=0;lp.wantSlot=0;clearPending();
   lRoundOver=false;clearFx();
@@ -5893,16 +5966,19 @@ function initLocalRound(){
 function gameUpdateLocal(){
   if(lRoundOver||!lw)return;
   if(RINTRO&&RINTRO.freeze&&(!RINTRO.t0||performance.now()-RINTRO.t0<RI_READY))return;   // 「READY」の間は動かない
-  SIM.setInput(lp,playerInput());
+  var pin=playerInput();cvFrame(pin);SIM.setInput(lp,pin);
   SIM.setInput(lai,SIM.think(aiBrain,lw,'b'));
+  var V=AC.watch,hit=V?SIM.watchPre(V,lw,'a','b',pin):'';
   var ev=[];SIM.step(lw,ev);
-  if(lw.tamper&&!aiTamper){aiTamper=true;note(t('c.cheatFound'));cheatTrap();}   // ズルが見つかった試合は記録しない
+  if(V)hit=hit||SIM.watchPost(V,lw,ev,'a','b');
+  if(hit)acReport(hit,V.detail);   // 動きのクセ：本人には知らせず報告だけ（オンラインと同じ）
+  if(lw.tamper&&!aiTamper){aiTamper=true;note(t('c.cheatFound'));cheatTrap();acReport('tamper',lw.tamperAt);}   // ズルが見つかった試合は記録しない
   handleEvents(ev,'a',localStyle);
   if(ev.some(function(e){return e.t==='heal'&&e.who==='a';}))updateHealBtn();
   if(lp.dead||lai.dead)endRoundL(lp.dead&&lai.dead?null:(lp.dead?'ai':'player'));
 }
 function endRoundL(winner){
-  if(lRoundOver)return;lRoundOver=true;
+  if(lRoundOver)return;lRoundOver=true;cvRoundEnd();
   startKillCam(winner==='player'?lai:lp);       // とどめの演出
   if(winner)startCheer(winner==='player'?lp.side:lai.side);
   if(winner==='player'){lpWins++;SFX.koWin();achRoundWon();cpuEmote(false);}else{if(winner==='ai'){laWins++;cpuEmote(true);}SFX.koLose();}
@@ -5911,6 +5987,7 @@ function endRoundL(winner){
     var won=lpWins>=3,firstGod=won&&difficulty==='god'&&!beaten('god'),slay=won&&difficulty===EMP,firstSlay=slay&&!emperorSlain();
     recordMatchResult(difficulty,lpWins>=3,laWins===0);   // CPU戦の記録（レートとティアは動かない）
     achMatchDone(lpWins>=3);
+    cvMatchEnd();   // ログイン中は、サーバーが計算し直した結果で置きかわる
     later(function(){
       flashMsg=lpWins>=3?'YOU WIN!':'LOSE';flashTimer=9999;matchOver=true;if(lpWins>=3)startConfetti();
       presenceStatus('online');showNextInvite();   // CPU戦が終わったので、待っていた招待を出す
@@ -6187,6 +6264,7 @@ function handleOnlineMsg(msg){
     setTimeout(function(){if(AUTH.token)refreshMe();},900);   // オンライン戦績（称号の条件）を読み直す
   }
   else if(mt==='rate'){applyRateResult(msg);}
+  else if(mt==='progress'){srvAdopt(msg.profile,msg.rev);}   // オンライン対戦の記録（サーバーが数えた分）
   else if(mt==='wait'){onWaitMsg(msg);}   // 試合前の準備／ラウンド間の武器変更   // ランクマッチのレートの増減（サーバーが決める）
   else if(mt==='auth_ok'){AUTH.user=msg.user;adoptRate(msg.user);renderLoginUI();}
   else if(mt==='auth_fail'){AUTH.token='';AUTH.user=null;try{localStorage.removeItem('gunduel_token');}catch(e){}switchStore('');renderLoginUI();}
@@ -6226,6 +6304,54 @@ setInterval(function(){if(gameMode==='online'&&ws&&ws.readyState===1&&!olRoundOv
 // ============================================================
 // ゲーム開始
 // ============================================================
+// ---- 確かめられる CPU 戦（ログイン中）----
+// 試合の前にサーバーから種をもらい、CPU の乱数と武器をそこから決める。自分の操作を1フレームずつ記録して、終わったら送る。
+// 勝敗・ティアの進み・称号・経験値・ミッションは、サーバーが同じ試合を計算し直して決める（手元の記録は表示用）
+var CV=null;
+function cvStart(){
+  CV=null;
+  if(!AUTH.token)return;
+  var my=CV={ready:false,logs:[],loads:[],cur:null,emotes:0};
+  fetch(httpBase()+'/api/cpu/ticket',{method:'POST',headers:{Authorization:'Bearer '+AUTH.token}})
+    .then(function(r){return r.ok?r.json():null;}).then(function(d){
+      if(CV!==my||!d||!d.mid)return;
+      if(!lw||lw.frame>0||!lobbyPhase){CV=null;return;}   // もう試合が動き出していたら、この試合は確かめない
+      my.mid=d.mid;my.seed=d.seed>>>0;my.ready=true;
+      cpuLoad=SIM.cpuSeedLoad(my.seed,difficulty);
+      lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;lw.guardOn=true;SIM.guardSave(lw);
+      playerSlot=0;lp.wantSlot=0;updateWeaponBar();
+    }).catch(function(){if(CV===my)CV=null;});
+}
+// 1フレームぶん（SIM.step の前）：ラウンドの最初のフレームで、種から CPU を作り直す
+function cvFrame(pin){
+  if(!CV)return;
+  if(!CV.cur){
+    if(!CV.ready||lw.frame!==0||String(cpuLoad)!==String(SIM.cpuSeedLoad(CV.seed,difficulty))){CV=null;return;}
+    if(CV.diff&&CV.diff!==difficulty){CV=null;return;}
+    CV.diff=difficulty;CV.cur=[];CV.loads.push(loadout.slice());
+    aiBrain=SIM.newBrain(difficulty,SIM.roundRng(CV.seed,CV.logs.length));
+  }
+  SIM.logAdd(CV.cur,SIM.packInput(pin));
+}
+function cvRoundEnd(){if(CV&&CV.cur){CV.logs.push(SIM.logEncode(CV.cur));CV.cur=null;}}
+function cvMatchEnd(){
+  var my=CV;CV=null;
+  if(!my||!my.mid||!AUTH.token||aiTamper||!my.logs.length)return;
+  fetch(httpBase()+'/api/cpu/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},
+    body:JSON.stringify({mid:my.mid,diff:my.diff,stage:selectedStage,loads:my.loads,logs:my.logs,emotes:my.emotes})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d&&d.ok&&d.profile){srvAdopt(d.profile,d.rev);return;}
+      if(d&&d.why&&d.why!=='suspect')note(t('c.unverified'));
+    }).catch(function(){});
+}
+// サーバーが決めた試合の記録で、手元を置きかえる（CPU戦を確かめた結果・オンライン対戦の結果）
+function srvAdopt(p,rev){
+  if(!p||typeof p!=='object')return;
+  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','title','bg','misCrates','misChaos','coins','pass'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  if(rev){SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();}
+  ensureProfileShape();writeProfileLocal();renderHomeEco();
+  if(currentScreen==='profile-screen')renderProfileUI();
+}
 var aiTamper=false;   // この試合で、外から値を書き換えられたか
 function startAI(){
   clearGameTimers();aiTamper=false;
@@ -6234,14 +6360,14 @@ function startAI(){
   var boss=difficulty===EMP;
   cpuLoad=boss?SIM.emperorLoadout():SIM.cpuLoadout();cpuLook=boss?EMPEROR_LOOK:SIM.randomLook();
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;
-  presenceStatus('cpu');achMatchStart();
+  presenceStatus('cpu');achMatchStart();acMatchStart();cvStart();
   if(INV.cur){INV.queue.unshift(INV.cur);INV.cur=null;hideInviteToast();}   // 表示中の招待は試合のあとで出し直す
   showGameScreen('ai');initLocalRound();unlockDifficulty();
   if(boss)startBossIntro();else startLobby(10);
   startLoop();
 }
 function myTierKey(){return TIER_LADDER[computeTierIndex()].key;}
-function resetOnlineState(){TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
+function resetOnlineState(){AC.sent={};AC.synth=0;TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
 function startPingLoop(){
   if(pingTimer)clearInterval(pingTimer);
   pingTimer=setInterval(function(){
@@ -6369,7 +6495,7 @@ function handleBindUp(k){
 }
 function onGameScreen(){return document.getElementById('game-screen').style.display!=='none';}
 document.addEventListener('keydown',function(e){
-  if(listeningFor)return;
+  if(listeningFor||!acTrusted(e))return;
   var k=e.key.toLowerCase();
   if(e.key==='Escape'&&onGameScreen()){leaveMatch();e.preventDefault();return;}   // 対戦中でもESCでメニューへ（途中なら一度確認）
   if(matchOver&&k==='r'&&onGameScreen()){doRematch();e.preventDefault();return;}
@@ -6387,19 +6513,19 @@ document.addEventListener('keydown',function(e){
   if(k===keybinds.attack||k===keybinds.jump)e.preventDefault();
   handleBindDown(k,e.repeat);
 });
-document.addEventListener('keyup',function(e){if(listeningFor)return;handleBindUp(e.key.toLowerCase());});
+document.addEventListener('keyup',function(e){if(listeningFor||!acTrusted(e))return;handleBindUp(e.key.toLowerCase());});
 window.addEventListener('blur',function(){keys={};if(gameMode==='online')sendInput();});
 // マウスのボタンを割り当てている場合の操作（ゲーム画面の上だけで反応させる）
 (function(){
   var cv=document.getElementById('c');
   cv.addEventListener('mousedown',function(e){
-    if(listeningFor)return;e.preventDefault();
+    if(listeningFor||!acTrusted(e))return;e.preventDefault();
     if(bossIntro||unlockFx||slayFx){skipOverlayFx();return;}   // 演出の間は、クリック・タップでとばす
     if(matchOver&&isTouch){doRematch();return;}   // スマホは画面タップで再戦
     handleBindDown('mouse'+e.button,false);
   });
   cv.addEventListener('contextmenu',function(e){e.preventDefault();});
-  window.addEventListener('mouseup',function(e){if(listeningFor)return;handleBindUp('mouse'+e.button);});
+  window.addEventListener('mouseup',function(e){if(listeningFor||!acTrusted(e))return;handleBindUp('mouse'+e.button);});
 })();
 // 移動・しゃがみの押しっぱなし状態をまとめて変える（変わったときだけオンラインに送る）
 function setMoveKeys(l,r,dn){
@@ -6451,13 +6577,13 @@ window.addEventListener('orientationchange',updateMland);
   function place(el,x,y){el.style.left=typeof x==='string'?x:x+'px';el.style.top=typeof y==='string'?y:y+'px';}
   function rest(){place(base,'34%','66%');place(knob,'34%','66%');zone.classList.remove('on');}   // 割合で置く（隠れていて大きさが0のときでもずれない）
   zone.addEventListener('pointerdown',function(e){
-    e.preventDefault();if(sid!==null)return;
+    e.preventDefault();if(sid!==null||!acTrusted(e))return;
     if(overlayFxOn()){skipOverlayFx();return;}
     sid=e.pointerId;try{zone.setPointerCapture(sid);}catch(er){}
     var r=zone.getBoundingClientRect();ox=e.clientX-r.left;oy=e.clientY-r.top;place(base,ox,oy);place(knob,ox,oy);zone.classList.add('on');flick=false;
   });
   zone.addEventListener('pointermove',function(e){
-    if(e.pointerId!==sid)return;
+    if(e.pointerId!==sid||!acTrusted(e))return;
     var r=zone.getBoundingClientRect(),x=e.clientX-r.left,y=e.clientY-r.top,dx=x-ox,dy=y-oy,R=(base.offsetWidth/2)||40,len=Math.sqrt(dx*dx+dy*dy)||1;
     if(len>R*1.5){ox=x-dx/len*R*1.5;oy=y-dy/len*R*1.5;dx=x-ox;dy=y-oy;len=R*1.5;place(base,ox,oy);}   // 指が離れすぎたら、台がついてくる
     var k=len>R?R/len:1;place(knob,ox+dx*k,oy+dy*k);
@@ -6470,7 +6596,7 @@ window.addEventListener('orientationchange',updateMland);
   function btn(id,down,up){
     var el=document.getElementById(id);if(!el)return;
     el.addEventListener('pointerdown',function(e){
-      e.preventDefault();
+      e.preventDefault();if(!acTrusted(e))return;
       if(matchOver&&(id==='tp-atk'||id==='tp-jump')){doRematch();return;}
       if(overlayFxOn()){skipOverlayFx();return;}
       try{el.setPointerCapture(e.pointerId);}catch(er){}
@@ -6481,7 +6607,7 @@ window.addEventListener('orientationchange',updateMland);
   }
   btn('tp-atk',doAttack,attackUp);btn('tp-jump',doJump);btn('tp-reload',doReload);btn('tp-heal',doHeal);btn('tp-roll',doRoll);
   document.querySelectorAll('#tp-weps .tp-w').forEach(function(b){
-    b.addEventListener('pointerdown',function(e){e.preventDefault();setWeapon(+b.getAttribute('data-w'));});
+    b.addEventListener('pointerdown',function(e){e.preventDefault();if(acTrusted(e))setWeapon(+b.getAttribute('data-w'));});
   });
   // 画面をさわったら、ゲームパッドの表示からタッチの表示へ戻す
   document.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'&&GP.used)setPadMode(false);},{passive:true});
@@ -10718,7 +10844,7 @@ function drawScene(){
 var FRAME_MS=1000/60,lastTime=0,accumulator=0;
 function loop(ts){
   if(!loopRunning)return;
-  pollPad();
+  pollPad();acClock(ts);
   if(lastTime===0)lastTime=ts;var delta=ts-lastTime;lastTime=ts;if(delta>200)delta=200;
   fxAutoTick(delta);
   accumulator+=delta;
@@ -10829,7 +10955,7 @@ function drawBgFx(tm){
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
- partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint].forEach(function(f){window[f.name]=f;});
+ partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得

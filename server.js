@@ -82,6 +82,7 @@ const joinFails = limiter(10, 10 * 60 * 1000);    // 部屋番号の入力ミス
 const devtoolsReports = limiter(4, 10 * 60 * 1000);   // コンソールを開いた知らせ：同じIPから10分で4回まで（いたずら対策）
 const profileSaves = limiter(30, 60 * 1000);      // プロフィールの保存：1人1分で30回まで
 const crateHits = limiter(40, 60 * 1000);         // 宝箱を開ける・ミッションの報酬：1人1分で40回まで
+const cpuHits = limiter(20, 60 * 1000);           // CPU戦の種・結果：1人1分で20回まで
 const lookups = limiter(60, 60 * 1000);           // フレンドIDでの検索：1分で60回まで（総当たり対策）
 const friendOps = limiter(30, 60 * 1000);         // フレンド申請・承認など：1人1分で30回まで
 const inviteTries = limiter(12, 60 * 1000);       // 対戦の招待：1人1分で12回まで
@@ -123,6 +124,12 @@ function postTierUp(user, key) {
     .catch(e => { log('webhook error', e.message); return false; });
 }
 
+// ---- オンライン対戦の記録を、称号・ミッション・経験値に当てはめる（数えたのはサーバーの部屋）----
+function progressOnline(p, win) {
+  if (!p || p.bot || !p.uid || p.suspect || p.acts < ACTIVE_MIN_INPUTS || !p.tally) return;
+  const r = auth.applyMatch(p.uid, { mode: 'online', win, tally: p.tally, emotes: p.emotes });
+  if (r && p.ws) p.ws.send(JSON.stringify({ type: 'progress', rev: r.rev, profile: r.profile, titles: r.titles }));
+}
 // ---- 戦績の記録（水増し・途中退出への対策つき）----
 const pairCounts = new Map();
 let pairDay = '';
@@ -207,27 +214,90 @@ function postAdmin(embed) {
     body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }) })
     .then(r => { if (!r.ok) log('admin webhook failed', r.status); }).catch(e => log('admin webhook error', e.message));
 }
-function onSuspect(p, reason, room) {
-  const r = p.uid ? auth.flag(p.uid, reason) : null;
+function onSuspect(p, reason, room, pts) {
+  const r = p.uid ? auth.flag(p.uid, reason, pts, p.ip) : null;
   const act = !r ? 'ゲストのため記録のみ（IPで止めるなら BANNED_IPS）'
-    : r.action === 'ban' ? `自動で一時BAN（${new Date(r.until).toISOString().slice(0, 10)} まで）`
+    : pts === 0 ? '記録のみ（点数なし）'
+    : r.action === 'perma' ? '自動で永久BAN（3回目）'
+    : r.action === 'banned' ? 'すでにBAN中'
+    : r.action === 'ban' ? `自動で一時BAN（${r.bans}回目・${new Date(r.until).toISOString().slice(0, 10)} まで）`
     : r.action === 'pool' ? 'ランクマッチは怪しい人どうしでしか組まない' : '記録のみ';
   log('SUSPECT', 'discord=' + (p.uid || '-'), 'name=' + p.name + (p.discord ? ' (' + p.discord + ')' : ''), 'ip=' + p.ip, reason, '→', act);
   postAdmin({
-    title: r && r.action === 'ban' ? '自動で一時BANしました' : '怪しいプレイを検知しました',
-    color: r && r.action === 'ban' ? 0xFF4D5E : 0xFBBF24,
+    title: r && r.action === 'perma' ? '自動で永久BANしました' : r && r.action === 'ban' ? '自動で一時BANしました' : '怪しいプレイを検知しました',
+    color: r && (r.action === 'ban' || r.action === 'perma') ? 0xFF4D5E : 0xFBBF24,
     description: mdEscape(reason),
     fields: [
       { name: 'プレイヤー', value: mdEscape(p.name) + (p.uid ? `\n<@${p.uid}>（${mdEscape(p.discord || '')}）\nID: ${p.uid}` : '\nゲスト'), inline: true },
       { name: '最近30日の検知', value: r ? `${r.recent}回（通算${r.total}回）` : '-', inline: true },
       { name: '対応', value: act, inline: false },
-      { name: '部屋', value: (room && room.id ? room.id : '-') + (room && room.ranked ? '（ランク）' : ''), inline: true },
+      { name: '部屋', value: room && room.cpu ? 'CPU戦（' + mdEscape(room.cpu) + '）' : (room && room.id ? room.id : '-') + (room && room.ranked ? '（ランク）' : ''), inline: true },
       { name: 'IP', value: '||' + (p.ip || '-') + '||', inline: true },
     ],
     footer: { text: '永久BANは BANNED_DISCORD_IDS に ID を追加' },
     timestamp: new Date().toISOString(),
   });
-  if (r && r.action === 'ban' && p.ws) { try { p.ws.close(); } catch (e) {} }
+  if (r && (r.action === 'ban' || r.action === 'perma') && p.ws) { try { p.ws.close(); } catch (e) {} }
+  return r;
+}
+
+// CPU戦（ブラウザの中で動く対戦）で見つかったズルの報告。報告できるのは自分のアカウントのことだけ
+// 点数：改ざん・作られた入力・時間の操作は確かな証拠なので1回でBAN。動きのクセ（反応の速さなど）はオンラインと同じ1点。0は記録だけ
+const CHEAT_KINDS = {
+  tamper: [3, 'ゲームの値を書き換えた（CPU戦）'],
+  synthetic: [3, 'スクリプトが作った入力で操作した（CPU戦）'],
+  speed: [3, 'ゲームの時間の進み方を操作した（CPU戦）'],
+  native: [0, 'ゲームが使うブラウザの機能が書き換わっている（CPU戦・拡張機能でも起きるので記録だけ）'],
+  instant: [1, '狙いが合った瞬間に撃ち続けている（CPU戦・自動射撃の疑い）'],
+  react: [1, '反応が人間離れして速い（CPU戦・自動射撃の疑い）'],
+  rhythm: [1, '撃つ間隔が機械的に一定（CPU戦・マクロの疑い）'],
+  dodge: [1, '撃たれた瞬間に避け続けている（CPU戦・自動回避の疑い）'],
+  macro: [1, '入力の切り替えが人間離れした速さ（CPU戦・マクロの疑い）'],
+};
+const cheatReports = limiter(6, 60 * 1000);
+// CPU戦の種（1人1枚・2時間まで）
+const cpuTickets = new Map();
+const CPU_TICKET_MS = 2 * 60 * 60 * 1000;
+function cpuEnd(u, m, ip) {
+  const t = cpuTickets.get(u.id);
+  if (!m || !t || m.mid !== t.mid || Date.now() - t.at > CPU_TICKET_MS) return { ok: false, why: 'ticket' };
+  cpuTickets.delete(u.id);   // 1回だけ
+  const diff = typeof m.diff === 'string' ? m.diff : '', stage = typeof m.stage === 'string' ? m.stage : '';
+  if (!Array.isArray(m.logs) || !Array.isArray(m.loads)) return { ok: false, why: 'bad' };
+  // 鬼帝は、神に勝った記録（サーバーのもの）がある人だけ
+  if (diff === 'emperor') { const pr = auth.profileOf(u.id); if (!(pr && pr.tierProgress && pr.tierProgress.god && pr.tierProgress.god.beat)) return { ok: false, why: 'locked' }; }
+  const t0 = Date.now(), R = SIM.replayCpu({ seed: t.seed, diff, stage, loads: m.loads, logs: m.logs });
+  const cost = Date.now() - t0;
+  if (!R.ok) { log('cpu verify failed', 'discord=' + u.id, diff, stage, R.why, R.round != null ? 'round ' + R.round + ' frame ' + R.frame : '', cost + 'ms'); return { ok: false, why: R.why }; }
+  // 実際の時間より速く終わった試合（早送り）は数えない
+  if (Date.now() - t.at < R.frames / 60 * 1000 * 0.9) {
+    onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, 'CPU戦が実際の時間より速く終わっている（早送りの疑い）：' + R.frames + 'フレームを' + Math.round((Date.now() - t.at) / 1000) + '秒', { cpu: diff }, 1);
+    return { ok: false, why: 'time' };
+  }
+  // 計算し直した試合で見張りが引っかかった（ブラウザが報告を止めていても分かる）
+  if (R.watch) {
+    const label = (G.WATCH_LABEL[R.watch.code] || R.watch.code).replace('（', '（CPU戦・');
+    onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, label + '：' + R.watch.detail + '（サーバーで計算し直して確認）', { cpu: diff }, 1);
+    return { ok: false, why: 'suspect' };
+  }
+  const r = auth.applyMatch(u.id, { mode: 'cpu', diff, stage, win: R.win, straight: R.straight, tally: R.tally, emotes: m.emotes });
+  log('cpu verified', 'discord=' + u.id, diff, stage, R.win ? 'win' : 'lose', R.wins.join('-'), R.frames + 'f', cost + 'ms');
+  return r ? { ok: true, win: R.win, wins: R.wins, rev: r.rev, profile: r.profile, titles: r.titles } : { ok: false, why: 'user' };
+}
+const cheatSeen = new Map();   // 同じ人・同じ種類の報告は10分に1回だけ数える（通信のやり直しで二重に数えない）
+function cheatReport(u, m, ip) {
+  const kind = m && typeof m.kind === 'string' && Object.prototype.hasOwnProperty.call(CHEAT_KINDS, m.kind) ? m.kind : '';
+  if (!kind) return { error: 'bad' };
+  const key = u.id + ':' + kind, now = Date.now();
+  for (const [k, t] of cheatSeen) if (now - t > 10 * 60 * 1000) cheatSeen.delete(k);
+  if (cheatSeen.has(key)) return { ok: true, banned: auth.isBanned(u.id) };
+  cheatSeen.set(key, now);
+  const [pts, label] = CHEAT_KINDS[kind];
+  const detail = typeof m.detail === 'string' ? m.detail.replace(/[^\w .:\/#±%+-]/g, '').slice(0, 60) : '';
+  const diff = typeof m.diff === 'string' ? m.diff.replace(/\W/g, '').slice(0, 12) : '';
+  const r = onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, label + (detail ? '：' + detail : ''), { cpu: diff || '?' }, pts);
+  const b = auth.banInfo(u.id);
+  return { ok: true, banned: !!b, until: b ? b.until : 0, perma: !!(b && b.perma), action: r ? r.action : 'none' };
 }
 
 function openRoom() {
@@ -239,7 +309,10 @@ function openRoom() {
       cancelInvites(r.id);
       for (const k of ['a', 'b']) if (r.players[k]) presence.changed(r.players[k].uid);
     },
-    onResult: (w, l, reason) => (((w && w.bot) || (l && l.bot)) ? recordBotResult(room, w, l, reason) : recordResult(room, w, l, reason)),
+    onResult: (w, l, reason) => {
+      progressOnline(w, true); if (reason !== 'forfeit') progressOnline(l, false);   // 称号・ミッション・経験値（途中で抜けた人には付けない）
+      return ((w && w.bot) || (l && l.bot)) ? recordBotResult(room, w, l, reason) : recordResult(room, w, l, reason);
+    },
     onSuspect,
   });
   rooms.set(id, room);
@@ -256,7 +329,10 @@ function openTeamRoom(opt) {
       cancelInvites(r.id);
       for (const p of r.allPlayers()) if (p.uid || p.uidLeft) presence.changed(p.uid || p.uidLeft);
     },
-    onResult: (r, winTeam) => recordTeamResult(r, winTeam),
+    onResult: (r, winTeam) => {
+      for (const k of TEAM_SLOTS) { const p = r.players[k]; if (p && !p.done) progressOnline(p, teamOf(k) === winTeam); }
+      return recordTeamResult(r, winTeam);
+    },
     onLeave: (r, p) => recordTeamLeave(r, p),
   }, opt);
   rooms.set(id, room);
@@ -845,9 +921,9 @@ function cors(req, res) {
 }
 const json = (res, code, obj) => { res.writeHead(code, { 'Content-Type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj)); };
 const bearer = req => { const h = req.headers.authorization || ''; return h.startsWith('Bearer ') ? h.slice(7) : ''; };
-function readJson(req, cb) {
+function readJson(req, cb, max) {
   let body = '', bad = false;
-  req.on('data', d => { body += d; if (body.length > 4096) { bad = true; req.destroy(); } });
+  req.on('data', d => { body += d; if (body.length > (max || 4096)) { bad = true; req.destroy(); } });
   req.on('end', () => { if (bad) return cb(null); try { cb(JSON.parse(body)); } catch { cb(null); } });
 }
 
@@ -935,6 +1011,30 @@ const server = http.createServer((req, res) => {
       const r = m && m.op === 'claim' ? auth.missionClaim(u.id, m.i) : m && m.op === 'sclaim' ? auth.seasonClaim(u.id, m.i) : m && (m.op === 'gift' || m.op === 'buy' || m.op === 'badge') ? auth.shop(u.id, m) : m && m.op === 'login' ? auth.loginBonus(u.id) : m && m.op === 'open' ? auth.crateOpen(u.id, m.kind === 'chaos' ? 'chaos' : 'lucky') : { error: 'bad' };
       json(res, r.error ? 400 : 200, r);
     });
+  }
+  // ---- 確かめられる CPU 戦 ----
+  // 試合の前に種をもらう（POST）→ 終わったら操作の記録を送る（POST { mid, diff, stage, loads, logs, emotes }）。
+  // サーバーが同じ試合を計算し直して、勝敗・ティアの進み・称号・経験値・ミッションを決める（ブラウザの言う結果は使わない）
+  if (url === '/api/cpu/ticket' && req.method === 'POST') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!cpuHits.hit(u.id)) return json(res, 429, { error: 'busy' });
+    const t = { mid: crypto.randomBytes(8).toString('hex'), seed: crypto.randomInt(0, 2 ** 32), at: Date.now() };
+    cpuTickets.set(u.id, t);   // 1人1枚（新しくもらうと前のは使えない）
+    return json(res, 200, { mid: t.mid, seed: t.seed });
+  }
+  if (url === '/api/cpu/end' && req.method === 'POST') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!cpuHits.hit(u.id)) return json(res, 429, { error: 'busy' });
+    return readJson(req, m => json(res, 200, cpuEnd(u, m, ip)), 600000);
+  }
+  // CPU戦のズルの報告（POST { kind, detail, diff }）
+  if (url === '/api/report' && req.method === 'POST') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!cheatReports.hit(u.id)) return json(res, 429, { error: 'busy' });
+    return readJson(req, m => { const r = cheatReport(u, m, ip); json(res, r.error ? 400 : 200, r); });
   }
   // フレンドの一覧（GET）と、申請・承認・拒否・解除（POST { op, fid }）
   if (url === '/api/friends') {
