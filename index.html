@@ -2191,7 +2191,7 @@ body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=40"></script>
+<script src="sim.js?v=41"></script>
 <script src="lang.js?v=44"></script>
 <script>
 /*
@@ -4483,7 +4483,7 @@ function discordLogin(){
     '&redirect_uri='+encodeURIComponent(redirectUri())+'&response_type=code&scope=identify&state='+encodeURIComponent(st);
 }
 function doLogout(){
-  var t=AUTH.token;
+  var t=AUTH.token;CVT=null;CV=null;
   if(SYNC.timer){clearTimeout(SYNC.timer);SYNC.timer=null;}
   AUTH.token='';AUTH.user=null;
   try{localStorage.removeItem('gunduel_token');}catch(e){}
@@ -5016,7 +5016,12 @@ function showScreen(id){
   setDemo(id==='mode-screen');   // ホームだけ背景でCPU同士が戦う
   setDemoOn(PREVIEW,id==='stage-screen');
   if(id==='mode-screen'){renderHomeBar();renderHomeEco();maybeLoginBonus();}
+  else{   // ホームを離れたら、ホームの上に出す窓（ログインボーナス・ミッション・バッジを開ける画面）は閉じる。残ると、試合の画面を隠して押せなくなる
+    ['login-modal','mis-modal'].forEach(function(m){var el=document.getElementById(m);if(el)el.classList.remove('show');});
+    if(typeof CR!=='undefined'&&CR.on){CR.on=false;document.getElementById('crate-ov').classList.remove('show');document.body.classList.remove('crate-open');}   // 開けた中身はもう持ち物に入っている
+  }
   if(id==='mode-screen'||id==='profile-screen'||id==='shop-screen'||id==='pass-screen')startCardLoop();
+  if(id==='cpu-screen'||id==='stage-screen')cvPrefetch();
   bgmSync();
   window.scrollTo(0,0);
   showNextInvite();              // 待っていた招待があれば出す（CPU戦・オンライン対戦の途中は出さない）
@@ -6238,7 +6243,9 @@ function handleOnlineMsg(msg){
       if(olW&&msg.state&&msg.state.chars)SIM.TEAM_SLOTS.forEach(function(s){if(s!==mySlot&&olW.chars[s]&&msg.state.chars[s])copyServerChar(olW.chars[s],msg.state.chars[s]);});
       var tWon=msg.winTeam===myTeamNo(),tDraw=msg.winTeam==null;
       if(tWon)achRoundWon();
-      var kcT=null;SIM.TEAM_SLOTS.forEach(function(s){var c=olW&&olW.chars[s];if(c&&c.dead&&(tWon?slotRole(s)==='foe':slotRole(s)!=='foe'))kcT=c;});
+      // とどめの演出：このラウンドを終わらせた一撃（最後の dead）で倒れたキャラに寄る。見つからなければ、負けた側の誰か
+      var kcT=null;(msg.fx||[]).forEach(function(e){if(e&&e.t==='dead'&&olW&&olW.chars[e.who])kcT=olW.chars[e.who];});
+      if(!kcT)SIM.TEAM_SLOTS.forEach(function(s){var c=olW&&olW.chars[s];if(!kcT&&c&&c.dead&&(tWon?slotRole(s)==='foe':slotRole(s)!=='foe'))kcT=c;});
       startKillCam(kcT||olMe);if(!tDraw)startCheer(null,msg.winTeam);
       if(tWon)SFX.koWin();else SFX.koLose();
       later(function(){flashMsg=tWon?'WIN!':tDraw?'DRAW':'LOSE...';flashTimer=80;},560);
@@ -6313,19 +6320,31 @@ setInterval(function(){if(gameMode==='online'&&ws&&ws.readyState===1&&!olRoundOv
 // ---- 確かめられる CPU 戦（ログイン中）----
 // 試合の前にサーバーから種をもらい、CPU の乱数と武器をそこから決める。自分の操作を1フレームずつ記録して、終わったら送る。
 // 勝敗・ティアの進み・称号・経験値・ミッションは、サーバーが同じ試合を計算し直して決める（手元の記録は表示用）
-var CV=null;
+var CV=null,CVT=null,cvtBusy=false;
+// 種は前もってもらっておく（CPU戦の画面を開いたとき・試合が終わったとき）。ロビーをすぐ飛ばしても間に合うように
+function cvPrefetch(){
+  if(!AUTH.token||cvtBusy||(CVT&&Date.now()-CVT.at<90*60000))return;
+  cvtBusy=true;var tok=AUTH.token;
+  fetch(httpBase()+'/api/cpu/ticket',{method:'POST',headers:{Authorization:'Bearer '+tok}})
+    .then(function(r){return r.ok?r.json():null;}).then(function(d){cvtBusy=false;if(d&&d.mid&&tok===AUTH.token)CVT={mid:d.mid,seed:d.seed>>>0,at:Date.now()};})
+    .catch(function(){cvtBusy=false;});
+}
+function cvApply(my,d){
+  my.mid=d.mid;my.seed=d.seed>>>0;my.ready=true;
+  cpuLoad=SIM.cpuSeedLoad(my.seed,difficulty);
+  lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;lw.guardOn=true;SIM.guardSave(lw);
+  playerSlot=0;lp.wantSlot=0;updateWeaponBar();
+}
 function cvStart(){
   CV=null;
   if(!AUTH.token)return;
   var my=CV={ready:false,logs:[],loads:[],cur:null,emotes:0};
+  if(CVT){var d0=CVT;CVT=null;cvApply(my,d0);return;}   // 前もってもらった種をすぐ使う
   fetch(httpBase()+'/api/cpu/ticket',{method:'POST',headers:{Authorization:'Bearer '+AUTH.token}})
     .then(function(r){return r.ok?r.json():null;}).then(function(d){
       if(CV!==my||!d||!d.mid)return;
       if(!lw||lw.frame>0||!lobbyPhase){CV=null;return;}   // もう試合が動き出していたら、この試合は確かめない
-      my.mid=d.mid;my.seed=d.seed>>>0;my.ready=true;
-      cpuLoad=SIM.cpuSeedLoad(my.seed,difficulty);
-      lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;lw.guardOn=true;SIM.guardSave(lw);
-      playerSlot=0;lp.wantSlot=0;updateWeaponBar();
+      cvApply(my,d);
     }).catch(function(){if(CV===my)CV=null;});
 }
 // 1フレームぶん（SIM.step の前）：ラウンドの最初のフレームで、種から CPU を作り直す
@@ -6342,6 +6361,7 @@ function cvFrame(pin){
 function cvRoundEnd(){if(CV&&CV.cur){CV.logs.push(SIM.logEncode(CV.cur));CV.cur=null;}}
 function cvMatchEnd(){
   var my=CV;CV=null;
+  setTimeout(cvPrefetch,1500);   // 次の試合（再戦）の種
   if(!my||!my.mid||!AUTH.token||aiTamper||!my.logs.length)return;
   fetch(httpBase()+'/api/cpu/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},
     body:JSON.stringify({mid:my.mid,diff:my.diff,stage:selectedStage,loads:my.loads,logs:my.logs,emotes:my.emotes})})
@@ -8660,7 +8680,7 @@ function tierParticles(g,B,x,y,w,h,tm,idx){
     var r1=prand(i*7.1+idx),r2=prand(i*3.7+idx*2),t=(tm*(.06+r2*.05)+r1)%1,px,py,s=w*(.008+r2*.008),al;
     g.save();
     switch(B.par){
-    case 'twinkle':px=x+r1*w;py=y+r2*h*.85;al=.5+.5*Math.sin(tm*3+i*2.1);g.globalAlpha=al*.9;g.fillStyle='#FFFFFF';g.translate(px,py);g.rotate(Math.PI/4);g.fillRect(-s*.2,-s*1.2,s*.4,s*2.4);g.fillRect(-s*1.2,-s*.2,s*2.4,s*.4);break;
+    case 'twinkle':px=x+r1*w;py=y+r2*h*.85;al=.5+.5*Math.sin(tm*3+i*2.1);g.globalAlpha=al*.9;g.fillStyle='#FFFFFF';g.translate(px,py);g.fillRect(-s*.2,-s*1.2,s*.4,s*2.4);g.fillRect(-s*1.2,-s*.2,s*2.4,s*.4);break;
     case 'sparks':px=x+r1*w+Math.sin(t*6+i)*w*.03;py=y+h*(.1+t*.9);g.globalAlpha=(1-t)*.9;g.strokeStyle=i%3?'#FFB347':'#FFE08A';g.lineWidth=s*.5;g.beginPath();g.moveTo(px,py);g.lineTo(px-s*.6,py-s*2.2);g.stroke();break;
     case 'dust':px=x+((r1+t*.6)%1)*w;py=y+h*(.3+r2*.6)+Math.sin(tm+i)*h*.02;g.globalAlpha=.25*Math.sin(t*Math.PI);g.fillStyle='#FFCFA0';g.beginPath();g.arc(px,py,s*2.2,0,Math.PI*2);g.fill();break;
     case 'snow':px=x+r1*w+Math.sin(tm*.8+i)*w*.04;py=y+t*h;g.globalAlpha=.85*Math.sin(t*Math.PI);g.fillStyle='#FFFFFF';g.beginPath();g.arc(px,py,s,0,Math.PI*2);g.fill();break;
@@ -11016,7 +11036,8 @@ function drawScene(){
   }
   var sk=JUICE.shake;
   ctx.save();if(sk>.2)ctx.translate((Math.random()-.5)*2*sk,(Math.random()-.5)*2*sk);   // 画面の揺れ
-  if(kc){var kx=wx(kc.x),ky=kc.y;ctx.save();ctx.translate(kx,ky);ctx.scale(kz,kz);ctx.translate(-kx,-ky);}
+  // 寄る中心は画面の中に収める（離れた場所・穴に落ちたキャラでも、画面が大きくずれないように）
+  if(kc){var kx=Math.max(VW*.18,Math.min(VW*.82,wx(kc.x))),ky=Math.max(VH*.2,Math.min(VH*.8,kc.y));ctx.save();ctx.translate(kx,ky);ctx.scale(kz,kz);ctx.translate(-kx,-ky);}
   drawBackground();
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins,me=null,op=null;
   if(gameMode==='ai'&&lp&&lai){

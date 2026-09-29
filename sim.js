@@ -1971,13 +1971,13 @@ WEAPON_IDS.forEach(function (wid) {
 // ブラウザにも同じ記録が残っているので、サーバーと手元の両方でこれを通す（片方だけだと次の保存で戻ってしまう）
 // 1：CPUの強さを変えたので、CPU戦で取れる称号をやり直し（resetCpuTitles。鬼帝の記録もここで消える）
 // 2：鬼帝に勝ってもらえる背景と称号「鬼帝を討ちし者」を、全員から外す（resetEmperorReward。ほかの称号は残す）
-var PROFILE_EPOCH = 2;
+// 3：CPU戦の結果をサーバーが確かめる前の記録（チートでふやしたものを含む）を、全員分消す（勝敗・クリア・鬼帝・称号のもと）
+var PROFILE_EPOCH = 3;
 // 古いプロフィールを今の段階までやり直す。サーバー・ブラウザ・古いページからの保存のどれもここを通す
 function upgradeProfile(p, tier) {
   if (!p || typeof p !== 'object') return p;
   var e = +p.epoch || 0;
-  if (e < 1) return resetCpuTitles(p, tier);        // 1 のやり直しは鬼帝の記録も消すので、2 も済んだことになる
-  if (e < 2) resetEmperorReward(p);
+  if (e < 3) { resetCpuTitles(p, tier); p.stats = {}; return p; }   // 3 のやり直しは 1・2 の分も含む（CPU戦の勝敗も0に）
   p.epoch = PROFILE_EPOCH;
   return p;
 }

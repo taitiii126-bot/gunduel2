@@ -223,6 +223,7 @@ function onSuspect(p, reason, room, pts) {
     : r.action === 'ban' ? `自動で一時BAN（${r.bans}回目・${new Date(r.until).toISOString().slice(0, 10)} まで）`
     : r.action === 'pool' ? 'ランクマッチは怪しい人どうしでしか組まない' : '記録のみ';
   log('SUSPECT', 'discord=' + (p.uid || '-'), 'name=' + p.name + (p.discord ? ' (' + p.discord + ')' : ''), 'ip=' + p.ip, reason, '→', act);
+  if (pts === 0) return r;   // 記録だけ（点数なし）は、管理者に知らせない（拡張機能などで起きるので、知らせると多すぎる）
   postAdmin({
     title: r && r.action === 'perma' ? '自動で永久BANしました' : r && r.action === 'ban' ? '自動で一時BANしました' : '怪しいプレイを検知しました',
     color: r && (r.action === 'ban' || r.action === 'perma') ? 0xFF4D5E : 0xFBBF24,
