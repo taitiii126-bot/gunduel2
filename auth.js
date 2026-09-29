@@ -112,6 +112,18 @@ if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
   }
   db.meta.titleEpoch = SIM.PROFILE_EPOCH; dirty = true;
 }
+// 解放した背景の上限（bestEver）を、サーバーの記録から作る（1回だけ）。
+// 前はブラウザが送った bestTier をそのまま信じていたので、前のシーズンまでに届いたと考えられる所（今の最高＋5ティア）までだけ残す
+if (!db.meta.bestEpoch) {
+  for (const u of Object.values(db.users)) {
+    const peak = SIM.tierOfRate(Math.max(u.rpeak || 0, u.rate || 0, u.rpeak2 || 0, u.rate2 || 0));
+    const played = u.online && (u.online.w + u.online.l) > 0;
+    const claimed = u.profile && Number.isFinite(+u.profile.bestTier) ? +u.profile.bestTier : 0;
+    const cap = played ? Math.min(P.TIER_KEYS.length - 1, peak + ((db.meta.season || 1) > 1 ? 5 : 0)) : peak;
+    u.bestEver = Math.max(peak, u.tierBest || 0, Math.min(claimed, cap));
+  }
+  db.meta.bestEpoch = 1; dirty = true;
+}
 // ---- シーズンの切りかわり（シンガポール時間で月が変わったとき）----
 // 最終1位に「天下無双」を贈り（持っていなければ）、全員のレートをティア5つ分下げたところから再開する
 function seasonTop() {
@@ -161,7 +173,25 @@ Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slic
   .forEach(u => { if (!u.pioneer10) { u.pioneer10 = true; dirty = true; } });
 // 称号の確認に使う本人の情報
 // サーバーが決める値（持ち物・開けた数・ミッションの宝箱・天井）は、前にサーバーが保存した値を使う
-function keepServerOwned(next, old) {
+// 試合の記録（CPU戦の勝敗・ティアの進み・称号のもと・経験値・ミッションの進み具合）も、サーバーが確かめた試合でしか増えない
+// （CPU戦は /api/cpu/end で計算し直した試合、オンラインは部屋の記録）。ブラウザから届いた値は使わない
+const JOKE_TITLES = ['rule_breaker', 'no_skill', 'liar'];   // ブラウザだけで起きる、得のない称号（コンソールを開いた等）
+function keepServerOwned(next, old, u) {
+  const inc = next.ach;
+  if (old) {
+    next.stats = old.stats; next.tierProgress = old.tierProgress; next.emperor = Object.assign({}, old.emperor, { seen: !!(next.emperor && next.emperor.seen) || old.emperor.seen });
+    next.ach = JSON.parse(JSON.stringify(old.ach)); next.xp = old.xp || 0;
+    next.mis = old.mis; if (next.sea && old.sea && old.sea.s === next.sea.s) next.sea.p = old.sea.p.slice(); else if (next.sea) next.sea.p = next.sea.p.map(() => 0);
+  } else {
+    const blank = P.clean({}, null, 0);
+    next.stats = blank.stats; next.tierProgress = blank.tierProgress; next.emperor = blank.emperor; next.ach = blank.ach; next.xp = 0;
+    next.mis = blank.mis; if (next.sea) next.sea.p = next.sea.p.map(() => 0);
+  }
+  for (const id of JOKE_TITLES) if (inc && inc.evt && inc.evt[id] > 0 && !(next.ach.evt[id] > 0)) { next.ach.evt[id] = 1; next.ach.got[id] = 1; }
+  if (u) { next.bestTier = bestTierOf(u); if (typeof next.bg === 'number' && next.bg > next.bestTier) next.bg = null; }
+  // 付けている称号も、サーバーの記録で確かめ直す
+  next.title = P.validTitle(next.title, u ? titleCtx(u) : null, { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor });
+  if (next.bg === 'emperor' && !next.emperor.beat) next.bg = null;
   next.inv = old ? old.inv.slice() : [];
   next.opened = old ? old.opened : 0;
   next.misCrates = old ? old.misCrates : 0;
@@ -209,6 +239,30 @@ function saveServerProfile(u, pr, extra) {
   touch();
   return Object.assign({ rev: u.profileRev, profile: pr }, extra || {});
 }
+// 解放した背景の上限＝これまでに届いた一番上のティア（サーバーのレートの記録だけで決める）
+function bestTierOf(u) {
+  const t = Math.max(u.bestEver || 0, SIM.tierOfRate(Math.max(u.rpeak || 0, typeof u.rate === 'number' ? u.rate : 0)),
+    SIM.tierOfRate(Math.max(u.rpeak2 || 0, typeof u.rate2 === 'number' ? u.rate2 : 0)), u.tierBest || 0);
+  if (t > (u.bestEver || 0)) { u.bestEver = t; touch(); }
+  return t;
+}
+// ミッションの進み具合を数える（ブラウザの ecoTrack と同じ決まり）
+function trackMission(pr, kind, n, w) {
+  if (!(n > 0)) return;
+  const day = SIM.dayKey();
+  if (!pr.mis || pr.mis.day !== day) pr.mis = { day, p: [0, 0, 0], c: [false, false, false] };
+  SIM.dailyMissions(day).forEach((id, i) => {
+    const d = SIM.MISSIONS[id];
+    if (d.k !== kind || (d.w && d.w !== w) || pr.mis.c[i]) return;
+    pr.mis.p[i] = Math.min(d.n, (pr.mis.p[i] || 0) + n);
+  });
+  seasonFresh(pr);
+  const un = SIM.seasonUnlocked(pr.sea.got, day);
+  SIM.SEASON_MISSIONS.forEach((d, i) => {
+    if (i >= un || pr.sea.got[i] || d.k !== kind || (d.w && d.w !== w)) return;
+    pr.sea.p[i] = Math.min(d.n, (pr.sea.p[i] || 0) + n);
+  });
+}
 const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, badges: u.badges || [] });
 
 // ---- レート ----
@@ -233,6 +287,7 @@ function writeRate2(u, r, win) {
   u.rpeak2 = Math.max(u.rpeak2 || 0, r.rate);
   if (!u.ranked2) u.ranked2 = { w: 0, l: 0 };
   if (win) u.ranked2.w++; else u.ranked2.l++;
+  bestTierOf(u);
   touch();
 }
 function writeRate(u, r, win) {
@@ -240,6 +295,7 @@ function writeRate(u, r, win) {
   u.rpeak = Math.max(u.rpeak || 0, r.rate);
   if (!u.ranked) u.ranked = { w: 0, l: 0 };
   if (win) u.ranked.w++; else u.ranked.l++;
+  bestTierOf(u);
   touch();
 }
 function flush() {
@@ -438,6 +494,7 @@ const auth = {
   ipBanned(ip) { const m = db.meta.ipBans; return !!ip && !!m && m[ip] > Date.now(); },
   banInfo(uid) { const u = db.users[uid]; return u && tempBanned(u) ? { until: u.banUntil, perma: u.banUntil >= PERMA_BAN, reason: u.banReason || '' } : null; },
   // ランクマッチで、怪しい人どうしでしか組ませないか
+  profileOf(uid) { const u = db.users[uid]; return u ? serverProfile(u) : null; },
   inSuspectPool(uid) { const u = db.users[uid]; return !!u && recentFlags(u) >= SUSPECT_POOL_FLAGS; },
   isBanned(uid) { const u = db.users[uid]; return BANNED_IDS.has(String(uid)) || (!!u && tempBanned(u)); },
   // Discordに報告済みの最高ティア（0=未ランク、1=LT5 … 10=HT1）
@@ -461,7 +518,8 @@ const auth = {
     const merged = !!u.profile && Math.floor(+base) !== rev;
     const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
     let next = merged ? P.merge(old, inc) : inc;
-    keepServerOwned(next, old);   // 持ち物・開けた数などは、ブラウザから届いた値を使わない
+    keepServerOwned(next, old, u);   // 持ち物・開けた数・試合の記録などは、ブラウザから届いた値を使わない
+    if (raw && Number.isFinite(+raw.tzo) && Math.abs(+raw.tzo) <= 840) u.tzo = Math.round(+raw.tzo);   // 時差（称号「夜更かし」の時刻に使う）
     // 一瞬で記録がそろうのはおかしいので、増えすぎた分は前の値に戻す
     next = P.limitGrowth(old, next, Date.now() - (u.profileAt || 0), ctx);
     if (next.over) { console.log(new Date().toISOString(), 'profile: 増えすぎた記録を戻しました', u.id, next.over.join(',')); delete next.over; }
@@ -480,7 +538,8 @@ const auth = {
     const day = SIM.dayKey();
     if (u.misDay !== day) { u.misDay = day; u.misGot = []; }
     if (u.misGot.indexOf(i) >= 0) return { error: 'claimed' };
-    const pr = serverProfile(u);
+    const pr = serverProfile(u), need = SIM.MISSIONS[SIM.dailyMissions(day)[i]].n;
+    if (!pr.mis || pr.mis.day !== day || !(pr.mis.p[i] >= need)) return { error: 'not_done' };   // 終えていないミッションの報酬は渡さない
     u.misGot.push(i);
     pr.misCrates = (pr.misCrates || 0) + 1;
     if (u.misGot.length === 3) pr.misChaos = (pr.misChaos || 0) + 1;   // その日の3つを全部終えた → カオスバッジ
@@ -500,10 +559,57 @@ const auth = {
     seasonFresh(pr);
     if (pr.sea.got[i]) return { error: 'claimed' };
     if (i >= SIM.seasonUnlocked(pr.sea.got, day)) return { error: 'locked' };
+    if (!(pr.sea.p[i] >= SIM.SEASON_MISSIONS[i].n)) return { error: 'not_done' };
     pr.sea.got[i] = day;
     pr.coins = (pr.coins || 0) + SIM.SEA_COINS;
     const tiers = addPassXp(pr, SIM.SEASON_MIS_PXP);
     return saveServerProfile(u, pr, { sclaimed: i, tiers });
+  },
+  // サーバーが確かめた試合の記録を当てはめる（CPU戦は計算し直した結果、オンラインは部屋の記録）
+  // m = { mode: 'cpu'|'online', diff, stage, win, straight, tally（SIM.newTally の形）, emotes }
+  applyMatch(uid, m) {
+    const u = db.users[uid];
+    if (!u || !m || !m.tally) return null;
+    const pr = serverProfile(u), T = m.tally, A = pr.ach, win = !!m.win, cpu = m.mode === 'cpu', ctx = titleCtx(u);
+    const evt = id => { A.evt[id] = (A.evt[id] || 0) + 1; };
+    let kills = 0;
+    for (const k of Object.keys(T.kills || {})) if (A.kills[k] != null) { const n = Math.max(0, T.kills[k] | 0); A.kills[k] += n; kills += n; trackMission(pr, 'killw', n, +k); }
+    if (T.nodmg > 0) evt('untouched');
+    if (T.closeCall > 0) evt('close_call');
+    if (cpu && T.pitDrop > 0) evt('pit_drop');
+    if (cpu) {
+      if (m.diff === 'emperor') { if (win) { pr.emperor.w++; pr.emperor.beat = true; } else pr.emperor.l++; }
+      else if (pr.stats[m.diff]) {
+        if (win) { pr.stats[m.diff].w++; pr.tierProgress[m.diff].beat = true; if (m.straight) pr.tierProgress[m.diff].straight = true; }
+        else pr.stats[m.diff].l++;
+      }
+    }
+    if (win) {
+      A.streak = (A.streak || 0) + 1; A.best = Math.max(A.best || 0, A.streak);
+      const hour = (new Date().getUTCHours() - Math.round((u.tzo || 0) / 60) + 48) % 24;
+      if (u.tzo != null && hour < 4) evt('short_sleeper');   // 時差が分かっている人だけ
+      if (T.shots >= 10 && T.hits / T.shots >= 0.8) evt('precision');
+      if (cpu) {
+        if (A.stages[m.stage] != null) A.stages[m.stage]++;
+        if (m.diff === 'easy' && pr.tierProgress.hard && pr.tierProgress.hard.beat) evt('first_steps');
+        if (m.diff === 'god' && T.killList.length >= 3 && T.killList.every(w => w === 2)) evt('one_pistol');
+      }
+    } else A.streak = 0;
+    pr.xp = (pr.xp || 0) + SIM.matchXp(win, T.roundsWon, !cpu);
+    trackMission(pr, 'play', 1);
+    if (win) trackMission(pr, 'win', 1);
+    if (!cpu) trackMission(pr, 'online', 1);
+    if (cpu && win && ['hard', 'pro', 'god', 'emperor'].includes(m.diff)) trackMission(pr, 'hard', 1);
+    trackMission(pr, 'rounds', T.roundsWon);
+    trackMission(pr, 'kill', kills);
+    trackMission(pr, 'nodmg', T.nodmg);
+    trackMission(pr, 'roll', T.rolls);
+    trackMission(pr, 'rolldodge', T.rolldodges);
+    trackMission(pr, 'emote', Math.min(10, Math.max(0, m.emotes | 0)));
+    // 記録で裏づけのある称号を付ける（付け外しはブラウザでも同じ決まりで分かる）
+    const proof = { stats: pr.stats, tierProgress: pr.tierProgress, ach: A, emperor: pr.emperor }, fresh = [];
+    for (const t of SIM.TITLES) if (!t.gate && !A.got[t.id] && SIM.titleProof(t.id, proof, ctx)) { A.got[t.id] = 1; fresh.push(t.id); }
+    return saveServerProfile(u, pr, { titles: fresh });
   },
   // ログインボーナス（1日1回）：連続記録を進めて、7日カレンダーの報酬と節目の報酬を渡す
   loginBonus(uid) {

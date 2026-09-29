@@ -2189,8 +2189,8 @@ body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=39"></script>
-<script src="lang.js?v=42"></script>
+<script src="sim.js?v=40"></script>
+<script src="lang.js?v=43"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3951,7 +3951,7 @@ function doEmote(i){
   var me=gameMode==='ai'?'a':mySlot;if(!me)return;
   EMO.last=now;closeEmoteMenu();
   if(gameMode==='online'&&ws&&ws.readyState===1)ws.send(JSON.stringify({type:'emote',id:id}));
-  showEmote(me,id);ecoTrack('emote');
+  showEmote(me,id);ecoTrack('emote');if(gameMode==='ai'&&CV)CV.emotes++;
 }
 function showEmote(side,id){
   id=Math.floor(+id);if(!(id>=0&&id<SIM.EMOTE_N))return;
@@ -4548,7 +4548,7 @@ function saveSyncMeta(){try{localStorage.setItem('gunduel_sync',JSON.stringify({
 function profileDoc(){
   ensureProfileShape();
   return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
-    xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea};   // 持ち物・開けた数はサーバーが決めるので送らない
+    xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea,tzo:new Date().getTimezoneOffset()};   // 持ち物・開けた数・試合の記録はサーバーが決める（送っても使われない）
 }
 function profileChanged(){if(!STORE_ACC)return;SYNC.dirty=true;SYNC.seq++;saveSyncMeta();pushProfileSoon(1500);}
 function pushProfileSoon(ms){
@@ -4571,6 +4571,7 @@ function pushProfile(){
       if(tok!==AUTH.token)return;
       SYNC.rev=+d.rev||SYNC.rev;
       if(seq===SYNC.seq){SYNC.dirty=false;if(d.merged&&d.profile)adoptProfile(d.profile);}
+      if(d.profile&&!d.merged)srvAdopt(d.profile);   // 試合の記録・称号・ミッションはサーバーの値に合わせる
       saveSyncMeta();
       if(SYNC.dirty)pushProfileSoon(300);else setSyncState('saved');
     })
@@ -5590,7 +5591,7 @@ function leaveMatch(){
   escWarnAt=0;backToMenu();
 }
 function backToMenu(){
-  clearGameTimers();endWaitUI();
+  clearGameTimers();endWaitUI();CV=null;
   if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range');}
   loopRunning=false;lobbyPhase=false;gameMode='ai';
   flashMsg='';flashTimer=0;tierUp=null;killCam=null;matchOver=false;vsPhase=false;bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;
@@ -5965,7 +5966,7 @@ function initLocalRound(){
 function gameUpdateLocal(){
   if(lRoundOver||!lw)return;
   if(RINTRO&&RINTRO.freeze&&(!RINTRO.t0||performance.now()-RINTRO.t0<RI_READY))return;   // 「READY」の間は動かない
-  var pin=playerInput();SIM.setInput(lp,pin);
+  var pin=playerInput();cvFrame(pin);SIM.setInput(lp,pin);
   SIM.setInput(lai,SIM.think(aiBrain,lw,'b'));
   var V=AC.watch,hit=V?SIM.watchPre(V,lw,'a','b',pin):'';
   var ev=[];SIM.step(lw,ev);
@@ -5977,7 +5978,7 @@ function gameUpdateLocal(){
   if(lp.dead||lai.dead)endRoundL(lp.dead&&lai.dead?null:(lp.dead?'ai':'player'));
 }
 function endRoundL(winner){
-  if(lRoundOver)return;lRoundOver=true;
+  if(lRoundOver)return;lRoundOver=true;cvRoundEnd();
   startKillCam(winner==='player'?lai:lp);       // とどめの演出
   if(winner)startCheer(winner==='player'?lp.side:lai.side);
   if(winner==='player'){lpWins++;SFX.koWin();achRoundWon();cpuEmote(false);}else{if(winner==='ai'){laWins++;cpuEmote(true);}SFX.koLose();}
@@ -5986,6 +5987,7 @@ function endRoundL(winner){
     var won=lpWins>=3,firstGod=won&&difficulty==='god'&&!beaten('god'),slay=won&&difficulty===EMP,firstSlay=slay&&!emperorSlain();
     recordMatchResult(difficulty,lpWins>=3,laWins===0);   // CPU戦の記録（レートとティアは動かない）
     achMatchDone(lpWins>=3);
+    cvMatchEnd();   // ログイン中は、サーバーが計算し直した結果で置きかわる
     later(function(){
       flashMsg=lpWins>=3?'YOU WIN!':'LOSE';flashTimer=9999;matchOver=true;if(lpWins>=3)startConfetti();
       presenceStatus('online');showNextInvite();   // CPU戦が終わったので、待っていた招待を出す
@@ -6262,6 +6264,7 @@ function handleOnlineMsg(msg){
     setTimeout(function(){if(AUTH.token)refreshMe();},900);   // オンライン戦績（称号の条件）を読み直す
   }
   else if(mt==='rate'){applyRateResult(msg);}
+  else if(mt==='progress'){srvAdopt(msg.profile,msg.rev);}   // オンライン対戦の記録（サーバーが数えた分）
   else if(mt==='wait'){onWaitMsg(msg);}   // 試合前の準備／ラウンド間の武器変更   // ランクマッチのレートの増減（サーバーが決める）
   else if(mt==='auth_ok'){AUTH.user=msg.user;adoptRate(msg.user);renderLoginUI();}
   else if(mt==='auth_fail'){AUTH.token='';AUTH.user=null;try{localStorage.removeItem('gunduel_token');}catch(e){}switchStore('');renderLoginUI();}
@@ -6301,6 +6304,54 @@ setInterval(function(){if(gameMode==='online'&&ws&&ws.readyState===1&&!olRoundOv
 // ============================================================
 // ゲーム開始
 // ============================================================
+// ---- 確かめられる CPU 戦（ログイン中）----
+// 試合の前にサーバーから種をもらい、CPU の乱数と武器をそこから決める。自分の操作を1フレームずつ記録して、終わったら送る。
+// 勝敗・ティアの進み・称号・経験値・ミッションは、サーバーが同じ試合を計算し直して決める（手元の記録は表示用）
+var CV=null;
+function cvStart(){
+  CV=null;
+  if(!AUTH.token)return;
+  var my=CV={ready:false,logs:[],loads:[],cur:null,emotes:0};
+  fetch(httpBase()+'/api/cpu/ticket',{method:'POST',headers:{Authorization:'Bearer '+AUTH.token}})
+    .then(function(r){return r.ok?r.json():null;}).then(function(d){
+      if(CV!==my||!d||!d.mid)return;
+      if(!lw||lw.frame>0||!lobbyPhase){CV=null;return;}   // もう試合が動き出していたら、この試合は確かめない
+      my.mid=d.mid;my.seed=d.seed>>>0;my.ready=true;
+      cpuLoad=SIM.cpuSeedLoad(my.seed,difficulty);
+      lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;lw.guardOn=true;SIM.guardSave(lw);
+      playerSlot=0;lp.wantSlot=0;updateWeaponBar();
+    }).catch(function(){if(CV===my)CV=null;});
+}
+// 1フレームぶん（SIM.step の前）：ラウンドの最初のフレームで、種から CPU を作り直す
+function cvFrame(pin){
+  if(!CV)return;
+  if(!CV.cur){
+    if(!CV.ready||lw.frame!==0||String(cpuLoad)!==String(SIM.cpuSeedLoad(CV.seed,difficulty))){CV=null;return;}
+    if(CV.diff&&CV.diff!==difficulty){CV=null;return;}
+    CV.diff=difficulty;CV.cur=[];CV.loads.push(loadout.slice());
+    aiBrain=SIM.newBrain(difficulty,SIM.roundRng(CV.seed,CV.logs.length));
+  }
+  SIM.logAdd(CV.cur,SIM.packInput(pin));
+}
+function cvRoundEnd(){if(CV&&CV.cur){CV.logs.push(SIM.logEncode(CV.cur));CV.cur=null;}}
+function cvMatchEnd(){
+  var my=CV;CV=null;
+  if(!my||!my.mid||!AUTH.token||aiTamper||!my.logs.length)return;
+  fetch(httpBase()+'/api/cpu/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},
+    body:JSON.stringify({mid:my.mid,diff:my.diff,stage:selectedStage,loads:my.loads,logs:my.logs,emotes:my.emotes})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d&&d.ok&&d.profile){srvAdopt(d.profile,d.rev);return;}
+      if(d&&d.why&&d.why!=='suspect')note(t('c.unverified'));
+    }).catch(function(){});
+}
+// サーバーが決めた試合の記録で、手元を置きかえる（CPU戦を確かめた結果・オンライン対戦の結果）
+function srvAdopt(p,rev){
+  if(!p||typeof p!=='object')return;
+  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','title','bg','misCrates','misChaos','coins','pass'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  if(rev){SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();}
+  ensureProfileShape();writeProfileLocal();renderHomeEco();
+  if(currentScreen==='profile-screen')renderProfileUI();
+}
 var aiTamper=false;   // この試合で、外から値を書き換えられたか
 function startAI(){
   clearGameTimers();aiTamper=false;
@@ -6309,7 +6360,7 @@ function startAI(){
   var boss=difficulty===EMP;
   cpuLoad=boss?SIM.emperorLoadout():SIM.cpuLoadout();cpuLook=boss?EMPEROR_LOOK:SIM.randomLook();
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;
-  presenceStatus('cpu');achMatchStart();acMatchStart();
+  presenceStatus('cpu');achMatchStart();acMatchStart();cvStart();
   if(INV.cur){INV.queue.unshift(INV.cur);INV.cur=null;hideInviteToast();}   // 表示中の招待は試合のあとで出し直す
   showGameScreen('ai');initLocalRound();unlockDifficulty();
   if(boss)startBossIntro();else startLobby(10);

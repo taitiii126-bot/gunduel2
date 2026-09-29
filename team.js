@@ -285,7 +285,10 @@ class TeamRoom {
     }
   }
   startRound() {
-    if (!this.matchLive) { this.matchLive = true; this.roundsDone = 0; }
+    if (!this.matchLive) {
+      this.matchLive = true; this.roundsDone = 0;
+      for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot) { p.tally = SIM.newTally(); p.emotes = 0; } }   // 称号・ミッションの記録（試合ごと）
+    }
     const loads = {};
     for (const s of SLOTS) { const p = this.players[s]; loads[s] = p ? p.loadout : null; }
     this.world = SIM.newTeamWorld(this.stage, loads);
@@ -295,6 +298,7 @@ class TeamRoom {
         p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
         p.input.slot = 0; p.input.fire = false;
         if (p.bot) p.brain = SIM.newBrain(p.brain.cfg);
+        else if (p.tally) SIM.tallyRoundStart(p.tally);
       } else this.world.chars[s].dead = true;   // 誰もいない場所（ありえないが念のため）は倒れている扱い
     }
     this.phase = 'playing';
@@ -304,6 +308,7 @@ class TeamRoom {
     this.phase = 'roundOver';
     this.roundsDone++;
     if (winTeam === 0 || winTeam === 1) this.wins[winTeam]++;
+    for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyRoundEnd(p.tally, SIM.teamOf(s) === winTeam, this.stage); }
     this.broadcast({ type: 'round_end', winTeam: winTeam === 'draw' ? null : winTeam, wins: this.wins.slice(), state: this.state(), fx: fx || [] });
     const done = (winTeam === 0 || winTeam === 1) && this.wins[winTeam] >= G.WIN_ROUNDS;
     if (done) {
@@ -327,7 +332,7 @@ class TeamRoom {
     const n = Math.floor(+id), now = Date.now();
     if (!(n >= 0 && n < SIM.EMOTE_N) || now - (p.emoT || 0) < 1400) return;
     if (!require('./auth').ownsEmote(p.uid, n)) return;
-    p.emoT = now;
+    p.emoT = now; p.emotes = (p.emotes || 0) + 1;
     this.broadcast({ type: 'emote', slot, id: n });
   }
   input(slot, i) {
@@ -397,6 +402,7 @@ class TeamRoom {
     }
     const ev = [];
     SIM.stepTeam(w, ev);
+    for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyEvents(p.tally, w, ev, s); }
     const fx = G.packFx(ev);
     const res = SIM.teamResult(w);
     if (res !== null) return this.endRound(res, fx);

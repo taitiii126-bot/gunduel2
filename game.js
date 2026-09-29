@@ -220,7 +220,7 @@ class Room {
   }
   resetStats(p) {
     Object.assign(p, { acts: 0, shots: 0, alignedShots: 0, instantShots: 0, togSec: 0, togN: 0, fastSecs: 0,
-      threats: 0, instantDodges: 0, suspect: '', reacts: [], lastPull: -1, gaps: [], watch: SIM.newWatch() });
+      threats: 0, instantDodges: 0, suspect: '', reacts: [], lastPull: -1, gaps: [], watch: SIM.newWatch(), tally: SIM.newTally(), emotes: 0 });
   }
   hostIp() { return this.players.a ? this.players.a.ip : ''; }
 
@@ -375,6 +375,7 @@ class Room {
         p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
         p.input.slot = 0; p.input.fire = false; p.alignedFrame = -1; p.readyFrame = -1; p.lastPull = -1;
         if (p.watch) SIM.watchRound(p.watch);
+        if (p.tally) SIM.tallyRoundStart(p.tally);
       }
     }
     this.phase = 'playing';
@@ -384,6 +385,7 @@ class Room {
     this.phase = 'roundOver';
     this.roundsDone++;
     if (winner) this.wins[winner]++;
+    for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyRoundEnd(p.tally, winner === s, this.stage); }
     this.broadcast({ type: 'round_end', winner, wins: { ...this.wins }, state: this.state(), fx: fx || [] });
     if (winner && this.wins[winner] >= WIN_ROUNDS) {
       // 決着した瞬間に記録する（この後の演出中に抜けても結果は変わらない）
@@ -408,7 +410,7 @@ class Room {
     const n = Math.floor(+id), now = Date.now();
     if (!(n >= 0 && n < SIM.EMOTE_N) || now - (p.emoT || 0) < 1400) return;
     if (!require('./auth').ownsEmote(p.uid, n)) return;
-    p.emoT = now;
+    p.emoT = now; p.emotes = (p.emotes || 0) + 1;
     this.broadcast({ type: 'emote', slot, id: n });
   }
   input(slot, i) {
@@ -491,6 +493,7 @@ class Room {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p && !p.bot && p.watch) this.watchHit(p, SIM.watchPost(p.watch, w, ev, s, other(s)));
+      if (p && !p.bot && p.tally) SIM.tallyEvents(p.tally, w, ev, s);   // 称号・ミッションの記録（サーバーが数える）
     }
     const fx = packFx(ev);
     const ad = w.chars.a.dead, bd = w.chars.b.dead;
@@ -508,5 +511,5 @@ class Room {
 }
 
 // 2v2（team.js）でも同じ整え方・同じ時間を使う
-module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
+module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, WATCH_LABEL, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
   WIN_ROUNDS, VS_MS, PREP_MS, STAGE_MS, STAGE_SHOW_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, stageOptions, stageCounts, stageSplit, decideStage };
