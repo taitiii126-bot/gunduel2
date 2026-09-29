@@ -47,7 +47,6 @@ const AUTO_BAN_FLAGS = +process.env.AUTO_BAN_FLAGS || 3;           // これ以�
 const AUTO_BAN_DAYS = +process.env.AUTO_BAN_DAYS || 7;             // 1回目のBANの日数。2回目は BAN2_DAYS、3回目からは永久
 const BAN2_DAYS = +process.env.BAN2_DAYS || 30;
 const PERMA_BAN = Date.UTC(9999, 0, 1);
-const IP_BAN_DAYS = +process.env.IP_BAN_DAYS || 3;                 // BANした人のIPも、この日数（BANより短ければその日数）止める
 const recentFlags = u => (Array.isArray(u.flagLog) ? u.flagLog : []).filter(f => Date.now() - f.at < FLAG_DAYS * 86400000).reduce((a, f) => a + (f.p == null ? 1 : f.p), 0);
 const tempBanned = u => !!u.banUntil && u.banUntil > Date.now();
 // 称号「信頼のハッカー」を贈る人。フレンドコード（8文字）か Discord の ID をカンマ区切りで環境変数に書く。
@@ -462,7 +461,7 @@ const auth = {
 
   // 怪しいプレイを検知した回数をアカウントに残す（BANするかの判断材料）
   // 返り値：{ recent: 最近の検知数, action: 'none'|'pool'|'ban', until: BANが解ける時刻 }
-  // pts：証拠の重さ（記録だけは0、ふつうの検知は1、改ざん・自動入力など確かな証拠は AUTO_BAN_FLAGS で即BAN）。ip：BANしたときに一緒に止めるIP
+  // pts：証拠の重さ（記録だけは0、ふつうの検知は1、改ざん・自動入力など確かな証拠は AUTO_BAN_FLAGS で即BAN）。IPは止めない（同じ回線の他人を巻き込むため）
   // BANは回数で重くなる：1回目 AUTO_BAN_DAYS 日 → 2回目 BAN2_DAYS 日 → 3回目から永久
   flag(uid, reason, pts, ip) {
     const u = db.users[uid];
@@ -478,20 +477,11 @@ const auth = {
       u.banReason = String(reason).slice(0, 120);
       action = u.bans >= 3 ? 'perma' : 'ban';
       for (const [k, t] of Object.entries(db.tokens)) if (t.uid === uid) delete db.tokens[k];   // ログイン状態も消す
-      if (ip) auth.banIp(ip, Math.min(u.banUntil, Date.now() + IP_BAN_DAYS * 86400000));
     }
     else if (tempBanned(u)) action = 'banned';   // すでにBAN中
     touch();
     return { recent, action, until: u.banUntil || 0, total: u.flags, bans: u.bans || 0 };
   },
-  // BANした人のIPを一時的に止める（ゲストでの抜け道をふさぐ。同じIPの他人を巻き込まないよう短め）
-  banIp(ip, until) {
-    if (!ip) return;
-    const m = db.meta.ipBans = db.meta.ipBans && typeof db.meta.ipBans === 'object' ? db.meta.ipBans : {};
-    for (const k of Object.keys(m)) if (m[k] <= Date.now()) delete m[k];
-    m[ip] = Math.max(m[ip] || 0, until); touch();
-  },
-  ipBanned(ip) { const m = db.meta.ipBans; return !!ip && !!m && m[ip] > Date.now(); },
   banInfo(uid) { const u = db.users[uid]; return u && tempBanned(u) ? { until: u.banUntil, perma: u.banUntil >= PERMA_BAN, reason: u.banReason || '' } : null; },
   // ランクマッチで、怪しい人どうしでしか組ませないか
   profileOf(uid) { const u = db.users[uid]; return u ? serverProfile(u) : null; },

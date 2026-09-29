@@ -932,7 +932,7 @@ const server = http.createServer((req, res) => {
   const ip = clientIp(req);
   cors(req, res);
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
-  if (BANNED_IPS.has(ip) || auth.ipBanned(ip)) return json(res, 403, { error: '利用停止されています', banned: true });
+  if (BANNED_IPS.has(ip)) return json(res, 403, { error: '利用停止されています' });
   // yourIp はサーバーから見えている自分のIP（Railwayで正しく判定できているかの確認用）
   if (url === '/health') return json(res, 200, { ok: true, rooms: rooms.size, connections: sockets.size, online: presence.count(), uptime: Math.round(process.uptime()), accounts: auth.stats().users, yourIp: ip });
   // Discord のスラッシュコマンド（/info）。署名を確かめてから答える
@@ -1095,7 +1095,7 @@ const server = http.createServer((req, res) => {
 });
 
 attach(server, ws => {
-  if (BANNED_IPS.has(ws.ip) || auth.ipBanned(ws.ip)) { ws.destroy(); return; }
+  if (BANNED_IPS.has(ws.ip)) { ws.destroy(); return; }
   if (sockets.size >= MAX_CONNS) { ws.close(); return; }
   let same = 0;
   for (const s of sockets) if (s.ip === ws.ip) same++;
