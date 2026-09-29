@@ -8659,7 +8659,7 @@ function drawNeonTitle(g,text,x,y,size,tm,col){
 // 王者の背景（シーズン最終1位）：暗い赤の空に金の光が差し、頂に王冠が浮かぶ
 // ---- 開発者だけの背景：左に KOTA（シアン）、右に TAITO（金）。真ん中で2色の光が交わる ----
 //   奥から流れてくる光のグリッドの床／キャラの後ろで回る照準の輪と光の柱／上っていくデータの粒／
-//   金属の縦書きの名前（光の帯が上から下へ走り、ときどき一瞬だけ横にずれる）／四隅の枠
+//   縦書きの名前（鬼帝の背景と同じ、線だけの薄い透かし）／四隅の枠
 var DEV_L='#3EE6FF',DEV_R='#FFC24A';
 function drawDevBg(g,x,y,w,h,tm){
   tm=tm||0;
@@ -8714,7 +8714,7 @@ function drawDevBg(g,x,y,w,h,tm){
     var s=Math.max(.8,w*(i%5===0?.012:.006));g.fillRect(px,py,s,s);
   }
   g.globalAlpha=1;
-  // 6) 名前：左に KOTA、右に TAITO（縦書き。金属の文字に色の光）
+  // 6) 名前：左に KOTA、右に TAITO（縦書き。線だけの薄い透かし）
   devName(g,'KOTA',x+w*.105,y+h*.42,h,DEV_L,'#0B5E75',tm,0);
   devName(g,'TAITO',x+w*.895,y+h*.42,h,DEV_R,'#7A4A08',tm,1.3);
   // 7) うすい走査線
@@ -8729,25 +8729,17 @@ function drawDevBg(g,x,y,w,h,tm){
   g.strokeStyle='rgba(180,205,255,.25)';g.lineWidth=lw;g.strokeRect(x+lw,y+lw,w-lw*2,h-lw*2);
   g.restore();
 }
-// 縦書きの名前1つ：文字ごとに金属のグラデーション＋色の輪郭と光。光の帯が上から下へ走る。ときどき一瞬、横にずれる（グリッチ）
+// 縦書きの名前1つ：鬼帝の背景の「鬼帝」と同じく、細い線だけの薄い透かし。光の帯がゆっくり上から下へ通ると、少しだけ明るくなる
 function devName(g,word,cx,cy,h,col,deep,tm,ph){
   var n=word.length,fs=h*.095,step=fs*1.02,top=cy-step*(n-1)/2,i;
-  var sweep=((tm*.45+ph)%2.2)/2.2,glitch=((tm+ph*1.7)%4.3)<.09;
+  var sweep=((tm*.3+ph)%3)/3;
   g.save();
-  // 文字の後ろのレール（細い線と目盛り）
-  g.strokeStyle=col;g.globalAlpha=.35;g.lineWidth=Math.max(.5,h*.003);
-  g.beginPath();g.moveTo(cx,top-step*.95);g.lineTo(cx,top-step*.62);g.moveTo(cx,top+step*(n-1)+step*.62);g.lineTo(cx,top+step*(n-1)+step*.95);g.stroke();
-  g.globalAlpha=.8;g.fillStyle=col;g.beginPath();g.arc(cx,top-step*.95,Math.max(.8,h*.006),0,Math.PI*2);g.arc(cx,top+step*(n-1)+step*.95,Math.max(.8,h*.006),0,Math.PI*2);g.fill();
-  g.globalAlpha=1;
   g.font='700 '+Math.round(fs)+'px '+UI_FONT;g.textAlign='center';g.textBaseline='middle';
+  g.lineWidth=Math.max(.5,h*.0028);g.strokeStyle=col;
   for(i=0;i<n;i++){
-    var ly=top+i*step,dx=glitch&&i%2?fs*.12:0,lit=Math.max(0,1-Math.abs(sweep*(n+2)-1-i)*.7);
-    var mg=g.createLinearGradient(0,ly-fs*.5,0,ly+fs*.5);
-    mg.addColorStop(0,'#FFFFFF');mg.addColorStop(.45,'#E8F1FF');mg.addColorStop(.5,col);mg.addColorStop(1,deep);
-    g.save();g.shadowColor=col;g.shadowBlur=fs*(.45+lit*.6);
-    g.fillStyle=mg;g.fillText(word[i],cx+dx,ly);g.restore();
-    g.lineWidth=Math.max(.5,fs*.035);g.strokeStyle='rgba(255,255,255,'+(.25+lit*.6).toFixed(3)+')';g.strokeText(word[i],cx+dx,ly);
-    if(glitch&&i%2){g.globalAlpha=.6;g.fillStyle=col;g.fillText(word[i],cx-dx*1.6,ly);g.globalAlpha=1;}
+    var lit=Math.max(0,1-Math.abs(sweep*(n+3)-1.5-i)*.8);
+    g.globalAlpha=.3+lit*.18;
+    g.strokeText(word[i],cx,top+i*step);
   }
   g.restore();
 }
