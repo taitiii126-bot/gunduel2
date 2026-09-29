@@ -111,7 +111,7 @@ function cleanBio(v) {
   for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
   return n.trim().slice(0, 40);
 }
-function cleanBg(v) { if (v === 'emperor') return 'emperor'; const n = Math.floor(+v); return n >= 0 && n <= 10 ? n : null; }   // 'emperor'＝鬼帝の背景
+function cleanBg(v, acc) { if (v === 'emperor') return 'emperor'; if (v === 'dev') return acc && acc.dev ? 'dev' : null; const n = Math.floor(+v); return n >= 0 && n <= 10 ? n : null; }   // 'emperor'＝鬼帝の背景
 function cleanCount(v) { const n = Math.floor(+v); return n >= 0 && n < 1e6 ? n : 0; }
 function cleanTier(v) {
   return String(v == null ? '' : v).replace(/[^A-Za-z0-9ぁ-んァ-ヶ一-龠]/g, '').slice(0, 5);
@@ -179,7 +179,7 @@ class Room {
       // ティアとレートは、ログイン中ならサーバーが持っている本物（ゲストだけ自己申告）
       tier: acc && acc.tierKey ? acc.tierKey : cleanTier(info && info.tier), rate: acc ? acc.rate : 0,
       loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
-      title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg),
+      title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg, acc),
       // 勝率：ログイン済みはサーバーが持っているオンライン戦績、ゲストは本人が送ってきたCPU戦の成績
       rec: acc ? { w: cleanCount(acc.wins), l: cleanCount(acc.losses), kind: 'online' }
                : { w: cleanCount(info && info.cpu && info.cpu.w), l: cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },

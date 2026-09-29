@@ -1055,6 +1055,8 @@ body.demo #bg-shade{opacity:1;}
   filter:drop-shadow(0 0 6px rgba(255,120,60,.5)) drop-shadow(0 1px 0 rgba(0,0,0,.85));animation:gold-sheen 3.4s linear infinite;}
 .hb-title.cr,.fr-info .cr{font-size:14px;}
 .bg-opt.champ{border-color:rgba(245,196,82,.5);box-shadow:0 0 14px -4px rgba(255,150,60,.6);}
+.bg-opt.dev{border-color:rgba(62,230,255,.5);box-shadow:-6px 0 14px -6px rgba(62,230,255,.8),6px 0 14px -6px rgba(255,194,74,.8);}
+.bg-opt.dev.sel{border-color:#E8F4FF;box-shadow:0 0 0 1px rgba(200,230,255,.5),-8px 0 20px -4px rgba(62,230,255,.9),8px 0 20px -4px rgba(255,194,74,.9);}
 .bg-opt.champ.sel{border-color:#FFE9A8;box-shadow:0 0 0 1px rgba(255,220,150,.5),0 0 20px -2px rgba(255,140,60,.9);}
 .title-chip.prism{padding:7px 18px;font-size:16px;border-color:rgba(200,220,245,.5);background:linear-gradient(135deg,#090c12,#151c29);}
 .title-chip.prism:hover{border-color:#DCE6F5;}
@@ -2190,7 +2192,7 @@ body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
 <script src="sim.js?v=40"></script>
-<script src="lang.js?v=43"></script>
+<script src="lang.js?v=44"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2783,7 +2785,7 @@ var DIFF_ORDER=['easy','normal','hard','pro','god'];
 // ---- 隠しボス「鬼帝」----
 // CPU戦で鬼神に勝つと、CPU戦の一覧に出てくる（それまでは存在も見せない）。成績は profile.emperor に別に持つ
 // 勝つと、称号「鬼帝を討ちし者」と専用の背景（EMP_BG）がもらえる（取るまでは、どちらも一覧に出さない）
-var EMP='emperor',EMP_BG='emperor',CHAMP_BG='champion';
+var EMP='emperor',EMP_BG='emperor',CHAMP_BG='champion',DEV_BG='dev';   // DEV_BG：開発者だけの背景
 var EMPEROR_LOOK={skin:2,eyes:1,eyeColor:3,brows:1,hair:2,hairColor:4,nose:0,mouth:3};
 function emperorOpen(){return beaten('god');}
 // 鬼帝に勝ったか（称号の書き換えでは開かないよう、実際に勝った記録だけを見る）
@@ -2797,7 +2799,7 @@ function seasonText(){
 }
 function isBossFight(){return gameMode==='ai'&&difficulty===EMP;}
 // 背景の値：数字＝ティアの背景、'emperor'＝鬼帝の背景、null＝今のティア
-function bgOf(v,tier){return v===EMP_BG||v===CHAMP_BG?v:v==null||v===''?tier:(+v||0);}
+function bgOf(v,tier){return v===EMP_BG||v===CHAMP_BG||v===DEV_BG?v:v==null||v===''?tier:(+v||0);}
 // ============================================================
 // 称号（二つ名）
 // ============================================================
@@ -3154,6 +3156,7 @@ function ensureProfileShape(){
   if(profile.bg===EMP_BG){if(!emperorSlain())profile.bg=null;}
   // 王者の背景は、ログインして「1位ではない」と分かったときだけ外す（読み込み中は消さない）
   else if(profile.bg===CHAMP_BG){if(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&!isChampion())profile.bg=null;}
+  else if(profile.bg===DEV_BG){if(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&!isDevUser())profile.bg=null;}   // 開発者の背景：開発者でないと分かったら外す
   else if(profile.bg!=null&&!(profile.bg>=0&&profile.bg<=profile.bestTier))profile.bg=null;
 }
 // ============================================================
@@ -4088,6 +4091,7 @@ function pickTitle(id){
 function pickBg(i){
   if(i===EMP_BG){if(!emperorSlain())return;profile.bg=EMP_BG;saveProfile();renderBgOptions();return;}
   if(i===CHAMP_BG){if(!isChampion())return;profile.bg=CHAMP_BG;saveProfile();renderBgOptions();return;}
+  if(i===DEV_BG){if(!isDevUser())return;profile.bg=DEV_BG;saveProfile();renderBgOptions();pfSaved();return;}
   i=+i;if(!(i>=0&&i<=profile.bestTier))return;profile.bg=i;saveProfile();renderBgOptions();pfSaved();
 }
 // 見た目のエディター：タブは 肌・目（形と色）・まゆげ・髪（形と色）・鼻・口・帽子（形と自分の色）・服・首もと（形と自分の色）
@@ -4320,9 +4324,11 @@ function renderBgOptions(){
   // 鬼帝の背景：勝った人だけ（それまでは、あることも見せない）
   if(emperorSlain())html+='<button class="bg-opt emp'+(profile.bg===EMP_BG?' sel':'')+'" onclick="pickBg(\''+EMP_BG+'\')" title="'+esc(t('pf.bgEmperor'))+'"><canvas data-bg="'+EMP_BG+'" width="104" height="138"></canvas></button>';
   if(isChampion())html+='<button class="bg-opt champ'+(profile.bg===CHAMP_BG?' sel':'')+'" onclick="pickBg(\''+CHAMP_BG+'\')" title="'+esc(t('pf.bgChampion'))+'"><canvas data-bg="'+CHAMP_BG+'" width="104" height="138"></canvas></button>';
+  if(isDevUser())html+='<button class="bg-opt dev'+(profile.bg===DEV_BG?' sel':'')+'" onclick="pickBg(\''+DEV_BG+'\')" title="'+esc(t('pf.bgDev'))+'"><canvas data-bg="'+DEV_BG+'" width="104" height="138"></canvas></button>';
   el.innerHTML=html;
   el.querySelectorAll('canvas[data-bg]').forEach(function(cv){
     var v=cv.getAttribute('data-bg'),g=cv.getContext('2d');
+    if(v===DEV_BG){g.clearRect(0,0,104,138);drawDevBg(g,0,0,104,138,1);return;}
     if(v===EMP_BG){drawEmperorThumb(g,1);return;}
     if(v===CHAMP_BG){g.clearRect(0,0,104,138);drawChampionBg(g,0,0,104,138,1);return;}
     var i=+v;
@@ -6185,7 +6191,7 @@ function handleOnlineMsg(msg){
       var p=msg.players&&msg.players[s];if(!p)return;
       TM.players[s]={dev:!!p.dev,name:String(p.name||'').slice(0,12),discord:p.verified?String(p.discord||'').slice(0,32):'',tier:String(p.tier||'').slice(0,5),
         loadout:SIM.cleanLoadout(p.loadout,true),look:SIM.cleanLook(p.look,true),title:String(p.title||'rookie'),bio:String(p.bio||'').slice(0,40),
-        bg:(p.bg===EMP_BG||p.bg===CHAMP_BG)?p.bg:p.bg>=0&&p.bg<=10?Math.floor(p.bg):null,
+        bg:(p.bg===EMP_BG||p.bg===CHAMP_BG||p.bg==='dev')?p.bg:p.bg>=0&&p.bg<=10?Math.floor(p.bg):null,
         rec:p.rec&&p.rec.w>=0&&p.rec.l>=0?{w:Math.floor(p.rec.w),l:Math.floor(p.rec.l),kind:p.rec.kind==='online'?'online':'cpu'}:null};
     });
     startPingLoop();achMatchStart();
@@ -6201,7 +6207,7 @@ function handleOnlineMsg(msg){
   }
   else if(mt==='both_ready'){
     if(msg.opp)oppInfo={dev:!!msg.opp.dev,name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),look:SIM.cleanLook(msg.opp.look,true),
-      title:String(msg.opp.title||'rookie'),bio:String(msg.opp.bio||'').slice(0,40),bg:(msg.opp.bg===EMP_BG||msg.opp.bg===CHAMP_BG)?msg.opp.bg:msg.opp.bg>=0&&msg.opp.bg<=10?Math.floor(msg.opp.bg):null,
+      title:String(msg.opp.title||'rookie'),bio:String(msg.opp.bio||'').slice(0,40),bg:(msg.opp.bg===EMP_BG||msg.opp.bg===CHAMP_BG||msg.opp.bg==='dev')?msg.opp.bg:msg.opp.bg>=0&&msg.opp.bg<=10?Math.floor(msg.opp.bg):null,
       rec:msg.opp.rec&&msg.opp.rec.w>=0&&msg.opp.rec.l>=0?{w:Math.floor(msg.opp.rec.w),l:Math.floor(msg.opp.rec.l),kind:msg.opp.rec.kind==='online'?'online':'cpu'}:null};
     startPingLoop();achMatchStart();
     later(function(){
@@ -8526,6 +8532,7 @@ function drawTierPill(g,idx,x,y,w,h,label,tm){
 function drawTierBg(g,idx,x,y,w,h,tm){
   if(idx===EMP_BG){drawEmperorBg(g,x,y,w,h,tm);return;}
   if(idx===CHAMP_BG){drawChampionBg(g,x,y,w,h,tm);return;}
+  if(idx===DEV_BG){drawDevBg(g,x,y,w,h,tm);return;}
   var S=tierStyle(idx),lvl=tierInfo(idx).lvl,top=isTopTier(idx),T=METAL[S.trim];
   tm=tm||0;
   g.save();g.beginPath();g.rect(x,y,w,h);g.clip();
@@ -8650,6 +8657,100 @@ function drawNeonTitle(g,text,x,y,size,tm,col){
 // 漆黒と金。頭の後ろで後光の輪がゆっくり回り、光の筋・金の火の粉・足元の黒い炎・ときどき走る金の稲妻。
 // 下には青海波の地紋、左に「鬼帝」の透かし、縁は金の二重線と四隅の飾り（光が縁を回る）
 // 王者の背景（シーズン最終1位）：暗い赤の空に金の光が差し、頂に王冠が浮かぶ
+// ---- 開発者だけの背景：左に KOTA（シアン）、右に TAITO（金）。真ん中で2色の光が交わる ----
+//   奥から流れてくる光のグリッドの床／キャラの後ろで回る照準の輪と光の柱／上っていくデータの粒／
+//   金属の縦書きの名前（光の帯が上から下へ走り、ときどき一瞬だけ横にずれる）／四隅の枠
+var DEV_L='#3EE6FF',DEV_R='#FFC24A';
+function drawDevBg(g,x,y,w,h,tm){
+  tm=tm||0;
+  var cx=x+w/2,lw=Math.max(.6,w*.004),i,j;
+  g.save();g.beginPath();g.rect(x,y,w,h);g.clip();
+  // 1) 地：深い藍から黒へ。左はシアン、右は金の光がにじむ
+  var bg=g.createLinearGradient(x,y,x,y+h);bg.addColorStop(0,'#070A1C');bg.addColorStop(.55,'#0A0E26');bg.addColorStop(1,'#020308');
+  g.fillStyle=bg;g.fillRect(x,y,w,h);
+  g.save();g.globalCompositeOperation='lighter';
+  var gl=g.createRadialGradient(x,y+h*.42,0,x,y+h*.42,w*.95);gl.addColorStop(0,'rgba(62,230,255,.30)');gl.addColorStop(.5,'rgba(40,120,255,.10)');gl.addColorStop(1,'rgba(40,120,255,0)');
+  g.fillStyle=gl;g.fillRect(x,y,w,h);
+  var gr=g.createRadialGradient(x+w,y+h*.42,0,x+w,y+h*.42,w*.95);gr.addColorStop(0,'rgba(255,194,74,.28)');gr.addColorStop(.5,'rgba(255,110,40,.09)');gr.addColorStop(1,'rgba(255,110,40,0)');
+  g.fillStyle=gr;g.fillRect(x,y,w,h);
+  g.restore();
+  // 2) 床：地平線から手前へ流れてくる光のグリッド（左はシアン、右は金）
+  var hy=y+h*.68,fl=g.createLinearGradient(x,0,x+w,0);
+  fl.addColorStop(0,'rgba(62,230,255,.55)');fl.addColorStop(.5,'rgba(200,220,255,.35)');fl.addColorStop(1,'rgba(255,194,74,.55)');
+  var fg=g.createLinearGradient(0,hy,0,y+h);fg.addColorStop(0,'rgba(10,14,38,0)');fg.addColorStop(1,'rgba(20,26,60,.9)');
+  g.fillStyle=fg;g.fillRect(x,hy,w,y+h-hy);
+  g.save();g.strokeStyle=fl;g.lineWidth=lw;
+  for(i=-8;i<=8;i++){g.globalAlpha=.55-Math.abs(i)*.04;g.beginPath();g.moveTo(cx+i*w*.035,hy);g.lineTo(cx+i*w*.32,y+h);g.stroke();}   // 奥へ集まる縦の線
+  for(i=0;i<9;i++){var p=((i+tm*.55)%9)/9,yy=hy+(y+h-hy)*p*p;g.globalAlpha=.1+p*.6;g.beginPath();g.moveTo(x,yy);g.lineTo(x+w,yy);g.stroke();}   // 手前へ流れる横の線
+  g.restore();
+  var hz=g.createLinearGradient(0,hy-h*.04,0,hy+h*.03);hz.addColorStop(0,'rgba(255,255,255,0)');hz.addColorStop(.6,'rgba(210,230,255,.35)');hz.addColorStop(1,'rgba(255,255,255,0)');
+  g.fillStyle=hz;g.fillRect(x,hy-h*.04,w,h*.07);   // 地平線の光
+  // 3) 真ん中の光の柱（2色が交わるところ）
+  g.save();g.globalCompositeOperation='lighter';
+  var pw=w*(.16+.02*Math.sin(tm*1.3)),pl=g.createLinearGradient(cx-pw,0,cx+pw,0);
+  pl.addColorStop(0,'rgba(62,230,255,0)');pl.addColorStop(.42,'rgba(62,230,255,.16)');pl.addColorStop(.5,'rgba(255,255,255,.22)');pl.addColorStop(.58,'rgba(255,194,74,.16)');pl.addColorStop(1,'rgba(255,194,74,0)');
+  g.fillStyle=pl;g.fillRect(cx-pw,y,pw*2,hy-y+h*.02);
+  g.restore();
+  // 4) キャラの後ろの照準の輪（外は右回り、内は左回り）
+  var ry=y+h*.40,R=w*.36;
+  g.save();g.translate(cx,ry);g.globalCompositeOperation='lighter';
+  g.save();g.rotate(tm*.18);
+  g.strokeStyle='rgba(170,210,255,.34)';g.lineWidth=lw;g.beginPath();g.arc(0,0,R,0,Math.PI*2);g.stroke();
+  g.lineWidth=lw*2.2;
+  for(i=0;i<4;i++){g.strokeStyle=i%2?'rgba(255,194,74,.7)':'rgba(62,230,255,.7)';g.beginPath();g.arc(0,0,R,i*Math.PI/2+.2,i*Math.PI/2+.9);g.stroke();}
+  g.lineWidth=lw;g.strokeStyle='rgba(200,225,255,.45)';g.beginPath();
+  for(i=0;i<48;i++){var a=i*Math.PI/24,l=i%4===0?R*.09:R*.04;g.moveTo(Math.cos(a)*R*.93,Math.sin(a)*R*.93);g.lineTo(Math.cos(a)*(R*.93-l),Math.sin(a)*(R*.93-l));}
+  g.stroke();g.restore();
+  g.save();g.rotate(-tm*.3);g.setLineDash([lw*4,lw*3]);g.strokeStyle='rgba(170,210,255,.3)';g.lineWidth=lw;g.beginPath();g.arc(0,0,R*.7,0,Math.PI*2);g.stroke();g.setLineDash([]);
+  for(i=0;i<3;i++){g.save();g.rotate(i*Math.PI*2/3);g.fillStyle=i===1?DEV_R:DEV_L;g.beginPath();g.moveTo(R*.7,-lw*2.4);g.lineTo(R*.7+lw*3.4,0);g.lineTo(R*.7,lw*2.4);g.lineTo(R*.7-lw*3.4,0);g.closePath();g.fill();g.restore();}
+  g.restore();
+  g.strokeStyle='rgba(220,235,255,.22)';g.lineWidth=lw;g.beginPath();   // 十字の照準線
+  g.moveTo(-R*1.25,0);g.lineTo(-R*.8,0);g.moveTo(R*.8,0);g.lineTo(R*1.25,0);g.moveTo(0,-R*1.2);g.lineTo(0,-R*.8);g.stroke();
+  g.restore();
+  // 5) 上っていくデータの粒（左はシアン、右は金）
+  for(i=0;i<26;i++){
+    var t2=(tm*.12+i*.173)%1,side=i%2,px=side?x+w*(.56+((i*37)%41)/100):x+w*(.04+((i*29)%40)/100),py=y+h*(.95-t2*.9);
+    g.globalAlpha=.7*Math.sin(t2*Math.PI);g.fillStyle=side?DEV_R:DEV_L;
+    var s=Math.max(.8,w*(i%5===0?.012:.006));g.fillRect(px,py,s,s);
+  }
+  g.globalAlpha=1;
+  // 6) 名前：左に KOTA、右に TAITO（縦書き。金属の文字に色の光）
+  devName(g,'KOTA',x+w*.105,y+h*.42,h,DEV_L,'#0B5E75',tm,0);
+  devName(g,'TAITO',x+w*.895,y+h*.42,h,DEV_R,'#7A4A08',tm,1.3);
+  // 7) うすい走査線
+  g.fillStyle='rgba(0,0,0,.14)';
+  for(j=y;j<y+h;j+=Math.max(2,h/140))g.fillRect(x,j,w,Math.max(.5,h/420));
+  // 8) 枠：四隅のかぎ
+  g.lineWidth=lw*1.5;var m=w*.035,k=w*.09;
+  [[x+m,y+m,1,1,DEV_L],[x+w-m,y+m,-1,1,DEV_R],[x+m,y+h-m,1,-1,DEV_L],[x+w-m,y+h-m,-1,-1,DEV_R]].forEach(function(c){
+    g.strokeStyle=c[4];g.globalAlpha=.8;g.beginPath();g.moveTo(c[0],c[1]+c[3]*k);g.lineTo(c[0],c[1]);g.lineTo(c[0]+c[2]*k,c[1]);g.stroke();
+  });
+  g.globalAlpha=1;
+  g.strokeStyle='rgba(180,205,255,.25)';g.lineWidth=lw;g.strokeRect(x+lw,y+lw,w-lw*2,h-lw*2);
+  g.restore();
+}
+// 縦書きの名前1つ：文字ごとに金属のグラデーション＋色の輪郭と光。光の帯が上から下へ走る。ときどき一瞬、横にずれる（グリッチ）
+function devName(g,word,cx,cy,h,col,deep,tm,ph){
+  var n=word.length,fs=h*.095,step=fs*1.02,top=cy-step*(n-1)/2,i;
+  var sweep=((tm*.45+ph)%2.2)/2.2,glitch=((tm+ph*1.7)%4.3)<.09;
+  g.save();
+  // 文字の後ろのレール（細い線と目盛り）
+  g.strokeStyle=col;g.globalAlpha=.35;g.lineWidth=Math.max(.5,h*.003);
+  g.beginPath();g.moveTo(cx,top-step*.95);g.lineTo(cx,top-step*.62);g.moveTo(cx,top+step*(n-1)+step*.62);g.lineTo(cx,top+step*(n-1)+step*.95);g.stroke();
+  g.globalAlpha=.8;g.fillStyle=col;g.beginPath();g.arc(cx,top-step*.95,Math.max(.8,h*.006),0,Math.PI*2);g.arc(cx,top+step*(n-1)+step*.95,Math.max(.8,h*.006),0,Math.PI*2);g.fill();
+  g.globalAlpha=1;
+  g.font='700 '+Math.round(fs)+'px '+UI_FONT;g.textAlign='center';g.textBaseline='middle';
+  for(i=0;i<n;i++){
+    var ly=top+i*step,dx=glitch&&i%2?fs*.12:0,lit=Math.max(0,1-Math.abs(sweep*(n+2)-1-i)*.7);
+    var mg=g.createLinearGradient(0,ly-fs*.5,0,ly+fs*.5);
+    mg.addColorStop(0,'#FFFFFF');mg.addColorStop(.45,'#E8F1FF');mg.addColorStop(.5,col);mg.addColorStop(1,deep);
+    g.save();g.shadowColor=col;g.shadowBlur=fs*(.45+lit*.6);
+    g.fillStyle=mg;g.fillText(word[i],cx+dx,ly);g.restore();
+    g.lineWidth=Math.max(.5,fs*.035);g.strokeStyle='rgba(255,255,255,'+(.25+lit*.6).toFixed(3)+')';g.strokeText(word[i],cx+dx,ly);
+    if(glitch&&i%2){g.globalAlpha=.6;g.fillStyle=col;g.fillText(word[i],cx-dx*1.6,ly);g.globalAlpha=1;}
+  }
+  g.restore();
+}
 function drawChampionBg(g,x,y,w,h,tm){
   tm=tm||0;
   var cx=x+w/2,cy=y+h*.40,i,lw=Math.max(.6,w*.004);
