@@ -82,7 +82,7 @@ class TeamRoom {
       // 2v2 のティアとレートは、ログイン中ならサーバーが持っている本物（ゲストは未ランク）
       tier: acc && acc.tier2Key ? acc.tier2Key : '', rate: acc ? (acc.rate2 || SIM.RATE_START) : SIM.RATE_START,
       loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
-      title: G.cleanTitle(info && info.title, acc), bio: G.cleanBio(info && info.bio), bg: G.cleanBg(info && info.bg),
+      title: G.cleanTitle(info && info.title, acc), bio: G.cleanBio(info && info.bio), bg: G.cleanBg(info && info.bg, acc),
       rec: acc ? { w: G.cleanCount(acc.wins), l: G.cleanCount(acc.losses), kind: 'online' }
                : { w: G.cleanCount(info && info.cpu && info.cpu.w), l: G.cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },
       srtt: -1, spingT: 0, rematch: false, acts: 0, suspect: '', left: false, done: false,

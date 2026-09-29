@@ -117,6 +117,7 @@ function clean(v, ctx, rtier) {
   const champ = !!(ctx && ctx.champion);
   const bg = v.bg === 'emperor' ? (slain ? 'emperor' : null)
     : v.bg === 'champion' ? (champ ? 'champion' : null)
+    : v.bg === 'dev' ? (ctx && ctx.dev ? 'dev' : null)   // 開発者だけの背景
     : v.bg == null ? null : int(v.bg, 0, best, null);
   return {
     name: text(v.name, 12) || 'プレイヤー',
