@@ -9598,14 +9598,10 @@ function drawProfileCard(g,P,x,y,w,h,tm){
   g.save();rrPath(g,x,top,w,ch,rad);g.clip();
   drawTierBg(g,P.bg==null?P.tier:P.bg,x,top,w,ch,tm);
   // キャラクター
-  var cm=P.cardMode==null?3:P.cardMode,zoom=cm&1,posed=cm&2;
-  var feet=zoom?top+ch*1.2:top+ch*.79,sc=ch*.0058*(zoom?1.85:1);
-  if(!zoom){var sh=g.createRadialGradient(x+w/2,feet,0,x+w/2,feet,w*.3);sh.addColorStop(0,'rgba(0,0,0,.55)');sh.addColorStop(1,'rgba(0,0,0,0)');
-    g.fillStyle=sh;g.beginPath();g.ellipse(x+w/2,feet,w*.3,w*.05,0,0,Math.PI*2);g.fill();}
-  // 勝ちポーズ（いちばん決まっている瞬間で止める）。背景の光の色でふちを光らせて、背景になじませる
-  var wp=posed?{pose:(P.look&&P.look.win)|0,t:1.15}:null;
+  var feet=top+ch*1.2,sc=ch*.0107;   // 上半身を大きく（足はカードの外）
+  // 背景の光の色でふちを光らせて、背景になじませる
   g.save();g.shadowColor=hexA(tierStyle(P.bg==null||typeof P.bg!=='number'?P.tier:P.bg).glow,.55);g.shadowBlur=w*.05*k;
-  drawAvatar(g,{x:x+w*(zoom?.44:.47),y:feet,s:sc,dir:1,look:P.look,team:P.team||TEAM.me,wid:P.loadout&&P.loadout[0],bob:Math.sin(tm*2.1)*1.1,win:wp,tm:tm});
+  drawAvatar(g,{x:x+w*.44,y:feet,s:sc,dir:1,look:P.look,team:P.team||TEAM.me,wid:P.loadout&&P.loadout[0],bob:Math.sin(tm*2.1)*1.1});
   g.restore();
   // 下の帯：名前と称号
   var bandY=top+ch*.7,bg2=g.createLinearGradient(0,bandY,0,top+ch);
