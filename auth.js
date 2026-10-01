@@ -211,19 +211,60 @@ function keepServerOwned(next, old, u) {
   next.emo = SIM.cleanEmotes(next.emo, next.inv);
 }
 // イベント中なら、試合のキャンディを足す（1日の上限まで）。返り値＝増えた数
-function addCandy(pr, win, kills) {
+// 今のイベントのキャンディの記録（日付が変わっていたら、その日の分とミッションを白紙に）。イベント中でなければ null
+function candyState(pr) {
   const ev = SIM.eventNow();
-  if (!ev) return 0;
-  const C = SIM.EVENTS[ev].candy, day = SIM.dayKey();
+  if (!ev) return null;
+  const day = SIM.dayKey();
   let c = pr.candy && typeof pr.candy === 'object' ? pr.candy : {};
-  if (c.ev !== ev) c = { ev, n: 0, day: '', today: 0, fw: '' };   // 別のイベントの残りは持ち越さない
+  if (c.ev !== ev) c = { ev, n: 0, day: '', today: 0, fw: '', tot: 0 };   // 別のイベントの残りは持ち越さない
   if (c.day !== day) { c.day = day; c.today = 0; }
-  const first = win && c.fw !== day;
-  const add = Math.max(0, Math.min(SIM.candyOf(ev, win, kills, first), C.dayMax - c.today));
-  if (first && add > 0) c.fw = day;
-  c.n += add; c.today += add;
+  if (!c.mis || c.mis.day !== day) c.mis = { day, p: [0, 0, 0], got: [false, false, false], bonus: false };
+  c.tot = c.tot || c.n || 0;   // 合計を数える前に集めた分
   pr.candy = c;
+  return c;
+}
+function addCandy(pr, win, kills) {
+  const c = candyState(pr);
+  if (!c) return 0;
+  const C = SIM.EVENTS[c.ev].candy, day = c.day;
+  const first = win && c.fw !== day;
+  const add = Math.max(0, Math.min(SIM.candyOf(c.ev, win, kills, first), C.dayMax - c.today));
+  if (first && add > 0) c.fw = day;
+  c.n += add; c.today += add; c.tot += add;
   return add;
+}
+// ハロウィンミッションを数える（trackMission から）
+function trackEvMission(pr, kind, n, w) {
+  const c = candyState(pr);
+  if (!c) return;
+  const E = SIM.EVENTS[c.ev];
+  SIM.eventMissions(c.ev, c.day).forEach((id, i) => {
+    const d = E.missions[id];
+    if (d.k !== kind || (d.w && d.w !== w) || c.mis.got[i]) return;
+    c.mis.p[i] = Math.min(d.n, (c.mis.p[i] || 0) + n);
+  });
+}
+// 終えたハロウィンミッションのキャンディを渡す（自動。3つ全部でおまけ）。返り値 { add, done:[番号], bonus }
+function payEvMissions(pr) {
+  const c = candyState(pr), out = { add: 0, done: [], bonus: 0 };
+  if (!c) return out;
+  const E = SIM.EVENTS[c.ev];
+  SIM.eventMissions(c.ev, c.day).forEach((id, i) => {
+    const d = E.missions[id];
+    if (c.mis.got[i] || !(c.mis.p[i] >= d.n)) return;
+    c.mis.got[i] = true; out.add += d.c; out.done.push(i);
+  });
+  if (!c.mis.bonus && c.mis.got.every(Boolean) && E.misBonus) { c.mis.bonus = true; out.bonus = E.misBonus; out.add += E.misBonus; }
+  c.n += out.add; c.tot += out.add;
+  return out;
+}
+// イベントの限定称号：集めたキャンディの合計が届いたら、サーバーの記録に印を付ける。返り値＝今回はじめて届いたか
+function checkEvTitle(u, pr) {
+  const c = pr.candy, T = c && c.ev && SIM.EVENTS[c.ev] && SIM.EVENTS[c.ev].title;
+  if (!T || T.id !== 'pumpkin_king' || u.hwking || !(c.tot >= T.need)) return false;
+  u.hwking = true; touch();
+  return true;
 }
 // シーズンが変わっていたら、パスとシーズンミッションを白紙に戻す
 function seasonFresh(pr) {
@@ -282,8 +323,9 @@ function trackMission(pr, kind, n, w) {
     if (i >= un || pr.sea.got[i] || d.k !== kind || (d.w && d.w !== w)) return;
     pr.sea.p[i] = Math.min(d.n, (pr.sea.p[i] || 0) + n);
   });
+  trackEvMission(pr, kind, n, w);
 }
-const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, badges: u.badges || [] });
+const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, hwking: !!u.hwking, badges: u.badges || [] });
 
 // ---- レート ----
 // ティアはレートの数値だけで決まる。最初は全員1000。レートが動くのはランクマッチだけ（CPU戦では動かない）
@@ -348,7 +390,7 @@ function giveBadge(u) {
 }
 function publicUser(u) {
   const r = rateState(u), r2 = rateState2(u);
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0, badges: SIM.cleanBadges(u.badges),
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0, hwking: !!u.hwking, badges: SIM.cleanBadges(u.badges),
     rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak,
     rate2: r2.rate, tier2: r2.tier, rgames2: r2.games, ranked2: { w: r2.w, l: r2.l }, peak2: r2.peak };
 }
@@ -612,6 +654,7 @@ const auth = {
     trackMission(pr, 'play', 1);
     if (win) trackMission(pr, 'win', 1);
     if (!cpu) trackMission(pr, 'online', 1);
+    if (win && m.stage === 'halloween') trackMission(pr, 'hwwin', 1);
     if (cpu && win && ['hard', 'pro', 'god', 'emperor'].includes(m.diff)) trackMission(pr, 'hard', 1);
     trackMission(pr, 'rounds', T.roundsWon);
     trackMission(pr, 'kill', kills);
@@ -622,8 +665,9 @@ const auth = {
     // 記録で裏づけのある称号を付ける（付け外しはブラウザでも同じ決まりで分かる）
     const proof = { stats: pr.stats, tierProgress: pr.tierProgress, ach: A, emperor: pr.emperor }, fresh = [];
     for (const t of SIM.TITLES) if (!t.gate && !A.got[t.id] && SIM.titleProof(t.id, proof, ctx)) { A.got[t.id] = 1; fresh.push(t.id); }
-    const candy = addCandy(pr, win, kills);
-    return saveServerProfile(u, pr, { titles: fresh, candy });
+    const candy = addCandy(pr, win, kills), em = payEvMissions(pr), king = checkEvTitle(u, pr);
+    if (king) fresh.push('pumpkin_king');
+    return saveServerProfile(u, pr, { titles: fresh, candy: candy + em.add, ev: { mis: em.done, bonus: em.bonus, misCandy: em.add, king } });
   },
   // ログインボーナス（1日1回）：連続記録を進めて、7日カレンダーの報酬と節目の報酬を渡す
   loginBonus(uid) {

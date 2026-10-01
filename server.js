@@ -125,10 +125,10 @@ function postTierUp(user, key) {
 }
 
 // ---- オンライン対戦の記録を、称号・ミッション・経験値に当てはめる（数えたのはサーバーの部屋）----
-function progressOnline(p, win) {
+function progressOnline(p, win, stage) {
   if (!p || p.bot || !p.uid || p.suspect || p.acts < ACTIVE_MIN_INPUTS || !p.tally) return;
-  const r = auth.applyMatch(p.uid, { mode: 'online', win, tally: p.tally, emotes: p.emotes });
-  if (r && p.ws) p.ws.send(JSON.stringify({ type: 'progress', rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy }));
+  const r = auth.applyMatch(p.uid, { mode: 'online', win, stage, tally: p.tally, emotes: p.emotes });
+  if (r && p.ws) p.ws.send(JSON.stringify({ type: 'progress', rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy, ev: r.ev }));
 }
 // ---- 戦績の記録（水増し・途中退出への対策つき）----
 const pairCounts = new Map();
@@ -284,7 +284,7 @@ function cpuEnd(u, m, ip) {
   }
   const r = auth.applyMatch(u.id, { mode: 'cpu', diff, stage, win: R.win, straight: R.straight, tally: R.tally, emotes: m.emotes });
   log('cpu verified', 'discord=' + u.id, diff, stage, R.win ? 'win' : 'lose', R.wins.join('-'), R.frames + 'f', cost + 'ms');
-  return r ? { ok: true, win: R.win, wins: R.wins, rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy } : { ok: false, why: 'user' };
+  return r ? { ok: true, win: R.win, wins: R.wins, rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy, ev: r.ev } : { ok: false, why: 'user' };
 }
 const cheatSeen = new Map();   // 同じ人・同じ種類の報告は10分に1回だけ数える（通信のやり直しで二重に数えない）
 function cheatReport(u, m, ip) {
@@ -312,7 +312,7 @@ function openRoom() {
       for (const k of ['a', 'b']) if (r.players[k]) presence.changed(r.players[k].uid);
     },
     onResult: (w, l, reason) => {
-      progressOnline(w, true); if (reason !== 'forfeit') progressOnline(l, false);   // 称号・ミッション・経験値（途中で抜けた人には付けない）
+      progressOnline(w, true, room.stage); if (reason !== 'forfeit') progressOnline(l, false, room.stage);   // 称号・ミッション・経験値（途中で抜けた人には付けない）
       return ((w && w.bot) || (l && l.bot)) ? recordBotResult(room, w, l, reason) : recordResult(room, w, l, reason);
     },
     onSuspect,
@@ -332,7 +332,7 @@ function openTeamRoom(opt) {
       for (const p of r.allPlayers()) if (p.uid || p.uidLeft) presence.changed(p.uid || p.uidLeft);
     },
     onResult: (r, winTeam) => {
-      for (const k of TEAM_SLOTS) { const p = r.players[k]; if (p && !p.done) progressOnline(p, teamOf(k) === winTeam); }
+      for (const k of TEAM_SLOTS) { const p = r.players[k]; if (p && !p.done) progressOnline(p, teamOf(k) === winTeam, r.stage); }
       return recordTeamResult(r, winTeam);
     },
     onLeave: (r, p) => recordTeamLeave(r, p),

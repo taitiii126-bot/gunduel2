@@ -98,7 +98,9 @@ function cleanLogin(m) {
 function cleanCandy(m) {
   m = m && typeof m === 'object' ? m : {};
   const day = typeof m.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.day) ? m.day : '', fw = typeof m.fw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.fw) ? m.fw : '';
-  return { ev: typeof m.ev === 'string' && SIM.EVENTS[m.ev] ? m.ev : '', n: int(m.n, 0, 9999999, 0), day, today: int(m.today, 0, 99999, 0), fw };
+  const mm = m.mis && typeof m.mis === 'object' ? m.mis : {}, arr = (a, f) => [0, 1, 2].map(i => f(Array.isArray(a) ? a[i] : 0));
+  const mis = { day: typeof mm.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(mm.day) ? mm.day : '', p: arr(mm.p, x => int(x, 0, 9999, 0)), got: arr(mm.got, x => x === true), bonus: mm.bonus === true };
+  return { ev: typeof m.ev === 'string' && SIM.EVENTS[m.ev] ? m.ev : '', n: int(m.n, 0, 9999999, 0), day, today: int(m.today, 0, 99999, 0), fw, tot: int(m.tot, 0, 9999999, 0), mis };
 }
 function cleanPass(m) { m = m && typeof m === 'object' ? m : {}; return { s: int(m.s, 0, 99999, 0), xp: int(m.xp, 0, 9999999, 0) }; }
 // ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
