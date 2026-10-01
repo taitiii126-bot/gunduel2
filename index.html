@@ -4684,7 +4684,7 @@ var TIER_LADDER=[
   {key:'HT3',color:'#B983FF'},   // 金＋ルビー（紫水晶）
   {key:'LT2',color:'#C81E3A'},   // 深紅＋銀
   {key:'HT2',color:'#4FAEFF'},   // 深紅＋金（青い炎）
-  {key:'LT1',color:'#3FD8C8'},   // ターコイズ＋銀のシリンダー
+  {key:'LT1',color:'#FF8A2A'},   // こげ茶＋煙（オレンジ）
   {key:'HT1',color:'#FFF4D6'}    // 白金
 ];
 // CPU戦の到達度（0〜10）。称号・背景の解放と、ランクマッチを始めるまでのレートの下限に使う
@@ -8745,7 +8745,7 @@ var TIER_BG=[
   {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards',flat:'planet',em:'planet'},    // HT3：紫水晶・トランプ・宝石のかけら
   {c:['#A3172D','#3F0812','#0A0103'],glow:'#FF7182',acc:'#FFD6DC',pat:'roses',  par:'petals',flat:'flames',em:'flames'},    // LT2：深紅・バラ・花びら
   {c:['#1348A8','#08204E','#01040E'],glow:'#56CCFF',acc:'#D4F3FF',pat:'flames', par:'embers',flat:'lightning',em:'bolt'},    // HT2：青い炎・炎・火の粉
-  {c:['#0C6A6A','#04363A','#011416'],glow:'#7FE8D8',acc:'#C8FFF4',pat:'deco',   par:'golddust',flat:'cylinder',em:'cylinder'},  // LT1：漆黒と金・アールデコ・金の粉
+  {c:['#7A3612','#4A1A06','#1E0802'],glow:'#FFB46A',acc:'#FFF4BE',pat:'deco',   par:'golddust',flat:'cylinder',em:'cylinder'},  // LT1：漆黒と金・アールデコ・金の粉
   {c:['#D8D4EA','#6C678A','#12101C'],glow:'#FFFFFF',acc:'#FFFFFF',pat:'prism',  par:'rainbow',flat:'gold',em:'guns'}    // HT1：白金・光の放射と虹・虹色の粒
 ];
 // 紋章：どのティアも同じ六角形のバッジ。色は背景と同じティアの色、縁はティアの金属、真ん中に背景の模様と同じ記号を1つ
@@ -9387,13 +9387,16 @@ function flatSunDisk(g,w,h,tm,lw){
   g.globalAlpha=1;
 }
 // LT1：ターコイズ。リボルバーのシリンダー（正面）と、舞う空薬きょう
+function flatPuffs(g,w,h,tm,list){
+  // 煙のかたまり：後ろにオレンジ、その手前に赤、いちばん前にクリーム（少しずつずらす）
+  [['#F08A20',-.2,1.1],['#D8301A',-.09,1.02],['#FFF4BE',0,.9]].forEach(function(L){
+    g.fillStyle=L[0];list.forEach(function(c,i){var r=w*c[2]*(1+.04*Math.sin(tm*1.3+i*1.7));g.beginPath();g.arc(w*c[0],h*c[1]+r*L[1],r*L[2],0,Math.PI*2);g.fill();});
+  });
+}
 function flatCylinder(g,w,h,tm,lw){
-  g.fillStyle='#04363A';g.fillRect(0,0,w,h);
-  var cx=w*.8,cy=h*.3,i,ink='#021E22',R=w*.46;
-  g.save();g.translate(cx,cy);g.rotate(tm*.04);g.fillStyle='#07494E';
-  for(i=0;i<12;i++){var a=i*Math.PI/6;g.beginPath();g.moveTo(0,0);g.arc(0,0,h*1.2,a-.12,a+.12);g.closePath();g.fill();}
-  g.restore();
-  flatSpot(g,cx,cy,w*.62,'rgba(120,255,230,.22)');
+  var bg=g.createRadialGradient(w*.85,h*.1,0,w*.85,h*.1,h*1.1);bg.addColorStop(0,'#8A4416');bg.addColorStop(.5,'#5A2408');bg.addColorStop(1,'#3A1404');
+  g.fillStyle=bg;g.fillRect(0,0,w,h);
+  var cx=w*.8,cy=h*.28,i,ink='#2A0E02',R=w*.42;
   g.save();g.translate(cx,cy);g.rotate(tm*.35);
   // シリンダーの外形：6つのふくらみと、その間のみぞ
   g.beginPath();for(i=0;i<6;i++){var a0=i*Math.PI/3;g.arc(Math.cos(a0)*R*.42,Math.sin(a0)*R*.42,R*.5,a0-1.05,a0+1.05);}g.closePath();
@@ -9409,6 +9412,7 @@ function flatCylinder(g,w,h,tm,lw){
   g.beginPath();g.arc(0,0,R*.12,0,Math.PI*2);g.fillStyle='#4E5B67';g.fill();g.lineWidth=lw;g.strokeStyle=ink;g.stroke();
   g.beginPath();g.arc(0,0,R*.05,0,Math.PI*2);g.fillStyle='#1C2328';g.fill();
   g.restore();
+  flatPuffs(g,w,h,tm,[[.02,.56,.13],[.16,.63,.15],[.3,.7,.12],[.06,.8,.16],[.62,.62,.12],[.78,.67,.14],[.95,.55,.12],[.92,.8,.16],[.5,.84,.14]]);
   // 舞う空薬きょう
   for(i=0;i<9;i++){var t=(tm*.32+i*.137)%1,px=w*((i*.37+.06)%1)+Math.sin(tm+i)*w*.03,py=h*(-.05+t*1.05);
     g.save();g.translate(px,py);g.rotate(tm*4+i*1.3);var cw=w*.022,cl=w*.06;
