@@ -891,12 +891,15 @@ body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
 #tp-stick .tp-knob{width:10vh;height:10vh;background:rgba(255,255,255,.3);border:1.5px solid rgba(255,255,255,.55);opacity:.6;}
 #tp-stick.on .tp-base,#tp-stick.on .tp-knob{opacity:1;transition:none;}
 .tp-b{position:absolute;display:grid;place-items:center;align-content:center;gap:1px;padding:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);background:rgba(10,12,20,.3);color:rgba(255,255,255,.88);pointer-events:auto;touch-action:none;transition:transform .08s,background .08s;}
-.tp-b small{font-size:max(8px,2.4vh);font-weight:800;line-height:1;opacity:.8;}
-.tp-b svg.i{width:5.5vh;height:5.5vh;}
+.tp-b small{font-size:max(8px,calc(2.4vh * var(--s,1)));font-weight:800;line-height:1;opacity:.8;}
+.tp-b svg.i{width:calc(5.5vh * var(--s,1));height:calc(5.5vh * var(--s,1));}
+/* 透明度（設定）：ボタン・スティック・武器ボタンにかける。押している間は濃くする */
+#tpad .tp-b,#tpad #tp-weps,#tpad #tp-stick{opacity:var(--tpop,1);}
+#tpad .tp-b.on{opacity:max(var(--tpop,1),.85);}
 .tp-b.on{background:rgba(255,255,255,.26);border-color:rgba(255,255,255,.7);transform:scale(.93);}
-.tp-b:disabled{opacity:.28;}
+#tpad .tp-b:disabled,.tp-b:disabled{opacity:calc(var(--tpop,1) * .3);}
 .tp-l{width:25vh;height:25vh;right:4vh;bottom:6vh;border-color:rgba(255,77,94,.65);background:rgba(255,77,94,.2);color:#FFE3E6;}
-.tp-l svg.i{width:9vh;height:9vh;}
+.tp-l svg.i{width:calc(9vh * var(--s,1));height:calc(9vh * var(--s,1));}
 .tp-l.on{background:rgba(255,77,94,.45);}
 .tp-m{width:17vh;height:17vh;right:31vh;bottom:3vh;}
 .tp-s{width:13vh;height:13vh;}
@@ -914,6 +917,26 @@ body.mland #emote-menu{bottom:auto;top:12vh;}
 .tp-w.rl small{color:#FB923C;opacity:1;}
 #tp-reload.need{border-color:#FF4D5E;background:rgba(255,77,94,.4);animation:tp-need .5s ease-in-out infinite alternate;}
 @keyframes tp-need{to{background:rgba(255,77,94,.15);}}
+/* ボタン配置の編集画面（設定から開く）：本物と同じ大きさの枠に、同じボタンを並べてドラッグで動かす */
+#tl-ed{display:none;position:fixed;inset:0;z-index:1200;background:#07080C;touch-action:none;-webkit-user-select:none;user-select:none;}
+#tl-ed.on{display:flex;align-items:center;justify-content:center;}
+#tl-frame{position:relative;width:min(100vw,calc(100vh * 2));height:min(50vw,100vh);overflow:hidden;
+  background:linear-gradient(180deg,#1B2140 0%,#2A2346 55%,#3A2A22 56%,#241A14 100%);}
+#tl-frame::before{content:'';position:absolute;left:0;right:0;top:56%;height:2px;background:rgba(255,200,120,.35);}
+#tl-frame .tp-b,#tl-frame #tl-weps{position:absolute;cursor:grab;pointer-events:auto;opacity:var(--tpop,1);}
+#tl-frame .tl-sel{outline:2px dashed #FFC53D;outline-offset:4px;opacity:1;}
+#tl-weps{display:flex;gap:1.5vh;}
+#tl-stickzone{position:absolute;left:0;bottom:0;width:40%;height:78%;border:1.5px dashed rgba(255,255,255,.18);display:grid;place-items:center;
+  color:rgba(255,255,255,.4);font-size:max(10px,2.6vh);font-weight:700;text-align:center;padding:2vh;pointer-events:none;}
+#tl-bar{position:absolute;left:50%;top:1.6vh;transform:translateX(-50%);display:flex;align-items:center;gap:1.4vh;flex-wrap:wrap;justify-content:center;
+  max-width:96%;padding:1vh 1.6vh;border-radius:1.6vh;background:rgba(7,8,12,.86);box-shadow:0 0 0 1px var(--line-2);z-index:2;}
+#tl-bar label{display:flex;align-items:center;gap:.8vh;font-size:max(10px,2.4vh);font-weight:700;color:var(--tx-2);white-space:nowrap;}
+#tl-bar input[type=range]{width:min(22vh,140px);}
+#tl-bar button{min-height:max(28px,6vh);padding:0 1.8vh;border:1px solid var(--line-2);border-radius:1vh;background:rgba(255,255,255,.06);color:var(--tx);font-size:max(11px,2.4vh);font-weight:700;}
+#tl-bar button.pri{background:var(--gold);border-color:var(--gold);color:var(--gold-ink);}
+#tl-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:46%;margin:0;text-align:center;font-size:max(10px,2.4vh);font-weight:700;color:rgba(255,255,255,.55);pointer-events:none;}
+#tl-rot{display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(7,8,12,.92);color:var(--tx);font-weight:700;}
+@media (orientation:portrait){#tl-rot{display:flex;}}
 #tp-menu{position:absolute;top:48px;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);pointer-events:auto;}
 #tp-menu svg.i{width:16px;height:16px;}
 #fs-btn{position:absolute;top:10px;right:10px;z-index:5;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);opacity:.5;transition:.15s var(--ease);}
@@ -2309,6 +2332,12 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.boost"></span><small class="kb-hint" data-i18n="set.boostHint"></small></span><span class="lang-seg" data-fxopt="boost"></span></div>
     </div>
     <div class="settings-section">
+      <h3><span data-i18n="set.touch"></span><span>TOUCH</span></h3>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.tlay"></span><small class="kb-hint" data-i18n="set.tlayHint"></small></span><button class="kb-key" onclick="openTouchEditor()" data-i18n="set.tlayEdit"></button></div>
+      <div class="vol-row"><label for="tp-op" data-i18n="set.tpop"></label><input type="range" id="tp-op" min="30" max="100" step="5" oninput="setTpOp(this.value)"><span class="vol-val" id="tp-op-v"></span></div>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.vib"></span><small class="kb-hint" data-i18n="set.vibHint"></small></span><span class="lang-seg" data-fxopt="vib"></span></div>
+    </div>
+    <div class="settings-section">
       <h3><span data-i18n="set.lang"></span><span>LANGUAGE</span></h3>
       <div class="lang-seg" data-lang-seg></div>
     </div>
@@ -2557,8 +2586,20 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
+<div id="tl-ed" aria-hidden="true"><div id="tl-frame">
+  <div id="tl-stickzone" data-i18n="tl.stick"></div>
+  <p id="tl-hint" data-i18n="tl.hint"></p>
+  <div id="tl-bar">
+    <label><span data-i18n="tl.size"></span><input type="range" id="tl-size" min="60" max="150" step="5" oninput="setTlSize(this.value)"></label>
+    <label><span data-i18n="set.tpop"></span><input type="range" id="tl-op" min="30" max="100" step="5" oninput="setTpOp(this.value)"></label>
+    <button onclick="resetTouchEditor()" data-i18n="common.reset"></button>
+    <button onclick="closeTouchEditor(false)" data-i18n="tl.cancel"></button>
+    <button class="pri" onclick="closeTouchEditor(true)" data-i18n="tl.save"></button>
+  </div>
+  <div id="tl-rot" data-i18n="tl.rotate"></div>
+</div></div>
 <script src="sim.js?v=44"></script>
-<script src="lang.js?v=48"></script>
+<script src="lang.js?v=49"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2606,7 +2647,7 @@ if(!window.GunDuelLang){
 // 画面の文字はすべて lang.js の辞書から取る。読み込んだら外から触れないように消す
 var LANGS=window.GunDuelLang||{ja:{}};
 try{delete window.GunDuelLang;}catch(e){}
-var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false};   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
+var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null};   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
 (function loadSettings(){
   var saved=null;
   try{saved=JSON.parse(localStorage.getItem('gunduel_settings')||'null');}catch(e){}
@@ -2617,12 +2658,27 @@ var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false};   // sh
     if(saved.shake===false)SETTINGS.shake=false;
     if(saved.fxq==='high'||saved.fxq==='low')SETTINGS.fxq=saved.fxq;
     if(saved.boost===true)SETTINGS.boost=true;
+    if(saved.vib===false)SETTINGS.vib=false;
+    if(saved.tpop>=30&&saved.tpop<=100)SETTINGS.tpop=Math.round(+saved.tpop);
+    SETTINGS.tlay=cleanTlay(saved.tlay);
   }else{
     // 初めて開いたときは、ブラウザの言語に合わせる
     var nl=String(navigator.language||'').toLowerCase();
     SETTINGS.lang=nl.indexOf('ja')===0||!LANGS.en?'ja':'en';
   }
 })();
+// タッチボタンの配置：{キー:{x,y（枠の中の割合 0〜1・ボタンの中心）, s（大きさの倍率）}}。おかしな値は捨てる
+function cleanTlay(v){
+  if(!v||typeof v!=='object')return null;
+  var o={},n=0;
+  ['atk','jump','reload','heal','roll','emo','weps'].forEach(function(k){
+    var b=v[k];if(!b||typeof b!=='object')return;
+    var x=+b.x,y=+b.y,sc=+b.s;
+    if(!(x>=0&&x<=1&&y>=0&&y<=1&&sc>=.6&&sc<=1.5))return;
+    o[k]={x:x,y:y,s:sc};n++;
+  });
+  return n?o:null;
+}
 function saveSettings(){try{localStorage.setItem('gunduel_settings',JSON.stringify(SETTINGS));}catch(e){}}
 // t('キー', {name:'値'}) → 今の言語の文字。無ければ日本語、それも無ければキーそのもの
 function t(key,vars){
@@ -2669,13 +2725,17 @@ function renderSettingsUI(){
     if(r){r.value=SETTINGS[kind];r.style.setProperty('--p',SETTINGS[kind]+'%');}
     if(v)v.textContent=SETTINGS[kind];
   });
+  var tr=document.getElementById('tp-op'),tv=document.getElementById('tp-op-v');
+  if(tr){tr.value=SETTINGS.tpop;tr.style.setProperty('--p',((SETTINGS.tpop-30)/70*100)+'%');}
+  if(tv)tv.textContent=SETTINGS.tpop+'%';
   document.querySelectorAll('[data-fxopt]').forEach(function(el){
-    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
+    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
 }
 function setFxOpt(k,v){
   if(k==='boost'){SETTINGS.boost=!!v;saveSettings();renderSettingsUI();applyBoost();return;}
+  if(k==='vib'){SETTINGS.vib=!!v;saveSettings();renderSettingsUI();if(v)vib(40);return;}
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
   saveSettings();renderSettingsUI();
 }
@@ -4334,7 +4394,7 @@ window.addEventListener('keydown',function(e){
   else if(e.key==='Escape')closeCrateScreen();
   e.stopPropagation();
 },true);
-function vib(p){try{if(navigator.vibrate&&SETTINGS.shake!==false)navigator.vibrate(p);}catch(e){}}
+function vib(p){try{if(navigator.vibrate&&SETTINGS.vib!==false)navigator.vibrate(p);}catch(e){}}
 function shade(hex,k){var n=parseInt(hex.slice(1),16),rr=n>>16,gg=n>>8&255,bb=n&255,f=function(v){return Math.round(k<0?v*(1+k):v+(255-v)*k);};return'rgb('+f(rr)+','+f(gg)+','+f(bb)+')';}
 function crateRing(x,y,k,S){
   CR.parts.push({k:'ring',x:x,y:y,vx:9*S,vy:0,life:0,max:.55,sz:30*S,col:RAR_COL[k]});
@@ -6441,7 +6501,7 @@ function handleEvents(ev,me,styleOf){
         }
         break;
       case'vhit':addSparks(e.x,e.y,'#FFD27A',4);break;
-      case'dead':shatter(e.x,e.y,e.dir,e.duck,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);}break;
+      case'dead':shatter(e.x,e.y,e.dir,e.duck,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);feelKO(e.who===me);}break;
       case'heal':SFX.heal();FX.heal.push({x:e.x,y:e.y,life:30});break;
       case'jump':if(mine)SFX.jump();break;
       case'roll':SFX.roll();rollDust(e.who);if(trk&&mine)ecoTrack('roll');break;
@@ -7179,7 +7239,13 @@ function overlayFxOn(){return bossIntro||unlockFx||slayFx;}
 function feelHit(){
   if(sfxMuted)return;
   if(GP.used)padRumble(.7,.35,140);
-  else if(isTouch&&navigator.vibrate){try{navigator.vibrate(35);}catch(e){}}
+  else if(isTouch)vib(35);
+}
+// 倒した・倒されたときの手ごたえ（スマホは振動、ゲームパッドは揺れ）
+function feelKO(mine){
+  if(sfxMuted)return;
+  if(GP.used)padRumble(mine?1:.5,mine?.6:.8,mine?320:160);
+  else if(isTouch)vib(mine?[90,50,150]:60);
 }
 
 // ============================================================
@@ -7252,6 +7318,90 @@ window.addEventListener('orientationchange',updateMland);
   document.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'&&GP.used)setPadMode(false);},{passive:true});
   window.addEventListener('resize',rest);
   updateMland();rest();
+})();
+
+// ---- タッチボタンの配置・濃さ ----
+// 元の位置（右と下からの距離。単位は画面の高さの1%）と大きさ
+var TL_DEF={atk:{r:16.5,b:18.5,w:25},jump:{r:39.5,b:11.5,w:17},reload:{r:14.5,b:39.5,w:13},heal:{r:33.5,b:29.5,w:13},roll:{r:56.5,b:10.5,w:13},emo:{r:14,b:55,w:10},weps:{c:true,b:6.5,w:0}};
+var TL_ID={atk:'tp-atk',jump:'tp-jump',reload:'tp-reload',heal:'tp-heal',roll:'tp-roll',emo:'tp-emo',weps:'tp-weps'};
+// 枠（幅W・高さH・画面の高さの1%=vh）での元の中心の位置（割合）
+function tlDefault(k,W,H,vh){var d=TL_DEF[k];return{x:d.c?.5:1-d.r*vh/W,y:1-d.b*vh/H,s:1};}
+// ボタン1つを、中心(x,y)・倍率sで置く
+function tlPlace(el,k,b){
+  if(!el)return;
+  var st=el.style;
+  if(!b){['left','top','right','bottom','width','height','marginLeft','marginTop','transform'].forEach(function(p){st[p]='';});st.removeProperty('--s');return;}
+  st.left=(b.x*100)+'%';st.top=(b.y*100)+'%';st.right='auto';st.bottom='auto';
+  if(k==='weps'){st.transform='translate(-50%,-50%) scale('+b.s+')';st.marginLeft='';st.marginTop='';return;}
+  var w=TL_DEF[k].w*b.s;st.width=w+'vh';st.height=w+'vh';st.marginLeft=(-w/2)+'vh';st.marginTop=(-w/2)+'vh';st.transform='';st.setProperty('--s',b.s);
+}
+function applyTouchLayout(){
+  var pad=document.getElementById('tpad');if(!pad)return;
+  pad.style.setProperty('--tpop',SETTINGS.tpop/100);
+  var L=SETTINGS.tlay||{};
+  Object.keys(TL_ID).forEach(function(k){tlPlace(document.getElementById(TL_ID[k]),k,L[k]||null);});
+}
+function setTpOp(v){
+  SETTINGS.tpop=Math.max(30,Math.min(100,Math.round(+v)||100));saveSettings();applyTouchLayout();renderSettingsUI();
+  var f=document.getElementById('tl-frame');if(f)f.style.setProperty('--tpop',SETTINGS.tpop/100);
+  var o=document.getElementById('tl-op');if(o)o.value=SETTINGS.tpop;
+}
+// 編集画面：本物のボタンを写して並べ、ドラッグで動かす。保存するまでは本物は変わらない
+var TL={lay:null,sel:'atk',op0:100};
+function openTouchEditor(){
+  var ed=document.getElementById('tl-ed'),fr=document.getElementById('tl-frame');if(!ed||!fr)return;
+  fr.querySelectorAll('[data-tl]').forEach(function(el){el.remove();});
+  Object.keys(TL_ID).forEach(function(k){
+    var src=document.getElementById(TL_ID[k]);if(!src)return;
+    var el=src.cloneNode(true);el.removeAttribute('id');el.removeAttribute('onclick');el.setAttribute('data-tl',k);
+    if(k==='weps'){el.id='tl-weps';el.querySelectorAll('.tp-w').forEach(function(b,j){if(!b.textContent)b.textContent=t('tl.wep',{n:j+1});});}
+    el.disabled=false;el.classList.remove('on','need');
+    fr.insertBefore(el,document.getElementById('tl-bar'));
+  });
+  TL.lay=JSON.parse(JSON.stringify(SETTINGS.tlay||{}));TL.op0=SETTINGS.tpop;TL.sel='atk';
+  fr.style.setProperty('--tpop',SETTINGS.tpop/100);
+  document.getElementById('tl-op').value=SETTINGS.tpop;
+  ed.classList.add('on');ed.setAttribute('aria-hidden','false');
+  tlRender();
+}
+function tlFrame(){var f=document.getElementById('tl-frame'),r=f.getBoundingClientRect();return{f:f,r:r,vh:innerHeight/100};}
+function tlGet(k){var F=tlFrame();return TL.lay[k]||tlDefault(k,F.r.width,F.r.height,F.vh);}
+function tlRender(){
+  var F=tlFrame();
+  F.f.querySelectorAll('[data-tl]').forEach(function(el){var k=el.getAttribute('data-tl');tlPlace(el,k,tlGet(k));el.classList.toggle('tl-sel',k===TL.sel);});
+  var sz=document.getElementById('tl-size');if(sz)sz.value=Math.round(tlGet(TL.sel).s*100);
+}
+function setTlSize(v){var b=Object.assign({},tlGet(TL.sel));b.s=Math.max(.6,Math.min(1.5,(+v||100)/100));TL.lay[TL.sel]=b;tlRender();}
+function resetTouchEditor(){TL.lay={};setTpOp(100);tlRender();}
+function closeTouchEditor(save){
+  var ed=document.getElementById('tl-ed');if(!ed)return;
+  if(save){SETTINGS.tlay=cleanTlay(TL.lay);saveSettings();note(t('tl.saved'));}
+  else if(SETTINGS.tpop!==TL.op0)setTpOp(TL.op0);
+  ed.classList.remove('on');ed.setAttribute('aria-hidden','true');
+  applyTouchLayout();
+}
+(function(){
+  var fr=document.getElementById('tl-frame');if(!fr)return;
+  var drag=null;
+  fr.addEventListener('pointerdown',function(e){
+    var el=e.target.closest&&e.target.closest('[data-tl]');if(!el)return;
+    e.preventDefault();
+    var k=el.getAttribute('data-tl'),F=tlFrame(),b=tlGet(k);
+    TL.sel=k;drag={k:k,id:e.pointerId,dx:e.clientX-(F.r.left+b.x*F.r.width),dy:e.clientY-(F.r.top+b.y*F.r.height)};
+    try{fr.setPointerCapture(e.pointerId);}catch(er){}
+    tlRender();
+  });
+  fr.addEventListener('pointermove',function(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    var F=tlFrame(),b=Object.assign({},tlGet(drag.k));
+    b.x=Math.max(.03,Math.min(.97,(e.clientX-drag.dx-F.r.left)/F.r.width));
+    b.y=Math.max(.05,Math.min(.95,(e.clientY-drag.dy-F.r.top)/F.r.height));
+    TL.lay[drag.k]=b;tlRender();
+  });
+  function end(e){if(drag&&e.pointerId===drag.id)drag=null;}
+  fr.addEventListener('pointerup',end);fr.addEventListener('pointercancel',end);
+  window.addEventListener('resize',function(){if(document.getElementById('tl-ed').classList.contains('on'))tlRender();});
+  applyTouchLayout();
 })();
 
 // ============================================================
@@ -12518,7 +12668,7 @@ function drawBgFx(tm){
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得
