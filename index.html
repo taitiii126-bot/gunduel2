@@ -1991,6 +1991,10 @@ body[data-scr="event-screen"] #bs-bg{display:block;background:radial-gradient(70
 @media (max-width:760px){.ev-offer{width:200px;}.ev-obody{height:260px;}.ev-obody canvas{width:216px;height:245px;}.ev-oname b{font-size:16px;}
   .ev-ofoot{padding:0 60px 0 10px;gap:4px;}.ev-ofoot b{font-size:20px;}.ev-ofoot s{font-size:13px;}.ev-ofoot canvas{width:24px;height:24px;}.ev-off{width:54px;height:50px;font-size:13px;right:6px;top:-16px;}}
 @media (max-width:760px){.ev-grid{grid-template-columns:repeat(2,1fr);}.ev-candy b{font-size:22px;}.ev-candy canvas{width:42px;height:42px;}.ev-hero{flex-direction:column;}}
+/* FPSブーストの FPS 表示（試合中だけ） */
+#fps-meter{position:fixed;left:10px;bottom:10px;z-index:50;padding:3px 8px;background:rgba(0,0,0,.55);border:1px solid rgba(255,255,255,.15);font-family:var(--f-ui);font-weight:700;font-size:12px;color:#7CFFB2;pointer-events:none;}
+body:not([data-scr="game-screen"]) #fps-meter{display:none!important;}
+.kb-hint{display:block;margin-top:2px;font-size:11px;font-weight:600;color:var(--tx-3);letter-spacing:0;}
 /* 窓を開いている間は、右上の設定・音のボタンを隠す（窓の閉じるボタンと重ならないように） */
 body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
 </style>
@@ -2000,6 +2004,7 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
 <canvas id="bg-demo" aria-hidden="true"></canvas>
 <div id="bg-shade" aria-hidden="true"></div>
 <div id="bs-bg" aria-hidden="true"></div>
+<div id="fps-meter" aria-hidden="true" style="display:none"></div>
 <div id="ev-deco" aria-hidden="true"><div class="glow"></div><div class="web l"></div><div class="web r"></div></div>
 <div id="corner">
   <button id="settings-btn" class="corner-btn" onclick="showSettingsScreen()" data-i18n-title="common.settings">
@@ -2263,6 +2268,7 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
       <h3><span data-i18n="set.fx"></span><span>EFFECTS</span></h3>
       <div class="kb-row"><span class="kb-label" data-i18n="set.shake"></span><span class="lang-seg" data-fxopt="shake"></span></div>
       <div class="kb-row"><span class="kb-label" data-i18n="set.fxq"></span><span class="lang-seg" data-fxopt="fxq"></span></div>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.boost"></span><small class="kb-hint" data-i18n="set.boostHint"></small></span><span class="lang-seg" data-fxopt="boost"></span></div>
     </div>
     <div class="settings-section">
       <h3><span data-i18n="set.lang"></span><span>LANGUAGE</span></h3>
@@ -2562,7 +2568,7 @@ if(!window.GunDuelLang){
 // 画面の文字はすべて lang.js の辞書から取る。読み込んだら外から触れないように消す
 var LANGS=window.GunDuelLang||{ja:{}};
 try{delete window.GunDuelLang;}catch(e){}
-var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto'};   // shake=画面の揺れ fxq=演出の量（auto/high/low）
+var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false};   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
 (function loadSettings(){
   var saved=null;
   try{saved=JSON.parse(localStorage.getItem('gunduel_settings')||'null');}catch(e){}
@@ -2572,6 +2578,7 @@ var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto'};   // shake=画面�
     if(saved.se>=0&&saved.se<=100)SETTINGS.se=+saved.se;
     if(saved.shake===false)SETTINGS.shake=false;
     if(saved.fxq==='high'||saved.fxq==='low')SETTINGS.fxq=saved.fxq;
+    if(saved.boost===true)SETTINGS.boost=true;
   }else{
     // 初めて開いたときは、ブラウザの言語に合わせる
     var nl=String(navigator.language||'').toLowerCase();
@@ -2625,11 +2632,12 @@ function renderSettingsUI(){
     if(v)v.textContent=SETTINGS[kind];
   });
   document.querySelectorAll('[data-fxopt]').forEach(function(el){
-    var k=el.getAttribute('data-fxopt'),opts=k==='shake'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
+    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
 }
 function setFxOpt(k,v){
+  if(k==='boost'){SETTINGS.boost=!!v;saveSettings();renderSettingsUI();applyBoost();return;}
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
   saveSettings();renderSettingsUI();
 }
@@ -6222,8 +6230,11 @@ function fxAutoTick(dt){
   if(FXQ.ms>21){FXQ.hiT=0;if((FXQ.lowT+=dt)>2000){FXQ.lowT=0;if(FXQ.auto>.35){FXQ.auto=Math.max(.35,FXQ.auto-.3);if(FXQ.auto<=.35&&DPR>1){DPR=1;fitCanvas();}}}}
   else if(FXQ.ms<17.8){FXQ.lowT=0;if((FXQ.hiT+=dt)>6000){FXQ.hiT=0;FXQ.auto=Math.min(1,FXQ.auto+.15);}}
 }
+// FPSブースト中は、試合の画面の隅に今のFPSを出す（0.5秒ごとに更新）
+var FPSM={n:0,t:0};
+function fpsTick(dt){if(!SETTINGS.boost||!(dt>0)||dt>250)return;FPSM.n++;FPSM.t+=dt;if(FPSM.t>=500){var el=document.getElementById('fps-meter');if(el)el.textContent=Math.round(FPSM.n*1000/FPSM.t)+' FPS';FPSM.n=0;FPSM.t=0;}}
 function fxRich(){return fxMul()>=.6;}   // 光・手前の層・色味など、重めの演出を出すか
-function fxMul(){return SETTINGS.fxq==='low'?.35:SETTINGS.fxq==='high'?1:FXQ.auto;}
+function fxMul(){return SETTINGS.boost?0:SETTINGS.fxq==='low'?.35:SETTINGS.fxq==='high'?1:FXQ.auto;}
 function fxOn(p){return Math.random()<p*fxMul();}
 // 薬きょう：撃つたびに銃の横から飛び出して、足場で跳ねる。散弾は赤い弾
 var SHELL_OF={2:[3,1.4,'#E2B85A'],3:[5,1.8,'#D9A24A'],4:[2.6,1.3,'#E2B85A'],5:[5,2.4,'#C0392B'],6:[3.4,1.5,'#D9A24A'],7:[3.4,1.5,'#D9A24A'],8:[3.4,1.6,'#E2B85A'],9:[3.2,1.5,'#D9A24A']};
@@ -7230,11 +7241,16 @@ var canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 var DPR=Math.min(2,window.devicePixelRatio||1);   // 重いときは fxAutoTick が 1 に下げる
 function fitCanvas(){
   var cssW=canvas.getBoundingClientRect().width||VW;
-  var w=Math.max(VW,Math.min(2560,Math.round(cssW*DPR))),h=Math.round(w/2);
+  var w=Math.max(VW,Math.min(2560,Math.round(cssW*(SETTINGS.boost?.6:DPR)))),h=Math.round(w/2);   // FPSブースト：表示の75%で描いて拡大
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;}
   var sc=w/VW;
   ctx.setTransform(sc,0,0,sc,0,0);   // ゲーム内の座標は720x360のまま使える
 }
+// FPSブースト：ゲームの影のぼかし（重い）を止める。値を入れても 0 のままにする
+(function(){var D=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(!D||!D.set)return;
+  Object.defineProperty(ctx,'shadowBlur',{configurable:true,get:function(){return D.get.call(this);},set:function(v){D.set.call(this,SETTINGS.boost?0:v);}});})();
+function applyBoost(){fitCanvas();if(typeof sizeBgFx==='function'&&BGFX.cv){sizeBgFx();}var fm=document.getElementById('fps-meter');if(fm)fm.style.display=SETTINGS.boost?'':'none';}
+setTimeout(function(){if(SETTINGS.boost)applyBoost();},0);
 fitCanvas();
 var fitPending=false;
 function scheduleFit(){if(fitPending)return;fitPending=true;requestAnimationFrame(function(){fitPending=false;fitCanvas();});}
@@ -11177,7 +11193,7 @@ function drawBackground(){
   }
   if(th.id==='western')drawTumbleweed();
   if(th.id==='jungle')drawTorches();
-  if(HW_ON)drawHalloweenStage();
+  if(HW_ON&&!SETTINGS.boost)drawHalloweenStage();
 }
 // ハロウィン：足場の上のかぼちゃと、空を飛ぶコウモリ（見た目だけ。当たり判定はない）
 function drawHalloweenStage(){
@@ -12270,7 +12286,7 @@ function loop(ts){
   if(!loopRunning)return;
   pollPad();acClock(ts);
   if(lastTime===0)lastTime=ts;var delta=ts-lastTime;lastTime=ts;if(delta>200)delta=200;
-  fxAutoTick(delta);
+  fxAutoTick(delta);fpsTick(delta);
   accumulator+=delta;
   while(accumulator>=FRAME_MS){
     accumulator-=FRAME_MS;
@@ -12314,14 +12330,14 @@ function initBgFx(){
   sizeBgFx();requestAnimationFrame(bgFxLoop);
 }
 function sizeBgFx(){
-  var d=Math.min(1.5,window.devicePixelRatio||1);
+  var d=SETTINGS.boost?1:Math.min(1.5,window.devicePixelRatio||1);
   BGFX.dpr=d;BGFX.w=innerWidth;BGFX.h=innerHeight;
   BGFX.cv.width=Math.round(BGFX.w*d);BGFX.cv.height=Math.round(BGFX.h*d);
   BGFX.drawn=false;
 }
 function bgFxLoop(ts){
   requestAnimationFrame(bgFxLoop);
-  var cl=document.body.classList,idle=document.hidden||cl.contains('demo')||cl.contains('in-game')||BGFX.still;
+  var cl=document.body.classList,idle=document.hidden||cl.contains('demo')||cl.contains('in-game')||BGFX.still||SETTINGS.boost;
   if(BGFX.drawn&&(idle||ts-BGFX.last<33))return;   // 動かすのは 30fps まで
   BGFX.last=ts;drawBgFx(BGFX.still?0:ts/1000);BGFX.drawn=true;
 }
