@@ -1,4 +1,4 @@
-# 公開用のファイル（読みにくくした物）を作って GitHub Pages に出す。毎日、日本時間の朝4時ごろに作り直す（名前などが日替わりになる）
+# 公開用のファイル（読みにくくした物）を作って GitHub Pages に出す。毎日、シンガポール時間の朝4時ごろに作り直す（名前などが日替わりになる）
 # 使うには：リポジトリの Settings → Pages → Build and deployment の Source を「GitHub Actions」にする。
 # 切り替える前は、何もせずに終わる（失敗にはしない）
 name: Pages
@@ -6,7 +6,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '17 19 * * *'
+    - cron: '17 20 * * *'
   workflow_dispatch:
 permissions:
   contents: read
