@@ -948,7 +948,7 @@ body.in-game #settings-btn,body.crate-open #settings-btn{display:none;}
 body.crate-open #corner{z-index:310;}
 
 /* ---------- ホームの背景デモ ---------- */
-#bg-demo{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:0;filter:blur(1.5px) saturate(1.15);transition:opacity 1s var(--ease);pointer-events:none;}
+#bg-demo{position:fixed;inset:0;width:100vw;height:100vh;z-index:0;opacity:0;transition:opacity 1s var(--ease);pointer-events:none;}
 #bg-shade{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity 1s var(--ease);
   background:radial-gradient(ellipse 70% 60% at 50% 45%,rgba(7,8,12,.34),rgba(7,8,12,.78) 78%),linear-gradient(180deg,rgba(7,8,12,.45),rgba(7,8,12,.2) 40%,rgba(7,8,12,.7));}
 body.demo #bg-demo{opacity:1;}
@@ -4669,12 +4669,7 @@ function renderLookPreview(tm){
     var sh2=g.createRadialGradient(150,268,0,150,268,60);sh2.addColorStop(0,'rgba(0,0,0,.55)');sh2.addColorStop(1,'rgba(0,0,0,0)');
     g.fillStyle=sh2;g.beginPath();g.ellipse(150,268,60,10,0,0,Math.PI*2);g.fill();
     drawAvatar(g,{x:148,y:268,s:1.95,dir:1,look:L,team:TEAM.me,wid:wid,blink:blink,win:pt>0?{pose:L.win|0,t:pt}:null,tm:tm});
-    document.querySelectorAll('#look-opts canvas[data-pose]').forEach(function(pc){
-      var pg=pc.getContext('2d');pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,132,132);
-      pg.fillStyle='rgba(0,0,0,.35)';pg.beginPath();pg.ellipse(66,118,26,5,0,0,Math.PI*2);pg.fill();
-      drawAvatar(pg,{x:70,y:120,s:.98,dir:1,look:profile.look,team:TEAM.me,wid:wid,win:pt>0?{pose:+pc.getAttribute('data-pose'),t:pt}:null,tm:tm});
-      if(pc.getAttribute('data-lock')){pg.save();pg.globalCompositeOperation='source-atop';pg.fillStyle='rgba(10,12,22,.8)';pg.fillRect(0,0,132,132);pg.restore();}
-    });
+    liveThumbs('data-pose').forEach(function(pc){drawPoseThumb(pc,pt,tm);});   // 動かすのは、指している物と選んでいる物だけ（全部を毎回描くと重い）
     return;
   }
   if(lookTab==='emote'){
@@ -4684,7 +4679,7 @@ function renderLookPreview(tm){
     var k=(tm%2.6)/2.6,sc=k<.08?.3+k/.08*.9:k<.14?1.2-(k-.08)/.06*.2:1;
     g.fillStyle='#fff';g.beginPath();g.moveTo(143,108);g.lineTo(150,122);g.lineTo(157,108);g.fill();
     drawEmote(g,eid,150,62,96*sc,tm);
-    drawEmoteThumbs(tm);
+    liveThumbs('data-emo').forEach(function(cv){drawEmoteThumb(cv,tm);});
     return;
   }
   drawLookHead(g,L,152,142,5.5,{bob:bob,blink:blink});
@@ -4767,8 +4762,9 @@ function renderLookEditor(){
     LOOK_OPTS[tab.color].forEach(function(c,j){html+=opt(tab.color,j,'<i style="background:'+c+'"></i>',' swatch');});
     html+='</div>';
   }
-  opts.innerHTML=html;
+  opts.innerHTML=html;lookHot=null;
   drawEmoteThumbs(0);
+  opts.querySelectorAll('canvas[data-pose]').forEach(function(pc){drawPoseThumb(pc,1.1,1.1);});   // 勝ちポーズは、ポーズの途中の形で止めておく
   // 形の選択肢：顔のパーツはその部分を大きく（[頭の中心からの位置x,y（半径=1）, 倍率]）、髪型は頭全体、服は全身を写す
   var k=tab.shape,F=LOOK_FOCUS[k];
   opts.querySelectorAll('canvas[data-look]').forEach(function(cv){
@@ -4781,13 +4777,39 @@ function renderLookEditor(){
   });
   renderLookPreview();
 }
-function drawEmoteThumbs(tm){
-  document.querySelectorAll('#look-opts canvas[data-emo]').forEach(function(cv){
-    var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);
-    drawEmote(g,+cv.getAttribute('data-emo'),W/2,W/2,W*.9,tm);
-    if(cv.getAttribute('data-lock')){g.save();g.globalCompositeOperation='source-atop';g.fillStyle='rgba(10,12,22,.82)';g.fillRect(0,0,W,W);g.restore();}
-  });
+function drawEmoteThumb(cv,tm){
+  var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);
+  drawEmote(g,+cv.getAttribute('data-emo'),W/2,W/2,W*.9,tm);
+  if(cv.getAttribute('data-lock')){g.save();g.globalCompositeOperation='source-atop';g.fillStyle='rgba(10,12,22,.82)';g.fillRect(0,0,W,W);g.restore();}
 }
+function drawEmoteThumbs(tm){document.querySelectorAll('#look-opts canvas[data-emo]').forEach(function(cv){drawEmoteThumb(cv,tm);});}
+function drawPoseThumb(pc,pt,tm){
+  var pg=pc.getContext('2d'),wid=(loadout&&loadout[0])||2;pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,132,132);
+  pg.fillStyle='rgba(0,0,0,.35)';pg.beginPath();pg.ellipse(66,118,26,5,0,0,Math.PI*2);pg.fill();
+  drawAvatar(pg,{x:70,y:120,s:.98,dir:1,look:profile.look,team:TEAM.me,wid:wid,win:pt>0?{pose:+pc.getAttribute('data-pose'),t:pt}:null,tm:tm});
+  if(pc.getAttribute('data-lock')){pg.save();pg.globalCompositeOperation='source-atop';pg.fillStyle='rgba(10,12,22,.8)';pg.fillRect(0,0,132,132);pg.restore();}
+}
+// 見た目の一覧の小さな絵：ふだんは止めておき、指している物（スマホは選んでいる物）だけを動かす
+var lookHot=null;
+function liveThumbs(attr){
+  var out=[],box=document.getElementById('look-opts');if(!box)return out;
+  var sel=box.querySelector('.sel canvas['+attr+']');if(sel)out.push(sel);
+  if(lookHot&&lookHot!==sel&&lookHot.hasAttribute(attr)&&box.contains(lookHot))out.push(lookHot);
+  return out;
+}
+function setLookHot(cv){
+  if(cv===lookHot)return;
+  var old=lookHot;lookHot=cv;
+  if(old&&document.contains(old)){   // 離れた物は止まった絵に戻す
+    if(old.hasAttribute('data-emo'))drawEmoteThumb(old,0);
+    else if(old.hasAttribute('data-pose')&&!(old.closest('.sel')))drawPoseThumb(old,1.1,1.1);
+  }
+}
+document.addEventListener('pointerover',function(e){
+  var t=e.target,cv=null;
+  if(t&&t.closest){var o=t.closest('#look-opts .opt,#look-opts button');if(o)cv=o.querySelector('canvas[data-emo],canvas[data-pose]');}
+  setLookHot(cv);
+},{passive:true});
 // 獲得した称号だけを並べる（まだの称号は、名前も鍵のマークも取り方も出さない）
 function renderTitleChips(){
   var el=document.getElementById('pf-titles');if(!el)return;
@@ -6417,9 +6439,13 @@ function demoFrame(D,ts){
       var A=D.w.chars.a,B=D.w.chars.b,mid=(A.x+B.x)/2;
       camX+=(mid-VW/2-camX)*.05;camX=Math.max(0,Math.min(WORLD_W-VW,camX));
     }
-    var cv=D.cv,cw,chh,sc;
+    // 描くのは1秒に30回まで（FPSブースト中は20回）。動きの計算は今まで通り
+    var gap=SETTINGS.boost?48:31;
+    if(D.drawn&&ts-D.drawn<gap)return;
+    D.drawn=ts;
+    var cv=D.cv,cw,chh,sc,rs=SETTINGS.boost?.38:.5;
     if(D.mode==='cover'){   // 背景：解像度を落として軽く（少しぼやけるのも背景としてちょうどいい）
-      cw=Math.max(320,Math.round(innerWidth*.55));chh=Math.max(180,Math.round(innerHeight*.55));
+      cw=Math.max(300,Math.round(innerWidth*rs));chh=Math.max(170,Math.round(innerHeight*rs));
     }else{                  // プレビュー：枠の大きさ×画面の精細さでくっきり
       var r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1);
       cw=Math.max(180,Math.round(r.width*dpr));chh=Math.round(cw/2);
@@ -10351,22 +10377,39 @@ function drawCrownTitle(g,text,x,y,size,tm){
   }
   g.restore();
 }
+// 重い絵を一度だけ描いておく紙（最近使った物を少しだけ残す）
+var SPRITES=new Map();
+function cachedSprite(key,pw,ph,draw){
+  var c=SPRITES.get(key);
+  if(c){SPRITES.delete(key);SPRITES.set(key,c);return c;}
+  c=document.createElement('canvas');c.width=Math.max(1,Math.ceil(pw));c.height=Math.max(1,Math.ceil(ph));
+  draw(c.getContext('2d'));SPRITES.set(key,c);
+  if(SPRITES.size>8)SPRITES.delete(SPRITES.keys().next().value);
+  return c;
+}
 function drawProfileCard(g,P,x,y,w,h,tm){
   var markR=w*.14,top=y+markR*1.62,ch=h-(top-y),rad=w*.06,lvl=tierInfo(P.tier).lvl,k=ctxScale(g);
   g.save();
   // 影（LT1・HT1 は、影のかわりにティアの光がにじむ）
-  g.save();
-  if(lvl>=5){g.shadowColor=hexA(tierStyle(P.tier).glow,.5);g.shadowBlur=w*.08*k;}
-  else{g.shadowColor='rgba(0,0,0,.6)';g.shadowBlur=w*.07*k;g.shadowOffsetY=w*.035*k;}
-  rrPath(g,x,top,w,ch,rad);g.fillStyle='#0B0D14';g.fill();g.restore();
+  // 影もぼかしが重いので、一度だけ描いて貼る
+  var sm=w*.2,shc=lvl>=5?hexA(tierStyle(P.tier).glow,.5):'';
+  g.drawImage(cachedSprite(['cardsh',w,ch,rad,k,shc].join('|'),(w+sm*2)*k,(ch+sm*2)*k,function(sg){
+    sg.setTransform(k,0,0,k,(sm-x)*k,(sm-top)*k);
+    if(shc){sg.shadowColor=shc;sg.shadowBlur=w*.08*k;}
+    else{sg.shadowColor='rgba(0,0,0,.6)';sg.shadowBlur=w*.07*k;sg.shadowOffsetY=w*.035*k;}
+    rrPath(sg,x,top,w,ch,rad);sg.fillStyle='#0B0D14';sg.fill();
+  }),x-sm,top-sm,w+sm*2,ch+sm*2);
   g.save();rrPath(g,x,top,w,ch,rad);g.clip();
   drawTierBg(g,P.bg==null?P.tier:P.bg,x,top,w,ch,tm);
   // キャラクター
   var feet=top+ch*1.2,sc=ch*.0107;   // 上半身を大きく（足はカードの外）
   // 背景の光の色でふちを光らせて、背景になじませる
-  g.save();g.shadowColor=hexA(tierStyle(P.bg==null||typeof P.bg!=='number'?P.tier:P.bg).glow,.55);g.shadowBlur=w*.05*k;
-  drawAvatar(g,{x:x+w*.44,y:feet,s:sc,dir:1,look:P.look,team:P.team||TEAM.me,wid:P.loadout&&P.loadout[0],bob:Math.sin(tm*2.1)*1.1});
-  g.restore();
+  // 光るふちつきのキャラは描くのがとても重いので、一度だけ別の紙に描いて、毎回はそれを貼る（息づかいは上下に少し動かす）
+  var glow=hexA(tierStyle(P.bg==null||typeof P.bg!=='number'?P.tier:P.bg).glow,.55),mg=sc*3,av={x:x+w*.44,y:feet,s:sc,dir:1,look:P.look,team:P.team||TEAM.me,wid:P.loadout&&P.loadout[0]};
+  var spr=cachedSprite(['card',w,ch,k,glow,JSON.stringify(P.look),JSON.stringify(av.team),av.wid].join('|'),w*k,(ch+mg*2)*k,function(sg){
+    sg.setTransform(k,0,0,k,-x*k,-(top-mg)*k);sg.shadowColor=glow;sg.shadowBlur=w*.05*k;drawAvatar(sg,av);
+  });
+  g.drawImage(spr,x,top-mg+Math.sin(tm*2.1)*1.1*sc,w,ch+mg*2);
   // 下の帯：名前と称号
   var bandY=top+ch*.7,bg2=g.createLinearGradient(0,bandY,0,top+ch);
   bg2.addColorStop(0,'rgba(5,6,10,0)');bg2.addColorStop(.42,'rgba(5,6,10,.8)');bg2.addColorStop(1,'rgba(5,6,10,.96)');
@@ -10495,7 +10538,10 @@ function renderCardCanvas(cv,P,tm){
 }
 var cardLoopOn=false;
 function startCardLoop(){if(cardLoopOn)return;cardLoopOn=true;requestAnimationFrame(cardLoop);}
+var cardLast=0;
 function cardLoop(ts){
+  if(cardLast&&ts-cardLast<(SETTINGS.boost?48:31)&&!document.hidden){requestAnimationFrame(cardLoop);return;}   // メニューの絵は1秒に30回で十分
+  cardLast=ts;
   var any=false,tm=ts/1000;
   var pc=document.getElementById('pf-card');
   if(pc&&pc.offsetParent){any=true;renderCardCanvas(pc,myCardData(),tm);}
@@ -12330,7 +12376,8 @@ function initBgFx(){
   sizeBgFx();requestAnimationFrame(bgFxLoop);
 }
 function sizeBgFx(){
-  var d=SETTINGS.boost?1:Math.min(1.5,window.devicePixelRatio||1);
+  // ぼんやりした光とうすい線だけなので、画面より粗く描いて引きのばす（全画面を毎回描くのはとても重い）
+  var d=SETTINGS.boost?.4:.6;
   BGFX.dpr=d;BGFX.w=innerWidth;BGFX.h=innerHeight;
   BGFX.cv.width=Math.round(BGFX.w*d);BGFX.cv.height=Math.round(BGFX.h*d);
   BGFX.drawn=false;
@@ -12338,7 +12385,7 @@ function sizeBgFx(){
 function bgFxLoop(ts){
   requestAnimationFrame(bgFxLoop);
   var cl=document.body.classList,idle=document.hidden||cl.contains('demo')||cl.contains('in-game')||BGFX.still||SETTINGS.boost;
-  if(BGFX.drawn&&(idle||ts-BGFX.last<33))return;   // 動かすのは 30fps まで
+  if(BGFX.drawn&&(idle||ts-BGFX.last<40))return;   // 動かすのは 25fps まで（ゆっくり流れる背景なので十分）
   BGFX.last=ts;drawBgFx(BGFX.still?0:ts/1000);BGFX.drawn=true;
 }
 function drawBgFx(tm){
