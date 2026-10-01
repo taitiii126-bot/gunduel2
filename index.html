@@ -4684,7 +4684,7 @@ var TIER_LADDER=[
   {key:'HT3',color:'#B983FF'},   // 金＋ルビー（紫水晶）
   {key:'LT2',color:'#C81E3A'},   // 深紅＋銀
   {key:'HT2',color:'#4FAEFF'},   // 深紅＋金（青い炎）
-  {key:'LT1',color:'#3FD8C8'},   // ターコイズ＋サンゴ
+  {key:'LT1',color:'#3FD8C8'},   // ターコイズ＋銀のシリンダー
   {key:'HT1',color:'#FFF4D6'}    // 白金
 ];
 // CPU戦の到達度（0〜10）。称号・背景の解放と、ランクマッチを始めるまでのレートの下限に使う
@@ -8745,7 +8745,7 @@ var TIER_BG=[
   {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards',flat:'planet',em:'planet'},    // HT3：紫水晶・トランプ・宝石のかけら
   {c:['#A3172D','#3F0812','#0A0103'],glow:'#FF7182',acc:'#FFD6DC',pat:'roses',  par:'petals',flat:'flames',em:'flames'},    // LT2：深紅・バラ・花びら
   {c:['#1348A8','#08204E','#01040E'],glow:'#56CCFF',acc:'#D4F3FF',pat:'flames', par:'embers',flat:'lightning',em:'bolt'},    // HT2：青い炎・炎・火の粉
-  {c:['#0C6A6A','#04363A','#011416'],glow:'#7FE8D8',acc:'#C8FFF4',pat:'deco',   par:'golddust',flat:'sundisk',em:'sundisk'},  // LT1：漆黒と金・アールデコ・金の粉
+  {c:['#0C6A6A','#04363A','#011416'],glow:'#7FE8D8',acc:'#C8FFF4',pat:'deco',   par:'golddust',flat:'cylinder',em:'cylinder'},  // LT1：漆黒と金・アールデコ・金の粉
   {c:['#D8D4EA','#6C678A','#12101C'],glow:'#FFFFFF',acc:'#FFFFFF',pat:'prism',  par:'rainbow',flat:'gold',em:'guns'}    // HT1：白金・光の放射と虹・虹色の粒
 ];
 // 紋章：どのティアも同じ六角形のバッジ。色は背景と同じティアの色、縁はティアの金属、真ん中に背景の模様と同じ記号を1つ
@@ -8850,6 +8850,10 @@ function emGlyph(g,pat,idx,tm){
     for(i=0;i<12;i++){a=i*Math.PI/6;g.beginPath();g.moveTo(Math.cos(a-.2)*11,Math.sin(a-.2)*11);g.lineTo(Math.cos(a)*16,Math.sin(a)*16);g.lineTo(Math.cos(a+.2)*11,Math.sin(a+.2)*11);g.closePath();g.fill();}
     g.beginPath();g.arc(0,0,10,0,Math.PI*2);g.fill();
     g.globalCompositeOperation='destination-out';g.lineWidth=1.6;g.beginPath();g.arc(0,0,6.5,0,Math.PI*2);g.stroke();g.globalCompositeOperation='source-over';break;
+  case 'cylinder':// リボルバーのシリンダー
+    g.beginPath();g.arc(0,0,15,0,Math.PI*2);g.fill();
+    g.globalCompositeOperation='destination-out';for(i=0;i<6;i++){a=i*Math.PI/3;g.beginPath();g.arc(Math.cos(a)*8.5,Math.sin(a)*8.5,3.6,0,Math.PI*2);g.fill();}
+    g.beginPath();g.arc(0,0,2.4,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';break;
   case 'prism':   // 虹色の王冠
     var rg=g.createLinearGradient(-15,0,15,0);for(i=0;i<=6;i++)rg.addColorStop(i/6,'hsl('+((i*60+tm*60)%360)+',90%,82%)');
     g.fillStyle=rg;g.beginPath();g.moveTo(-15,11);g.lineTo(-15,-8);g.lineTo(-7,0);g.lineTo(0,-14);g.lineTo(7,0);g.lineTo(15,-8);g.lineTo(15,11);g.closePath();g.fill();
@@ -9382,10 +9386,39 @@ function flatSunDisk(g,w,h,tm,lw){
   for(i=0;i<14;i++){var t=(tm*.2+i*.107)%1;g.globalAlpha=Math.sin(t*Math.PI);g.fillStyle=i%2?'#7FE8D8':'#FFC53D';flatStar4(g,w*((i*.33+.04)%1),h*(.95-t*.88),w*(.009+.008*(i%3)));g.fill();}
   g.globalAlpha=1;
 }
+// LT1：ターコイズ。リボルバーのシリンダー（正面）と、舞う空薬きょう
+function flatCylinder(g,w,h,tm,lw){
+  g.fillStyle='#04363A';g.fillRect(0,0,w,h);
+  var cx=w*.8,cy=h*.3,i,ink='#021E22',R=w*.46;
+  g.save();g.translate(cx,cy);g.rotate(tm*.04);g.fillStyle='#07494E';
+  for(i=0;i<12;i++){var a=i*Math.PI/6;g.beginPath();g.moveTo(0,0);g.arc(0,0,h*1.2,a-.12,a+.12);g.closePath();g.fill();}
+  g.restore();
+  flatSpot(g,cx,cy,w*.62,'rgba(120,255,230,.22)');
+  g.save();g.translate(cx,cy);g.rotate(tm*.35);
+  // シリンダーの外形：6つのふくらみと、その間のみぞ
+  g.beginPath();for(i=0;i<6;i++){var a0=i*Math.PI/3;g.arc(Math.cos(a0)*R*.42,Math.sin(a0)*R*.42,R*.5,a0-1.05,a0+1.05);}g.closePath();
+  g.fillStyle='#6B7A88';g.fill();g.lineWidth=lw*1.4;g.strokeStyle=ink;g.stroke();
+  g.beginPath();g.arc(0,0,R*.8,0,Math.PI*2);g.fillStyle='#8FA0AE';g.fill();
+  g.beginPath();g.arc(-R*.06,-R*.06,R*.62,0,Math.PI*2);g.fillStyle='#B4C3CF';g.fill();
+  // 弾（真ちゅうの底）
+  for(i=0;i<6;i++){var b=i*Math.PI/3,bx=Math.cos(b)*R*.48,by=Math.sin(b)*R*.48;
+    g.beginPath();g.arc(bx,by,R*.2,0,Math.PI*2);g.fillStyle='#1C2328';g.fill();
+    g.beginPath();g.arc(bx,by,R*.165,0,Math.PI*2);g.fillStyle='#C9962E';g.fill();g.lineWidth=lw;g.strokeStyle=ink;g.stroke();
+    g.beginPath();g.arc(bx-R*.02,by-R*.02,R*.12,0,Math.PI*2);g.fillStyle='#F2C65A';g.fill();
+    g.beginPath();g.arc(bx,by,R*.055,0,Math.PI*2);g.fillStyle='#8C6A1E';g.fill();}
+  g.beginPath();g.arc(0,0,R*.12,0,Math.PI*2);g.fillStyle='#4E5B67';g.fill();g.lineWidth=lw;g.strokeStyle=ink;g.stroke();
+  g.beginPath();g.arc(0,0,R*.05,0,Math.PI*2);g.fillStyle='#1C2328';g.fill();
+  g.restore();
+  // 舞う空薬きょう
+  for(i=0;i<9;i++){var t=(tm*.32+i*.137)%1,px=w*((i*.37+.06)%1)+Math.sin(tm+i)*w*.03,py=h*(-.05+t*1.05);
+    g.save();g.translate(px,py);g.rotate(tm*4+i*1.3);var cw=w*.022,cl=w*.06;
+    g.fillStyle='#E8B84A';g.fillRect(-cw/2,-cl/2,cw,cl);g.fillStyle='#FFE08A';g.fillRect(-cw/2,-cl/2,cw*.4,cl);g.fillStyle='#8C6A1E';g.fillRect(-cw*.65,cl/2-cw*.4,cw*1.3,cw*.4);
+    g.lineWidth=lw*.7;g.strokeStyle=ink;g.strokeRect(-cw/2,-cl/2,cw,cl);g.restore();}
+}
 function drawFlatScene(g,kind,x,y,w,h,tm){
   var lw=Math.max(1,w*.008);
   g.save();g.translate(x,y);
-  ({flames:flatFlames,sunset:flatSunset,waves:flatWaves,moon:flatMoon,gears:flatGears,tornado:flatTornado,sheriff:flatSheriff,cards:flatCards,lightning:flatLightning,gold:flatGold,holo:flatHolo,crystals:flatCrystals,stage:flatStage,wings:flatWings,skull:flatSkull,planet:flatPlanet,sundisk:flatSunDisk}[kind]||flatMoon)(g,w,h,tm,lw);
+  ({flames:flatFlames,sunset:flatSunset,waves:flatWaves,moon:flatMoon,gears:flatGears,tornado:flatTornado,sheriff:flatSheriff,cards:flatCards,lightning:flatLightning,gold:flatGold,holo:flatHolo,crystals:flatCrystals,stage:flatStage,wings:flatWings,skull:flatSkull,planet:flatPlanet,sundisk:flatSunDisk,cylinder:flatCylinder}[kind]||flatMoon)(g,w,h,tm,lw);
   g.restore();
 }
 function drawTierBg(g,idx,x,y,w,h,tm){
