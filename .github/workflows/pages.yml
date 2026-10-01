@@ -1,9 +1,8 @@
 # 公開用のファイル（読みにくくした物）を作って GitHub Pages に出す。
-# 使うには：リポジトリの Settings → Pages → Build and deployment の Source を「GitHub Actions」にする
+# 使うには：リポジトリの Settings → Pages → Build and deployment の Source を「GitHub Actions」にしてから、
+# Actions タブでこの「Pages」を手動で動かす（切り替える前に動くと失敗するので、今は手動だけ）
 name: Pages
 on:
-  push:
-    branches: [main]
   workflow_dispatch:
 permissions:
   contents: read
