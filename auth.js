@@ -356,6 +356,7 @@ async function exchangeWithDiscord(code, redirectUri) {
 }
 
 const auth = {
+  AUTO_BAN_FLAGS,
   enabled() { return !!(CLIENT_ID && CLIENT_SECRET); },
   clientId() { return CLIENT_ID; },
 
@@ -448,14 +449,14 @@ const auth = {
   rankRow2(u) {
     if (!u || BANNED_IDS.has(String(u.id))) return null;
     const r = rateState2(u), p = u.profile || null;
-    return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie',
+    return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u), p) : 'rookie',
       tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games, dev: !!u.dev };
   },
   // ランキングに出す1行（BOTはアカウントを持たないので、そもそも入らない）
   rankRow(u) {
     if (!u || BANNED_IDS.has(String(u.id))) return null;
     const r = rateState(u), p = u.profile || null;
-    return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie',
+    return { uid: u.id, name: p ? p.name : cleanName(u.name), title: p ? P.validTitle(p.title, titleCtx(u), p) : 'rookie',
       tier: r.tier, rate: r.rate, w: r.w, l: r.l, games: r.games, dev: !!u.dev };
   },
 
@@ -507,6 +508,7 @@ const auth = {
     const ctx = titleCtx(u), inc = P.clean(raw, ctx, rt), rev = u.profileRev || 0;
     const merged = !!u.profile && Math.floor(+base) !== rev;
     const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
+    const forged = P.forgeCheck(old, inc, Date.now() - (u.profileAt || 0), ctx, JOKE_TITLES);   // 呼んだ側（server.js）がBANする
     let next = merged ? P.merge(old, inc) : inc;
     keepServerOwned(next, old, u);   // 持ち物・開けた数・試合の記録などは、ブラウザから届いた値を使わない
     if (raw && Number.isFinite(+raw.tzo) && Math.abs(+raw.tzo) <= 840) u.tzo = Math.round(+raw.tzo);   // 時差（称号「夜更かし」の時刻に使う）
@@ -516,7 +518,7 @@ const auth = {
     u.profile = next;
     u.profileRev = rev + 1; u.profileAt = Date.now();
     touch();
-    return { rev: u.profileRev, merged, profile: u.profile };
+    return { rev: u.profileRev, merged, profile: u.profile, forged };
   },
   // ---- 宝箱とミッション（中身を決めるのはサーバー） ----
   // ミッションの報酬を受け取る（その日の i 番目。1日3つまで）→ 宝箱1つ＋経験値
@@ -668,6 +670,17 @@ const auth = {
     return saveServerProfile(u, pr, { kind: 'lucky', item: res.item, r: res.r, dup: res.dup, n: 1, items: [{ item: res.item, dup: res.dup }] });
   },
   // オンライン対戦で見せる見た目・エモート：持ち物を確かめる（ゲストは宝箱の物を外す）
+  // 対戦相手に見せる称号と背景。ブラウザから届いた値は使わず、サーバーの記録で確かめた物だけ
+  shown(uid) {
+    const u = uid && db.users[uid];
+    if (!u || !u.profile) return { title: 'rookie', bg: null };
+    const p = u.profile, bg = p.bg;
+    return {
+      title: P.validTitle(p.title, titleCtx(u), p),
+      bg: bg === 'emperor' ? (p.emperor && p.emperor.beat ? 'emperor' : null) : bg === 'dev' ? (u.dev ? 'dev' : null)
+        : typeof bg === 'number' && bg >= 0 && bg <= bestTierOf(u) ? bg : null,
+    };
+  },
   ownedLook(uid, look) { const u = uid && db.users[uid]; return SIM.lookOwned(look, u && u.profile ? SIM.cleanInv(u.profile.inv) : null); },
   ownsEmote(uid, n) { n = Math.floor(+n); if (!(n >= 0 && n < SIM.EMOTE_N)) return false; if (n < SIM.EMOTE_FREE) return true; const u = uid && db.users[uid]; return !!(u && u.profile && SIM.cleanInv(u.profile.inv).indexOf('e' + n) >= 0); },
   user(uid) { return db.users[uid] || null; },
@@ -734,7 +747,7 @@ const auth = {
     const p = u.profile || null, rs = rateState(u), tier = rs.tier, r2 = rateState2(u);
     return {
       fid: u.fid, name: p ? p.name : u.name, discord: u.name, dev: !!u.dev, badge: SIM.badgeShown(u.badges, p ? p.badge : null),
-      title: p ? P.validTitle(p.title, titleCtx(u)) : 'rookie', bio: p ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
+      title: p ? P.validTitle(p.title, titleCtx(u), p) : 'rookie', bio: p ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
       tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },
       rate2: r2.rate, tier2: r2.tier, ranked2: { w: r2.w, l: r2.l },

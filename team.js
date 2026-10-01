@@ -83,8 +83,7 @@ class TeamRoom {
       tier: acc && acc.tier2Key ? acc.tier2Key : '', rate: acc ? (acc.rate2 || SIM.RATE_START) : SIM.RATE_START,
       loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
       title: G.cleanTitle(info && info.title, acc), bio: G.cleanBio(info && info.bio), bg: G.cleanBg(info && info.bg, acc),
-      rec: acc ? { w: G.cleanCount(acc.wins), l: G.cleanCount(acc.losses), kind: 'online' }
-               : { w: G.cleanCount(info && info.cpu && info.cpu.w), l: G.cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },
+      rec: acc ? { w: G.cleanCount(acc.wins), l: G.cleanCount(acc.losses), kind: 'online' } : null,   // ゲストの成績は確かめられないので見せない
       srtt: -1, spingT: 0, rematch: false, acts: 0, suspect: '', left: false, done: false,
       input: { left: false, right: false, duck: false, fire: false, slot: 0 },
       jumpReq: false, shootReq: false, healReq: false, reloadReq: false, rollReq: false,
@@ -103,7 +102,7 @@ class TeamRoom {
     this.phase = phase;
     const p = this.players[s];
     this.makeBot(p, bot.cfg);
-    p.rate = bot.rate; p.tier = bot.tierKey; p.title = bot.title; p.discord = bot.name; p.verified = true;
+    p.rate = bot.rate; p.tier = bot.tierKey; p.title = bot.title; p.bg = bot.bg; p.discord = bot.name; p.verified = true;
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     p.srtt = 16 + Math.floor(Math.random() * 46);
     return s;

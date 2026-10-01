@@ -84,6 +84,7 @@ const MACRO_TOGGLES_PER_SEC = 30;  // 左右・しゃがみの切り替えが1�
 const MACRO_SECONDS = 3;           // それが連続でこの秒数続いたら疑う
 const ACTIVE_MIN_INPUTS = 10;      // 1試合でこれ未満しか操作していなければ「放置」
 const WATCH_LABEL = {
+  mimic: 'CPUの頭脳と同じ操作を続けている（頭脳に操作させるチート）',
   instant: '狙いが合った瞬間に撃ち続けている（自動射撃の疑い）',
   react: '反応が人間離れして速い（自動射撃の疑い）',
   rhythm: '撃つ間隔が機械的に一定（マクロの疑い）',
@@ -101,17 +102,22 @@ function cleanName(v) {
 }
 // 相手のカードに出す項目。自己申告なので、形と長さだけ整えて中身は信用しない
 // 称号：オンライン戦績・フレンド数などが足りないものは使えない（ログインしていない人は、それらの称号は使えない）
+// ログイン中の人：サーバーに保存してある称号（記録で確かめ直したもの）。ブラウザから届いた値は見ない
+// ゲスト：記録をサーバーが持っていないので、何も要らない称号（新人）しか見せない
 function cleanTitle(v, acc) {
-  const s = String(v == null ? '' : v);
-  const ctx = acc ? { w: acc.wins || 0, l: acc.losses || 0, friends: acc.friends || 0, pioneer: !!acc.pioneer } : null;
-  return SIM.titleOk(s, ctx) ? s : 'rookie';
+  if (acc) return require('./auth').shown(acc.uid).title;
+  return SIM.titleProof(String(v == null ? '' : v), null, null) ? String(v) : 'rookie';
 }
 function cleanBio(v) {
   let n = '';
   for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
   return n.trim().slice(0, 40);
 }
-function cleanBg(v, acc) { if (v === 'emperor') return 'emperor'; if (v === 'dev') return acc && acc.dev ? 'dev' : null; const n = Math.floor(+v); return n >= 0 && n <= 10 ? n : null; }   // 'emperor'＝鬼帝の背景
+// 背景：ログイン中はサーバーに保存してある物（届いたティアの分まで・鬼帝は倒した人だけ）。ゲストは鬼帝と開発者の背景を使えない
+function cleanBg(v, acc) {
+  if (acc) return require('./auth').shown(acc.uid).bg;
+  const n = Math.floor(+v); return typeof v !== 'string' && n >= 0 && n <= 10 ? n : null;
+}
 function cleanCount(v) { const n = Math.floor(+v); return n >= 0 && n < 1e6 ? n : 0; }
 function cleanTier(v) {
   return String(v == null ? '' : v).replace(/[^A-Za-z0-9ぁ-んァ-ヶ一-龠]/g, '').slice(0, 5);
@@ -181,8 +187,7 @@ class Room {
       loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
       title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg, acc),
       // 勝率：ログイン済みはサーバーが持っているオンライン戦績、ゲストは本人が送ってきたCPU戦の成績
-      rec: acc ? { w: cleanCount(acc.wins), l: cleanCount(acc.losses), kind: 'online' }
-               : { w: cleanCount(info && info.cpu && info.cpu.w), l: cleanCount(info && info.cpu && info.cpu.l), kind: 'cpu' },
+      rec: acc ? { w: cleanCount(acc.wins), l: cleanCount(acc.losses), kind: 'online' } : null,   // ゲストの成績は確かめられないので見せない
       srtt: -1, spingT: 0, rematch: false,
       input: { left: false, right: false, duck: false, fire: false, slot: 0 },
       jumpReq: false, shootReq: false, healReq: false, reloadReq: false, rollReq: false,
@@ -202,7 +207,7 @@ class Room {
     // そのぶんの遅れ（約0.1〜0.15秒）を反応に足して、人と同じ条件にする
     const lag = 6 + Math.floor(Math.random() * 4);
     p.bot = true; p.brain = SIM.newBrain(Object.assign({}, bot.cfg, { react: bot.cfg.react + lag })); p.rate = bot.rate; p.tier = bot.tierKey;
-    p.title = bot.title; p.discord = bot.name; p.verified = true;
+    p.title = bot.title; p.bg = bot.bg; p.discord = bot.name; p.verified = true;
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     p.srtt = 16 + Math.floor(Math.random() * 46);   // 通信の速さ（人と同じように相手の画面に出る）
     return slot;
