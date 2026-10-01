@@ -9396,7 +9396,7 @@ function flatPuffs(g,w,h,tm,list){
 function flatCylinder(g,w,h,tm,lw){
   var bg=g.createRadialGradient(w*.85,h*.1,0,w*.85,h*.1,h*1.1);bg.addColorStop(0,'#8A4416');bg.addColorStop(.5,'#5A2408');bg.addColorStop(1,'#3A1404');
   g.fillStyle=bg;g.fillRect(0,0,w,h);
-  var cx=w*.8,cy=h*.28,i,ink='#2A0E02',R=w*.42;
+  var cx=w*.44,cy=h*.33,i,ink='#2A0E02',R=w*.4;
   g.save();g.translate(cx,cy);g.rotate(tm*.35);
   // シリンダーの外形：6つのふくらみと、その間のみぞ
   g.beginPath();for(i=0;i<6;i++){var a0=i*Math.PI/3;g.arc(Math.cos(a0)*R*.42,Math.sin(a0)*R*.42,R*.5,a0-1.05,a0+1.05);}g.closePath();
