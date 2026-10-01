@@ -248,6 +248,7 @@ const CHEAT_KINDS = {
   tamper: [3, 'ゲームの値を書き換えた（CPU戦）'],
   synthetic: [3, 'スクリプトが作った入力で操作した（CPU戦）'],
   speed: [3, 'ゲームの時間の進み方を操作した（CPU戦）'],
+  bait: [3, 'コンソールでチート用の関数を呼んだ（わな）'],
   native: [0, 'ゲームが使うブラウザの機能が書き換わっている（CPU戦・拡張機能でも起きるので記録だけ）'],
   instant: [1, '狙いが合った瞬間に撃ち続けている（CPU戦・自動射撃の疑い）'],
   react: [1, '反応が人間離れして速い（CPU戦・自動射撃の疑い）'],
@@ -278,7 +279,7 @@ function cpuEnd(u, m, ip) {
   // 計算し直した試合で見張りが引っかかった（ブラウザが報告を止めていても分かる）
   if (R.watch) {
     const label = (G.WATCH_LABEL[R.watch.code] || R.watch.code).replace('（', '（CPU戦・');
-    onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, label + '：' + R.watch.detail + '（サーバーで計算し直して確認）', { cpu: diff }, 1);
+    onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, label + '：' + R.watch.detail + '（サーバーで計算し直して確認）', { cpu: diff }, R.watch.code === 'mimic' ? auth.AUTO_BAN_FLAGS : 1);   // 頭脳と同じ操作は確かな証拠なので即BAN
     return { ok: false, why: 'suspect' };
   }
   const r = auth.applyMatch(u.id, { mode: 'cpu', diff, stage, win: R.win, straight: R.straight, tally: R.tally, emotes: m.emotes });
@@ -1000,7 +1001,10 @@ const server = http.createServer((req, res) => {
     if (!profileSaves.hit(u.id)) return json(res, 429, { error: '保存が多すぎます。少し待ってください' });
     return readJson(req, m => {
       if (!m || !m.profile || typeof m.profile !== 'object') return json(res, 400, { error: 'リクエストが不正です' });
-      json(res, 200, auth.saveProfile(u.id, m.profile, m.base));
+      const r = auth.saveProfile(u.id, m.profile, m.base);
+      if (r && r.forged && r.forged.length) onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, '保存した記録を書き換えた（サーバーの記録よりありえないほど多い）：' + r.forged.join(','), null, auth.AUTO_BAN_FLAGS);
+      if (r) delete r.forged;   // 何で見つかったかは本人に返さない
+      json(res, 200, r);
     });
   }
   // 宝箱を開ける（POST { op:'open' }）／デイリーミッションの報酬を受け取る（POST { op:'claim', i }）。中身はサーバーが決める

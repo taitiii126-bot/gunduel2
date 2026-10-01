@@ -356,6 +356,7 @@ async function exchangeWithDiscord(code, redirectUri) {
 }
 
 const auth = {
+  AUTO_BAN_FLAGS,
   enabled() { return !!(CLIENT_ID && CLIENT_SECRET); },
   clientId() { return CLIENT_ID; },
 
@@ -507,6 +508,7 @@ const auth = {
     const ctx = titleCtx(u), inc = P.clean(raw, ctx, rt), rev = u.profileRev || 0;
     const merged = !!u.profile && Math.floor(+base) !== rev;
     const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
+    const forged = P.forgeCheck(old, inc, Date.now() - (u.profileAt || 0), ctx, JOKE_TITLES);   // 呼んだ側（server.js）がBANする
     let next = merged ? P.merge(old, inc) : inc;
     keepServerOwned(next, old, u);   // 持ち物・開けた数・試合の記録などは、ブラウザから届いた値を使わない
     if (raw && Number.isFinite(+raw.tzo) && Math.abs(+raw.tzo) <= 840) u.tzo = Math.round(+raw.tzo);   // 時差（称号「夜更かし」の時刻に使う）
@@ -516,7 +518,7 @@ const auth = {
     u.profile = next;
     u.profileRev = rev + 1; u.profileAt = Date.now();
     touch();
-    return { rev: u.profileRev, merged, profile: u.profile };
+    return { rev: u.profileRev, merged, profile: u.profile, forged };
   },
   // ---- 宝箱とミッション（中身を決めるのはサーバー） ----
   // ミッションの報酬を受け取る（その日の i 番目。1日3つまで）→ 宝箱1つ＋経験値

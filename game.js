@@ -84,6 +84,7 @@ const MACRO_TOGGLES_PER_SEC = 30;  // 左右・しゃがみの切り替えが1�
 const MACRO_SECONDS = 3;           // それが連続でこの秒数続いたら疑う
 const ACTIVE_MIN_INPUTS = 10;      // 1試合でこれ未満しか操作していなければ「放置」
 const WATCH_LABEL = {
+  mimic: 'CPUの頭脳と同じ操作を続けている（頭脳に操作させるチート）',
   instant: '狙いが合った瞬間に撃ち続けている（自動射撃の疑い）',
   react: '反応が人間離れして速い（自動射撃の疑い）',
   rhythm: '撃つ間隔が機械的に一定（マクロの疑い）',

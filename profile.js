@@ -199,6 +199,30 @@ function limitGrowth(old, next, dtMs, ctx) {
   return next;
 }
 
+// ブラウザから届いた記録が、サーバーの記録より「ありえないほど」多いか（保存の書き換えの証拠）。
+// 正しいブラウザはサーバーの値に合わせ直すので、差は数試合ぶんしか出ない。時間で遊べる試合数＋FORGE_SLACK を超えたら書き換え。
+// 返り値：引っかかった項目の一覧（空なら問題なし）
+const FORGE_SLACK = 30, FORGE_TITLES = 10;
+function forgeCheck(old, inc, dtMs, ctx, jokes) {
+  if (!old || !inc || MIN_MATCH_SEC <= 0) return [];
+  const m = Math.floor(Math.max(0, dtMs) / 1000 / MIN_MATCH_SEC) + FORGE_SLACK, out = [];
+  if (statsSum(inc) - statsSum(old) > m * PER_MATCH.stats) out.push('stats');
+  if ((inc.emperor.w + inc.emperor.l) - (old.emperor.w + old.emperor.l) > m * PER_MATCH.emperor) out.push('emperor');
+  if (inc.ach.best - old.ach.best > m * PER_MATCH.best) out.push('best');
+  if (sumOf(inc.ach.kills) - sumOf(old.ach.kills) > m * PER_MATCH.kills) out.push('kills');
+  if (sumOf(inc.ach.stages) - sumOf(old.ach.stages) > m * PER_MATCH.stages) out.push('stages');
+  if ((inc.xp || 0) - (old.xp || 0) > m * PER_MATCH.xp) out.push('xp');
+  // サーバーの記録では取れていない称号を、まとめて持っていると言ってきた
+  const proof = { stats: old.stats, tierProgress: old.tierProgress, ach: old.ach, emperor: old.emperor };
+  let n = 0;
+  for (const id of Object.keys(inc.ach.got || {})) {
+    const d = SIM.TITLES.find(x => x.id === id);
+    if (inc.ach.got[id] && d && !d.gate && (jokes || []).indexOf(id) < 0 && !SIM.titleProof(id, proof, ctx)) n++;
+  }
+  if (n >= FORGE_TITLES) out.push('titles×' + n);
+  return out;
+}
+
 function cpuTotals(p) {
   let w = 0, l = 0;
   if (p) for (const d of DIFFS) { w += p.stats[d].w; l += p.stats[d].l; }
@@ -206,4 +230,4 @@ function cpuTotals(p) {
   return { w, l };
 }
 
-module.exports = { DIFFS, TIER_KEYS, TIER_COLORS, text, tierIndex, clean, merge, cpuTotals, validTitle, limitGrowth };
+module.exports = { DIFFS, TIER_KEYS, TIER_COLORS, text, tierIndex, clean, merge, cpuTotals, validTitle, limitGrowth, forgeCheck };

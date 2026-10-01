@@ -694,20 +694,28 @@ function logDecode(s) {
 }
 // CPU戦を計算し直す。spec = { seed, diff, stage, loads: [ラウンドごとの自分の武器], logs: [ラウンドごとの操作の記録] }
 // 返り値：{ ok, why, win, straight, wins:[自分,CPU], frames, tally, watch: 自動操作の見張りの結果 }
+// 頭脳の操作との一致率がこれ以上なら、頭脳に操作させている（人の操作は、ほぼ 0% になる）
+var MIMIC = { ratio: 0.3, minFrames: 600 };   // 見張りのほかの検知より確かな証拠なので、こちらを優先する
 function replayCpu(spec) {
   var diff = spec && spec.diff, stage = spec && spec.stage;
   if (!AI_LEVELS[diff] || !STAGES[stage] || !Array.isArray(spec.logs) || !spec.logs.length || spec.logs.length > 5) return { ok: false, why: 'bad' };
   var seed = spec.seed >>> 0, cpuLoad = cpuSeedLoad(seed, diff), T = newTally(), V = newWatch(), wa = 0, wb = 0, frames = 0, r;
+  // CPUの頭脳と同じ操作をしているか（頭脳にプレイヤーを操作させるチート）。ボタンを押しているフレームだけで数える
+  var lvs = Object.keys(AI_LEVELS), same = {}, act = 0, k;
+  for (k = 0; k < lvs.length; k++) same[lvs[k]] = 0;
   for (r = 0; r < spec.logs.length; r++) {
     if (wa >= 3 || wb >= 3) return { ok: false, why: 'extra_round' };
     var inp = logDecode(spec.logs[r]);
     if (!inp || !inp.length) return { ok: false, why: 'bad_log' };
     var load = cleanLoadout(spec.loads && spec.loads[r], false);
-    var w = newWorld(stage, load, cpuLoad), a = w.chars.a, b = w.chars.b, brain = newBrain(diff, roundRng(seed, r));
+    var w = newWorld(stage, load, cpuLoad), a = w.chars.a, b = w.chars.b, brain = newBrain(diff, roundRng(seed, r)), shadow = {};
+    for (k = 0; k < lvs.length; k++) shadow[lvs[k]] = newBrain(lvs[k], rng((seed ^ 0x5eed ^ r) >>> 0));
     tallyRoundStart(T); watchRound(V);
     for (var f = 0; f < inp.length; f++) {
       if (a.dead || b.dead) return { ok: false, why: 'desync', round: r, frame: f };   // 記録が試合より長い＝計算が合わない
-      var i = unpackInput(inp[f]);
+      var i = unpackInput(inp[f]), on = (inp[f] & 511) !== 0;
+      if (on) act++;
+      for (k = 0; k < lvs.length; k++) if (packInput(think(shadow[lvs[k]], w, 'a')) === inp[f] && on) same[lvs[k]]++;
       setInput(a, i); setInput(b, think(brain, w, 'b'));
       watchPre(V, w, 'a', 'b', i);
       var ev = []; step(w, ev);
@@ -721,7 +729,10 @@ function replayCpu(spec) {
     tallyRoundEnd(T, won, stage);
   }
   if (wa < 3 && wb < 3) return { ok: false, why: 'unfinished' };
-  return { ok: true, win: wa >= 3, straight: wa >= 3 && wb === 0, wins: [wa, wb], frames: frames, tally: T, watch: V.hit ? { code: V.hit, detail: V.detail } : null, cpuLoad: cpuLoad };
+  var mimic = { lv: '', ratio: 0, n: act };
+  for (k = 0; k < lvs.length; k++) { var q = act ? same[lvs[k]] / act : 0; if (q > mimic.ratio) { mimic.ratio = q; mimic.lv = lvs[k]; } }
+  if (act >= MIMIC.minFrames && mimic.ratio >= MIMIC.ratio) { V.hit = 'mimic'; V.detail = mimic.lv + ' ' + Math.round(mimic.ratio * 100) + '%'; }
+  return { ok: true, win: wa >= 3, straight: wa >= 3 && wb === 0, wins: [wa, wb], frames: frames, tally: T, watch: V.hit ? { code: V.hit, detail: V.detail } : null, cpuLoad: cpuLoad, mimic: mimic };
 }
 
 // vis=true はオンラインの先読み用：見た目だけ動かし、ダメージは与えない（ダメージはサーバーが決める）

@@ -2425,7 +2425,7 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=41"></script>
+<script src="sim.js?v=42"></script>
 <script src="lang.js?v=45"></script>
 <script>
 /*
@@ -3205,12 +3205,15 @@ function achMatchDone(win){
 // ゲームの中身（SIM）をさわろうとする・画面で godmode などと打つと、この称号が付く（付け替えは自由）
 function cheatTrap(){
   grantTitle('rule_breaker',true);
+  if(this&&this.bait)acReport('bait',this.name);
   try{console.log('%c'+t('title.trap'),'color:#FF4D5E;font-size:14px;font-weight:700');}catch(e){}
   return 'nice try';
 }
 (function(){
   var bait={};
-  ['godMode','infiniteAmmo','oneHitKill','setHp','unlockAll','aimbot','wallhack','speedHack','noRecoil','win'].forEach(function(k){bait[k]=cheatTrap;});
+  ['godMode','infiniteAmmo','oneHitKill','setHp','unlockAll','unlockAllTitles','setWins','maxStats','setTier','addCoins','giveItems','aimbot','wallhack','speedHack','noRecoil','win'].forEach(function(k){
+    bait[k]=function(){return cheatTrap.call({bait:true,name:k});};   // 呼んだら記録してBAN（ログイン中）
+  });
   Object.freeze(bait);
   ['cheat','cheats','hack'].forEach(function(n){try{Object.defineProperty(window,n,{value:bait,writable:false,configurable:false});}catch(e){}});
   ['SIM','GunDuelSim'].forEach(function(n){if(n in window)return;try{Object.defineProperty(window,n,{get:function(){cheatTrap();return bait;},configurable:false});}catch(e){}});
