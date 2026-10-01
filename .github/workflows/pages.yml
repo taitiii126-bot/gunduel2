@@ -1,4 +1,6 @@
-# 公開用のファイル（読みにくくした物）を作って GitHub Pages に出す。毎日、シンガポール時間の朝4時ごろに作り直す（名前などが日替わりになる）
+# 公開用のファイル（読みにくくした物）を作って GitHub Pages に出す。
+# シンガポール時間の8〜24時に毎時くじを引き、当たったら作り直す（1日6回くらい・いつ変わるか分からない）。
+# 作り直すたびに名前などが変わるので、チートは遊んでいる最中に動かなくなる
 # 使うには：リポジトリの Settings → Pages → Build and deployment の Source を「GitHub Actions」にする。
 # 切り替える前は、何もせずに終わる（失敗にはしない）
 name: Pages
@@ -6,7 +8,7 @@ on:
   push:
     branches: [main]
   schedule:
-    - cron: '17 20 * * *'
+    - cron: '23 0-15 * * *'   # UTC 0〜15時＝シンガポール時間8〜23時台
   workflow_dispatch:
 permissions:
   contents: read
@@ -29,7 +31,10 @@ jobs:
           t=$(curl -fsS -H "Authorization: Bearer $GH_TOKEN" -H "Accept: application/vnd.github+json" \
             "https://api.github.com/repos/${{ github.repository }}/pages" | jq -r .build_type || true)
           echo "build_type=$t"
-          if [ "$t" = "workflow" ]; then echo "ok=true" >> "$GITHUB_OUTPUT"; else echo "Pages の Source が GitHub Actions ではないので、何もしません"; fi
+          if [ "$t" != "workflow" ]; then echo "Pages の Source が GitHub Actions ではないので、何もしません"; exit 0; fi
+          # 時間で動いたときは、くじ（38%）に当たったときだけ作り直す。main への反映と手動のときは必ず作る
+          if [ "${{ github.event_name }}" = "schedule" ] && [ $((RANDOM % 100)) -ge 38 ]; then echo "今回は作り直しません（くじ）"; exit 0; fi
+          echo "ok=true" >> "$GITHUB_OUTPUT"
       - if: steps.check.outputs.ok == 'true'
         uses: actions/checkout@v4
       - if: steps.check.outputs.ok == 'true'
@@ -37,7 +42,7 @@ jobs:
         with:
           node-version: 22
       - if: steps.check.outputs.ok == 'true'
-        run: npm i --no-save javascript-obfuscator@5.8.1 && node tools/build.js
+        run: npm i --no-save javascript-obfuscator@5.8.1 && BUILD_SEED="${{ github.run_id }}-${{ github.run_attempt }}" node tools/build.js
       - if: steps.check.outputs.ok == 'true'
         uses: actions/configure-pages@v5
       - if: steps.check.outputs.ok == 'true'

@@ -192,17 +192,34 @@ function keepServerOwned(next, old, u) {
   next.title = P.validTitle(next.title, u ? titleCtx(u) : null, { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor });
   if (next.bg === 'emperor' && !next.emperor.beat) next.bg = null;
   next.inv = old ? old.inv.slice() : [];
+  if (next.bg === 'halloween' && next.inv.indexOf('bHW') < 0) next.bg = null;   // 限定背景は、サーバーの持ち物にあるときだけ
   next.opened = old ? old.opened : 0;
   next.misCrates = old ? old.misCrates : 0;
   next.chaosOpened = old ? old.chaosOpened || 0 : 0;
   next.misChaos = old ? old.misChaos || 0 : 0;
   next.pass = old && old.pass ? old.pass : { s: 0, xp: 0 };
   next.coins = old ? old.coins || 0 : 0;
+  next.candy = old && old.candy ? old.candy : { ev: '', n: 0, day: '', today: 0, fw: '' };   // キャンディもサーバーの値だけ
   next.login = old && old.login ? old.login : { day: '', streak: 0, best: 0, count: 0, shields: 0, hist: [] };
   if (next.sea && old && old.sea && old.sea.s === next.sea.s) next.sea.got = old.sea.got.slice(); else if (next.sea) next.sea.got = next.sea.got.map(() => '');
   next.pity = old ? old.pity : 0;
   next.look = SIM.lookOwned(next.look, next.inv);
   next.emo = SIM.cleanEmotes(next.emo, next.inv);
+}
+// イベント中なら、試合のキャンディを足す（1日の上限まで）。返り値＝増えた数
+function addCandy(pr, win, kills) {
+  const ev = SIM.eventNow();
+  if (!ev) return 0;
+  const C = SIM.EVENTS[ev].candy, day = SIM.dayKey();
+  let c = pr.candy && typeof pr.candy === 'object' ? pr.candy : {};
+  if (c.ev !== ev) c = { ev, n: 0, day: '', today: 0, fw: '' };   // 別のイベントの残りは持ち越さない
+  if (c.day !== day) { c.day = day; c.today = 0; }
+  const first = win && c.fw !== day;
+  const add = Math.max(0, Math.min(SIM.candyOf(ev, win, kills, first), C.dayMax - c.today));
+  if (first && add > 0) c.fw = day;
+  c.n += add; c.today += add;
+  pr.candy = c;
+  return add;
 }
 // シーズンが変わっていたら、パスとシーズンミッションを白紙に戻す
 function seasonFresh(pr) {
@@ -601,7 +618,8 @@ const auth = {
     // 記録で裏づけのある称号を付ける（付け外しはブラウザでも同じ決まりで分かる）
     const proof = { stats: pr.stats, tierProgress: pr.tierProgress, ach: A, emperor: pr.emperor }, fresh = [];
     for (const t of SIM.TITLES) if (!t.gate && !A.got[t.id] && SIM.titleProof(t.id, proof, ctx)) { A.got[t.id] = 1; fresh.push(t.id); }
-    return saveServerProfile(u, pr, { titles: fresh });
+    const candy = addCandy(pr, win, kills);
+    return saveServerProfile(u, pr, { titles: fresh, candy });
   },
   // ログインボーナス（1日1回）：連続記録を進めて、7日カレンダーの報酬と節目の報酬を渡す
   loginBonus(uid) {
@@ -616,6 +634,29 @@ const auth = {
       if (rw.chaos) pr.misChaos = (pr.misChaos || 0) + rw.chaos;
       if (rw.coins) pr.coins = (pr.coins || 0) + rw.coins; });
     return saveServerProfile(u, pr, { reward: st.reward, ms: st.ms, used: st.used });
+  },
+  // イベントの交換所：キャンディで限定アイテムと交換する（イベント中だけ・1つにつき1回）
+  eventBuy(uid, id) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    const ev = SIM.eventNow();
+    if (!ev) return { error: 'over' };
+    const pr = serverProfile(u), c = pr.candy;
+    // スキン（セット）：まだ持っていない物をまとめて、割り引いた値段で
+    if (id.indexOf('set:') === 0) {
+      const sp = SIM.eventSetPrice(ev, id.slice(4), pr.inv);
+      if (!sp) return { error: 'bad' };
+      if (!sp.items.length) return { error: 'owned' };
+      if (!c || c.ev !== ev || c.n < sp.price) return { error: 'candy' };
+      c.n -= sp.price; sp.items.forEach(x => pr.inv.push(x));
+      return saveServerProfile(u, pr, { evbought: id, items: sp.items });
+    }
+    const row = SIM.EVENTS[ev].shop.find(r => r[0] === id);
+    if (!row) return { error: 'bad' };
+    if (pr.inv.indexOf(id) >= 0) return { error: 'owned' };
+    if (!c || c.ev !== ev || c.n < row[1]) return { error: 'candy' };
+    c.n -= row[1]; pr.inv.push(id);
+    return saveServerProfile(u, pr, { evbought: id });
   },
   // ショップ：op='gift'（1日1回の無料ギフト）/ 'buy'（slot＝おすすめの番号）/ 'badge'（kind＝lucky|chaos）
   shop(uid, m) {
@@ -678,6 +719,7 @@ const auth = {
     return {
       title: P.validTitle(p.title, titleCtx(u), p),
       bg: bg === 'emperor' ? (p.emperor && p.emperor.beat ? 'emperor' : null) : bg === 'dev' ? (u.dev ? 'dev' : null)
+        : bg === 'champion' ? (u.champion ? 'champion' : null) : bg === 'halloween' ? ((p.inv || []).indexOf('bHW') >= 0 ? 'halloween' : null)
         : typeof bg === 'number' && bg >= 0 && bg <= bestTierOf(u) ? bg : null,
     };
   },

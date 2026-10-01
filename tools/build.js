@@ -4,7 +4,7 @@
 const fs = require('fs'), path = require('path');
 const JO = require('javascript-obfuscator');
 const root = path.join(__dirname, '..'), out = path.join(root, 'dist');
-// 毎日ちがう形にする（日付＝シンガポール時間から種を決める）。BUILD_SEED で指定もできる
+// 作り直すたびにちがう形にする（GitHub Actions は BUILD_SEED に実行の番号を渡す）。無ければシンガポール時間の日付
 const day = new Date(Date.now() + 8 * 3600e3).toISOString().slice(0, 10);
 const seed = process.env.BUILD_SEED || day;
 let seedNum = 0;
