@@ -232,7 +232,8 @@ function forgeCheck(old, inc, dtMs, ctx, jokes) {
 
 function cpuTotals(p) {
   let w = 0, l = 0;
-  if (p) for (const d of DIFFS) { w += p.stats[d].w; l += p.stats[d].l; }
+  // 戦績のリセット直後などで、難しさごとの記録が無いこともある（無いところは0として数える）
+  if (p && p.stats) for (const d of DIFFS) { const s = p.stats[d] || {}; w += +s.w || 0; l += +s.l || 0; }
   if (p && p.emperor) { w += +p.emperor.w || 0; l += +p.emperor.l || 0; }
   return { w, l };
 }

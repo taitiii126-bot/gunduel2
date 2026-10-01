@@ -926,10 +926,24 @@ const bearer = req => { const h = req.headers.authorization || ''; return h.star
 function readJson(req, cb, max) {
   let body = '', bad = false;
   req.on('data', d => { body += d; if (body.length > (max || 4096)) { bad = true; req.destroy(); } });
-  req.on('end', () => { if (bad) return cb(null); try { cb(JSON.parse(body)); } catch { cb(null); } });
+  req.on('end', () => {
+    let m = null;
+    if (!bad) { try { m = JSON.parse(body); } catch { m = null; } }
+    guard('api ' + (req.url || ''), () => cb(m), req._res);   // 処理の中の不具合でサーバーが落ちないように
+  });
 }
 
-const server = http.createServer((req, res) => {
+// 不具合が1つあっても、サーバー全体は落とさない：記録してから続ける（HTTP なら 500 を返す）
+function guard(where, fn, res) {
+  try { return fn(); } catch (e) {
+    log('ERROR in', where, e && e.stack ? e.stack : e);
+    if (res && !res.headersSent) { try { json(res, 500, { error: 'サーバーで問題が起きました。少し待ってからお試しください' }); } catch {} }
+  }
+}
+process.on('uncaughtException', e => log('ERROR (uncaught)', e && e.stack ? e.stack : e));
+process.on('unhandledRejection', e => log('ERROR (unhandled promise)', e && e.stack ? e.stack : e));
+const server = http.createServer((req, res) => { req._res = res; guard('http ' + (req.url || ''), () => handleHttp(req, res), res); });
+function handleHttp(req, res) {
   const url = (req.url || '/').split('?')[0];
   const ip = clientIp(req);
   cors(req, res);
@@ -1097,7 +1111,7 @@ const server = http.createServer((req, res) => {
   }
   res.writeHead(200, { 'Content-Type': 'text/plain; charset=utf-8' });
   res.end('GUN DUEL server is running\n');
-});
+}
 
 attach(server, ws => {
   if (BANNED_IPS.has(ws.ip)) { ws.destroy(); return; }
@@ -1107,7 +1121,7 @@ attach(server, ws => {
   if (same >= MAX_CONNS_PER_IP) { log('too many connections from', ws.ip); ws.close(); return; }
   sockets.add(ws);
   ws.room = null; ws.slot = null; ws.msgs = 0;
-  ws.on('message', raw => onMessage(ws, raw));
+  ws.on('message', raw => guard('ws message', () => onMessage(ws, raw)));
   ws.on('close', () => {
     sockets.delete(ws); presence.remove(ws); queue.delete(ws); q2Leave(ws, null);
     if (ws.room) { ws.room.leave(ws.slot); if (ws.account) presence.changed(ws.account.uid); }
