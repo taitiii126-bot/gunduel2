@@ -94,6 +94,12 @@ function cleanLogin(m) {
     hist: (Array.isArray(m.hist) ? m.hist : []).map(day).filter(Boolean).slice(-60) };
 }
 // シーズンパス：s＝シーズン番号、xp＝パスXP
+// イベントのキャンディ（サーバーが決める）：ev＝どのイベントの分か、n＝持っている数、day/today＝その日にもらった数、fw＝最初の勝ちボーナスをもらった日
+function cleanCandy(m) {
+  m = m && typeof m === 'object' ? m : {};
+  const day = typeof m.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.day) ? m.day : '', fw = typeof m.fw === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.fw) ? m.fw : '';
+  return { ev: typeof m.ev === 'string' && SIM.EVENTS[m.ev] ? m.ev : '', n: int(m.n, 0, 9999999, 0), day, today: int(m.today, 0, 99999, 0), fw };
+}
 function cleanPass(m) { m = m && typeof m === 'object' ? m : {}; return { s: int(m.s, 0, 99999, 0), xp: int(m.xp, 0, 9999999, 0) }; }
 // ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
 function clean(v, ctx, rtier) {
@@ -118,6 +124,7 @@ function clean(v, ctx, rtier) {
   const bg = v.bg === 'emperor' ? (slain ? 'emperor' : null)
     : v.bg === 'champion' ? (champ ? 'champion' : null)
     : v.bg === 'dev' ? (ctx && ctx.dev ? 'dev' : null)   // 開発者だけの背景
+    : v.bg === 'halloween' ? (SIM.cleanInv(v.inv).indexOf('bHW') >= 0 ? 'halloween' : null)   // ハロウィン限定（持ち物はサーバーの物で確かめ直す）
     : v.bg == null ? null : int(v.bg, 0, best, null);
   return {
     name: text(v.name, 12) || 'プレイヤー',
@@ -135,7 +142,7 @@ function clean(v, ctx, rtier) {
     pity: int(v.pity, 0, 999, 0),
     emo: SIM.cleanEmotes(v.emo, SIM.cleanInv(v.inv)),
     mis: cleanMis(v.mis),
-    sea: cleanSea(v.sea), pass: cleanPass(v.pass), coins: int(v.coins, 0, 99999999, 0), login: cleanLogin(v.login),   // シーズン・パス・コイン（パスとコインと sea.got はサーバーが決める）
+    sea: cleanSea(v.sea), pass: cleanPass(v.pass), coins: int(v.coins, 0, 99999999, 0), login: cleanLogin(v.login), candy: cleanCandy(v.candy),   // シーズン・パス・コイン（パスとコインと sea.got はサーバーが決める）
     badge: SIM.cleanBadgeSel(v.badge, ctx && ctx.badges),   // 見せるシーズンバッジ（持っているものだけ）   // 開発者だけの見た目は、開発者のときだけ残す
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない
