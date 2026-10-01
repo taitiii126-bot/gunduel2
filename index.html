@@ -8736,17 +8736,17 @@ function emHexBolt(g,x,y,r,m){
 // 紋章の本体（ラベルなし）。tm＝時間（動くのは最高ティアだけ）
 // ティアの色と模様（背景と紋章で同じものを使う）
 var TIER_BG=[
-  {c:['#1F2A5C','#0C1233','#03050E'],glow:'#7D8CFF',acc:'#C3CCFF',pat:'stars',  par:'twinkle'},   // 未ランク：夜の紺・星座
-  {c:['#56606D','#23282F','#07080A'],glow:'#D3DCE8',acc:'#DCE2EA',pat:'rivets', par:'sparks'},    // LT5 鉄：鋼・リベットの鉄板・火花
+  {c:['#1F2A5C','#0C1233','#03050E'],glow:'#7D8CFF',acc:'#C3CCFF',pat:'stars',  par:'twinkle',flat:'moon',em:'moon'},   // 未ランク：夜の紺・星座
+  {c:['#56606D','#23282F','#07080A'],glow:'#D3DCE8',acc:'#DCE2EA',pat:'rivets', par:'sparks',flat:'gears',em:'gear'},    // LT5 鉄：鋼・リベットの鉄板・火花
   {c:['#94502A','#3E1D0C','#0A0402'],glow:'#FFB478',acc:'#FFD7BD',pat:'strata', par:'dust',flat:'sunset'},      // HT5 銅：荒野の地層・砂ぼこり
-  {c:['#3F8CC4','#123A62','#030B18'],glow:'#C4EEFF',acc:'#EAF8FF',pat:'snow',   par:'snow',flat:'waves'},      // LT4 銀：氷・雪の結晶・雪
-  {c:['#1F8A63','#0B3829','#020C08'],glow:'#86FFCB',acc:'#DAFFEC',pat:'vines',  par:'motes'},     // HT4：翡翠・唐草・光の粒
-  {c:['#B07A14','#452C06','#0B0602'],glow:'#FFD65C',acc:'#FFF1B8',pat:'sheriff',par:'coins'},     // LT3 金：琥珀・保安官の星・金貨
-  {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards'},    // HT3：紫水晶・トランプ・宝石のかけら
-  {c:['#A3172D','#3F0812','#0A0103'],glow:'#FF7182',acc:'#FFD6DC',pat:'roses',  par:'petals',flat:'flames'},    // LT2：深紅・バラ・花びら
-  {c:['#1348A8','#08204E','#01040E'],glow:'#56CCFF',acc:'#D4F3FF',pat:'flames', par:'embers'},    // HT2：青い炎・炎・火の粉
-  {c:['#2E271A','#110D08','#030201'],glow:'#FFD470',acc:'#FFE7A6',pat:'deco',   par:'golddust'},  // LT1：漆黒と金・アールデコ・金の粉
-  {c:['#D8D4EA','#6C678A','#12101C'],glow:'#FFFFFF',acc:'#FFFFFF',pat:'prism',  par:'rainbow'}    // HT1：白金・光の放射と虹・虹色の粒
+  {c:['#3F8CC4','#123A62','#030B18'],glow:'#C4EEFF',acc:'#EAF8FF',pat:'snow',   par:'snow',flat:'waves',em:'wave'},      // LT4 銀：氷・雪の結晶・雪
+  {c:['#1F8A63','#0B3829','#020C08'],glow:'#86FFCB',acc:'#DAFFEC',pat:'vines',  par:'motes',flat:'tornado',em:'tornado'},     // HT4：翡翠・唐草・光の粒
+  {c:['#B07A14','#452C06','#0B0602'],glow:'#FFD65C',acc:'#FFF1B8',pat:'sheriff',par:'coins',flat:'sheriff'},     // LT3 金：琥珀・保安官の星・金貨
+  {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards',flat:'cards'},    // HT3：紫水晶・トランプ・宝石のかけら
+  {c:['#A3172D','#3F0812','#0A0103'],glow:'#FF7182',acc:'#FFD6DC',pat:'roses',  par:'petals',flat:'flames',em:'flames'},    // LT2：深紅・バラ・花びら
+  {c:['#1348A8','#08204E','#01040E'],glow:'#56CCFF',acc:'#D4F3FF',pat:'flames', par:'embers',flat:'lightning',em:'bolt'},    // HT2：青い炎・炎・火の粉
+  {c:['#2E271A','#110D08','#030201'],glow:'#FFD470',acc:'#FFE7A6',pat:'deco',   par:'golddust',flat:'gold',em:'guns'},  // LT1：漆黒と金・アールデコ・金の粉
+  {c:['#D8D4EA','#6C678A','#12101C'],glow:'#FFFFFF',acc:'#FFFFFF',pat:'prism',  par:'rainbow',flat:'holo'}    // HT1：白金・光の放射と虹・虹色の粒
 ];
 // 紋章：どのティアも同じ六角形のバッジ。色は背景と同じティアの色、縁はティアの金属、真ん中に背景の模様と同じ記号を1つ
 //   （未ランク：星／LT5：ボルト／HT5：山／LT4：雪の結晶／HT4：葉／LT3：保安官の星／HT3：スペード／LT2：バラ／HT2：炎／LT1：宝石／HT1：王冠）
@@ -8771,7 +8771,7 @@ function drawEmblem(g,idx,tm){
   g.save();g.shadowColor=B.glow;g.shadowBlur=6*ctxScale(g);
   var fg=g.createLinearGradient(0,-14,0,14);fg.addColorStop(0,'#FFFFFF');fg.addColorStop(1,B.acc);
   g.fillStyle=fg;g.strokeStyle=fg;g.lineWidth=2.6;
-  emGlyph(g,B.pat,idx,tm);
+  emGlyph(g,B.em||B.pat,idx,tm);
   g.restore();
   if(top)emShine(g,function(){hexPath(g,R);},tm,3.2);
   g.restore();
@@ -8810,6 +8810,21 @@ function emGlyph(g,pat,idx,tm){
   case 'deco':    // 宝石
     g.beginPath();g.moveTo(-14,-5);g.lineTo(-8,-12);g.lineTo(8,-12);g.lineTo(14,-5);g.lineTo(0,14);g.closePath();g.fill();
     g.globalCompositeOperation='destination-out';g.lineWidth=1.3;g.beginPath();g.moveTo(-14,-5);g.lineTo(14,-5);g.moveTo(-5,-12);g.lineTo(-7,-5);g.lineTo(0,14);g.lineTo(7,-5);g.lineTo(5,-12);g.stroke();g.globalCompositeOperation='source-over';break;
+  case 'moon':    // 三日月と星
+    g.beginPath();g.arc(-2,0,14,0,Math.PI*2);g.fill();
+    g.globalCompositeOperation='destination-out';g.beginPath();g.arc(5,-5,12,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';
+    g.beginPath();g.moveTo(10,-6);g.quadraticCurveTo(11,-1,16,0);g.quadraticCurveTo(11,1,10,6);g.quadraticCurveTo(9,1,4,0);g.quadraticCurveTo(9,-1,10,-6);g.fill();break;
+  case 'gear':    // 歯車
+    g.beginPath();for(i=0;i<16;i++){a=i*Math.PI/8;var rr=i%2?11:15,da=Math.PI/8*.42;g.lineTo(Math.cos(a-da)*rr,Math.sin(a-da)*rr);g.lineTo(Math.cos(a+da)*rr,Math.sin(a+da)*rr);}g.closePath();g.fill();
+    g.globalCompositeOperation='destination-out';g.beginPath();g.arc(0,0,5,0,Math.PI*2);g.fill();g.globalCompositeOperation='source-over';break;
+  case 'wave':    // 波
+    g.beginPath();g.moveTo(-16,14);g.lineTo(-16,4);g.bezierCurveTo(-14,-10,4,-17,13,-8);g.bezierCurveTo(16,-4,13,3,7,1);g.bezierCurveTo(3,0,3,-5,7,-5);g.bezierCurveTo(1,-10,-8,-4,-6,6);g.bezierCurveTo(-3,9,6,7,16,4);g.lineTo(16,14);g.closePath();g.fill();break;
+  case 'tornado': // 竜巻
+    for(i=0;i<5;i++){var ww=15-i*2.8,yy=-12+i*6;g.beginPath();g.ellipse(i%2?1.5:-1.5,yy,ww,2.6,0,0,Math.PI*2);g.fill();}break;
+  case 'bolt':    // 稲妻
+    g.beginPath();g.moveTo(3,-16);g.lineTo(-10,2);g.lineTo(-1,2);g.lineTo(-4,16);g.lineTo(10,-3);g.lineTo(1,-3);g.closePath();g.fill();break;
+  case 'guns':    // 交差した拳銃
+    [-1,1].forEach(function(q){g.save();g.rotate(q*.62);g.scale(q,1);g.beginPath();g.rect(-3,-2,19,4);g.rect(-4,-4,7,8);g.moveTo(-4,-2);g.lineTo(-11,-1);g.quadraticCurveTo(-15,2,-13,10);g.lineTo(-9,10);g.quadraticCurveTo(-9,4,-4,3);g.closePath();g.fill();g.restore();});break;
   case 'prism':   // 虹色の王冠
     var rg=g.createLinearGradient(-15,0,15,0);for(i=0;i<=6;i++)rg.addColorStop(i/6,'hsl('+((i*60+tm*60)%360)+',90%,82%)');
     g.fillStyle=rg;g.beginPath();g.moveTo(-15,11);g.lineTo(-15,-8);g.lineTo(-7,0);g.lineTo(0,-14);g.lineTo(7,0);g.lineTo(15,-8);g.lineTo(15,11);g.closePath();g.fill();
@@ -9086,10 +9101,126 @@ function flatWaves(g,w,h,tm,lw){
   for(var i=0;i<16;i++){var t=(tm*.35+i*.11)%1,px=w*((i*.29)%1),py=h*(.5+((i*.41)%1)*.35)-t*h*.12,s=w*(.006+.006*(i%3));g.globalAlpha=Math.sin(t*Math.PI)*.9;g.fillStyle='#E8FAFF';g.beginPath();g.arc(px,py,s,0,Math.PI*2);g.fill();}
   g.globalAlpha=1;
 }
+function flatStar4(g,x,y,r){g.beginPath();g.moveTo(x,y-r);g.quadraticCurveTo(x+r*.18,y-r*.18,x+r,y);g.quadraticCurveTo(x+r*.18,y+r*.18,x,y+r);g.quadraticCurveTo(x-r*.18,y+r*.18,x-r,y);g.quadraticCurveTo(x-r*.18,y-r*.18,x,y-r);g.closePath();}
+function flatSpot(g,x,y,r,c){var s=g.createRadialGradient(x,y,0,x,y,r);s.addColorStop(0,c);s.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=s;g.fillRect(x-r,y-r,r*2,r*2);}
+// 未ランク：夜の荒野。大きな三日月と星、丘のシルエット
+function flatMoon(g,w,h,tm,lw){
+  g.fillStyle='#0D1546';g.fillRect(0,0,w,h);
+  flatSpot(g,w*.74,h*.24,w*.5,'rgba(130,150,255,.35)');
+  var mx=w*.74,my=h*.24,mr=w*.3;
+  g.fillStyle='#FFF0B8';g.beginPath();g.arc(mx,my,mr,0,Math.PI*2);g.fill();
+  g.fillStyle='#FFE07A';g.beginPath();g.arc(mx+mr*.12,my+mr*.1,mr*.82,0,Math.PI*2);g.fill();
+  g.fillStyle='#0D1546';g.beginPath();g.arc(mx-mr*.42,my-mr*.22,mr*.86,0,Math.PI*2);g.fill();
+  for(var i=0;i<12;i++){var sx=w*((i*.37+.05)%1),sy=h*((i*.23+.04)%.55),tw=.6+.4*Math.sin(tm*2.2+i*1.7);g.fillStyle=i%3?'#FFE9A0':'#9DB0FF';flatStar4(g,sx,sy,w*(.012+.014*(i%3))*tw);g.fill();}
+  g.fillStyle='#16216A';g.beginPath();g.moveTo(0,h*.66);g.quadraticCurveTo(w*.3,h*.56,w*.62,h*.66);g.quadraticCurveTo(w*.85,h*.6,w,h*.63);g.lineTo(w,h);g.lineTo(0,h);g.closePath();g.fill();
+  g.fillStyle='#080D2E';g.beginPath();g.moveTo(0,h*.76);g.quadraticCurveTo(w*.45,h*.66,w,h*.78);g.lineTo(w,h);g.lineTo(0,h);g.closePath();g.fill();
+}
+// LT5：鉄。大きな歯車と、オレンジの火花
+function gearPath(g,cx,cy,r,n,a0){g.beginPath();for(var i=0;i<n*2;i++){var a=a0+i*Math.PI/n,rr=i%2?r*.82:r,da=Math.PI/n*.42;g.lineTo(cx+Math.cos(a-da)*rr,cy+Math.sin(a-da)*rr);g.lineTo(cx+Math.cos(a+da)*rr,cy+Math.sin(a+da)*rr);}g.closePath();}
+function flatGears(g,w,h,tm,lw){
+  g.fillStyle='#161C24';g.fillRect(0,0,w,h);
+  flatSpot(g,w*.62,h*.42,w*.5,'rgba(255,140,40,.32)');
+  var ink='#07090C';
+  [[w*.1,h*.78,w*.5,12,tm*.25,'#3E4B5C','#56677C'],[w*.95,h*.2,w*.36,10,-tm*.33,'#485769','#617489']].forEach(function(G){
+    gearPath(g,G[0],G[1],G[2],G[3],G[4]);g.fillStyle=G[5];g.fill();g.lineWidth=lw;g.strokeStyle=ink;g.stroke();
+    g.fillStyle=G[6];g.beginPath();g.arc(G[0],G[1],G[2]*.62,0,Math.PI*2);g.fill();
+    g.fillStyle=G[5];g.beginPath();g.arc(G[0],G[1],G[2]*.42,0,Math.PI*2);g.fill();
+    g.fillStyle='#161C24';g.beginPath();g.arc(G[0],G[1],G[2]*.16,0,Math.PI*2);g.fill();
+    for(var j=0;j<5;j++){var a=G[4]+j*Math.PI*2/5;g.fillStyle='#161C24';g.beginPath();g.arc(G[0]+Math.cos(a)*G[2]*.29,G[1]+Math.sin(a)*G[2]*.29,G[2]*.07,0,Math.PI*2);g.fill();}
+  });
+  var ox=w*.62,oy=h*.42;
+  for(var i=0;i<18;i++){var t=(tm*.9+i*.137)%1,a=-Math.PI*.95+(i*.61%1)*Math.PI*1.1,d=w*(.06+t*.62),L=w*(.05+.06*(1-t)),px=ox+Math.cos(a)*d,py=oy+Math.sin(a)*d+t*t*h*.25;
+    g.globalAlpha=1-t;g.strokeStyle=i%3?'#FF9A2E':'#FFE08A';g.lineWidth=lw*(1.6-t);g.beginPath();g.moveTo(px,py);g.lineTo(px-Math.cos(a)*L,py-Math.sin(a)*L);g.stroke();}
+  g.globalAlpha=1;
+}
+// HT4：翡翠。大きな竜巻
+function flatTornado(g,w,h,tm,lw){
+  g.fillStyle='#04281B';g.fillRect(0,0,w,h);
+  flatSpot(g,w*.5,h*.3,w*.6,'rgba(90,240,170,.25)');
+  var cols=['#0D5C3C','#168A58','#2EBD7C','#7FF0B8'],N=14;
+  for(var i=0;i<N;i++){var u=i/(N-1),cy=h*(.04+u*.86),rx=w*(.62-u*.5),ry=h*(.035+.02*(1-u)),cx=w*.5+Math.sin(tm*1.4+u*4)*w*(.05+u*.06);
+    g.lineWidth=h*.04;g.strokeStyle=cols[(i+Math.floor(tm*3))%cols.length];g.beginPath();g.ellipse(cx,cy,rx,ry,0,0,Math.PI*2);g.stroke();}
+  for(i=0;i<12;i++){var t=(tm*.3+i*.13)%1,a=tm*2+i*1.3,r=w*(.15+.35*((i*.29)%1)),px=w*.5+Math.cos(a)*r,py=h*(.15+((i*.41)%1)*.6)-t*h*.1,s=w*.018;
+    g.fillStyle=i%2?'#B8FFD9':'#5BE3A1';g.save();g.translate(px,py);g.rotate(a);g.beginPath();g.moveTo(0,-s*1.6);g.quadraticCurveTo(s,0,0,s*1.6);g.quadraticCurveTo(-s,0,0,-s*1.6);g.fill();g.restore();}
+}
+// LT3：金。巨大な保安官バッジと回る光
+function flatSheriff(g,w,h,tm,lw){
+  g.fillStyle='#4E2C00';g.fillRect(0,0,w,h);
+  var cx=w*.5,cy=h*.4,i;
+  g.save();g.translate(cx,cy);g.rotate(tm*.08);g.fillStyle='#7A4A04';
+  for(i=0;i<12;i++){var a=i*Math.PI/6;g.beginPath();g.moveTo(0,0);g.arc(0,0,h*1.2,a-.13,a+.13);g.closePath();g.fill();}
+  g.restore();
+  starPath(g,cx,cy,w*.52,w*.28,6);g.fillStyle='#E8A21E';g.fill();g.lineWidth=lw*1.4;g.strokeStyle='#5A3300';g.stroke();
+  starPath(g,cx,cy,w*.4,w*.22,6);g.fillStyle='#FFC93D';g.fill();
+  starPath(g,cx-w*.03,cy-w*.03,w*.26,w*.14,6);g.fillStyle='#FFE58A';g.fill();
+  for(i=0;i<6;i++){var b=-Math.PI/2+i*Math.PI/3;g.fillStyle='#FFC93D';g.beginPath();g.arc(cx+Math.cos(b)*w*.53,cy+Math.sin(b)*w*.53,w*.045,0,Math.PI*2);g.fill();g.lineWidth=lw;g.strokeStyle='#5A3300';g.stroke();}
+  for(i=0;i<8;i++){var t=(tm*.25+i*.127)%1,px=w*((i*.33+.08)%1),py=-h*.05+t*h*1.1;g.save();g.translate(px,py);g.scale(Math.cos(tm*3+i),1);g.fillStyle='#FFD34A';g.beginPath();g.arc(0,0,w*.03,0,Math.PI*2);g.fill();g.fillStyle='#E8A21E';g.beginPath();g.arc(0,0,w*.019,0,Math.PI*2);g.fill();g.restore();}
+}
+// HT3：紫。扇のように広げたトランプ
+function flatCards(g,w,h,tm,lw){
+  g.fillStyle='#25093F';g.fillRect(0,0,w,h);
+  flatSpot(g,w*.5,h*.35,w*.6,'rgba(200,140,255,.3)');
+  var px=w*.5,py=h*1.02,cw=w*.36,chh=w*.52,i,n=5,sw=Math.sin(tm*.8)*.04;
+  for(i=0;i<n;i++){var a=(-.95+i*.475)+sw;g.save();g.translate(px,py);g.rotate(a);g.translate(0,-h*.62);
+    rrPath(g,-cw/2,-chh/2,cw,chh,cw*.08);g.fillStyle='#F6EEFF';g.fill();g.lineWidth=lw*1.3;g.strokeStyle='#14042A';g.stroke();
+    rrPath(g,-cw/2+cw*.07,-chh/2+cw*.07,cw*.86,chh-cw*.14,cw*.05);g.lineWidth=lw*.8;g.strokeStyle=i%2?'#E0335A':'#3A1460';g.stroke();
+    var red=i%2===1;g.fillStyle=red?'#E0335A':'#2A0B4A';
+    g.save();g.scale(cw/40,cw/40);if(red){g.beginPath();g.moveTo(0,10);g.bezierCurveTo(-16,-2,-10,-16,0,-6);g.bezierCurveTo(10,-16,16,-2,0,10);g.fill();}else emGlyph(g,'suits',0,tm);g.restore();
+    g.font='700 '+Math.round(cw*.16)+'px sans-serif';g.textAlign='left';g.fillText('A',-cw/2+cw*.1,-chh/2+cw*.22);
+    g.restore();}
+  for(i=0;i<8;i++){var t=(tm*.2+i*.17)%1;g.globalAlpha=Math.sin(t*Math.PI)*.8;g.fillStyle=i%2?'#C99BFF':'#FF7AA0';g.save();g.translate(w*((i*.31+.07)%1),h*(.9-t*.8));g.rotate(tm+i);g.scale(w/420,w/420);emGlyph(g,'suits',0,tm);g.restore();}
+  g.globalAlpha=1;
+}
+// HT2：青。大きな稲妻と雲
+function boltPath(g,x,y,s,d){g.beginPath();g.moveTo(x,y);g.lineTo(x+s*.28*d,y+s*.42);g.lineTo(x+s*.1*d,y+s*.44);g.lineTo(x+s*.34*d,y+s*.9);g.lineTo(x-s*.02*d,y+s*.38);g.lineTo(x+s*.16*d,y+s*.36);g.lineTo(x-s*.06*d,y);g.closePath();}
+function flatLightning(g,w,h,tm,lw){
+  g.fillStyle='#071A4C';g.fillRect(0,0,w,h);
+  var fl=Math.max(0,Math.sin(tm*1.7)*8-7);
+  flatSpot(g,w*.5,h*.2,w*.7,'rgba(120,210,255,'+(.25+fl*.25).toFixed(3)+')');
+  g.strokeStyle='#1E4FB0';g.lineWidth=lw*1.2;for(var i=0;i<22;i++){var t=(tm*.9+i*.083)%1,rx=w*((i*.37)%1)+t*w*.1,ry=h*(-.1+t*1.2);g.beginPath();g.moveTo(rx,ry);g.lineTo(rx-w*.03,ry+h*.06);g.stroke();}
+  [[.18,-.02,.75,1],[.82,.06,.6,-1]].forEach(function(b){var x=w*b[0],y=h*b[1],s=h*b[2];
+    boltPath(g,x,y,s,b[3]);g.fillStyle='#2FA8FF';g.fill();g.lineWidth=lw*1.3;g.strokeStyle='#02102E';g.stroke();
+    boltPath(g,x+w*.012*b[3],y+s*.06,s*.78,b[3]);g.fillStyle='#9CE8FF';g.fill();
+    boltPath(g,x+w*.02*b[3],y+s*.14,s*.5,b[3]);g.fillStyle='#FFFFFF';g.fill();});
+  g.fillStyle='#0C2A70';[[.1,.05,.2],[.32,0,.24],[.6,.04,.22],[.88,.0,.2]].forEach(function(c){g.beginPath();g.arc(w*c[0],h*c[1],w*c[2],0,Math.PI*2);g.fill();});
+  g.fillStyle='#123A8E';[[.2,.02,.14],[.5,-.02,.18],[.78,.03,.14]].forEach(function(c){g.beginPath();g.arc(w*c[0],h*c[1],w*c[2],0,Math.PI*2);g.fill();});
+  if(fl>0){g.fillStyle='rgba(200,240,255,'+(fl*.18).toFixed(3)+')';g.fillRect(0,0,w,h);}
+}
+// LT1：漆黒と金。金の煙のうずと、交差した拳銃
+function revolverPath(g,s){
+  g.beginPath();g.rect(-s*.1,-s*.06,s*.9,s*.12);
+  g.moveTo(-s*.12,-s*.13);g.lineTo(s*.12,-s*.13);g.lineTo(s*.14,s*.13);g.lineTo(-s*.14,s*.13);g.closePath();
+  g.moveTo(-s*.14,-s*.08);g.lineTo(-s*.42,-s*.04);g.quadraticCurveTo(-s*.62,s*.02,-s*.58,s*.36);g.lineTo(-s*.4,s*.38);g.quadraticCurveTo(-s*.38,s*.14,-s*.16,s*.1);g.closePath();
+}
+function flatGold(g,w,h,tm,lw){
+  g.fillStyle='#0A0806';g.fillRect(0,0,w,h);
+  flatSpot(g,w*.5,h*.38,w*.62,'rgba(255,200,90,.22)');
+  for(var i=0;i<5;i++){var cx=w*((i*.41+.1)%1),cy=h*((i*.27+.12)%.9),r=w*(.16+.06*(i%2)),a0=tm*.4*(i%2?1:-1)+i;
+    g.lineCap='round';g.lineWidth=w*.03;g.strokeStyle=i%2?'#3A2C10':'#5A4416';g.beginPath();
+    for(var t=0;t<=1.001;t+=.04){var rr=r*(1-t*.8),aa=a0+t*Math.PI*3.2;var px=cx+Math.cos(aa)*rr,py=cy+Math.sin(aa)*rr;if(t===0)g.moveTo(px,py);else g.lineTo(px,py);}g.stroke();}
+  [[-1,.6],[1,-.6]].forEach(function(q){g.save();g.translate(w*.5,h*.36);g.rotate(q[1]);g.scale(q[0],1);g.translate(-w*.2,0);
+    revolverPath(g,w*.62);g.fillStyle='#C9962E';g.fill();g.lineWidth=lw*1.3;g.strokeStyle='#3A2C10';g.stroke();
+    g.fillStyle='#F4CC66';g.fillRect(-w*.05,-w*.03,w*.55,w*.025);g.beginPath();g.arc(0,0,w*.045,0,Math.PI*2);g.fillStyle='#8C6A1E';g.fill();
+    g.restore();});
+  for(i=0;i<18;i++){var t2=(tm*.18+i*.093)%1;g.globalAlpha=Math.sin(t2*Math.PI);g.fillStyle=i%2?'#FFE7A6':'#E8B84A';flatStar4(g,w*((i*.29+.03)%1),h*(.95-t2*.9),w*(.008+.008*(i%3)));g.fill();}
+  g.globalAlpha=1;
+}
+// HT1：ホログラム。虹色の帯と大きな星
+function flatHolo(g,w,h,tm,lw){
+  var cols=['#FFB3D9','#FFD3A8','#FFF3A8','#B8FFD8','#A8E6FF','#C8B8FF'],bw=w*.16,off=(tm*w*.06)%(bw*cols.length),i;
+  g.save();g.translate(w/2,h/2);g.rotate(-.5);
+  for(i=-14;i<14;i++){g.fillStyle=cols[((i%cols.length)+cols.length)%cols.length];g.fillRect(i*bw+off-bw*cols.length,-h,bw+1,h*2);}
+  g.restore();
+  g.fillStyle='rgba(40,24,90,.28)';g.fillRect(0,0,w,h);
+  flatSpot(g,w*.5,h*.38,w*.55,'rgba(255,255,255,.55)');
+  [[.16,.18,.13],[.86,.3,.1],[.78,.08,.06],[.12,.55,.07]].forEach(function(s,j){var r=w*s[2]*(.85+.15*Math.sin(tm*2+j));flatStar4(g,w*s[0],h*s[1],r);g.fillStyle='#FFFFFF';g.fill();g.lineWidth=lw;g.strokeStyle='#5A3FA8';g.stroke();});
+  for(i=0;i<16;i++){var t=(tm*.3+i*.11)%1;g.globalAlpha=Math.sin(t*Math.PI);g.fillStyle='hsl('+((i*47+tm*60)%360)+',90%,85%)';flatStar4(g,w*((i*.37+.05)%1),h*(.92-t*.85),w*.014);g.fill();}
+  g.globalAlpha=1;
+}
 function drawFlatScene(g,kind,x,y,w,h,tm){
   var lw=Math.max(1,w*.008);
   g.save();g.translate(x,y);
-  if(kind==='flames')flatFlames(g,w,h,tm,lw);else if(kind==='sunset')flatSunset(g,w,h,tm,lw);else flatWaves(g,w,h,tm,lw);
+  ({flames:flatFlames,sunset:flatSunset,waves:flatWaves,moon:flatMoon,gears:flatGears,tornado:flatTornado,sheriff:flatSheriff,cards:flatCards,lightning:flatLightning,gold:flatGold,holo:flatHolo}[kind]||flatMoon)(g,w,h,tm,lw);
   g.restore();
 }
 function drawTierBg(g,idx,x,y,w,h,tm){
