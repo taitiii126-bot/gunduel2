@@ -2042,7 +2042,7 @@ var TITLES = [
   { id: 'world_author', prism: true, award: true, gate: { dev: true } },       // prism：明朝の白銀にプリズムの光
   // シーズンの最終1位（crown：赤と金）。一度もらったら、また1位になっても増えない
   { id: 'unrivaled', crown: true, award: true, gate: { champion: true } },
-  // ハロウィンのイベント中に、キャンディを合計 3000 個集める（hw：かぼちゃ色のネオン）。イベントが終わったら、もう取れない
+  // ハロウィンのイベント中に、キャンディを合計 3000 個集める（称号の名前は「トリックオアトリート」。hw：かぼちゃ色のネオン）。イベントが終わったら、もう取れない
   { id: 'pumpkin_king', hw: true, rare: true, award: true, gate: { hwking: true } }
 ];
 // 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
