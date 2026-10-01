@@ -187,6 +187,10 @@ function keepServerOwned(next, old, u) {
     next.mis = blank.mis; if (next.sea) next.sea.p = next.sea.p.map(() => 0);
   }
   for (const id of JOKE_TITLES) if (inc && inc.evt && inc.evt[id] > 0 && !(next.ach.evt[id] > 0)) { next.ach.evt[id] = 1; next.ach.got[id] = 1; }
+  // サーバーの記録（とオンライン戦績）で取れている称号は、全部「獲得済み」にしておく。
+  // ブラウザも同じ決まりで判断するので、両方がそろう（そろわないと、お知らせがくり返し出る）
+  { const proofG = { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor }, ctxG = u ? titleCtx(u) : null;
+    for (const t of SIM.TITLES) if (!t.gate && !next.ach.got[t.id] && SIM.titleProof(t.id, proofG, ctxG)) next.ach.got[t.id] = 1; }
   if (u) { next.bestTier = bestTierOf(u); if (typeof next.bg === 'number' && next.bg > next.bestTier) next.bg = null; }
   // 付けている称号も、サーバーの記録で確かめ直す
   next.title = P.validTitle(next.title, u ? titleCtx(u) : null, { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor });

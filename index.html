@@ -3184,6 +3184,9 @@ function migrateProfile(){
   SIM.upgradeProfile(profile,computeTierIndex());
   ensureProfileShape();saveProfile();refreshProfileViews();
 }
+// お知らせを出した称号（この端末・アカウントごと）。同じ称号のお知らせは1回だけ
+function titleNoticed(id){var k=storeKey('gunduel_tnotes'),o={};try{o=JSON.parse(localStorage.getItem(k)||'{}')||{};}catch(e){}
+  if(o[id])return true;o[id]=1;try{localStorage.setItem(k,JSON.stringify(o));}catch(e){}return false;}
 // 条件を満たした称号を「獲得済み」にして、新しく取れたものをお知らせする
 function checkTitles(){
   ensureProfileShape();
@@ -3191,7 +3194,7 @@ function checkTitles(){
   SIM.TITLES.forEach(function(d){
     if(got[d.id])return;
     var ok=d.gate?SIM.titleOk(d.id,myTitleCtx()):titleRule(d);
-    if(ok){got[d.id]=1;changed=true;if(d.award)GIFT_Q.push(d.id);else if(d.id!=='rookie')TITLE_Q.push(d.id);}
+    if(ok){got[d.id]=1;changed=true;if(!titleNoticed(d.id)){if(d.award)GIFT_Q.push(d.id);else if(d.id!=='rookie')TITLE_Q.push(d.id);}}
   });
   // 記録の裏づけがない称号を着けていたら、初期の称号に戻す（保存領域を書き換えた場合など）
   var td=titleDef(profile.title);
