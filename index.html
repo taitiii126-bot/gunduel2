@@ -4908,6 +4908,8 @@ function syncOnLogin(d){
     }
   }else if(!d.profile)SYNC.dirty=true;
   else if(!SYNC.dirty&&rev>SYNC.rev){adoptProfile(d.profile);SYNC.rev=rev;}
+  // 試合の記録・称号の裏づけは、版に関係なく毎回サーバーの値に戻す（手元の保存を書き換えても使われない）
+  if(d.profile){var kt=profile.title,kb=profile.bg;srvAdopt(d.profile);if(SYNC.dirty){profile.title=kt;profile.bg=kb;writeProfileLocal();}}
   adoptRate(d.user);
   saveSyncMeta();
   if(SYNC.dirty)pushProfileSoon(0);else setSyncState('saved');
