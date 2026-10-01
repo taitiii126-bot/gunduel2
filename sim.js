@@ -154,7 +154,7 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 27, outfit: 24, neck: 20, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 32, outfit: 29, neck: 23, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent', 'win'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
 // ---- 宝箱から出るアイテム（帽子・服・首もと＝50種、勝ちポーズ＝10種、エモート＝16種）とレアリティ ----
@@ -166,14 +166,14 @@ var PITY_AT = 25;               // これだけ開けてもレジェンダリー
 var LOOK_BASE = { hat: 6, outfit: 5, neck: 4, win: 7 };
 // [番号, レアリティ]。名前と絵はブラウザ側（lang.js の item.<id>、index.html の描き方）
 var ITEM_RAR = {
-  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4], [24, 4], [25, 3], [26, 2]],
-  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4], [21, 4], [22, 2], [23, 3]],
-  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4]],
+  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4], [24, 4], [25, 3], [26, 2], [27, 2], [28, 1], [29, 2], [30, 1], [31, 1]],
+  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4], [21, 4], [22, 2], [23, 3], [24, 1], [25, 2], [26, 1], [27, 2], [28, 2]],
+  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4], [20, 1], [21, 3], [22, 1]],
   win: [[7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 2], [13, 2], [14, 3], [15, 3], [16, 4]]   // 勝ちポーズ
 };
 // エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
-var EMOTE_N = 22, EMOTE_FREE = 4;
-var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4, 1, 3];   // 20・21 はハロウィンの限定
+var EMOTE_N = 24, EMOTE_FREE = 4;
+var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4, 1, 3, 2, 1];   // 20〜23 はハロウィンの限定
 var PASS_ONLY = { h24: 1, o21: 1 };   // シーズンパスでしか手に入らない（バッジ・ショップには出ない）
 // ---- 期間限定イベント（ハロウィン）----
 // 10月（シーズンの月の区切りで）に開く。限定アイテムはキャンディで交換するだけで、バッジ・ショップ・パスには出ない。
@@ -182,8 +182,21 @@ var EVENTS = {
   halloween: {
     month: 9,                                             // 0 から数える（9＝10月）
     // 交換所：[アイテムの id, キャンディ]
-    shop: [['e20', 150], ['h26', 200], ['o22', 200], ['e21', 300], ['h25', 400], ['o23', 400], ['bHW', 500]],
-    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 300 }
+    shop: [['e20', 150], ['h26', 200], ['o22', 200], ['e21', 300], ['h25', 400], ['o23', 400], ['bHW', 500],
+      ['h27', 200], ['h28', 120], ['h29', 200], ['h30', 120], ['h31', 120],
+      ['o24', 150], ['o25', 220], ['o26', 150], ['o27', 220], ['o28', 220],
+      ['n20', 100], ['n21', 350], ['n22', 100], ['e22', 200], ['e23', 150]],
+    // スキン（セット）：まとめて交換すると安い。持っている物は値段から引く。look＝カードに描く見た目
+    sets: [
+      { id: 'ghost', items: ['h27', 'o25', 'n21'], off: 50, look: { hat: 27, outfit: 25, neck: 21 } },
+      { id: 'pumpkin', items: ['h25', 'o22', 'e21'], off: 50, look: { hat: 25, outfit: 22, neck: 0 } },
+      { id: 'vampire', items: ['o23', 'n20', 'e20'], off: 25, look: { hat: 0, outfit: 23, neck: 20 } },
+      { id: 'cat', items: ['h30', 'o28', 'e22'], off: 33, look: { hat: 30, outfit: 28, neck: 0 } },
+      { id: 'mummy', items: ['h28', 'o24'], off: 33, look: { hat: 28, outfit: 24, neck: 0 } },
+      { id: 'franken', items: ['h29', 'o27'], off: 25, look: { hat: 29, outfit: 27, neck: 0 } },
+      { id: 'scarecrow', items: ['h31', 'o26', 'n22'], off: 25, look: { hat: 31, outfit: 26, neck: 22 } }
+    ],
+    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 400 }
   }
 };
 var EVENT_ITEMS = {};   // 限定アイテムの id → イベントの名前
@@ -195,6 +208,17 @@ function eventNow(ms) {
   return '';
 }
 function eventEnd(ms) { return seasonEnd(ms); }
+// スキン（セット）の値段：まだ持っていない物の合計から割り引く（10個単位）。full＝割引前、items＝買う物
+function eventSetPrice(ev, sid, inv) {
+  var E = EVENTS[ev], st = null, i;
+  if (!E || !E.sets) return null;
+  for (i = 0; i < E.sets.length; i++) if (E.sets[i].id === sid) st = E.sets[i];
+  if (!st) return null;
+  var price = {}; E.shop.forEach(function (r) { price[r[0]] = r[1]; });
+  var items = st.items.filter(function (id) { return !(inv && inv.indexOf(id) >= 0); }), full = 0;
+  items.forEach(function (id) { full += price[id] || 0; });
+  return { set: st, items: items, full: full, price: Math.round(full * (100 - st.off) / 1000) * 10 };
+}
 // 1試合で増えるキャンディ（その日の分を足す前）。T＝試合の記録（newTally）、first＝その日の最初の勝ち
 function candyOf(ev, win, kills, first) {
   var c = EVENTS[ev] && EVENTS[ev].candy;
@@ -2124,7 +2148,7 @@ var api = {
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
   DAY_SHIFT_MS: DAY_SHIFT_MS, dayEnd: dayEnd,
   LOGIN_REWARDS: deepFreeze(LOGIN_REWARDS), STREAK_MS: deepFreeze(STREAK_MS), SHIELD_MAX: SHIELD_MAX, dayNum: dayNum, loginStep: loginStep,
-  EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, candyOf: candyOf,
+  EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, candyOf: candyOf, eventSetPrice: eventSetPrice,
   PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift,
   SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,

@@ -641,9 +641,18 @@ const auth = {
     if (!u) return { error: 'not_found' };
     const ev = SIM.eventNow();
     if (!ev) return { error: 'over' };
+    const pr = serverProfile(u), c = pr.candy;
+    // スキン（セット）：まだ持っていない物をまとめて、割り引いた値段で
+    if (id.indexOf('set:') === 0) {
+      const sp = SIM.eventSetPrice(ev, id.slice(4), pr.inv);
+      if (!sp) return { error: 'bad' };
+      if (!sp.items.length) return { error: 'owned' };
+      if (!c || c.ev !== ev || c.n < sp.price) return { error: 'candy' };
+      c.n -= sp.price; sp.items.forEach(x => pr.inv.push(x));
+      return saveServerProfile(u, pr, { evbought: id, items: sp.items });
+    }
     const row = SIM.EVENTS[ev].shop.find(r => r[0] === id);
     if (!row) return { error: 'bad' };
-    const pr = serverProfile(u), c = pr.candy;
     if (pr.inv.indexOf(id) >= 0) return { error: 'owned' };
     if (!c || c.ev !== ev || c.n < row[1]) return { error: 'candy' };
     c.n -= row[1]; pr.inv.push(id);

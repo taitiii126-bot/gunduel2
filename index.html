@@ -1964,6 +1964,32 @@ body[data-scr="event-screen"] #bs-bg{display:block;background:radial-gradient(70
 .sh-buy.ev-buy small{flex-basis:100%;font-family:var(--f-jp);font-weight:900;font-size:11px;letter-spacing:.02em;color:inherit;opacity:.85;}
 .sh-buy.ev-buy.poor{background:rgba(255,255,255,.06);color:var(--tx-3);}
 .sh-buy.ev-buy.confirm{background:linear-gradient(90deg,#7A2FD0,#5A1C96);color:#fff;}
+/* スペシャルオファー（スキンのセット）：紫のカードに、おばけ柄と全身のキャラ */
+.ev-offers{display:flex;gap:16px;overflow-x:auto;padding:26px 4px 12px;scroll-snap-type:x proximity;scrollbar-width:thin;}
+.ev-offer{position:relative;flex:none;width:236px;scroll-snap-align:start;display:flex;flex-direction:column;filter:drop-shadow(0 10px 18px rgba(0,0,0,.45));}
+.ev-otab{position:absolute;top:-22px;left:8px;display:inline-flex;align-items:center;gap:4px;padding:2px 9px 3px;background:rgba(0,0,0,.6);font-family:var(--f-ui);font-weight:700;font-size:11px;color:#fff;clip-path:polygon(0 0,100% 0,100% 100%,0 100%);}
+.ev-otab .i{width:12px;height:12px;stroke:#fff;}
+.ev-ohead{height:44px;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,#8E55E0,#6A2FC0);border:3px solid #1A0A2E;border-bottom:0;font-family:var(--f-jp);font-weight:900;font-size:17px;color:#fff;letter-spacing:.04em;text-shadow:0 2px 0 #1A0A2E;}
+.ev-obody{position:relative;height:300px;overflow:hidden;background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='90' height='90' viewBox='0 0 90 90'%3E%3Cg fill='%23ffffff' fill-opacity='.08'%3E%3Cpath d='M22 12c-8 0-13 6-13 14v17l4-3 4 3 4-3 4 3 4-3 4 3V26c0-8-5-14-11-14z'/%3E%3Cpath d='M67 52c-8 0-13 6-13 14v17l4-3 4 3 4-3 4 3 4-3 4 3V66c0-8-5-14-11-14z'/%3E%3C/g%3E%3Cg fill='%237A3FC0' fill-opacity='.35'%3E%3Ccircle cx='18' cy='26' r='2'/%3E%3Ccircle cx='26' cy='26' r='2'/%3E%3Ccircle cx='63' cy='66' r='2'/%3E%3Ccircle cx='71' cy='66' r='2'/%3E%3C/g%3E%3C/svg%3E"),radial-gradient(90% 70% at 50% 45%,#A066F0,#6A2FC0 70%,#4A1A96);background-size:90px 90px,cover;border-left:3px solid #1A0A2E;border-right:3px solid #1A0A2E;}
+.ev-obody canvas{position:absolute;left:50%;bottom:0;width:250px;height:283px;transform:translateX(-50%);}
+.ev-oname{position:absolute;top:10px;right:12px;z-index:2;display:flex;flex-direction:column;align-items:flex-end;text-align:right;}
+.ev-oname b{font-family:var(--f-jp);font-weight:900;font-size:19px;color:#fff;text-shadow:2px 0 0 #1A0A2E,-2px 0 0 #1A0A2E,0 2px 0 #1A0A2E,0 -2px 0 #1A0A2E,0 3px 0 #1A0A2E;}
+.ev-oname small{margin-top:2px;font-family:var(--f-jp);font-weight:900;font-size:11px;color:#7FE8FF;text-shadow:0 1px 0 #1A0A2E;}
+.ev-ofoot{position:relative;height:64px;display:flex;align-items:center;justify-content:flex-start;gap:6px;padding:0 82px 0 14px;border:3px solid #1A0A2E;border-top:2px solid #1A0A2E;background:linear-gradient(180deg,#5A2496,#3E1474);cursor:pointer;font-family:var(--f-ui);color:#fff;}
+.ev-ofoot:hover{filter:brightness(1.1);}
+.ev-ofoot s{font-weight:700;font-size:16px;color:#E8DDF5;text-decoration:line-through 3px #FF3B5C;}
+.ev-ofoot canvas{width:30px;height:30px;}
+.ev-ofoot b{font-weight:700;font-size:26px;text-shadow:0 2px 0 #1A0A2E;}
+.ev-ofoot b.sure{font-family:var(--f-jp);font-weight:900;font-size:17px;}
+.ev-off{position:absolute;right:8px;top:-22px;width:68px;height:62px;display:flex;align-items:center;justify-content:center;text-align:center;font-style:normal;font-family:var(--f-jp);font-weight:900;font-size:16px;line-height:1.05;color:#fff;
+  background:linear-gradient(180deg,#C77DFF,#8A3FE0);border:3px solid #1A0A2E;box-shadow:0 4px 0 #1A0A2E;transform:rotate(-4deg);text-shadow:0 2px 0 #1A0A2E;}
+.ev-ofoot.poor b{color:#FFB0C0;}
+.ev-ofoot.confirm{background:linear-gradient(180deg,#FF8A1F,#E0600A);}
+.ev-ofoot.own{justify-content:center;padding:0;cursor:default;background:linear-gradient(180deg,#1E8A5A,#14603E);font-family:var(--f-jp);font-weight:900;font-size:16px;gap:6px;}
+.ev-ofoot.own .i{width:18px;height:18px;stroke:#fff;stroke-width:3;}
+.ev-offer.own .ev-obody canvas{opacity:.85;}
+@media (max-width:760px){.ev-offer{width:200px;}.ev-obody{height:260px;}.ev-obody canvas{width:216px;height:245px;}.ev-oname b{font-size:16px;}
+  .ev-ofoot{padding:0 60px 0 10px;gap:4px;}.ev-ofoot b{font-size:20px;}.ev-ofoot s{font-size:13px;}.ev-ofoot canvas{width:24px;height:24px;}.ev-off{width:54px;height:50px;font-size:13px;right:6px;top:-16px;}}
 @media (max-width:760px){.ev-grid{grid-template-columns:repeat(2,1fr);}.ev-candy b{font-size:22px;}.ev-candy canvas{width:42px;height:42px;}.ev-hero{flex-direction:column;}}
 /* 窓を開いている間は、右上の設定・音のボタンを隠す（窓の閉じるボタンと重ならないように） */
 body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
@@ -3718,7 +3744,21 @@ function renderEvent(){
   h+='<div class="ev-how"><div class="ev-how-top"><b>'+esc(t('ev.how'))+'</b><span>'+esc(t('ev.today',{n:today,m:C.dayMax}))+'</span></div>'+
     '<div class="v2-bar sm"><i style="width:'+Math.min(100,Math.round(today/C.dayMax*100))+'%"></i></div>'+
     '<p>'+esc(t('ev.rules',{m:C.match,w:C.win,k:C.kill,km:C.killMax,f:C.firstWin}))+'</p></div>';
-  h+='<div class="v2-sec"><h3>'+esc(t('ev.shop'))+'</h3></div><div class="sh-grid ev-grid">';
+  // スペシャルオファー：スキン（セット）を大きなカードで。持っている物は値段から引く
+  h+='<div class="v2-sec"><h3>'+esc(t('ev.offer'))+'</h3></div><div class="ev-offers">';
+  (E.sets||[]).forEach(function(st){
+    var sp=SIM.eventSetPrice(ev,st.id,profile.inv),own=!sp.items.length,poor=n<sp.price,cf=EVS.confirm==='set:'+st.id;
+    h+='<div class="ev-offer'+(own?' own':'')+'"><span class="ev-otab">'+CLOCK_SVG+esc(t('ev.left',{n:left}))+'</span>'+
+      '<div class="ev-ohead">'+esc(t('ev.offer'))+'</div>'+
+      '<div class="ev-obody"><div class="ev-oname"><b>'+esc(t('set.'+st.id))+'</b><small>'+esc(t('ev.skin'))+' ・ '+esc(t('ev.setHas',{n:st.items.length}))+'</small></div>'+
+      '<canvas data-set="'+st.id+'" width="300" height="340"></canvas></div>'+
+      (own?'<div class="ev-ofoot own">'+CHECK_SVG+esc(t('ev.setOwn'))+'</div>':
+       '<button class="ev-ofoot'+(cf?' confirm':'')+(poor||!logged?' poor':'')+'" onclick="evBuy(\'set:'+st.id+'\')">'+
+        (cf?'<b class="sure">'+esc(t('shop.sure'))+'</b>':'<s>'+sp.full+'</s><canvas data-candy="2" width="44" height="44"></canvas><b>'+sp.price+'</b>')+
+        '<em class="ev-off">'+esc(t('ev.off',{n:st.off})).replace('\n','<br>')+'</em></button>')+'</div>';
+  });
+  h+='</div>';
+  h+='<div class="v2-sec"><h3>'+esc(t('ev.singles'))+'</h3></div><div class="sh-grid ev-grid">';
   E.shop.forEach(function(row){
     var id=row[0],price=row[1],it=SIM.ITEM_BY_ID[id],own=itemOwned(id),poor=n<price,cf=EVS.confirm===id;
     h+='<div class="sh-card ev-card r'+it.r+(own?' own':'')+'"><div class="sh-face">'+
@@ -3734,19 +3774,29 @@ function renderEvent(){
 }
 function drawEventArt(tm){
   document.querySelectorAll('#event-screen canvas[data-si]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);g.save();g.translate(W/2,W*.42);drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],W/240,tm);g.restore();});
+  var ev=evNow(),E=ev&&SIM.EVENTS[ev];
+  document.querySelectorAll('#event-screen canvas[data-set]').forEach(function(cv,i){var g=cv.getContext('2d'),W=cv.width,Hh=cv.height;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,Hh);
+    var st=E&&E.sets.filter(function(x){return x.id===cv.getAttribute('data-set');})[0];if(!st)return;
+    var L=Object.assign({},profile.look,st.look),wp=((tm+i*.7)%6)-3.6;
+    var gl=g.createRadialGradient(W/2,Hh*.5,10,W/2,Hh*.5,W*.55);gl.addColorStop(0,'rgba(255,220,255,.35)');gl.addColorStop(1,'rgba(255,220,255,0)');g.fillStyle=gl;g.fillRect(0,0,W,Hh);
+    g.fillStyle='rgba(20,0,40,.35)';g.beginPath();g.ellipse(W/2,Hh*.965,W*.3,Hh*.035,0,0,Math.PI*2);g.fill();
+    drawAvatar(g,{x:W/2-8,y:Hh*.965,s:Hh/104,dir:1,look:L,team:TEAM.me,wid:(loadout&&loadout[0])||2,bob:Math.sin(tm*2.1+i)*.8,tm:tm,wind:.4,win:wp>0&&wp<2.4?{pose:L.win|0,t:wp}:null});});
   document.querySelectorAll('#event-screen canvas[data-candy]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var big=cv.getAttribute('data-candy')==='1';drawCandy(g,W/2,W/2,W/(big?40:42),big?-.35+Math.sin(tm*2)*.08:-.35);});
 }
 function evBuy(id){
   var ev=evNow();if(!ev)return;
   if(!(AUTH.user&&AUTH.token)){note(t('ev.login'));SFX.dry();return;}
-  var row=SIM.EVENTS[ev].shop.filter(function(r){return r[0]===id;})[0];if(!row||itemOwned(id))return;
+  var isSet=id.indexOf('set:')===0,sp=isSet?SIM.eventSetPrice(ev,id.slice(4),profile.inv):null;
+  var row=isSet?(sp&&sp.items.length?[id,sp.price]:null):SIM.EVENTS[ev].shop.filter(function(r){return r[0]===id;})[0];
+  if(!row||(!isSet&&itemOwned(id)))return;
   if(candyN()<row[1]){note(t('ev.short'));SFX.dry();return;}
   if(EVS.confirm!==id){EVS.confirm=id;EVS.ct=Date.now();SFX.switchW();renderEvent();return;}
   EVS.confirm='';
   if(ECO.busy)return;ECO.busy=true;
   ecoApi({op:'evbuy',id:id},function(r){ECO.busy=false;
-    if(r&&!r.error){ecoAdopt(r);ecoMarkNew(id);SFX.coin();var it=SIM.ITEM_BY_ID[id];renderEvent();renderHomeEco();note(t('ev.got',{name:itemName(id)}));
-      openCrateScreen('lucky');CR.res={kind:'lucky',r:it.r,n:1,items:[{item:id,dup:false}]};CR.tier=it.r;crateBurst();}
+    if(r&&!r.error){ecoAdopt(r);var got=isSet?(r.items||sp.items):[id],rr=0;got.forEach(function(x){ecoMarkNew(x);rr=Math.max(rr,(SIM.ITEM_BY_ID[x]||{r:0}).r);});SFX.coin();renderEvent();renderHomeEco();
+      note(t('ev.got',{name:isSet?t('set.'+id.slice(4)):itemName(id)}));
+      openCrateScreen('lucky');CR.res={kind:'lucky',r:rr,n:got.length,items:got.map(function(x){return{item:x,dup:false};})};CR.tier=rr;crateBurst();}
     else{note(t(r&&r.error==='candy'?'ev.short':'ev.err'));renderEvent();}});
 }
 // 試合でもらったキャンディを知らせる
@@ -4316,7 +4366,14 @@ var EMOTE_DEF=[
     front:function(g,T){var sc=1+Math.max(0,Math.sin(T*5))*.12;emoText(g,'BOO!',0,34,24*sc,['#FFB347','#F07A1A'],-.1);}},   // BOO!（ハロウィン限定）
   {bg:['#FFB347','#5A1C66'],hat:25,face:{eyes:4,mouth:2},tilt:function(T){return Math.sin(T*2.4)*.12;},
     back:function(g,T){for(var i=0;i<7;i++){var k=(T*.45+i/7)%1,x=-40+((i*29)%80),y=-56+k*112;emoCandy(g,x,y,T*3+i,i);}},
-    front:function(g,T){for(var i=0;i<3;i++){var k=(T*.6+i/3)%1;g.globalAlpha=Math.sin(k*Math.PI);drawSpark4(g,-30+i*30,-34+Math.sin(T*2+i)*6,5,'#FFF0B8');}g.globalAlpha=1;}}   // ジャック・オ・ランタン（ハロウィン限定）
+    front:function(g,T){for(var i=0;i<3;i++){var k=(T*.6+i/3)%1;g.globalAlpha=Math.sin(k*Math.PI);drawSpark4(g,-30+i*30,-34+Math.sin(T*2+i)*6,5,'#FFF0B8');}g.globalAlpha=1;}},   // ジャック・オ・ランタン（ハロウィン限定）
+  {bg:['#B88AFF','#2A0E44'],hat:30,face:{eyes:4,mouth:2,blush:true},tilt:function(T){return Math.sin(T*3)*.12;},
+    front:function(g,T){[-1,1].forEach(function(s){g.save();g.translate(s*28,30+Math.sin(T*6+s)*3);g.fillStyle='#1C1A22';g.strokeStyle=EMO_OL;g.lineWidth=2.5;g.beginPath();g.ellipse(0,0,9,8,0,0,Math.PI*2);g.fill();g.stroke();
+      g.fillStyle='#FF8AB8';g.beginPath();g.ellipse(0,2,3.6,3,0,0,Math.PI*2);g.fill();[-4,0,4].forEach(function(x){g.beginPath();g.arc(x,-4,1.6,0,Math.PI*2);g.fill();});g.restore();});
+      emoText(g,'ニャ!',24,-30,18,['#FFFFFF','#E0C2FF'],.15);}},   // 黒猫（ハロウィン限定）
+  {bg:['#FFB347','#5A1C66'],hat:26,face:{eyes:4,mouth:1,blush:true},bob:function(T){return -Math.abs(Math.sin(T*5))*3;},
+    front:function(g,T){g.save();g.translate(24,26);g.rotate(Math.sin(T*3)*.1);flatPumpkin(g,0,0,13,T,0,2.2);g.fillStyle='#3A1404';g.fillRect(-14,-14,28,3);g.strokeStyle='#2A0E06';g.lineWidth=2;g.beginPath();g.arc(0,-6,14,Math.PI*1.1,Math.PI*1.9);g.stroke();g.restore();
+      for(var i=0;i<4;i++){var k=(T*.9+i/4)%1;g.globalAlpha=k<.8?1:(1-k)*5;emoCandy(g,24+Math.sin(i*2.1)*(6+k*18),14-k*44,T*4+i,i);}g.globalAlpha=1;}}   // トリック・オア・トリート（ハロウィン限定）
 ];
 function emoCandy(g,x,y,rot,i){g.save();g.translate(x,y);g.rotate(rot);var c=['#FF5A8A','#5AD0FF','#FFD84A','#8AF07A'][i%4];g.fillStyle=c;g.strokeStyle=EMO_OL;g.lineWidth=2;
   g.beginPath();g.moveTo(-6,0);g.lineTo(-11,-5);g.lineTo(-11,5);g.closePath();g.fill();g.stroke();g.beginPath();g.moveTo(6,0);g.lineTo(11,-5);g.lineTo(11,5);g.closePath();g.fill();g.stroke();
@@ -7445,11 +7502,11 @@ function drawTorso(g,fit,T,topY,hipY,d){
   g.fillStyle=dev?'#E8C66A':T.trim;g.beginPath();g.moveTo(-6,topY);g.lineTo(d*1,topY+7);g.lineTo(6,topY);g.closePath();g.fill();
 }
 // ---- 宝箱の服（5〜20）：胴の形はいつもと同じ。腕はチームの色のままなので、敵味方は見分けられる ----
-var OUTFIT_TAIL={10:'#806345',15:'#7E1A1A',18:'#2E1B18',19:'#6E0F22',21:'#E2DAC6',23:'#140A12'},OUTFIT_TAIL_PLAIN={10:1,18:1,23:1};   // OUTFIT_TAIL_PLAIN：すそに金のふちを付けない   // 後ろにすそがある服（ロングコート）
+var OUTFIT_TAIL={10:'#806345',15:'#7E1A1A',18:'#2E1B18',19:'#6E0F22',21:'#E2DAC6',23:'#140A12',25:'#ECE8FA'},OUTFIT_TAIL_PLAIN={10:1,18:1,23:1,25:1};   // OUTFIT_TAIL_PLAIN：すそに金のふちを付けない   // 後ろにすそがある服（ロングコート）
 function drawOutfitX(g,fit,T,topY,hipY,d,tm){
   var tw=12.5,bw=10.5,long=!!OUTFIT_TAIL[fit],botY=long?Math.min(hipY+9,-8):hipY,hw=long?bw+2:bw,i,k,x,y;
   function tp(){g.beginPath();g.moveTo(-tw,topY+4);g.quadraticCurveTo(-tw,topY,-tw+4,topY);g.lineTo(tw-4,topY);g.quadraticCurveTo(tw,topY,tw,topY+4);g.lineTo(bw,hipY);if(botY!==hipY){g.lineTo(hw,botY);g.lineTo(-hw,botY);}g.lineTo(-bw,hipY);g.closePath();}
-  var base={22:'#16141C',23:'#16101A',21:'#F2ECDD',5:'#B8955E',6:T.jacket,7:T.jacket,8:'#EFE8DA',9:'#C8553D',10:'#9A7B55',11:'#2E2A33',12:'#3A6EA5',13:'#23355E',14:'#F4F1EA',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#3B2420',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
+  var base={22:'#16141C',23:'#16101A',24:'#E6DEC6',25:'#F7F5FF',26:'#3E6AA8',27:'#3A463A',28:'#1E1B24',21:'#F2ECDD',5:'#B8955E',6:T.jacket,7:T.jacket,8:'#EFE8DA',9:'#C8553D',10:'#9A7B55',11:'#2E2A33',12:'#3A6EA5',13:'#23355E',14:'#F4F1EA',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#3B2420',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
   tp();g.fillStyle=base;g.fill();
   g.save();tp();g.clip();
   g.fillStyle='rgba(0,0,0,.22)';g.fillRect(d>0?-tw-1:2,topY-1,tw-1,botY-topY+2);   // 奥側の影
@@ -7558,6 +7615,37 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
       g.beginPath();g.moveTo(-6,hipY-4);g.quadraticCurveTo(0,hipY-7,6,hipY-4);g.lineTo(5,hipY-1.5);g.quadraticCurveTo(0,hipY-3.5,-5,hipY-1.5);g.closePath();g.fill();g.stroke();   // 骨盤
       g.save();g.globalCompositeOperation='lighter';g.fillStyle='rgba(150,255,170,'+(.06+.05*Math.sin(tm*2.4)).toFixed(3)+')';g.fillRect(-tw,topY,tw*2,hipY-topY);g.restore();
       break;
+    case 24:  // ミイラ（ハロウィン限定）：体じゅうに巻いた包帯と、ほどけた端
+      for(y=topY-2,i=0;y<botY+2;y+=3.6,i++){g.beginPath();g.moveTo(-tw-1,y+(i%2?1.4:-1));g.lineTo(tw+1,y+(i%2?-1:1.4));g.lineTo(tw+1,y+(i%2?1.8:4.2));g.lineTo(-tw-1,y+(i%2?4.2:1.8));g.closePath();
+        g.fillStyle=i%2?'#F2ECD8':'#D9CFB2';g.fill();g.lineWidth=.5;g.strokeStyle='rgba(120,100,60,.6)';g.stroke();}
+      g.fillStyle='rgba(110,90,50,.3)';[[-5,topY+8],[4,topY+15],[-2,hipY-4]].forEach(function(q){g.beginPath();g.arc(q[0],q[1],1.2,0,Math.PI*2);g.fill();});
+      break;
+    case 25:  // おばけのシーツ（ハロウィン限定）：ふわっとした白い布。すそは波打つ
+      g.fillStyle='#DCD6F4';g.beginPath();g.moveTo(-d*tw,topY);g.quadraticCurveTo(-d*(tw-5),hipY,-d*(tw-2),botY);g.lineTo(-d*tw-2,botY);g.lineTo(-d*tw-2,topY);g.closePath();g.fill();
+      g.strokeStyle='rgba(150,130,210,.45)';g.lineWidth=.8;[[-4,topY+6],[3,topY+9]].forEach(function(q){g.beginPath();g.moveTo(q[0],q[1]);g.quadraticCurveTo(q[0]+1.5,(q[1]+botY)/2,q[0]-1,botY-2);g.stroke();});
+      g.fillStyle='rgba(255,255,255,.8)';g.beginPath();g.ellipse(d*4,topY+5,3.5,1.6,-d*.4,0,Math.PI*2);g.fill();
+      break;
+    case 26:  // かかし（ハロウィン限定）：チェックのシャツにデニムのつなぎ、つぎあてとはみ出たわら
+      g.fillStyle='#C8553D';g.fillRect(-tw,topY,tw*2,hipY-topY);g.strokeStyle='rgba(255,220,180,.5)';g.lineWidth=1;for(i=-12;i<=12;i+=4){g.beginPath();g.moveTo(i,topY);g.lineTo(i,hipY);g.stroke();}
+      for(y=topY+2;y<hipY;y+=4){g.beginPath();g.moveTo(-tw,y);g.lineTo(tw,y);g.stroke();}
+      g.fillStyle='#3E6AA8';g.fillRect(-7,topY+7,14,hipY-topY-7);g.fillRect(-bw,hipY-6,bw*2,botY-hipY+6);
+      g.fillStyle='#2E5288';[-6,4].forEach(function(xx){g.fillRect(xx,topY,2.4,9);});
+      g.fillStyle='#E8C66A';[-4.8,5.2].forEach(function(xx){g.beginPath();g.arc(xx,topY+8,1,0,Math.PI*2);g.fill();});
+      rrPath(g,d>0?1:-5,topY+11,4.5,4.5,.8);g.fillStyle='#D9AE52';g.fill();g.setLineDash([.9,.9]);g.strokeStyle='#5A3A1E';g.lineWidth=.5;g.stroke();g.setLineDash([]);
+      g.strokeStyle='#D9AE52';g.lineWidth=.9;[[-3,topY],[0,topY-.5],[3,topY]].forEach(function(q){g.beginPath();g.moveTo(q[0],q[1]+1);g.lineTo(q[0]+(q[0]/3),q[1]-3);g.stroke();});
+      break;
+    case 27:  // フランケンのジャケット（ハロウィン限定）：くたびれた上着、縫い目とつぎあて、ぎざぎざのすそ
+      g.fillStyle='#2A342A';g.fillRect(-1.2,topY,2.4,hipY-topY);
+      g.fillStyle='#4A5A3E';rrPath(g,d>0?-9:4,topY+10,5,5,1);g.fill();
+      g.strokeStyle='#C9BFA0';g.lineWidth=.6;g.beginPath();g.moveTo(-8,topY+4);g.lineTo(-2,topY+9);g.stroke();for(i=0;i<4;i++){g.beginPath();g.moveTo(-7.6+i*1.6,topY+3.6+i*1.4);g.lineTo(-6+i*1.6,topY+6+i*1.4);g.stroke();}
+      g.fillStyle='#7A8494';[topY+6,topY+12,topY+18].forEach(function(yy){g.beginPath();g.arc(d*2.6,yy,.9,0,Math.PI*2);g.fill();});
+      g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.moveTo(-bw,hipY-1);for(x=-bw;x<=bw;x+=3)g.lineTo(x+1.5,hipY-(x%2?3:0));g.lineTo(bw,hipY+1);g.lineTo(-bw,hipY+1);g.fill();
+      break;
+    case 28:  // 黒猫スーツ（ハロウィン限定）：黒い毛並みに、白いふわふわの胸元と肉球のボタン
+      g.fillStyle='#F4F1EA';g.beginPath();g.moveTo(-5,topY);g.quadraticCurveTo(-6.5,topY+8,-3,topY+13);g.quadraticCurveTo(0,topY+16,3,topY+13);g.quadraticCurveTo(6.5,topY+8,5,topY);g.closePath();g.fill();
+      g.strokeStyle='rgba(255,255,255,.12)';g.lineWidth=.6;for(i=0;i<8;i++){x=-10+i*2.8;g.beginPath();g.moveTo(x,topY+14);g.lineTo(x+1,topY+17);g.stroke();}
+      [topY+18,hipY-3].forEach(function(yy){g.fillStyle='#FF8AB8';g.beginPath();g.arc(d*1,yy,1.3,0,Math.PI*2);g.fill();[-1,0,1].forEach(function(q){g.beginPath();g.arc(d*1+q*1.3,yy-1.6,.5,0,Math.PI*2);g.fill();});});
+      break;
     case 23:  // 吸血鬼のマント（ハロウィン限定）：黒い燕尾服に赤いベスト、金の留め金。後ろに大きなマント
       g.fillStyle='#8E1024';g.beginPath();g.moveTo(-5,topY);g.lineTo(5,topY);g.lineTo(4,hipY);g.lineTo(-4,hipY);g.closePath();g.fill();
       g.fillStyle='#F2EDE4';g.beginPath();g.moveTo(-3,topY);g.lineTo(3,topY);g.lineTo(0,topY+7);g.closePath();g.fill();
@@ -7602,7 +7690,8 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
   if(fit===18){   // 賞金稼ぎ：立てた高いえり
     g.fillStyle='#2E1B18';g.strokeStyle=OUTLINE;g.lineWidth=1;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*2.5,topY+3);g.lineTo(sd*4,topY-6);g.lineTo(sd*9,topY-3);g.lineTo(sd*7,topY+2);g.closePath();g.fill();g.stroke();});
   }
-  if(fit!==13&&fit!==16&&fit!==18&&fit!==20&&fit!==14&&fit!==10&&fit!==21&&fit!==23){g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);}   // ベルト
+  if(fit===26){g.strokeStyle='#C89A3A';g.lineWidth=1.6;g.beginPath();g.moveTo(-bw,hipY-1.5);g.lineTo(bw,hipY-1.5);g.stroke();g.beginPath();g.moveTo(d*3,hipY-1.5);g.lineTo(d*4,hipY+3);g.moveTo(d*3,hipY-1.5);g.lineTo(d*1.5,hipY+3);g.stroke();}   // かかし：縄のベルト
+  if(fit!==13&&fit!==16&&fit!==18&&fit!==20&&fit!==14&&fit!==10&&fit!==21&&fit!==23&&fit!==24&&fit!==25&&fit!==26&&fit!==28){g.fillStyle='#1C1917';g.fillRect(-bw-.5,hipY-3.5,bw*2+1,4.5);g.fillStyle='#E0B84A';g.fillRect(d*3-2.5,hipY-3.5,5,4.5);}   // ベルト
 }
 // ---- 宝箱の首もと（4〜19）。体の後ろに出る物（マント・翼・龍の尾）は drawNeckBack ----
 function drawNeckBack(g,neck,acc,t,hipY,d,wind,tm){
@@ -7655,6 +7744,23 @@ function drawNeckX(g,neck,acc,t,d,tm){
     case 4:   // 蝶ネクタイ
       g.beginPath();g.moveTo(d*1,t+2.5);g.lineTo(d*1-5,t-.5);g.lineTo(d*1-5,t+5.5);g.closePath();g.moveTo(d*1,t+2.5);g.lineTo(d*1+5,t-.5);g.lineTo(d*1+5,t+5.5);g.closePath();g.fillStyle=acc;g.fill();g.stroke();
       g.beginPath();g.arc(d*1,t+2.5,1.5,0,Math.PI*2);g.fillStyle=shadeHex(acc,-.25);g.fill();g.stroke();break;
+    case 20:  // クモの蝶ネクタイ（ハロウィン限定）：黒い蝶ネクタイの真ん中にクモ。足がうごく
+      g.beginPath();g.moveTo(d*1,t+2.5);g.lineTo(d*1-5.5,t-1);g.lineTo(d*1-5.5,t+6);g.closePath();g.moveTo(d*1,t+2.5);g.lineTo(d*1+5.5,t-1);g.lineTo(d*1+5.5,t+6);g.closePath();g.fillStyle='#1A1622';g.fill();g.stroke();
+      g.strokeStyle='#1A1622';g.lineWidth=.7;for(i=0;i<4;i++){var lg=Math.sin(tm*6+i)*.5;[-1,1].forEach(function(sd){g.beginPath();g.moveTo(d*1,t+2.5);g.lineTo(d*1+sd*3,t+.5+i*1.4+lg);g.lineTo(d*1+sd*4.2,t+2.8+i*1.5);g.stroke();});}
+      g.beginPath();g.ellipse(d*1,t+2.5,2,2.4,0,0,Math.PI*2);g.fillStyle='#2A2436';g.fill();g.lineWidth=.8;g.strokeStyle=OUTLINE;g.stroke();
+      g.fillStyle='#E0303A';g.beginPath();g.moveTo(d*1,t+1.6);g.lineTo(d*1+.8,t+2.5);g.lineTo(d*1,t+3.4);g.lineTo(d*1-.8,t+2.5);g.closePath();g.fill();break;
+    case 21:  // 鎖と南京錠（ハロウィン限定・レジェンダリー）：首に巻いた鎖と、胸の大きな金の南京錠。光が走る
+      g.lineWidth=.8;for(i=0;i<11;i++){var ca=Math.PI*(.08+.84*i/10),cx2=Math.cos(ca)*-9*d+d*1,cy2=t+Math.sin(ca)*6.5-1.5;g.beginPath();g.ellipse(cx2,cy2,1.5,1,ca+(i%2?1.57:0),0,Math.PI*2);g.strokeStyle='#8E98A8';g.lineWidth=1.1;g.stroke();}
+      g.strokeStyle=OUTLINE;g.lineWidth=1;g.beginPath();g.arc(d*1,t+8.5,2.6,Math.PI,0);g.lineWidth=1.6;g.strokeStyle='#C9A24A';g.stroke();
+      rrPath(g,d*1-4,t+8.5,8,7,1.6);g.fillStyle='#F2C14E';g.fill();g.lineWidth=1;g.strokeStyle=OUTLINE;g.stroke();
+      g.fillStyle='rgba(255,255,255,.55)';g.fillRect(d*1-3,t+9.4,2,5);
+      g.fillStyle='#5A3A10';g.beginPath();g.arc(d*1,t+11.3,1.1,0,Math.PI*2);g.fill();g.fillRect(d*1-.5,t+11.5,1,2.2);
+      var gl3=(tm*.7)%1.6;if(gl3<.4){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=1-gl3/.4;starPath(g,d*1+2.5,t+9.5,2.6,.6,4);g.fillStyle='#FFF6C8';g.fill();g.restore();}
+      break;
+    case 22:  // キャンディのネックレス（ハロウィン限定）：パステルのラムネ玉
+      for(i=0;i<11;i++){var na=Math.PI*(.08+.84*i/10);g.beginPath();g.arc(Math.cos(na)*-9*d+d*1,t+Math.sin(na)*6.5-1,1.6,0,Math.PI*2);g.fillStyle=['#FFB3D9','#B8FFD8','#FFF3A8','#A8E6FF','#D8C2FF'][i%5];g.fill();g.lineWidth=.6;g.stroke();
+        g.fillStyle='rgba(255,255,255,.8)';g.beginPath();g.arc(Math.cos(na)*-9*d+d*1-.5,t+Math.sin(na)*6.5-1.5,.5,0,Math.PI*2);g.fill();}
+      break;
     case 5:   // ネクタイ（しま）
       g.beginPath();g.moveTo(d*1-1.8,t);g.lineTo(d*1+1.8,t);g.lineTo(d*1+2.8,t+14);g.lineTo(d*1,t+17);g.lineTo(d*1-2.8,t+14);g.closePath();g.fillStyle=acc;g.fill();g.stroke();
       g.save();g.clip();g.strokeStyle=hexA(shadeHex(acc,-.35),.8);g.lineWidth=1.2;for(i=0;i<5;i++){g.beginPath();g.moveTo(d*1-4,t+2+i*3.4);g.lineTo(d*1+4,t+5+i*3.4);g.stroke();}g.restore();break;
@@ -7833,6 +7939,7 @@ function drawHat(g,hat,acc,hx,hy,r,d,wind,tm){
 }
 // ---- 宝箱の帽子（6〜23）。形は「頭の半径＝1、右向き」の座標（H.M/L/Q/C と H.at）----
 HAT_CUT[6]=[-.35,-.45];HAT_CUT[7]=[-.25,-.4];HAT_CUT[8]=[-.3,-.42];HAT_CUT[9]=[-.55,-.55];HAT_CUT[10]=[-.55,-.55];HAT_CUT[11]=[-.6,-.6];
+HAT_CUT[25]=[2,2];HAT_CUT[26]=[-.55,-.55];HAT_CUT[27]=[2,2];HAT_CUT[28]=[2,2];HAT_CUT[29]=[-.42,-.42];HAT_CUT[31]=[-.55,-.55];
 HAT_CUT[12]=[-.5,-.55];HAT_CUT[15]=[-.55,-.55];HAT_CUT[16]=[-.3,-.35];HAT_CUT[17]=[-.6,-.6];HAT_CUT[18]=[-.5,-.5];HAT_CUT[19]=[-.55,-.55];HAT_CUT[20]=[-.25,-.3];HAT_CUT[21]=[-.62,-.62];
 function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
   var p,c,i,k;
@@ -8005,6 +8112,60 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
       carve([[-.55,.18],[-.35,.3],[-.2,.2],[0,.36],[.2,.22],[.4,.34],[.62,.2],[.5,.52],[.1,.6],[-.3,.56]]);
       g.save();g.globalCompositeOperation='lighter';var gl2=g.createRadialGradient(pc[0],pc[1]+ph*.1,0,pc[0],pc[1]+ph*.1,pw*1.1);gl2.addColorStop(0,'rgba(255,170,60,'+(.18*fl2).toFixed(3)+')');gl2.addColorStop(1,'rgba(255,120,0,0)');g.fillStyle=gl2;g.fillRect(pc[0]-pw*1.2,pc[1]-ph*1.2,pw*2.4,ph*2.4);g.restore();
       break;
+    case 27:  // おばけのフード（ハロウィン限定）：頭をすっぽり包む白い布。大きな黒い目と、ぽかんと開いた口
+      var gc=H.at(0,-.12),gw=r*1.2,gh=r*1.3,bob=Math.sin(tm*2.2)*r*.03;
+      g.beginPath();g.moveTo(gc[0]-gw,gc[1]+gh*.75+bob);g.bezierCurveTo(gc[0]-gw*1.12,gc[1]-gh*.4,gc[0]-gw*.6,gc[1]-gh*1.12,gc[0]+d*gw*.1,gc[1]-gh*1.08+bob);
+      g.bezierCurveTo(gc[0]+gw*.8,gc[1]-gh*1.02,gc[0]+gw*1.12,gc[1]-gh*.3,gc[0]+gw,gc[1]+gh*.75+bob);g.closePath();paint('#F7F5FF');
+      g.save();g.clip();g.beginPath();g.ellipse(gc[0]-d*gw*.75,gc[1]+gh*.1,gw*.55,gh*1.1,0,0,Math.PI*2);g.fillStyle='#D8D2F2';g.fill();   // 奥の影
+      g.beginPath();g.ellipse(gc[0]+d*gw*.15,gc[1]-gh*.75,gw*.55,gh*.2,-d*.3,0,Math.PI*2);g.fillStyle='rgba(255,255,255,.9)';g.fill();g.restore();
+      [[.08,-.2],[.62,-.2]].forEach(function(e){var z=H.at(e[0],e[1]);g.beginPath();g.ellipse(z[0],z[1]+bob,r*.2,r*.27,0,0,Math.PI*2);g.fillStyle='#16101E';g.fill();
+        g.beginPath();g.ellipse(z[0]+d*r*.05,z[1]-r*.1+bob,r*.07,r*.08,0,0,Math.PI*2);g.fillStyle='#C88AFF';g.fill();});
+      p=H.at(.42,.32);g.beginPath();g.ellipse(p[0],p[1]+bob,r*.12,r*.16,0,0,Math.PI*2);g.fillStyle='#7A3FC0';g.fill();g.lineWidth=1;g.stroke();g.lineWidth=1.5;
+      break;
+    case 28:  // ミイラの包帯（ハロウィン限定）：ぐるぐる巻き。すき間から片目が光り、包帯の端がなびく
+      var mc=H.at(0,-.1);
+      g.beginPath();g.ellipse(mc[0],mc[1],r*1.08,r*1.1,0,0,Math.PI*2);paint('#E6DEC6');
+      g.save();g.clip();
+      for(i=0;i<7;i++){var yy=-1.15+i*.34,tilt=(i%2?.14:-.12);g.beginPath();H.M(-1.3,yy+tilt);H.L(1.3,yy-tilt);H.L(1.3,yy-tilt+.26);H.L(-1.3,yy+tilt+.26);g.closePath();
+        g.fillStyle=i%2?'#F2ECD8':'#D9CFB2';g.fill();g.lineWidth=r*.035;g.strokeStyle='rgba(120,100,60,.55)';g.stroke();}
+      g.beginPath();H.M(-1.3,-.32);H.L(1.3,-.22);H.L(1.3,-.04);H.L(-1.3,-.14);g.closePath();g.fillStyle='#2A2116';g.fill();   // 目のすき間
+      p=H.at(.5,-.13);var ge=g.createRadialGradient(p[0],p[1],0,p[0],p[1],r*.22);ge.addColorStop(0,'rgba(255,240,140,1)');ge.addColorStop(1,'rgba(255,200,60,0)');g.fillStyle=ge;g.beginPath();g.arc(p[0],p[1],r*.22,0,Math.PI*2);g.fill();
+      g.beginPath();g.arc(p[0],p[1],r*.07,0,Math.PI*2);g.fillStyle='#FFF4B0';g.fill();
+      g.fillStyle='rgba(110,90,50,.35)';[[-.4,-.7],[.2,.35],[-.6,.5]].forEach(function(q){var z=H.at(q[0],q[1]);g.beginPath();g.arc(z[0],z[1],r*.07,0,Math.PI*2);g.fill();});   // しみ
+      g.restore();g.lineWidth=1.5;g.strokeStyle=OUTLINE;g.beginPath();g.ellipse(mc[0],mc[1],r*1.08,r*1.1,0,0,Math.PI*2);g.stroke();
+      var fw=Math.sin(tm*(4+wind*6))*(.12+wind*.2);g.beginPath();H.M(-.95,-.5);H.Q(-1.4,-.45+fw,-1.75-wind*.3,-.2+fw*1.6);H.L(-1.68-wind*.3,0+fw*1.6);H.Q(-1.3,-.25+fw,-.95,-.28);g.closePath();paint('#E6DEC6');
+      break;
+    case 29:  // フランケンの頭（ハロウィン限定）：平らな黒い髪、おでこの縫い目、首のボルト
+      g.beginPath();H.M(-1.04,-.3);H.L(-1.04,-1.28);H.L(1.0,-1.28);H.L(1.0,-.5);H.L(.78,-.58);H.L(.6,-.46);H.L(.38,-.6);H.L(.16,-.48);H.L(-.1,-.62);H.L(-.4,-.5);H.L(-.7,-.6);H.L(-.9,-.36);g.closePath();paint('#1E2A1E');
+      g.save();g.clip();g.fillStyle='rgba(120,180,110,.18)';g.fillRect(hx-r*1.2,hy-r*1.3,r*2.4,r*.22);g.restore();
+      shine(-.7,-1.18,-.2,-1.24,.5,-1.18,.08);
+      g.strokeStyle='#3A2A22';g.lineWidth=r*.05;g.beginPath();H.M(.2,-.38);H.L(.86,-.32);g.stroke();
+      for(i=0;i<4;i++){var sx=.28+i*.17;g.beginPath();H.M(sx,-.46);H.L(sx+.02,-.26);g.stroke();}
+      g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+      [-1,1].forEach(function(sd){var b=H.at(sd>0?.86:-1.0,.42);rrPath(g,b[0]-(sd*d>0?0:r*.34),b[1]-r*.11,r*.34,r*.22,r*.05);g.fillStyle='#9AA4B4';g.fill();g.stroke();
+        g.fillStyle='rgba(255,255,255,.6)';g.fillRect(b[0]-(sd*d>0?0:r*.34)+r*.04,b[1]-r*.08,r*.26,r*.05);});
+      break;
+    case 30:  // 黒猫の耳（ハロウィン限定）：ときどきぴくっと動く
+      var tw=((tm%3.1)<.18)?Math.sin((tm%3.1)/.18*Math.PI)*.18:0;
+      [[-.55,-.82,-.3,0],[.28,-.9,.25,1]].forEach(function(e){
+        var z=H.at(e[0],e[1]);g.save();g.translate(z[0],z[1]);g.rotate(d*(e[2]+(e[3]?tw:-tw*.5)));
+        g.beginPath();g.moveTo(-r*.38,r*.12);g.quadraticCurveTo(-r*.3,-r*.5,r*.02,-r*.72);g.quadraticCurveTo(r*.3,-r*.4,r*.38,r*.12);g.closePath();g.fillStyle='#1C1A22';g.fill();g.stroke();
+        g.beginPath();g.moveTo(-r*.2,r*.04);g.quadraticCurveTo(-r*.16,-r*.32,r*.02,-r*.48);g.quadraticCurveTo(r*.16,-r*.28,r*.2,r*.04);g.closePath();g.fillStyle='#FF8AB8';g.fill();
+        g.restore();});
+      p=H.at(-.1,-.95);g.beginPath();g.arc(p[0],p[1],r*.1,0,Math.PI*2);g.fillStyle='#FFC53D';g.fill();g.lineWidth=1;g.stroke();g.lineWidth=1.5;   // 小さな鈴
+      break;
+    case 31:  // かかしの麦わら帽子（ハロウィン限定）：くたっとした広いつば、つぎあて、はみ出たわら
+      var sb=H.at(.04,-.58);
+      for(i=0;i<9;i++){var a=Math.PI*(.95+i*.12),sl=r*(.25+(i%3)*.08);var zx=sb[0]+Math.cos(a)*r*1.5,zy=sb[1]+Math.sin(a)*r*.25+r*.12;g.beginPath();g.moveTo(zx,zy);g.lineTo(zx+Math.cos(a+.5)*sl,zy+sl*.6);g.strokeStyle='#C89A3A';g.lineWidth=r*.06;g.stroke();}
+      g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+      g.beginPath();g.moveTo(sb[0]-r*1.7,sb[1]+r*.22);g.quadraticCurveTo(sb[0],sb[1]-r*.48,sb[0]+r*1.7,sb[1]+r*.3);g.quadraticCurveTo(sb[0],sb[1]+r*.28,sb[0]-r*1.7,sb[1]+r*.22);g.closePath();paint('#D9AE52');
+      g.beginPath();H.M(-.82,-.62);H.C(-.92,-1.3,-.5,-1.62,0,-1.56);H.C(.6,-1.6,.9,-1.25,.84,-.62);g.closePath();paint('#E6BE60');
+      g.save();g.clip();g.strokeStyle='rgba(140,100,30,.35)';g.lineWidth=r*.04;for(i=-6;i<=6;i++){g.beginPath();H.M(i*.15,-1.7);H.L(i*.15+.1,-.6);g.stroke();}
+      g.beginPath();H.M(-.84,-.62);H.L(.86,-.62);H.L(.86,-.82);H.L(-.84,-.8);g.closePath();g.fillStyle='#B83A2A';g.fill();g.restore();
+      p=H.at(.2,-1.15);rrPath(g,p[0]-r*.2,p[1]-r*.17,r*.38,r*.32,r*.03);g.fillStyle='#4A78B8';g.fill();g.lineWidth=1;g.stroke();
+      g.setLineDash([r*.06,r*.05]);g.strokeStyle='#F2E6C8';g.strokeRect(p[0]-r*.15,p[1]-r*.12,r*.28,r*.22);g.setLineDash([]);g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+      shine(-.5,-1.3,-.3,-1.48,-.08,-1.45,.07);
+      break;
     case 26:  // 魔女の帽子（ハロウィン限定）：広いつばと、後ろへ折れたとんがり。オレンジの帯と金のバックル
       var wb=H.at(.04,-.62);
       g.beginPath();g.ellipse(wb[0],wb[1],r*1.62,r*.3,-d*.06,0,Math.PI*2);paint('#2A1840');
@@ -8021,11 +8182,16 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
 //     kick=撃った反動(0〜1), flinch=撃たれたひるみ(0〜1), reload=リロードの進み(0〜1。していなければ null), rlF/rlMax=リロードのフレーム数,
 //     wind=コートのすそやスカーフのなびき(0〜1), tm=時刻（秒）}
 // 描く順番は固定：体の後ろ（スカーフの端・コートのすそ）→ 奥の腕・脚・胴 → 首もと → 頭（肌）→ 顔のパーツ（まゆげ・目・鼻・口）→ 髪 → 帽子 → 武器と手前の腕
+// スキン（ハロウィンの服）：腕・ズボン・靴の色。頭から足まで1つの見た目にそろえる
+var SKIN_TEAM={22:{jacket:'#24212C',shade:'#16141C',pants:'#16141C'},23:{jacket:'#1E1622',shade:'#140A12',pants:'#140A12'},
+  24:{jacket:'#E6DEC6',shade:'#CFC6AA',pants:'#D9CFB2',boots:'#9E9478'},25:{jacket:'#F7F5FF',shade:'#DCD6F4',pants:'#ECE8FA',boots:'#BDB4E4'},
+  26:{jacket:'#C8553D',shade:'#9A3A28',pants:'#3E6AA8',boots:'#5A3A1E'},27:{jacket:'#3A463A',shade:'#2A342A',pants:'#2A2A30'},28:{jacket:'#24212C',shade:'#1E1B24',pants:'#1E1B24',boots:'#2A2632'}};
 function drawAvatar(g,o){
   var L=o.look||LOOK_DEFAULT,T=o.team||TEAM.me,d=o.dir<0?-1:1,cr=!!o.crouch,air=!!o.air&&!cr;
   var skin=LOOK_OPTS.skin[L.skin]||LOOK_OPTS.skin[1],hairC=LOOK_OPTS.hairColor[L.hairColor]||LOOK_OPTS.hairColor[1],eyeC=LOOK_OPTS.eyeColor[L.eyeColor]||LOOK_OPTS.eyeColor[0];
   if(o.boss){skin='#8E2B25';hairC='#ECE6D6';eyeC='#FFC53D';}   // 鬼帝：赤い肌・白い髪・金の目
   var fit=L.outfit|0,hat=L.hat|0,neck=L.neck|0,acc=LOOK_OPTS.accent[L.accent]||LOOK_OPTS.accent[0];
+  if(SKIN_TEAM[fit]&&!o.boss)T=Object.assign({},T,SKIN_TEAM[fit]);   // ハロウィンのスキン：袖とズボンも服の色にそろえる
   var tm=o.tm==null?performance.now()/1000:o.tm,wind=o.wind||0;
   var bob=o.bob||0,sw=o.walk==null?0:Math.sin(o.walk)*6;
   g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
@@ -8047,6 +8213,10 @@ function drawAvatar(g,o){
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
   if(neck>=4)drawNeckBack(g,neck,acc,topY,hipY,d,wind,tm);   // マント・翼など、体の後ろに出る物
+  if(fit===28){   // 黒猫スーツ：ゆらゆら動くしっぽ
+    var tsw=Math.sin(tm*2.4)*4;g.save();g.lineCap='round';g.strokeStyle=OUTLINE;g.lineWidth=5.4;g.beginPath();g.moveTo(-d*6,hipY-2);g.quadraticCurveTo(-d*16,hipY+2,-d*(15+tsw*.3),hipY-12);g.quadraticCurveTo(-d*(14+tsw),hipY-20,-d*(19+tsw),hipY-22);g.stroke();
+    g.strokeStyle='#1E1B24';g.lineWidth=3.6;g.stroke();g.restore();
+  }
   if(fit===23){   // 吸血鬼のマント：肩から大きく広がり、すそがぎざぎざ。裏地は赤
     var cf=5+wind*9+Math.sin(tm*2.6)*2;g.save();g.lineJoin='round';g.strokeStyle=OUTLINE;g.lineWidth=1.5;
     g.beginPath();g.moveTo(d*8,topY+1);g.quadraticCurveTo(-d*(16+cf*.5),topY+14,-d*(15+cf),topY+38);g.lineTo(-d*(10+cf*.7),topY+34);g.lineTo(-d*(6+cf*.5),topY+39);g.lineTo(-d*(1+cf*.3),topY+34);g.lineTo(d*3,topY+38);g.quadraticCurveTo(d*2,topY+18,d*8,topY+1);g.closePath();
