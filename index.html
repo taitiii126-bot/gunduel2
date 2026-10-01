@@ -4684,7 +4684,7 @@ var TIER_LADDER=[
   {key:'HT3',color:'#B983FF'},   // 金＋ルビー（紫水晶）
   {key:'LT2',color:'#C81E3A'},   // 深紅＋銀
   {key:'HT2',color:'#4FAEFF'},   // 深紅＋金（青い炎）
-  {key:'LT1',color:'#E8C66A'},   // 黒＋金
+  {key:'LT1',color:'#3FD8C8'},   // ターコイズ＋サンゴ
   {key:'HT1',color:'#FFF4D6'}    // 白金
 ];
 // CPU戦の到達度（0〜10）。称号・背景の解放と、ランクマッチを始めるまでのレートの下限に使う
@@ -8745,7 +8745,7 @@ var TIER_BG=[
   {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards',flat:'planet',em:'planet'},    // HT3：紫水晶・トランプ・宝石のかけら
   {c:['#A3172D','#3F0812','#0A0103'],glow:'#FF7182',acc:'#FFD6DC',pat:'roses',  par:'petals',flat:'flames',em:'flames'},    // LT2：深紅・バラ・花びら
   {c:['#1348A8','#08204E','#01040E'],glow:'#56CCFF',acc:'#D4F3FF',pat:'flames', par:'embers',flat:'lightning',em:'bolt'},    // HT2：青い炎・炎・火の粉
-  {c:['#2E271A','#110D08','#030201'],glow:'#FFD470',acc:'#FFE7A6',pat:'deco',   par:'golddust',flat:'skull',em:'skull'},  // LT1：漆黒と金・アールデコ・金の粉
+  {c:['#0C6A6A','#04363A','#011416'],glow:'#7FE8D8',acc:'#C8FFF4',pat:'deco',   par:'golddust',flat:'sundisk',em:'sundisk'},  // LT1：漆黒と金・アールデコ・金の粉
   {c:['#D8D4EA','#6C678A','#12101C'],glow:'#FFFFFF',acc:'#FFFFFF',pat:'prism',  par:'rainbow',flat:'gold',em:'guns'}    // HT1：白金・光の放射と虹・虹色の粒
 ];
 // 紋章：どのティアも同じ六角形のバッジ。色は背景と同じティアの色、縁はティアの金属、真ん中に背景の模様と同じ記号を1つ
@@ -8846,6 +8846,10 @@ function emGlyph(g,pat,idx,tm){
   case 'planet':  // 輪のある惑星
     g.beginPath();g.arc(0,0,9,0,Math.PI*2);g.fill();
     g.save();g.rotate(-.35);g.beginPath();g.ellipse(0,0,16,4.5,0,0,Math.PI*2);g.lineWidth=2.2;g.stroke();g.restore();break;
+  case 'sundisk': // 太陽の円盤
+    for(i=0;i<12;i++){a=i*Math.PI/6;g.beginPath();g.moveTo(Math.cos(a-.2)*11,Math.sin(a-.2)*11);g.lineTo(Math.cos(a)*16,Math.sin(a)*16);g.lineTo(Math.cos(a+.2)*11,Math.sin(a+.2)*11);g.closePath();g.fill();}
+    g.beginPath();g.arc(0,0,10,0,Math.PI*2);g.fill();
+    g.globalCompositeOperation='destination-out';g.lineWidth=1.6;g.beginPath();g.arc(0,0,6.5,0,Math.PI*2);g.stroke();g.globalCompositeOperation='source-over';break;
   case 'prism':   // 虹色の王冠
     var rg=g.createLinearGradient(-15,0,15,0);for(i=0;i<=6;i++)rg.addColorStop(i/6,'hsl('+((i*60+tm*60)%360)+',90%,82%)');
     g.fillStyle=rg;g.beginPath();g.moveTo(-15,11);g.lineTo(-15,-8);g.lineTo(-7,0);g.lineTo(0,-14);g.lineTo(7,0);g.lineTo(15,-8);g.lineTo(15,11);g.closePath();g.fill();
@@ -9349,10 +9353,39 @@ function flatPlanet(g,w,h,tm,lw){
   g.fillStyle='#3A1266';g.beginPath();g.moveTo(0,h*.66);[[.08,.6],[.24,.6],[.28,.66],[.6,.68],[.64,.56],[.82,.56],[.86,.64],[1,.66]].forEach(function(p){g.lineTo(w*p[0],h*p[1]);});g.lineTo(w,h);g.lineTo(0,h);g.closePath();g.fill();
   g.fillStyle='#1E0838';g.beginPath();g.moveTo(0,h*.76);g.quadraticCurveTo(w*.5,h*.7,w,h*.78);g.lineTo(w,h);g.lineTo(0,h);g.closePath();g.fill();
 }
+// LT1：ターコイズとサンゴ色。回る太陽の円盤（石の暦）
+function flatSunDisk(g,w,h,tm,lw){
+  g.fillStyle='#04363A';g.fillRect(0,0,w,h);
+  var cx=w*.5,cy=h*.38,i,ink='#022326';
+  g.save();g.translate(cx,cy);g.rotate(-tm*.05);g.fillStyle='#075055';
+  for(i=0;i<16;i++){var a=i*Math.PI/8;g.beginPath();g.moveTo(0,0);g.arc(0,0,h*1.2,a-.1,a+.1);g.closePath();g.fill();}
+  g.restore();
+  flatSpot(g,cx,cy,w*.62,'rgba(120,255,230,.22)');
+  var R=w*.56;
+  // 外側のとがった光（サンゴ色）
+  g.save();g.translate(cx,cy);g.rotate(tm*.12);
+  for(i=0;i<16;i++){g.save();g.rotate(i*Math.PI/8);g.beginPath();g.moveTo(-R*.11,-R*.86);g.lineTo(0,-R*1.08);g.lineTo(R*.11,-R*.86);g.closePath();g.fillStyle=i%2?'#FF7A5C':'#FFC53D';g.fill();g.lineWidth=lw;g.strokeStyle=ink;g.stroke();g.restore();}
+  g.restore();
+  // 円盤（外から内へ、3色の輪）
+  [[.88,'#18A3A0'],[.74,'#0C7C7C'],[.6,'#7FE8D8'],[.5,'#18A3A0']].forEach(function(r){g.beginPath();g.arc(cx,cy,R*r[0],0,Math.PI*2);g.fillStyle=r[1];g.fill();g.lineWidth=lw;g.strokeStyle=ink;g.stroke();});
+  // 輪の模様：逆向きに回る四角と三角
+  g.save();g.translate(cx,cy);g.rotate(-tm*.18);
+  for(i=0;i<24;i++){g.save();g.rotate(i*Math.PI/12);g.fillStyle=i%2?'#FFC53D':'#FF7A5C';g.fillRect(-R*.035,-R*.84,R*.07,R*.07);g.restore();}
+  g.restore();
+  g.save();g.translate(cx,cy);g.rotate(tm*.25);
+  for(i=0;i<12;i++){g.save();g.rotate(i*Math.PI/6);g.beginPath();g.moveTo(-R*.07,-R*.5);g.lineTo(0,-R*.62);g.lineTo(R*.07,-R*.5);g.closePath();g.fillStyle='#04363A';g.fill();g.restore();}
+  g.restore();
+  // 真ん中の太陽
+  starPath(g,cx,cy,R*.4,R*.26,8);g.fillStyle='#FFC53D';g.fill();g.lineWidth=lw;g.strokeStyle=ink;g.stroke();
+  g.beginPath();g.arc(cx,cy,R*.24,0,Math.PI*2);g.fillStyle='#FF7A5C';g.fill();g.stroke();
+  g.beginPath();g.arc(cx-R*.05,cy-R*.05,R*.13,0,Math.PI*2);g.fillStyle='#FFB08A';g.fill();
+  for(i=0;i<14;i++){var t=(tm*.2+i*.107)%1;g.globalAlpha=Math.sin(t*Math.PI);g.fillStyle=i%2?'#7FE8D8':'#FFC53D';flatStar4(g,w*((i*.33+.04)%1),h*(.95-t*.88),w*(.009+.008*(i%3)));g.fill();}
+  g.globalAlpha=1;
+}
 function drawFlatScene(g,kind,x,y,w,h,tm){
   var lw=Math.max(1,w*.008);
   g.save();g.translate(x,y);
-  ({flames:flatFlames,sunset:flatSunset,waves:flatWaves,moon:flatMoon,gears:flatGears,tornado:flatTornado,sheriff:flatSheriff,cards:flatCards,lightning:flatLightning,gold:flatGold,holo:flatHolo,crystals:flatCrystals,stage:flatStage,wings:flatWings,skull:flatSkull,planet:flatPlanet}[kind]||flatMoon)(g,w,h,tm,lw);
+  ({flames:flatFlames,sunset:flatSunset,waves:flatWaves,moon:flatMoon,gears:flatGears,tornado:flatTornado,sheriff:flatSheriff,cards:flatCards,lightning:flatLightning,gold:flatGold,holo:flatHolo,crystals:flatCrystals,stage:flatStage,wings:flatWings,skull:flatSkull,planet:flatPlanet,sundisk:flatSunDisk}[kind]||flatMoon)(g,w,h,tm,lw);
   g.restore();
 }
 function drawTierBg(g,idx,x,y,w,h,tm){
