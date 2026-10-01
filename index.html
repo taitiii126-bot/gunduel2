@@ -12376,7 +12376,8 @@ function drawBgFx(tm){
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
- partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
+ showEventScreen,evBuy,mpFocus].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得
