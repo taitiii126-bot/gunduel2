@@ -4,11 +4,18 @@
 const fs = require('fs'), path = require('path');
 const JO = require('javascript-obfuscator');
 const root = path.join(__dirname, '..'), out = path.join(root, 'dist');
+// 毎日ちがう形にする（日付＝日本時間から種を決める）。BUILD_SEED で指定もできる
+const day = new Date(Date.now() + 9 * 3600e3).toISOString().slice(0, 10);
+const seed = process.env.BUILD_SEED || day;
+let seedNum = 0;
+for (const ch of seed) seedNum = (seedNum * 31 + ch.charCodeAt(0)) >>> 0;
 const opts = {
-  compact: true, target: 'browser',
+  seed: seedNum, compact: true, target: 'browser',
+  // 開発者ツールを開くと、止まる命令（debugger）がくり返し動いて、ブレークポイントでの書き換えをやりにくくする
+  debugProtection: true, debugProtectionInterval: 2000,
   identifierNamesGenerator: 'hexadecimal', renameGlobals: false,   // HTML の onclick などから呼ぶ名前は残す
   stringArray: true, stringArrayEncoding: ['base64'], stringArrayThreshold: 0.75, rotateStringArray: true, shuffleStringArray: true,
-  splitStrings: false, controlFlowFlattening: false, deadCodeInjection: false, selfDefending: false, debugProtection: false,
+  splitStrings: false, controlFlowFlattening: false, deadCodeInjection: false, selfDefending: false,
   transformObjectKeys: false, unicodeEscapeSequence: false, numbersToExpressions: false, simplify: true,
 };
 const ob = (code, extra) => JO.obfuscate(code, Object.assign({}, opts, extra || {})).getObfuscatedCode();
@@ -25,4 +32,4 @@ html = html.replace(/<script>([\s\S]*?)<\/script>/g, (m, code) => '<script>' + o
 html = html.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');   // HTML のコメントも消す
 fs.writeFileSync(path.join(out, 'index.html'), html);
 for (const f of fs.readdirSync(root)) if (/\.(png|jpg|jpeg|gif|svg|ico|webp|mp3|ogg|wav|woff2?|json|txt|webmanifest)$/i.test(f) && f !== 'users.json' && f !== 'package.json') fs.copyFileSync(path.join(root, f), path.join(out, f));
-console.log('dist/ を作りました：', fs.readdirSync(out).join(', '));
+console.log('dist/ を作りました（' + seed + '）：', fs.readdirSync(out).join(', '));
