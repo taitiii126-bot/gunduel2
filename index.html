@@ -2059,6 +2059,30 @@ body:not([data-scr="game-screen"]) #fps-meter{display:none!important;}
 .kb-hint{display:block;margin-top:2px;font-size:11px;font-weight:600;color:var(--tx-3);letter-spacing:0;}
 /* 窓を開いている間は、右上の設定・音のボタンを隠す（窓の閉じるボタンと重ならないように） */
 body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
+/* ---- ホーム（見た目の整理）：左はアイコンの小さな列にして、真ん中のキャラを大きく見せる ---- */
+@media (min-width:1000px){
+  .home-main{grid-template-columns:96px minmax(0,1fr) 420px;column-gap:24px;}
+  .home-side{gap:8px;}
+  .home-side .side-btn{flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:10px 4px 9px;font-size:11px;font-weight:800;letter-spacing:.02em;text-align:center;line-height:1.15;}
+  .home-side .side-btn .sb-ic{width:36px;height:36px;}
+  .home-side .side-btn svg.i{width:27px;height:27px;}
+  .home-side .side-btn canvas{width:38px;height:38px;}
+  .home-side .side-btn .ev-tx{align-items:center;}
+  .home-side .side-btn .ev-tx small{font-size:10px;}
+  .home-side .mb-badge{top:-6px;right:-8px;}
+  .home-hero{height:min(72vh,660px);}
+}
+body.mland .home-main{grid-template-columns:124px minmax(0,1fr) minmax(0,1.15fr);}
+body.mland .home-side{grid-template-columns:1fr 1fr;gap:5px;align-content:center;}
+body.mland .play-btn b{font-size:clamp(16px,4.6vh,22px);white-space:nowrap;}
+body.mland .play-btn small{font-size:10px;}   /* 横持ちのスマホ：アイコンを2列にして、縦に収める */
+body.mland .home-side .side-btn{flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:6px 2px;min-height:58px;font-size:9px;text-align:center;line-height:1.1;}
+body.mland .home-side .side-btn .sb-ic{width:24px;height:24px;}
+body.mland .home-side .side-btn svg.i{width:20px;height:20px;}
+body.mland .home-side .side-btn canvas{width:26px;height:26px;}
+body.mland .home-side .side-btn .ev-tx{align-items:center;}
+body.mland .home-side .side-btn .ev-tx small{display:none;}
+body.mland .home-hero{height:72vh;}
 </style>
 </head>
 <body>
@@ -2600,7 +2624,7 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=44"></script>
-<script src="lang.js?v=49"></script>
+<script src="lang.js?v=50"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
