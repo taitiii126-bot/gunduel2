@@ -1019,7 +1019,7 @@ function handleHttp(req, res) {
       if (r && r.forged && r.forged.length) onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, '保存した記録を書き換えた（サーバーの記録よりありえないほど多い）：' + r.forged.join(','), null, auth.AUTO_BAN_FLAGS);
       if (r) delete r.forged;   // 何で見つかったかは本人に返さない
       json(res, 200, r);
-    });
+    }, 16384);   // 称号が増えても入りきるように
   }
   // 宝箱を開ける（POST { op:'open' }）／デイリーミッションの報酬を受け取る（POST { op:'claim', i }）。中身はサーバーが決める
   if (url === '/api/crate' && req.method === 'POST') {

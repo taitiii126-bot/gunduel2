@@ -573,6 +573,8 @@ const auth = {
     const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
     const forged = P.forgeCheck(old, inc, Date.now() - (u.profileAt || 0), ctx, JOKE_TITLES);   // 呼んだ側（server.js）がBANする
     let next = merged ? P.merge(old, inc) : inc;
+    // 別の端末と同時に変えていたとき：この端末で変えていない見た目などは、サーバーの新しい方を残す（古い端末で上書きしない）
+    if (merged && raw && Array.isArray(raw.edits)) for (const k of P.EDIT_KEYS) if (!raw.edits.includes(k)) next[k] = old[k];
     keepServerOwned(next, old, u);   // 持ち物・開けた数・試合の記録などは、ブラウザから届いた値を使わない
     if (raw && Number.isFinite(+raw.tzo) && Math.abs(+raw.tzo) <= 840) u.tzo = Math.round(+raw.tzo);   // 時差（称号「夜更かし」の時刻に使う）
     // 一瞬で記録がそろうのはおかしいので、増えすぎた分は前の値に戻す

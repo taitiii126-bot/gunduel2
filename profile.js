@@ -240,4 +240,6 @@ function cpuTotals(p) {
   return { w, l };
 }
 
-module.exports = { DIFFS, TIER_KEYS, TIER_COLORS, text, tierIndex, clean, merge, cpuTotals, validTitle, limitGrowth, forgeCheck };
+// 自分で選ぶ見た目など（端末どうしで同時に変えたとき、変えた方の値を残すもの）
+const EDIT_KEYS = ['name', 'bio', 'title', 'look', 'loadout', 'bg', 'emo', 'badge'];
+module.exports = { EDIT_KEYS, DIFFS, TIER_KEYS, TIER_COLORS, text, tierIndex, clean, merge, cpuTotals, validTitle, limitGrowth, forgeCheck };

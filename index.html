@@ -5213,9 +5213,21 @@ function copyFid(btn){
 var SYNC={acc:'',rev:0,dirty:false,seq:0,busy:false,timer:null,state:''};
 try{var _sy=JSON.parse(localStorage.getItem('gunduel_sync')||'null');if(_sy&&typeof _sy==='object'){SYNC.acc=String(_sy.acc||'');SYNC.rev=+_sy.rev||0;SYNC.dirty=!!_sy.dirty;}}catch(e){}
 function saveSyncMeta(){try{localStorage.setItem('gunduel_sync',JSON.stringify({acc:SYNC.acc,rev:SYNC.rev,dirty:SYNC.dirty}));}catch(e){}}
+// 自分で選ぶ見た目など（別の端末と同時に変えたときは、変えた方の値を残す）
+var EDIT_KEYS=['name','bio','title','look','loadout','bg','emo','badge'];
+function editVals(){ensureProfileShape();return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,emo:profile.emo,badge:profile.badge==null?null:profile.badge};}
+// 最後にサーバーとそろえたときの値。ここから変わったものだけを「この端末で変えた」としてサーバーに知らせる
+function syncBaseKey(){return 'gunduel_syncbase@'+(STORE_ACC||'');}
+function setSyncBase(v){try{localStorage.setItem(syncBaseKey(),JSON.stringify(v||editVals()));}catch(e){}}
+function syncEdits(){
+  var b=null;try{b=JSON.parse(localStorage.getItem(syncBaseKey())||'null');}catch(e){}
+  if(!b||typeof b!=='object')return null;   // 前の版から使っている端末：全部送る（今までどおり）
+  var v=editVals();return EDIT_KEYS.filter(function(k){return JSON.stringify(v[k])!==JSON.stringify(b[k]);});
+}
 function profileDoc(){
   ensureProfileShape();
-  return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
+  var ed=syncEdits();
+  return{edits:ed||undefined,badge:profile.badge==null?null:profile.badge,name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
     xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea,tzo:new Date().getTimezoneOffset()};   // 持ち物・開けた数・試合の記録はサーバーが決める（送っても使われない）
 }
 function profileChanged(){if(!STORE_ACC)return;SYNC.dirty=true;SYNC.seq++;saveSyncMeta();pushProfileSoon(1500);}
@@ -5229,16 +5241,16 @@ function pushProfile(){
   if(!AUTH.user||!AUTH.token||!SYNC.dirty)return;
   if(SYNC.busy){pushProfileSoon(800);return;}
   SYNC.busy=true;
-  var seq=SYNC.seq,tok=AUTH.token;
+  var seq=SYNC.seq,tok=AUTH.token,doc=profileDoc(),sent=editVals();
   setSyncState('saving');
   fetch(httpBase()+'/api/profile',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},
-    body:JSON.stringify({base:SYNC.rev,profile:profileDoc()})})
+    body:JSON.stringify({base:SYNC.rev,profile:doc})})
     .then(function(r){if(!r.ok)throw r.status;return r.json();})
     .then(function(d){
       SYNC.busy=false;
       if(tok!==AUTH.token)return;
       SYNC.rev=+d.rev||SYNC.rev;
-      if(seq===SYNC.seq){SYNC.dirty=false;if(d.merged&&d.profile)adoptProfile(d.profile);}
+      if(seq===SYNC.seq){SYNC.dirty=false;if(d.merged&&d.profile)adoptProfile(d.profile);else setSyncBase(sent);}
       if(d.profile&&!d.merged)srvAdopt(d.profile);   // 試合の記録・称号・ミッションはサーバーの値に合わせる
       saveSyncMeta();
       if(SYNC.dirty)pushProfileSoon(300);else setSyncState('saved');
@@ -5254,12 +5266,22 @@ function pushProfile(){
 // サーバーの内容で手元を置きかえる（送り返さない）
 function adoptProfile(p){
   if(!p||typeof p!=='object')return;
-  ['name','bio','title','look','bg','bestTier','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['name','bio','title','look','bg','badge','bestTier','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
-  ensureProfileShape();writeProfileLocal();refreshProfileViews();
+  ensureProfileShape();writeProfileLocal();setSyncBase();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
 }
 // ログインしたとき・ページを開いたとき：サーバーのプロフィールと手元を合わせる
+// 開いたままの端末も、ときどきサーバーの内容を見に行く（別の端末で遊んだ分・変えた見た目を取り込む）
+var syncPollT=0;
+function syncPoll(){
+  if(!AUTH.token||document.hidden||currentScreen==='game-screen')return;
+  if(Date.now()-syncPollT<20000)return;
+  syncPollT=Date.now();refreshMe();
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden){syncPollT=0;syncPoll();}});
+window.addEventListener('focus',function(){syncPoll();});
+setInterval(function(){if(Date.now()-syncPollT>=90000)syncPoll();},15000);
 function syncOnLogin(d){
   var acc=d&&d.user&&d.user.fid||'';if(!acc)return;
   var rev=+d.rev||0,fresh=!hasAccStore(acc);
@@ -5279,6 +5301,7 @@ function syncOnLogin(d){
   if(d.profile){var kt=profile.title,kb=profile.bg;srvAdopt(d.profile);if(SYNC.dirty){profile.title=kt;profile.bg=kb;writeProfileLocal();}}
   adoptRate(d.user);
   saveSyncMeta();
+  if(!SYNC.dirty&&d.profile)setSyncBase();   // サーバーとそろっている：ここを基準に、この端末で変えた物を数える
   if(SYNC.dirty)pushProfileSoon(0);else setSyncState('saved');
 }
 // レートはサーバーが本物。ログイン中はサーバーの値に合わせる（手元の値は上書きされる）
@@ -7046,8 +7069,10 @@ function cvMatchEnd(){
 // サーバーが決めた試合の記録で、手元を置きかえる（CPU戦を確かめた結果・オンライン対戦の結果）
 function srvAdopt(p,rev){
   if(!p||typeof p!=='object')return;
-  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','title','bg','misCrates','misChaos','coins','pass','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
-  if(rev){SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();}
+  // 手元に送っていない変更がなければ、別の端末で変えた見た目なども含めて、サーバーの内容にそろえる
+  if(rev&&STORE_ACC&&!SYNC.dirty){adoptProfile(p);SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();renderHomeEco();return;}
+  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','title','bg','inv','opened','pity','chaosOpened','misCrates','misChaos','coins','pass','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  // 版の番号は進めない（進めると、別の端末の変更を見ないまま「最新」と思い込み、古い見た目で上書きしてしまう）
   ensureProfileShape();writeProfileLocal();renderHomeEco();
   if(currentScreen==='profile-screen')renderProfileUI();
 }
