@@ -11649,7 +11649,7 @@ function rrPathCtx(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r
 function drawPlatArt(th,p,sx3){
   if(th.id==='western'){drawPlankArt(p,sx3);return;}
   if(th.id==='city'){drawBeamArt(p,sx3);return;}
-  var A=PLAT_ART[th.id]||PLAT_ART.night,x=sx3,y=p.y,w=p.w,H=p.h+6,tp=A.taper||0,seed=p.x*1.31+p.y;
+  var A=PLAT_ART[th.id]||PLAT_ART.night,x=sx3,y=p.y,w=p.w,H=p.h,tp=0,seed=p.x*1.31+p.y;   // 固く見える部分は、当たり判定と同じ厚さだけ（下に伸ばすと、弾や頭がすり抜けて見える）
   // 影（下にふんわり）
   ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x+w/2,y+H+tp+5,w*.42,4,0,0,Math.PI*2);ctx.fill();
   // 本体：上は四角、下は岩のようにすぼまる
@@ -11699,7 +11699,7 @@ function drawPlatArt(th,p,sx3){
 }
 // 西部劇：太い板2枚を鉄の金具で留めた足場。下に支え・ランタン
 function drawPlankArt(p,sx3){
-  var x=sx3,y=p.y,w=p.w,H=p.h+5,L='#2A170A';
+  var x=sx3,y=p.y,w=p.w,H=p.h,L='#2A170A';   // 板の厚さは当たり判定と同じ
   ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x+w/2,y+H+16,w*.4,3.5,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=L;ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();   // 支え（ななめの柱）
   ctx.moveTo(x+14,y+H-2);ctx.lineTo(x+28,y+H+13);ctx.moveTo(x+w-14,y+H-2);ctx.lineTo(x+w-28,y+H+13);ctx.stroke();
@@ -11723,8 +11723,7 @@ function drawPlankArt(p,sx3){
 function drawBeamArt(p,sx3){
   drawBeam(p,sx3);
   var x=sx3,y=p.y,w=p.w,H=p.h;
-  ctx.fillStyle='#1A1D26';ctx.fillRect(x+2,y+H,w-4,4);   // 下のフランジ
-  ctx.strokeStyle='#0C0D12';ctx.lineWidth=1.4;ctx.strokeRect(x+.5,y+.5,w-1,H+3);
+  ctx.strokeStyle='#0C0D12';ctx.lineWidth=1.4;ctx.strokeRect(x+.5,y+.5,w-1,H-1);
   ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(x+10,y+H*.5,w-20,1);
 }
 // ハロウィン：足場の上のかぼちゃと、空を飛ぶコウモリ（見た目だけ。当たり判定はない）
@@ -11818,10 +11817,20 @@ function hudHpBar(x,y,w,h,c,right,num){
   ctx.restore();
 }
 // 画面上の左右：名前・体力・取ったラウンド。chars＝その陣営のキャラ（2v2 は2人）
+// 上の体力バーの裏にキャラがいるか（ズームしていても画面上の位置で調べる）
+function hudHides(left,w,h){
+  var z=CAMZ.z||1,list=zoomChars();
+  for(var i=0;i<list.length;i++){var c=list[i];if(!c||c.dead)continue;
+    var sx=(wx(c.x)-CAMZ.x)*z,sy=(c.y-CAMZ.y)*z,sw=CHAR_W*z,sh=CHAR_H*z;
+    var hx0=left?0:VW-w,hx1=left?w:VW;
+    if(sx<hx1&&sx+sw>hx0&&sy<h+4)return true;}
+  return false;
+}
 function drawHudSide(left,label,sub,wins,col,chars){
   chars=(chars||[]).filter(Boolean);
   var two=chars.length>1,w=262,h=two?62:58,x0=left?0:VW,s=left?1:-1,tx=x0+s*16;
   ctx.save();
+  if(hudHides(left,w,h))ctx.globalAlpha=.32;   // 裏にキャラがいるときは、すけさせて見えるようにする
   ctx.beginPath();ctx.moveTo(x0,0);ctx.lineTo(x0+s*w,0);ctx.lineTo(x0+s*(w-22),h);ctx.lineTo(x0,h);ctx.closePath();
   var g=ctx.createLinearGradient(x0,0,x0+s*w,0);g.addColorStop(0,'rgba(6,8,14,.92)');g.addColorStop(1,'rgba(6,8,14,.3)');ctx.fillStyle=g;ctx.fill();
   ctx.fillStyle=col;ctx.fillRect(left?0:VW-3,0,3,h);
