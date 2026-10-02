@@ -7683,14 +7683,20 @@ function lookColors(look,team){
 }
 function avLimb(g,pts,w,col){
   g.lineCap='round';g.lineJoin='round';
-  g.beginPath();g.moveTo(pts[0],pts[1]);for(var i=2;i<pts.length;i+=2)g.lineTo(pts[i],pts[i+1]);
-  g.strokeStyle=OUTLINE;g.lineWidth=w+3;g.stroke();
+  var path=function(ox,oy){g.beginPath();g.moveTo(pts[0]+ox,pts[1]+oy);for(var i=2;i<pts.length;i+=2)g.lineTo(pts[i]+ox,pts[i+1]+oy);};
+  path(0,0);g.strokeStyle=OUTLINE;g.lineWidth=w+3;g.stroke();
   g.strokeStyle=col;g.lineWidth=w;g.stroke();
+  if(typeof col!=='string'||col.charAt(0)!=='#')return;
+  // アニメ塗り：左下に影、右上にふちの光（光は右上から当たる）
+  path(-w*.2,w*.2);g.strokeStyle=shadeHex(col,-.28);g.lineWidth=w*.42;g.stroke();
+  path(w*.24,-w*.24);g.strokeStyle=shadeHex(col,.3);g.lineWidth=w*.22;g.stroke();
 }
 function avBoot(g,x,y,d,col){
   var x0=d>0?x-5:x-7;
-  rrPath(g,x0,y-7,12,7,2.5);g.fillStyle=col;g.fill();g.lineWidth=1.5;g.strokeStyle=OUTLINE;g.stroke();
-  g.fillStyle='rgba(255,255,255,.18)';g.fillRect(x0+2,y-6,8,1.4);
+  rrPath(g,x0,y-7,12,7,2.5);g.fillStyle=col;g.fill();
+  g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x0+1,y-2.2,10,1.6);   // 靴底
+  g.fillStyle='rgba(255,255,255,.22)';g.fillRect(x0+2,y-6,8,1.4);
+  rrPath(g,x0,y-7,12,7,2.5);g.lineWidth=1.5;g.strokeStyle=OUTLINE;g.stroke();
 }
 // ---- 試合中の細かい動き（反動・リロード）----
 // 撃った反動：[後ろへ下がる量, 銃口がはね上がる角度（ラジアン）]
@@ -8526,15 +8532,88 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
 //     wind=コートのすそやスカーフのなびき(0〜1), tm=時刻（秒）}
 // 描く順番は固定：体の後ろ（スカーフの端・コートのすそ）→ 奥の腕・脚・胴 → 首もと → 頭（肌）→ 顔のパーツ（まゆげ・目・鼻・口）→ 髪 → 帽子 → 武器と手前の腕
 // スキン（ハロウィンの服）：腕・ズボン・靴の色。頭から足まで1つの見た目にそろえる
-var SKIN_TEAM={22:{jacket:'#24212C',shade:'#16141C',pants:'#16141C'},23:{jacket:'#1E1622',shade:'#140A12',pants:'#140A12'},
+var SKIN_TEAM={
+  5:{jacket:'#C9A46A',shade:'#A08050',pants:'#5A4A3A',boots:'#3A2818',glove:'#8C6A3C'},   // 金鉱掘り：ネルの袖・作業ズボン・革手袋
+  6:{pants:'#34507A',boots:'#4A2E18'},                                                    // チェックシャツ（袖はチームの色のチェック）・ジーンズ
+  7:{pants:'#24242C',boots:'#E8E8EE'},                                                    // ジャージ・白いスニーカー
+  8:{jacket:'#EFE8DA',shade:'#CFC6B4',pants:'#3A5A86',boots:'#6B4423'},                   // 保安官：白いシャツの袖・ジーンズ・茶のブーツ
+  9:{jacket:'#C8553D',shade:'#9A3A28',pants:'#7A6A52',boots:'#4A2E18'},                   // ポンチョ
+  10:{jacket:'#9A7B55',shade:'#7A5E3E',pants:'#4A3A2C',boots:'#3A2818',glove:'#5A3A1E'},  // ダスターコート
+  11:{jacket:'#2E2A33',shade:'#1E1B22',pants:'#3A3440',boots:'#1C1917',glove:'#1C1917'},  // 列車強盗
+  12:{pants:'#3A6EA5',boots:'#6B4423'},                                                   // オーバーオール（シャツはチームの色）
+  13:{jacket:'#23355E',shade:'#18264A',pants:'#3A4F7A',boots:'#14141A',glove:'#F2ECDD'},  // 騎兵隊
+  14:{jacket:'#F4F1EA',shade:'#D8D2C4',pants:'#1C1A22',boots:'#3A2818'},                  // チャロ
+  15:{jacket:'#9A2020',shade:'#701414',pants:'#E8DCC0',boots:'#1C1917'},                  // 海賊
+  16:{jacket:'#9AA4B4',shade:'#6E7888',pants:'#7E8898',boots:'#5A6272',glove:'#B8C0CC'},  // 騎士の鎧：腕も脚も鎧
+  17:{jacket:'#E6B94A',shade:'#B88A20',pants:'#1C1A22',boots:'#0E0E12',glove:'#F4F1EA'},  // 金のタキシード：白い手袋
+  18:{jacket:'#3B2420',shade:'#2A1814',pants:'#3A3036',boots:'#1C1410',glove:'#2A1814'},  // 賞金稼ぎ
+  19:{jacket:'#8E1230',shade:'#640A20',pants:'#2A1A30',boots:'#1C1917',glove:'#F2ECDD'},  // 王のローブ
+  20:{jacket:'#14122A',shade:'#0B0A1E',pants:'#0E0C1C',boots:'#07060F',glove:'#3A1E5A'},  // 冥王の鎧
+  21:{jacket:'#F2ECDD',shade:'#D6CEB8',pants:'#3A3440',boots:'#6B4423',glove:'#6B4423'},  // 伝説の保安官
+  22:{jacket:'#24212C',shade:'#16141C',pants:'#16141C'},23:{jacket:'#1E1622',shade:'#140A12',pants:'#140A12'},
   24:{jacket:'#E6DEC6',shade:'#CFC6AA',pants:'#D9CFB2',boots:'#9E9478'},25:{jacket:'#F7F5FF',shade:'#DCD6F4',pants:'#ECE8FA',boots:'#BDB4E4'},
-  26:{jacket:'#C8553D',shade:'#9A3A28',pants:'#3E6AA8',boots:'#5A3A1E'},27:{jacket:'#3A463A',shade:'#2A342A',pants:'#2A2A30'},28:{jacket:'#24212C',shade:'#1E1B24',pants:'#1E1B24',boots:'#2A2632'}};
+  26:{jacket:'#C8553D',shade:'#9A3A28',pants:'#3E6AA8',boots:'#5A3A1E',glove:'#E8C66A'},27:{jacket:'#3A463A',shade:'#2A342A',pants:'#2A2A30',glove:'#5E7A4A'},28:{jacket:'#24212C',shade:'#1E1B24',pants:'#1E1B24',boots:'#2A2632',glove:'#1E1B24'}};
+var SKIN_TEAM_SLEEVE={6:1,7:1,12:1};   // 袖はチームの色のまま（服の柄としてチームの色を使う物）
+// ---- アニメ塗り（服と帽子）：光は右上から。奥側と下に影、手前の肩とふちに光 ----
+function torsoShade(g,topY,hipY,d){
+  var tw=12.5,bw=10.5;
+  g.save();
+  g.beginPath();g.moveTo(-tw,topY+4);g.quadraticCurveTo(-tw,topY,-tw+4,topY);g.lineTo(tw-4,topY);g.quadraticCurveTo(tw,topY,tw,topY+4);g.lineTo(bw,hipY);g.lineTo(-bw,hipY);g.closePath();g.clip();
+  var gr=g.createLinearGradient(-d*tw,0,d*tw,0);gr.addColorStop(0,'rgba(10,6,24,.32)');gr.addColorStop(.42,'rgba(10,6,24,.06)');gr.addColorStop(.62,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(255,255,255,.16)');
+  g.fillStyle=gr;g.fillRect(-tw-1,topY-1,tw*2+2,hipY-topY+2);
+  var vg=g.createLinearGradient(0,topY,0,hipY);vg.addColorStop(0,'rgba(255,255,255,.12)');vg.addColorStop(.25,'rgba(255,255,255,0)');vg.addColorStop(.8,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.18)');
+  g.fillStyle=vg;g.fillRect(-tw-1,topY-1,tw*2+2,hipY-topY+2);
+  g.fillStyle='rgba(255,255,255,.28)';g.fillRect(d>0?tw-2.2:-tw+.6,topY+3,1.6,hipY-topY-6);   // 手前のふちの光
+  g.restore();
+}
+// 帽子：別の紙に描いてから、帽子の形の中だけに影と光をのせて貼る（頭や髪には影をのせない）
+var HAT_LAYER=null;
+function shadedHat(g,draw,hx,hy,r,d){
+  if(SETTINGS.boost||!g.getTransform||typeof document==='undefined'){draw(g);return;}
+  var m=g.getTransform(),x0=hx-r*3.4,x1=hx+r*3.4,y0=hy-r*4.2,y1=hy+r*1.6;
+  var pts=[[x0,y0],[x1,y0],[x0,y1],[x1,y1]].map(function(p){return[m.a*p[0]+m.c*p[1]+m.e,m.b*p[0]+m.d*p[1]+m.f];});
+  var bx=Math.floor(Math.min(pts[0][0],pts[1][0],pts[2][0],pts[3][0])),by=Math.floor(Math.min(pts[0][1],pts[1][1],pts[2][1],pts[3][1]));
+  var bw=Math.ceil(Math.max(pts[0][0],pts[1][0],pts[2][0],pts[3][0]))-bx,bh=Math.ceil(Math.max(pts[0][1],pts[1][1],pts[2][1],pts[3][1]))-by;
+  if(bw<4||bh<4||bw*bh>1400000){draw(g);return;}
+  if(!HAT_LAYER)HAT_LAYER=document.createElement('canvas');
+  var L=HAT_LAYER;if(L.width<bw||L.height<bh){L.width=Math.max(L.width,bw);L.height=Math.max(L.height,bh);}
+  var lg=L.getContext('2d');lg.setTransform(1,0,0,1,0,0);lg.globalCompositeOperation='source-over';lg.globalAlpha=1;lg.clearRect(0,0,bw,bh);
+  lg.setTransform(m.a,m.b,m.c,m.d,m.e-bx,m.f-by);
+  draw(lg);
+  lg.globalCompositeOperation='source-atop';lg.globalAlpha=1;lg.shadowBlur=0;
+  var gr=lg.createLinearGradient(hx-d*r*1.6,0,hx+d*r*1.6,0);gr.addColorStop(0,'rgba(10,6,24,.3)');gr.addColorStop(.45,'rgba(10,6,24,.05)');gr.addColorStop(.7,'rgba(255,255,255,0)');gr.addColorStop(1,'rgba(255,255,255,.18)');
+  lg.fillStyle=gr;lg.fillRect(x0,y0,x1-x0,y1-y0);
+  var vg=lg.createLinearGradient(0,hy-r*2.6,0,hy+r*.4);vg.addColorStop(0,'rgba(255,255,255,.14)');vg.addColorStop(.45,'rgba(255,255,255,0)');vg.addColorStop(.85,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(0,0,0,.2)');
+  lg.fillStyle=vg;lg.fillRect(x0,y0,x1-x0,y1-y0);
+  lg.globalCompositeOperation='source-over';
+  g.save();g.setTransform(1,0,0,1,0,0);g.drawImage(L,0,0,bw,bh,bx,by,bw,bh);g.restore();
+}
+// 手：手袋の色（なければ肌）。指の線と、つやを入れたにぎりこぶし
+function avFist(g,x,y,col,d,r){
+  r=r||3.3;
+  g.beginPath();g.ellipse(x,y,r*1.08,r,0,0,Math.PI*2);g.fillStyle=col;g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+  g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=.7;g.beginPath();g.moveTo(x+d*r*.25,y-r*.75);g.lineTo(x+d*r*.25,y+r*.75);g.moveTo(x-d*r*.3,y-r*.7);g.lineTo(x-d*r*.3,y+r*.7);g.stroke();
+  g.fillStyle='rgba(255,255,255,.3)';g.beginPath();g.ellipse(x+d*r*.25,y-r*.5,r*.32,r*.18,0,0,Math.PI*2);g.fill();
+}
+// 腕章：チームの色を、袖に細い帯で残す（服の色に変えても敵味方が分かるように）
+function avBand(g,x1,y1,x2,y2,col,w){
+  var len=Math.hypot(x2-x1,y2-y1)||1,ux=(x2-x1)/len,uy=(y2-y1)/len,nx=-uy*w/2,ny=ux*w/2,t0=Math.min(.42,4/len),t1=t0+Math.min(.16,2.6/len);
+  var ax=x1+(x2-x1)*t0,ay=y1+(y2-y1)*t0,bx=x1+(x2-x1)*t1,by=y1+(y2-y1)*t1;
+  g.beginPath();g.moveTo(ax+nx,ay+ny);g.lineTo(bx+nx,by+ny);g.lineTo(bx-nx,by-ny);g.lineTo(ax-nx,ay-ny);g.closePath();   // 袖を一周する帯
+  g.fillStyle=col;g.fill();g.lineWidth=.8;g.strokeStyle=OUTLINE;g.stroke();
+  g.fillStyle='rgba(255,255,255,.35)';g.beginPath();g.moveTo(ax+nx*.9,ay+ny*.9);g.lineTo(bx+nx*.9,by+ny*.9);g.lineTo(bx+nx*.4,by+ny*.4);g.lineTo(ax+nx*.4,ay+ny*.4);g.closePath();g.fill();
+}
 function drawAvatar(g,o){
   var L=o.look||LOOK_DEFAULT,T=o.team||TEAM.me,d=o.dir<0?-1:1,cr=!!o.crouch,air=!!o.air&&!cr;
   var skin=LOOK_OPTS.skin[L.skin]||LOOK_OPTS.skin[1],hairC=LOOK_OPTS.hairColor[L.hairColor]||LOOK_OPTS.hairColor[1],eyeC=LOOK_OPTS.eyeColor[L.eyeColor]||LOOK_OPTS.eyeColor[0];
   if(o.boss){skin='#8E2B25';hairC='#ECE6D6';eyeC='#FFC53D';}   // 鬼帝：赤い肌・白い髪・金の目
   var fit=L.outfit|0,hat=L.hat|0,neck=L.neck|0,acc=LOOK_OPTS.accent[L.accent]||LOOK_OPTS.accent[0];
-  if(SKIN_TEAM[fit]&&!o.boss)T=Object.assign({},T,SKIN_TEAM[fit]);   // ハロウィンのスキン：袖とズボンも服の色にそろえる
+  var T0=T,band=null;
+  if(SKIN_TEAM[fit]&&!o.boss){   // スキン：袖・ズボン・靴・手袋も服の色にそろえる（チームの色は腕章で残す）
+    T=Object.assign({},T,SKIN_TEAM[fit]);
+    if(SKIN_TEAM[fit].jacket&&!SKIN_TEAM_SLEEVE[fit])band=T0.jacket;
+  }
+  var glove=o.boss?'#17120B':T.glove||skin;
   var tm=o.tm==null?performance.now()/1000:o.tm,wind=o.wind||0;
   var bob=o.bob||0,sw=o.walk==null?0:Math.sin(o.walk)*6;
   g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
@@ -8571,8 +8650,8 @@ function drawAvatar(g,o){
   // 勝ちポーズ：先に脚を描き、上半身は腰を中心に前へ傾ける（しゃがむほど前かがみ＝重心を足の上に保つ）
   if(WP){winLegs(g,WP,d,hipY,T);g.save();var ln=WP.air?0:WP.sq*.035;g.translate(0,hipY);g.rotate(d*ln);g.translate(0,-hipY);}
   // 奥の腕（銃を支える手）
-  if(rest)avLimb(g,[-d*7,shY,-d*10,shY+11,-d*9,shY+21],6,T.shade);
-  else avLimb(g,[-d*1,shY,P.sx,P.sy],6,T.shade);
+  if(rest){avLimb(g,[-d*7,shY,-d*10,shY+11,-d*9,shY+21],6,T.shade);if(band)avBand(g,-d*7,shY,-d*10,shY+11,shadeHex(band,-.15),6);avFist(g,-d*9,shY+22,shadeHex(glove,-.12),-d);}
+  else{avLimb(g,[-d*1,shY,P.sx,P.sy],6,T.shade);if(band)avBand(g,-d*1,shY,P.sx,P.sy,shadeHex(band,-.15),6);if(!(P.hand&&P.front))avFist(g,P.sx,P.sy,shadeHex(glove,-.12),d,3);}
   // 脚
   if(WP){}
   else if(cr){
@@ -8588,6 +8667,7 @@ function drawAvatar(g,o){
   }
   // 胴（服の形）と首・首もと
   drawTorso(g,fit,T,topY,hipY,d);
+  if(!o.boss)torsoShade(g,topY,hipY,d);
   g.fillStyle=shadeHex(skin,-.18);g.fillRect(-3+d,topY-4,6,5);
   if(neck)drawNeckwear(g,neck,acc,topY,d);
   if(P.hand&&!P.front)avHand(g,P);   // リロード中の支える手：体の前を回って、腰のポーチへ（銃より奥）
@@ -8611,15 +8691,15 @@ function drawAvatar(g,o){
     var eg=g.createRadialGradient(gx,gy,0,gx,gy,headR*.6);eg.addColorStop(0,'rgba(255,214,110,.9)');eg.addColorStop(1,'rgba(255,150,40,0)');
     g.fillStyle=eg;g.beginPath();g.arc(gx,gy,headR*.6,0,Math.PI*2);g.fill();g.restore();
   }
-  if(hat)drawHat(g,hat,acc,headCX,headCY,headR,d,wind,tm);
+  if(hat)shadedHat(g,function(lg){drawHat(lg,hat,acc,headCX,headCY,headR,d,wind,tm);},headCX,headCY,headR,d);
   g.restore();
   // 武器と手前の腕（反動・リロードでは持ち手を中心に傾ける）
   if(W){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
   if(P.hand&&P.front)avHand(g,P);
   var hx2=P.gx-d*.5,hy2=P.gy+1;
-  if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);hx2=d*9;hy2=shY+21;}
-  else avLimb(g,[d*3,shY,P.gx-d*2,P.gy+1],6.5,T.jacket);
-  g.beginPath();g.arc(hx2,hy2,3,0,Math.PI*2);g.fillStyle='#2A2433';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+  if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);if(band)avBand(g,d*7,shY,d*10,shY+11,band,6.5);hx2=d*9;hy2=shY+21;}
+  else{avLimb(g,[d*3,shY,P.gx-d*2,P.gy+1],6.5,T.jacket);if(band)avBand(g,d*3,shY,P.gx-d*2,P.gy+1,band,6.5);}
+  avFist(g,hx2,hy2,glove,d,3.4);
   // 落ちていく空の弾倉・薬きょう
   P.drops.forEach(function(q){avItem(g,q.x,q.y,q.it,q.r,q.a);});
   if(WP&&W&&W.kind!=='melee'){   // 銃口の先：硝煙・祝砲の光
