@@ -891,12 +891,15 @@ body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
 #tp-stick .tp-knob{width:10vh;height:10vh;background:rgba(255,255,255,.3);border:1.5px solid rgba(255,255,255,.55);opacity:.6;}
 #tp-stick.on .tp-base,#tp-stick.on .tp-knob{opacity:1;transition:none;}
 .tp-b{position:absolute;display:grid;place-items:center;align-content:center;gap:1px;padding:0;border-radius:50%;border:1.5px solid rgba(255,255,255,.3);background:rgba(10,12,20,.3);color:rgba(255,255,255,.88);pointer-events:auto;touch-action:none;transition:transform .08s,background .08s;}
-.tp-b small{font-size:max(8px,2.4vh);font-weight:800;line-height:1;opacity:.8;}
-.tp-b svg.i{width:5.5vh;height:5.5vh;}
+.tp-b small{font-size:max(8px,calc(2.4vh * var(--s,1)));font-weight:800;line-height:1;opacity:.8;}
+.tp-b svg.i{width:calc(5.5vh * var(--s,1));height:calc(5.5vh * var(--s,1));}
+/* 透明度（設定）：ボタン・スティック・武器ボタンにかける。押している間は濃くする */
+#tpad .tp-b,#tpad #tp-weps,#tpad #tp-stick{opacity:var(--tpop,1);}
+#tpad .tp-b.on{opacity:max(var(--tpop,1),.85);}
 .tp-b.on{background:rgba(255,255,255,.26);border-color:rgba(255,255,255,.7);transform:scale(.93);}
-.tp-b:disabled{opacity:.28;}
+#tpad .tp-b:disabled,.tp-b:disabled{opacity:calc(var(--tpop,1) * .3);}
 .tp-l{width:25vh;height:25vh;right:4vh;bottom:6vh;border-color:rgba(255,77,94,.65);background:rgba(255,77,94,.2);color:#FFE3E6;}
-.tp-l svg.i{width:9vh;height:9vh;}
+.tp-l svg.i{width:calc(9vh * var(--s,1));height:calc(9vh * var(--s,1));}
 .tp-l.on{background:rgba(255,77,94,.45);}
 .tp-m{width:17vh;height:17vh;right:31vh;bottom:3vh;}
 .tp-s{width:13vh;height:13vh;}
@@ -914,6 +917,26 @@ body.mland #emote-menu{bottom:auto;top:12vh;}
 .tp-w.rl small{color:#FB923C;opacity:1;}
 #tp-reload.need{border-color:#FF4D5E;background:rgba(255,77,94,.4);animation:tp-need .5s ease-in-out infinite alternate;}
 @keyframes tp-need{to{background:rgba(255,77,94,.15);}}
+/* ボタン配置の編集画面（設定から開く）：本物と同じ大きさの枠に、同じボタンを並べてドラッグで動かす */
+#tl-ed{display:none;position:fixed;inset:0;z-index:1200;background:#07080C;touch-action:none;-webkit-user-select:none;user-select:none;}
+#tl-ed.on{display:flex;align-items:center;justify-content:center;}
+#tl-frame{position:relative;width:min(100vw,calc(100vh * 2));height:min(50vw,100vh);overflow:hidden;
+  background:linear-gradient(180deg,#1B2140 0%,#2A2346 55%,#3A2A22 56%,#241A14 100%);}
+#tl-frame::before{content:'';position:absolute;left:0;right:0;top:56%;height:2px;background:rgba(255,200,120,.35);}
+#tl-frame .tp-b,#tl-frame #tl-weps{position:absolute;cursor:grab;pointer-events:auto;opacity:var(--tpop,1);}
+#tl-frame .tl-sel{outline:2px dashed #FFC53D;outline-offset:4px;opacity:1;}
+#tl-weps{display:flex;gap:1.5vh;}
+#tl-stickzone{position:absolute;left:0;bottom:0;width:40%;height:78%;border:1.5px dashed rgba(255,255,255,.18);display:grid;place-items:center;
+  color:rgba(255,255,255,.4);font-size:max(10px,2.6vh);font-weight:700;text-align:center;padding:2vh;pointer-events:none;}
+#tl-bar{position:absolute;left:50%;top:1.6vh;transform:translateX(-50%);display:flex;align-items:center;gap:1.4vh;flex-wrap:wrap;justify-content:center;
+  max-width:96%;padding:1vh 1.6vh;border-radius:1.6vh;background:rgba(7,8,12,.86);box-shadow:0 0 0 1px var(--line-2);z-index:2;}
+#tl-bar label{display:flex;align-items:center;gap:.8vh;font-size:max(10px,2.4vh);font-weight:700;color:var(--tx-2);white-space:nowrap;}
+#tl-bar input[type=range]{width:min(22vh,140px);}
+#tl-bar button{min-height:max(28px,6vh);padding:0 1.8vh;border:1px solid var(--line-2);border-radius:1vh;background:rgba(255,255,255,.06);color:var(--tx);font-size:max(11px,2.4vh);font-weight:700;}
+#tl-bar button.pri{background:var(--gold);border-color:var(--gold);color:var(--gold-ink);}
+#tl-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:46%;margin:0;text-align:center;font-size:max(10px,2.4vh);font-weight:700;color:rgba(255,255,255,.55);pointer-events:none;}
+#tl-rot{display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(7,8,12,.92);color:var(--tx);font-weight:700;}
+@media (orientation:portrait){#tl-rot{display:flex;}}
 #tp-menu{position:absolute;top:48px;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);pointer-events:auto;}
 #tp-menu svg.i{width:16px;height:16px;}
 #fs-btn{position:absolute;top:10px;right:10px;z-index:5;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);opacity:.5;transition:.15s var(--ease);}
@@ -1020,6 +1043,18 @@ body.demo #bg-shade{opacity:1;}
 .title-chip.gift:hover{border-color:#7FFFD4;}
 .title-chip.gift.sel{background:rgba(255,255,255,.03);border-color:#B8FFE9;box-shadow:0 0 0 1px rgba(150,255,220,.55),0 0 14px -4px rgba(16,220,160,.9);}
 .hb-title.gt,.fr-info .gt{font-size:14px;-webkit-text-stroke:.7px #9CFFD8;}
+/* ハロウィンの限定称号：かぼちゃ色のネオン（紫のふち） */
+.title-chip.hwt,.fr-info .hw,.hb-title.hw,.rk-row small.hw,#gift-fx .gf-title .hw{font-family:var(--f-neon);font-weight:400;letter-spacing:.05em;color:rgba(40,12,0,.82);
+  -webkit-text-stroke:.9px #FFB45C;text-shadow:0 0 3px rgba(255,140,30,.95),0 0 8px rgba(160,60,255,.55);animation:neon-flick 5.4s linear infinite;}
+.title-chip.hwt{padding:7px 16px;font-size:16px;border-color:rgba(255,138,31,.5);}
+.title-chip.hwt:hover{border-color:#FFB45C;}
+.title-chip.hwt.sel{background:rgba(255,255,255,.03);border-color:#FFD29A;box-shadow:0 0 0 1px rgba(255,180,90,.6),0 0 14px -4px rgba(255,120,20,.9);}
+.hb-title.hw,.fr-info .hw{font-size:14px;-webkit-text-stroke:.7px #FFB45C;}
+#gift-fx .gf-title .hw{font-size:inherit;-webkit-text-stroke:1.6px #FFB45C;text-shadow:0 0 9px rgba(255,140,30,.95),0 0 26px rgba(150,60,255,.6);}
+#gift-fx.hw{background:radial-gradient(circle at 50% 47%,rgba(46,16,58,.94),rgba(6,2,10,.97) 62%);}
+#gift-fx.hw .gf-rings span{border-color:rgba(255,150,50,.6);}
+#gift-fx.hw .gf-spark i{background:#FFB45C;box-shadow:0 0 10px rgba(255,130,30,.95);}
+#gift-fx.hw .gf-from{color:rgba(255,205,150,.88);}
 /* 運営の印（丸に✓）：白銀の丸に濃いチェック。称号の横ではなく、名前の横に付く */
 .dev-badge{display:inline-flex;align-items:center;justify-content:center;width:15px;height:15px;margin-left:5px;vertical-align:-2px;flex:none;}
 .dev-badge svg{width:100%;height:100%;overflow:visible;}
@@ -1954,6 +1989,32 @@ body[data-scr="event-screen"] #bs-bg{display:block;background:radial-gradient(70
 .ev-how-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .ev-how-top b{font-family:var(--f-disp);font-weight:400;font-size:15px;letter-spacing:.06em;}
 .ev-how-top span{font-family:var(--f-ui);font-weight:700;font-size:13px;color:var(--hw-or2);}
+.ev-mis,.ev-king{margin-top:12px;padding:12px 16px;clip-path:var(--cut-s);background:linear-gradient(180deg,#171326,#0F0E1A);box-shadow:inset 0 0 0 1px rgba(160,90,255,.35);}
+.ev-mis-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.ev-mis-top b{font-family:var(--f-disp);font-weight:400;font-size:15px;letter-spacing:.06em;}
+.ev-mis-top span{font-family:var(--f-ui);font-weight:700;font-size:12px;color:var(--tx-3);}
+.ev-mis-list{display:grid;gap:8px;}
+.ev-mi{display:flex;align-items:center;gap:12px;padding:10px 12px;background:rgba(255,255,255,.03);box-shadow:inset 0 0 0 1px var(--line);}
+.ev-mi.got{opacity:.55;}
+.ev-mi-ic{flex:none;width:34px;height:34px;display:grid;place-items:center;background:rgba(255,138,31,.14);color:#FFB45C;clip-path:var(--cut-s);}
+.ev-mi-ic svg{width:20px;height:20px;}
+.ev-mi.got .ev-mi-ic{background:rgba(52,211,153,.18);color:#5EEAB0;}
+.ev-mi-tx{flex:1;min-width:0;display:flex;flex-direction:column;gap:6px;}
+.ev-mi-tx b{font-weight:700;font-size:13px;}
+.ev-mi-rw{flex:none;display:flex;flex-direction:column;align-items:flex-end;gap:2px;font-family:var(--f-ui);font-weight:700;}
+.ev-mi-rw small{font-size:11px;color:var(--tx-3);}
+.ev-mi-rw em{display:flex;align-items:center;gap:2px;font-style:normal;font-size:16px;color:var(--hw-or2);}
+.ev-mi-rw canvas{width:22px;height:22px;}
+.ev-mis .v2-bar i,.ev-king .v2-bar i{background:linear-gradient(90deg,#FF8A1F,#B565FF);box-shadow:0 0 10px rgba(255,138,31,.5);}
+.ev-mis-bonus{display:flex;align-items:center;gap:6px;margin:10px 0 0;font-size:12px;font-weight:700;color:var(--tx-2);}
+.ev-mis-bonus svg{width:16px;height:16px;color:#5EEAB0;}
+.ev-mis-bonus.got{color:#5EEAB0;}
+.ev-king-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.ev-king-lb{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.2em;color:#C9A6FF;}
+.ev-king-top b.hw{font-family:var(--f-neon);font-weight:400;font-size:22px;letter-spacing:.05em;color:rgba(40,12,0,.82);-webkit-text-stroke:1px #FFB45C;text-shadow:0 0 4px rgba(255,140,30,.95),0 0 12px rgba(160,60,255,.55);}
+.ev-king p{margin:6px 0 8px;font-size:12px;color:var(--tx-2);}
+.ev-king small{display:block;margin-top:6px;text-align:right;font-family:var(--f-ui);font-weight:700;font-size:12px;color:var(--hw-or2);}
+.ev-king.got{box-shadow:inset 0 0 0 1px rgba(255,180,90,.7),0 0 22px -8px rgba(255,140,30,.8);}
 .ev-how .v2-bar i{background:linear-gradient(90deg,#FF8A1F,#FFB347);box-shadow:0 0 12px rgba(255,138,31,.6);}
 .ev-how p{margin:8px 0 0;font-size:12px;font-weight:700;color:var(--tx-2);line-height:1.6;}
 .ev-grid{grid-template-columns:repeat(4,1fr);}
@@ -2271,6 +2332,12 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.boost"></span><small class="kb-hint" data-i18n="set.boostHint"></small></span><span class="lang-seg" data-fxopt="boost"></span></div>
     </div>
     <div class="settings-section">
+      <h3><span data-i18n="set.touch"></span><span>TOUCH</span></h3>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.tlay"></span><small class="kb-hint" data-i18n="set.tlayHint"></small></span><button class="kb-key" onclick="openTouchEditor()" data-i18n="set.tlayEdit"></button></div>
+      <div class="vol-row"><label for="tp-op" data-i18n="set.tpop"></label><input type="range" id="tp-op" min="30" max="100" step="5" oninput="setTpOp(this.value)"><span class="vol-val" id="tp-op-v"></span></div>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.vib"></span><small class="kb-hint" data-i18n="set.vibHint"></small></span><span class="lang-seg" data-fxopt="vib"></span></div>
+    </div>
+    <div class="settings-section">
       <h3><span data-i18n="set.lang"></span><span>LANGUAGE</span></h3>
       <div class="lang-seg" data-lang-seg></div>
     </div>
@@ -2519,8 +2586,20 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
-<script src="sim.js?v=43"></script>
-<script src="lang.js?v=46"></script>
+<div id="tl-ed" aria-hidden="true"><div id="tl-frame">
+  <div id="tl-stickzone" data-i18n="tl.stick"></div>
+  <p id="tl-hint" data-i18n="tl.hint"></p>
+  <div id="tl-bar">
+    <label><span data-i18n="tl.size"></span><input type="range" id="tl-size" min="60" max="150" step="5" oninput="setTlSize(this.value)"></label>
+    <label><span data-i18n="set.tpop"></span><input type="range" id="tl-op" min="30" max="100" step="5" oninput="setTpOp(this.value)"></label>
+    <button onclick="resetTouchEditor()" data-i18n="common.reset"></button>
+    <button onclick="closeTouchEditor(false)" data-i18n="tl.cancel"></button>
+    <button class="pri" onclick="closeTouchEditor(true)" data-i18n="tl.save"></button>
+  </div>
+  <div id="tl-rot" data-i18n="tl.rotate"></div>
+</div></div>
+<script src="sim.js?v=44"></script>
+<script src="lang.js?v=49"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2568,7 +2647,7 @@ if(!window.GunDuelLang){
 // 画面の文字はすべて lang.js の辞書から取る。読み込んだら外から触れないように消す
 var LANGS=window.GunDuelLang||{ja:{}};
 try{delete window.GunDuelLang;}catch(e){}
-var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false};   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
+var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null};   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
 (function loadSettings(){
   var saved=null;
   try{saved=JSON.parse(localStorage.getItem('gunduel_settings')||'null');}catch(e){}
@@ -2579,12 +2658,27 @@ var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false};   // sh
     if(saved.shake===false)SETTINGS.shake=false;
     if(saved.fxq==='high'||saved.fxq==='low')SETTINGS.fxq=saved.fxq;
     if(saved.boost===true)SETTINGS.boost=true;
+    if(saved.vib===false)SETTINGS.vib=false;
+    if(saved.tpop>=30&&saved.tpop<=100)SETTINGS.tpop=Math.round(+saved.tpop);
+    SETTINGS.tlay=cleanTlay(saved.tlay);
   }else{
     // 初めて開いたときは、ブラウザの言語に合わせる
     var nl=String(navigator.language||'').toLowerCase();
     SETTINGS.lang=nl.indexOf('ja')===0||!LANGS.en?'ja':'en';
   }
 })();
+// タッチボタンの配置：{キー:{x,y（枠の中の割合 0〜1・ボタンの中心）, s（大きさの倍率）}}。おかしな値は捨てる
+function cleanTlay(v){
+  if(!v||typeof v!=='object')return null;
+  var o={},n=0;
+  ['atk','jump','reload','heal','roll','emo','weps'].forEach(function(k){
+    var b=v[k];if(!b||typeof b!=='object')return;
+    var x=+b.x,y=+b.y,sc=+b.s;
+    if(!(x>=0&&x<=1&&y>=0&&y<=1&&sc>=.6&&sc<=1.5))return;
+    o[k]={x:x,y:y,s:sc};n++;
+  });
+  return n?o:null;
+}
 function saveSettings(){try{localStorage.setItem('gunduel_settings',JSON.stringify(SETTINGS));}catch(e){}}
 // t('キー', {name:'値'}) → 今の言語の文字。無ければ日本語、それも無ければキーそのもの
 function t(key,vars){
@@ -2631,13 +2725,17 @@ function renderSettingsUI(){
     if(r){r.value=SETTINGS[kind];r.style.setProperty('--p',SETTINGS[kind]+'%');}
     if(v)v.textContent=SETTINGS[kind];
   });
+  var tr=document.getElementById('tp-op'),tv=document.getElementById('tp-op-v');
+  if(tr){tr.value=SETTINGS.tpop;tr.style.setProperty('--p',((SETTINGS.tpop-30)/70*100)+'%');}
+  if(tv)tv.textContent=SETTINGS.tpop+'%';
   document.querySelectorAll('[data-fxopt]').forEach(function(el){
-    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
+    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
 }
 function setFxOpt(k,v){
   if(k==='boost'){SETTINGS.boost=!!v;saveSettings();renderSettingsUI();applyBoost();return;}
+  if(k==='vib'){SETTINGS.vib=!!v;saveSettings();renderSettingsUI();if(v)vib(40);return;}
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
   saveSettings();renderSettingsUI();
 }
@@ -3167,11 +3265,12 @@ function isGiftTitle(id){var d=titleDef(id);return !!(d&&d.gift);}
 function isPrismTitle(id){var d=titleDef(id);return !!(d&&d.prism);}
 function isCrownTitle(id){var d=titleDef(id);return !!(d&&d.crown);}
 function isGlitchTitle(id){var d=titleDef(id);return !!(d&&d.glitch);}
+function isHwTitle(id){var d=titleDef(id);return !!(d&&d.hw);}
 // 運営の印（丸に✓）。称号と違って着け替えられないので、本物の証明になる
 var DEV_SVG='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.4"/><path d="M6.9 12.6l3.4 3.4 6.9-7.5"/></svg>';
 function devBadge(on){return on?'<span class="dev-badge" title="'+esc(t('badge.dev'))+'" aria-label="'+esc(t('badge.dev'))+'">'+DEV_SVG+'</span>':'';}
 // 称号の文字の見せ方（mt＝黒と金／sv＝明朝の白銀＋プリズム／gt＝贈られた称号＝緑のネオン／nt＝レア＝青いネオン）
-function titleCls(id){return isMythicTitle(id)?'mt':isCrownTitle(id)?'cr':isPrismTitle(id)?'sv':isGlitchTitle(id)?'gl':isGiftTitle(id)?'gt':isRareTitle(id)?'nt':'';}
+function titleCls(id){return isMythicTitle(id)?'mt':isCrownTitle(id)?'cr':isPrismTitle(id)?'sv':isGlitchTitle(id)?'gl':isGiftTitle(id)?'gt':isHwTitle(id)?'hw':isRareTitle(id)?'nt':'';}
 // 条件を満たしているか（武器ごとの称号は、その武器でのとどめの回数で決まる）
 function titleRule(d){if(d.kill)return killsWith(d.kill.w)>=d.kill.n;var f=TITLE_RULES[d.id];return !!(f&&f());}
 // 取り方の説明（武器ごとの称号は、ひな形に武器の名前と回数を入れる）
@@ -3179,7 +3278,7 @@ function titleCond(id){var d=titleDef(id);return d&&d.kill?t('tcond.kill',{weapo
 function beaten(d){var p=profile.tierProgress&&profile.tierProgress[d];return !!(p&&p.beat);}
 function totalWL(){var c=cpuTotals();return{w:c.w+(AUTH.user?AUTH.user.wins||0:0),l:c.l+(AUTH.user?AUTH.user.losses||0:0)};}   // CPU戦＋オンライン対戦
 function killsWith(wid){return +(profile.ach.kills[wid]||0);}
-function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,tears:!!AUTH.user.tears,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion}:null;}
+function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,tears:!!AUTH.user.tears,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion,hwking:!!AUTH.user.hwking}:null;}
 function titleUnlocked(id){
   var d=titleDef(id);if(!d)return false;
   if(d.gate)return SIM.titleOk(id,myTitleCtx());
@@ -3240,11 +3339,11 @@ function showGiftFx(id){
   }
   var cls=titleCls(id)||'gt';
   el.innerHTML='<div class="gf-rings"><span></span><span></span><span></span></div><div class="gf-spark">'+spark+'</div>'+
-    '<p class="gf-from">'+esc(t('gift.from'))+'</p>'+
+    '<p class="gf-from">'+esc(t(cls==='hw'?'gift.fromHw':'gift.from'))+'</p>'+
     '<p class="gf-title"><span class="'+cls+'">'+esc(titleText(id))+'</span></p>'+
     '<p class="gf-cond">'+esc(titleCond(id))+'</p>'+
     '<p class="gf-tap">'+esc(t('gift.tap'))+'</p>';
-  el.className='on '+(cls==='sv'?'prism':cls==='cr'?'crown':cls==='gl'?'glitch':'gift');
+  el.className='on '+(cls==='sv'?'prism':cls==='cr'?'crown':cls==='gl'?'glitch':cls==='hw'?'hw':'gift');
   playTone(523,.14,'triangle',.11);playTone(659,.14,'triangle',.11,.12);playTone(784,.16,'triangle',.11,.24);
   playTone(1046,.5,'triangle',.12,.38);playTone(1568,.6,'sine',.05,.46);
   if(cls==='sv'){playTone(1318,.7,'sine',.06,.52);playTone(2093,.9,'sine',.04,.62);}   // 創造主はもう一段きらびやかに
@@ -3731,6 +3830,14 @@ function evRefresh(){HW_ON=SIM.eventNow()==='halloween';document.body.classList.
 setTimeout(evRefresh,0);setInterval(evRefresh,600000);
 function evNow(){return SIM.eventNow();}
 function candyN(){ensureProfileShape();var c=profile.candy;return c&&c.ev===evNow()?(c.n|0):0;}
+// その日のハロウィンミッション（サーバーが数えた進み具合）：[{d, p, got}]
+function evMissionRows(){
+  var ev=evNow();if(!ev)return[];
+  var c=profile.candy,day=SIM.dayKey(),m=c&&c.ev===ev&&c.mis&&c.mis.day===day?c.mis:null,E=SIM.EVENTS[ev];
+  return SIM.eventMissions(ev,day).map(function(id,i){return{d:E.missions[id],p:m?(m.p[i]|0):0,got:!!(m&&m.got[i])};});
+}
+function evMisText(d){return t('mis.'+d.k,{n:d.n,w:d.w?wName(d.w):''});}
+function candyTotal(){var c=profile.candy;return c&&c.ev===evNow()?Math.max(c.tot|0,c.n|0):0;}
 function candyToday(){var c=profile.candy;return c&&c.ev===evNow()&&c.day===SIM.dayKey()?(c.today|0):0;}
 function evAffordable(){var ev=evNow();if(!ev||!AUTH.user)return false;var n=candyN();return SIM.EVENTS[ev].shop.some(function(r){return !itemOwned(r[0])&&n>=r[1];});}
 // キャンディの絵（ねじった包み紙のアメ）
@@ -3755,6 +3862,24 @@ function renderEvent(){
   h+='<div class="ev-how"><div class="ev-how-top"><b>'+esc(t('ev.how'))+'</b><span>'+esc(t('ev.today',{n:today,m:C.dayMax}))+'</span></div>'+
     '<div class="v2-bar sm"><i style="width:'+Math.min(100,Math.round(today/C.dayMax*100))+'%"></i></div>'+
     '<p>'+esc(t('ev.rules',{m:C.match,w:C.win,k:C.kill,km:C.killMax,f:C.firstWin}))+'</p></div>';
+  // 毎日のハロウィンミッション（終えると自動でキャンディ。3つ全部でおまけ）
+  var rows=evMissionRows(),allGot=rows.length&&rows.every(function(r){return r.got;});
+  h+='<div class="ev-mis"><div class="ev-mis-top"><b>'+esc(t('ev.mis'))+'</b><span>'+esc(t('ev.misReset',{h:Math.max(1,Math.ceil((SIM.dayEnd(SIM.dayKey())-Date.now())/36e5))}))+'</span></div><div class="ev-mis-list">';
+  rows.forEach(function(r){
+    h+='<div class="ev-mi'+(r.got?' got':'')+'"><span class="ev-mi-ic">'+(r.got?CHECK_SVG:misIcon(r.d.k))+'</span>'+
+      '<div class="ev-mi-tx"><b>'+esc(evMisText(r.d))+'</b><div class="v2-bar sm"><i style="width:'+Math.round(Math.min(1,r.p/r.d.n)*100)+'%"></i></div></div>'+
+      '<span class="ev-mi-rw"><small>'+Math.min(r.p,r.d.n)+'/'+r.d.n+'</small><em><canvas data-candy="2" width="44" height="44"></canvas>'+r.d.c+'</em></span></div>';
+  });
+  h+='</div><p class="ev-mis-bonus'+(allGot?' got':'')+'">'+(allGot?CHECK_SVG:'')+esc(t('ev.misBonus',{n:E.misBonus}))+'</p></div>';
+  // 限定称号：イベント中に集めた合計
+  if(E.title){
+    var tot=candyTotal(),need=E.title.need,have=titleUnlocked(E.title.id);
+    h+='<div class="ev-king'+(have?' got':'')+'"><div class="ev-king-top"><span class="ev-king-lb">'+esc(t('ev.kingLabel'))+'</span>'+
+      '<b class="hw">'+esc(titleText(E.title.id))+'</b></div>'+
+      '<p>'+esc(have?t('ev.kingGot'):t('ev.kingHow',{n:need}))+'</p>'+
+      '<div class="v2-bar sm"><i style="width:'+Math.round(Math.min(1,tot/need)*100)+'%"></i></div>'+
+      '<small>'+esc(t('ev.kingProg',{n:Math.min(tot,need),m:need}))+'</small></div>';
+  }
   // スペシャルオファー：スキン（セット）を大きなカードで。持っている物は値段から引く
   h+='<div class="v2-sec"><h3>'+esc(t('ev.offer'))+'</h3></div><div class="ev-offers">';
   (E.sets||[]).forEach(function(st){
@@ -3811,7 +3936,11 @@ function evBuy(id){
     else{note(t(r&&r.error==='candy'?'ev.short':'ev.err'));renderEvent();}});
 }
 // 試合でもらったキャンディを知らせる
-function candyToast(n){if(!(n>0))return;note(t('ev.candyGot',{n:n}));}
+function candyToast(n,ev){
+  if(ev&&ev.king&&AUTH.user){AUTH.user.hwking=true;checkTitles();}   // 限定称号（お祝いの演出は checkTitles から）
+  if(ev&&ev.misCandy>0){note(t(ev.bonus?'ev.misAll':'ev.misGot',{n:ev.misCandy}));if(currentScreen==='event-screen')renderEvent();return;}
+  if(!(n>0))return;note(t('ev.candyGot',{n:n}));
+}
 // ---- シーズンパスの画面：上に今の段、横に30段の報酬、下にシーズンミッション ----
 function showPassScreen(){showScreen('pass-screen');renderPass();var cur=document.querySelector('#pass-track .pt.cur');if(cur)cur.scrollIntoView({inline:'center',block:'nearest'});}
 function passIcon(rw){return rwCanvas(rw,120);}
@@ -3827,7 +3956,8 @@ var MIS_IC={
   nodmg:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="m9 12 2 2 4-4"/>',
   hard:'<path d="M12 3a7 7 0 0 0-7 7c0 2.6 1.4 4 2.5 5v3h9v-3c1.1-1 2.5-2.4 2.5-5a7 7 0 0 0-7-7z"/><path d="M9.5 11h.01M14.5 11h.01M10 18v3M14 18v3"/>',
   play:'<rect x="3" y="7" width="18" height="10" rx="4"/><path d="M8 10v4M6 12h4M16 11h.01M18 13h.01"/>',
-  emote:'<circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2M9 9.5h.01M15 9.5h.01"/>'
+  emote:'<circle cx="12" cy="12" r="9"/><path d="M8 14c1 1.5 2.5 2 4 2s3-.5 4-2M9 9.5h.01M15 9.5h.01"/>',
+  hwwin:'<path d="M12 6c-4.5 0-8 3-8 7.2C4 17.5 7.6 20 12 20s8-2.5 8-6.8C20 9 16.5 6 12 6z"/><path d="M12 6c0-1.6.6-2.6 2-3M9 12l1.5 1.5L12 12l1.5 1.5L15 12"/>'
 };
 function misIcon(k){return'<svg class="i" viewBox="0 0 24 24">'+(MIS_IC[k]||MIS_IC.play)+'</svg>';}
 var CLOCK_SVG='<svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>';
@@ -4264,7 +4394,7 @@ window.addEventListener('keydown',function(e){
   else if(e.key==='Escape')closeCrateScreen();
   e.stopPropagation();
 },true);
-function vib(p){try{if(navigator.vibrate&&SETTINGS.shake!==false)navigator.vibrate(p);}catch(e){}}
+function vib(p){try{if(navigator.vibrate&&SETTINGS.vib!==false)navigator.vibrate(p);}catch(e){}}
 function shade(hex,k){var n=parseInt(hex.slice(1),16),rr=n>>16,gg=n>>8&255,bb=n&255,f=function(v){return Math.round(k<0?v*(1+k):v+(255-v)*k);};return'rgb('+f(rr)+','+f(gg)+','+f(bb)+')';}
 function crateRing(x,y,k,S){
   CR.parts.push({k:'ring',x:x,y:y,vx:9*S,vy:0,life:0,max:.55,sz:30*S,col:RAR_COL[k]});
@@ -4582,7 +4712,7 @@ function applyRateResult(r){
 function bgIndex(){return profile.bg==null?profile.bestTier:profile.bg;}
 function titleText(id){return t('title.'+(id||'rookie'));}
 function myCardData(){
-  return{name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
+  return{name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),titleHw:isHwTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
 }
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
@@ -4817,9 +4947,9 @@ function renderTitleChips(){
   TITLES.forEach(function(x){
     if(!titleUnlocked(x.id))return;
     n++;
-    var my=isMythicTitle(x.id),cw=isCrownTitle(x.id),pz=isPrismTitle(x.id),gl=isGlitchTitle(x.id),gf=isGiftTitle(x.id),tx=esc(titleText(x.id));
+    var my=isMythicTitle(x.id),cw=isCrownTitle(x.id),pz=isPrismTitle(x.id),gl=isGlitchTitle(x.id),gf=isGiftTitle(x.id),hw=isHwTitle(x.id),tx=esc(titleText(x.id));
     var body=my?'<span class="mt">'+tx+'</span>':cw?'<span class="cr">'+tx+'</span>':pz?'<span class="sv">'+tx+'</span>':gl?'<span class="gl">'+tx+'</span>':gf?'<span class="gt">'+tx+'</span>':tx;
-    chips+='<button class="title-chip'+(my?' mythic':cw?' crown':pz?' prism':gl?' glitch':gf?' gift':x.rare?' rare':'')+(x.id===profile.title?' sel':'')+
+    chips+='<button class="title-chip'+(my?' mythic':cw?' crown':pz?' prism':gl?' glitch':gf?' gift':hw?' hwt':x.rare?' rare':'')+(x.id===profile.title?' sel':'')+
       '" onclick="pickTitle(\''+x.id+'\')" onmouseenter="titleHint(\''+x.id+'\')" onmouseleave="titleHint(\'\')" onfocus="titleHint(\''+x.id+'\')" title="'+esc(titleCond(x.id))+'">'+body+'</button>';
   });
   el.innerHTML='<p class="title-count">'+esc(t('pf.titleCount',{n:n}))+'<small>'+esc(t('pf.titleHint'))+'</small></p>'+
@@ -5083,9 +5213,21 @@ function copyFid(btn){
 var SYNC={acc:'',rev:0,dirty:false,seq:0,busy:false,timer:null,state:''};
 try{var _sy=JSON.parse(localStorage.getItem('gunduel_sync')||'null');if(_sy&&typeof _sy==='object'){SYNC.acc=String(_sy.acc||'');SYNC.rev=+_sy.rev||0;SYNC.dirty=!!_sy.dirty;}}catch(e){}
 function saveSyncMeta(){try{localStorage.setItem('gunduel_sync',JSON.stringify({acc:SYNC.acc,rev:SYNC.rev,dirty:SYNC.dirty}));}catch(e){}}
+// 自分で選ぶ見た目など（別の端末と同時に変えたときは、変えた方の値を残す）
+var EDIT_KEYS=['name','bio','title','look','loadout','bg','emo','badge'];
+function editVals(){ensureProfileShape();return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,emo:profile.emo,badge:profile.badge==null?null:profile.badge};}
+// 最後にサーバーとそろえたときの値。ここから変わったものだけを「この端末で変えた」としてサーバーに知らせる
+function syncBaseKey(){return 'gunduel_syncbase@'+(STORE_ACC||'');}
+function setSyncBase(v){try{localStorage.setItem(syncBaseKey(),JSON.stringify(v||editVals()));}catch(e){}}
+function syncEdits(){
+  var b=null;try{b=JSON.parse(localStorage.getItem(syncBaseKey())||'null');}catch(e){}
+  if(!b||typeof b!=='object')return null;   // 前の版から使っている端末：全部送る（今までどおり）
+  var v=editVals();return EDIT_KEYS.filter(function(k){return JSON.stringify(v[k])!==JSON.stringify(b[k]);});
+}
 function profileDoc(){
   ensureProfileShape();
-  return{name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
+  var ed=syncEdits();
+  return{edits:ed||undefined,badge:profile.badge==null?null:profile.badge,name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
     xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea,tzo:new Date().getTimezoneOffset()};   // 持ち物・開けた数・試合の記録はサーバーが決める（送っても使われない）
 }
 function profileChanged(){if(!STORE_ACC)return;SYNC.dirty=true;SYNC.seq++;saveSyncMeta();pushProfileSoon(1500);}
@@ -5099,16 +5241,16 @@ function pushProfile(){
   if(!AUTH.user||!AUTH.token||!SYNC.dirty)return;
   if(SYNC.busy){pushProfileSoon(800);return;}
   SYNC.busy=true;
-  var seq=SYNC.seq,tok=AUTH.token;
+  var seq=SYNC.seq,tok=AUTH.token,doc=profileDoc(),sent=editVals();
   setSyncState('saving');
   fetch(httpBase()+'/api/profile',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+tok},
-    body:JSON.stringify({base:SYNC.rev,profile:profileDoc()})})
+    body:JSON.stringify({base:SYNC.rev,profile:doc})})
     .then(function(r){if(!r.ok)throw r.status;return r.json();})
     .then(function(d){
       SYNC.busy=false;
       if(tok!==AUTH.token)return;
       SYNC.rev=+d.rev||SYNC.rev;
-      if(seq===SYNC.seq){SYNC.dirty=false;if(d.merged&&d.profile)adoptProfile(d.profile);}
+      if(seq===SYNC.seq){SYNC.dirty=false;if(d.merged&&d.profile)adoptProfile(d.profile);else setSyncBase(sent);}
       if(d.profile&&!d.merged)srvAdopt(d.profile);   // 試合の記録・称号・ミッションはサーバーの値に合わせる
       saveSyncMeta();
       if(SYNC.dirty)pushProfileSoon(300);else setSyncState('saved');
@@ -5124,12 +5266,22 @@ function pushProfile(){
 // サーバーの内容で手元を置きかえる（送り返さない）
 function adoptProfile(p){
   if(!p||typeof p!=='object')return;
-  ['name','bio','title','look','bg','bestTier','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['name','bio','title','look','bg','badge','bestTier','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
-  ensureProfileShape();writeProfileLocal();refreshProfileViews();
+  ensureProfileShape();writeProfileLocal();setSyncBase();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
 }
 // ログインしたとき・ページを開いたとき：サーバーのプロフィールと手元を合わせる
+// 開いたままの端末も、ときどきサーバーの内容を見に行く（別の端末で遊んだ分・変えた見た目を取り込む）
+var syncPollT=0;
+function syncPoll(){
+  if(!AUTH.token||document.hidden||currentScreen==='game-screen')return;
+  if(Date.now()-syncPollT<20000)return;
+  syncPollT=Date.now();refreshMe();
+}
+document.addEventListener('visibilitychange',function(){if(!document.hidden){syncPollT=0;syncPoll();}});
+window.addEventListener('focus',function(){syncPoll();});
+setInterval(function(){if(Date.now()-syncPollT>=90000)syncPoll();},15000);
 function syncOnLogin(d){
   var acc=d&&d.user&&d.user.fid||'';if(!acc)return;
   var rev=+d.rev||0,fresh=!hasAccStore(acc);
@@ -5149,6 +5301,7 @@ function syncOnLogin(d){
   if(d.profile){var kt=profile.title,kb=profile.bg;srvAdopt(d.profile);if(SYNC.dirty){profile.title=kt;profile.bg=kb;writeProfileLocal();}}
   adoptRate(d.user);
   saveSyncMeta();
+  if(!SYNC.dirty&&d.profile)setSyncBase();   // サーバーとそろっている：ここを基準に、この端末で変えた物を数える
   if(SYNC.dirty)pushProfileSoon(0);else setSyncState('saved');
 }
 // レートはサーバーが本物。ログイン中はサーバーの値に合わせる（手元の値は上書きされる）
@@ -5399,7 +5552,7 @@ function friendOp(op,fid){
 }
 // ---- フレンドのプロフィール（自分のプロフィールと同じカード）----
 function friendCardData(p){
-  return{name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
+  return{name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),titleHw:isHwTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
     look:SIM.cleanLook(p.look||LOOK_DEFAULT,true),loadout:p.loadout?SIM.cleanLoadout(p.loadout,false):null,team:TEAM.me,badge:p.badge==null?null:+p.badge};
 }
 function openFriend(fid){
@@ -6371,7 +6524,7 @@ function handleEvents(ev,me,styleOf){
         }
         break;
       case'vhit':addSparks(e.x,e.y,'#FFD27A',4);break;
-      case'dead':shatter(e.x,e.y,e.dir,e.duck,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);}break;
+      case'dead':shatter(e.x,e.y,e.dir,e.duck,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);feelKO(e.who===me);}break;
       case'heal':SFX.heal();FX.heal.push({x:e.x,y:e.y,life:30});break;
       case'jump':if(mine)SFX.jump();break;
       case'roll':SFX.roll();rollDust(e.who);if(trk&&mine)ecoTrack('roll');break;
@@ -6820,7 +6973,7 @@ function handleOnlineMsg(msg){
     setTimeout(function(){if(AUTH.token)refreshMe();},900);   // オンライン戦績（称号の条件）を読み直す
   }
   else if(mt==='rate'){applyRateResult(msg);}
-  else if(mt==='progress'){srvAdopt(msg.profile,msg.rev);candyToast(msg.candy);}   // オンライン対戦の記録（サーバーが数えた分）
+  else if(mt==='progress'){srvAdopt(msg.profile,msg.rev);candyToast(msg.candy,msg.ev);}   // オンライン対戦の記録（サーバーが数えた分）
   else if(mt==='wait'){onWaitMsg(msg);}   // 試合前の準備／ラウンド間の武器変更   // ランクマッチのレートの増減（サーバーが決める）
   else if(mt==='auth_ok'){AUTH.user=msg.user;adoptRate(msg.user);renderLoginUI();}
   else if(mt==='auth_fail'){AUTH.token='';AUTH.user=null;try{localStorage.removeItem('gunduel_token');}catch(e){}switchStore('');renderLoginUI();}
@@ -6909,15 +7062,17 @@ function cvMatchEnd(){
   fetch(httpBase()+'/api/cpu/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},
     body:JSON.stringify({mid:my.mid,diff:my.diff,stage:selectedStage,loads:my.loads,logs:my.logs,emotes:my.emotes})})
     .then(function(r){return r.json();}).then(function(d){
-      if(d&&d.ok&&d.profile){srvAdopt(d.profile,d.rev);candyToast(d.candy);return;}
+      if(d&&d.ok&&d.profile){srvAdopt(d.profile,d.rev);candyToast(d.candy,d.ev);return;}
       if(d&&d.why&&d.why!=='suspect')note(t('c.unverified'));
     }).catch(function(){});
 }
 // サーバーが決めた試合の記録で、手元を置きかえる（CPU戦を確かめた結果・オンライン対戦の結果）
 function srvAdopt(p,rev){
   if(!p||typeof p!=='object')return;
-  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','title','bg','misCrates','misChaos','coins','pass','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
-  if(rev){SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();}
+  // 手元に送っていない変更がなければ、別の端末で変えた見た目なども含めて、サーバーの内容にそろえる
+  if(rev&&STORE_ACC&&!SYNC.dirty){adoptProfile(p);SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();renderHomeEco();return;}
+  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','title','bg','inv','opened','pity','chaosOpened','misCrates','misChaos','coins','pass','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  // 版の番号は進めない（進めると、別の端末の変更を見ないまま「最新」と思い込み、古い見た目で上書きしてしまう）
   ensureProfileShape();writeProfileLocal();renderHomeEco();
   if(currentScreen==='profile-screen')renderProfileUI();
 }
@@ -7109,7 +7264,13 @@ function overlayFxOn(){return bossIntro||unlockFx||slayFx;}
 function feelHit(){
   if(sfxMuted)return;
   if(GP.used)padRumble(.7,.35,140);
-  else if(isTouch&&navigator.vibrate){try{navigator.vibrate(35);}catch(e){}}
+  else if(isTouch)vib(35);
+}
+// 倒した・倒されたときの手ごたえ（スマホは振動、ゲームパッドは揺れ）
+function feelKO(mine){
+  if(sfxMuted)return;
+  if(GP.used)padRumble(mine?1:.5,mine?.6:.8,mine?320:160);
+  else if(isTouch)vib(mine?[90,50,150]:60);
 }
 
 // ============================================================
@@ -7182,6 +7343,90 @@ window.addEventListener('orientationchange',updateMland);
   document.addEventListener('pointerdown',function(e){if(e.pointerType==='touch'&&GP.used)setPadMode(false);},{passive:true});
   window.addEventListener('resize',rest);
   updateMland();rest();
+})();
+
+// ---- タッチボタンの配置・濃さ ----
+// 元の位置（右と下からの距離。単位は画面の高さの1%）と大きさ
+var TL_DEF={atk:{r:16.5,b:18.5,w:25},jump:{r:39.5,b:11.5,w:17},reload:{r:14.5,b:39.5,w:13},heal:{r:33.5,b:29.5,w:13},roll:{r:56.5,b:10.5,w:13},emo:{r:14,b:55,w:10},weps:{c:true,b:6.5,w:0}};
+var TL_ID={atk:'tp-atk',jump:'tp-jump',reload:'tp-reload',heal:'tp-heal',roll:'tp-roll',emo:'tp-emo',weps:'tp-weps'};
+// 枠（幅W・高さH・画面の高さの1%=vh）での元の中心の位置（割合）
+function tlDefault(k,W,H,vh){var d=TL_DEF[k];return{x:d.c?.5:1-d.r*vh/W,y:1-d.b*vh/H,s:1};}
+// ボタン1つを、中心(x,y)・倍率sで置く
+function tlPlace(el,k,b){
+  if(!el)return;
+  var st=el.style;
+  if(!b){['left','top','right','bottom','width','height','marginLeft','marginTop','transform'].forEach(function(p){st[p]='';});st.removeProperty('--s');return;}
+  st.left=(b.x*100)+'%';st.top=(b.y*100)+'%';st.right='auto';st.bottom='auto';
+  if(k==='weps'){st.transform='translate(-50%,-50%) scale('+b.s+')';st.marginLeft='';st.marginTop='';return;}
+  var w=TL_DEF[k].w*b.s;st.width=w+'vh';st.height=w+'vh';st.marginLeft=(-w/2)+'vh';st.marginTop=(-w/2)+'vh';st.transform='';st.setProperty('--s',b.s);
+}
+function applyTouchLayout(){
+  var pad=document.getElementById('tpad');if(!pad)return;
+  pad.style.setProperty('--tpop',SETTINGS.tpop/100);
+  var L=SETTINGS.tlay||{};
+  Object.keys(TL_ID).forEach(function(k){tlPlace(document.getElementById(TL_ID[k]),k,L[k]||null);});
+}
+function setTpOp(v){
+  SETTINGS.tpop=Math.max(30,Math.min(100,Math.round(+v)||100));saveSettings();applyTouchLayout();renderSettingsUI();
+  var f=document.getElementById('tl-frame');if(f)f.style.setProperty('--tpop',SETTINGS.tpop/100);
+  var o=document.getElementById('tl-op');if(o)o.value=SETTINGS.tpop;
+}
+// 編集画面：本物のボタンを写して並べ、ドラッグで動かす。保存するまでは本物は変わらない
+var TL={lay:null,sel:'atk',op0:100};
+function openTouchEditor(){
+  var ed=document.getElementById('tl-ed'),fr=document.getElementById('tl-frame');if(!ed||!fr)return;
+  fr.querySelectorAll('[data-tl]').forEach(function(el){el.remove();});
+  Object.keys(TL_ID).forEach(function(k){
+    var src=document.getElementById(TL_ID[k]);if(!src)return;
+    var el=src.cloneNode(true);el.removeAttribute('id');el.removeAttribute('onclick');el.setAttribute('data-tl',k);
+    if(k==='weps'){el.id='tl-weps';el.querySelectorAll('.tp-w').forEach(function(b,j){if(!b.textContent)b.textContent=t('tl.wep',{n:j+1});});}
+    el.disabled=false;el.classList.remove('on','need');
+    fr.insertBefore(el,document.getElementById('tl-bar'));
+  });
+  TL.lay=JSON.parse(JSON.stringify(SETTINGS.tlay||{}));TL.op0=SETTINGS.tpop;TL.sel='atk';
+  fr.style.setProperty('--tpop',SETTINGS.tpop/100);
+  document.getElementById('tl-op').value=SETTINGS.tpop;
+  ed.classList.add('on');ed.setAttribute('aria-hidden','false');
+  tlRender();
+}
+function tlFrame(){var f=document.getElementById('tl-frame'),r=f.getBoundingClientRect();return{f:f,r:r,vh:innerHeight/100};}
+function tlGet(k){var F=tlFrame();return TL.lay[k]||tlDefault(k,F.r.width,F.r.height,F.vh);}
+function tlRender(){
+  var F=tlFrame();
+  F.f.querySelectorAll('[data-tl]').forEach(function(el){var k=el.getAttribute('data-tl');tlPlace(el,k,tlGet(k));el.classList.toggle('tl-sel',k===TL.sel);});
+  var sz=document.getElementById('tl-size');if(sz)sz.value=Math.round(tlGet(TL.sel).s*100);
+}
+function setTlSize(v){var b=Object.assign({},tlGet(TL.sel));b.s=Math.max(.6,Math.min(1.5,(+v||100)/100));TL.lay[TL.sel]=b;tlRender();}
+function resetTouchEditor(){TL.lay={};setTpOp(100);tlRender();}
+function closeTouchEditor(save){
+  var ed=document.getElementById('tl-ed');if(!ed)return;
+  if(save){SETTINGS.tlay=cleanTlay(TL.lay);saveSettings();note(t('tl.saved'));}
+  else if(SETTINGS.tpop!==TL.op0)setTpOp(TL.op0);
+  ed.classList.remove('on');ed.setAttribute('aria-hidden','true');
+  applyTouchLayout();
+}
+(function(){
+  var fr=document.getElementById('tl-frame');if(!fr)return;
+  var drag=null;
+  fr.addEventListener('pointerdown',function(e){
+    var el=e.target.closest&&e.target.closest('[data-tl]');if(!el)return;
+    e.preventDefault();
+    var k=el.getAttribute('data-tl'),F=tlFrame(),b=tlGet(k);
+    TL.sel=k;drag={k:k,id:e.pointerId,dx:e.clientX-(F.r.left+b.x*F.r.width),dy:e.clientY-(F.r.top+b.y*F.r.height)};
+    try{fr.setPointerCapture(e.pointerId);}catch(er){}
+    tlRender();
+  });
+  fr.addEventListener('pointermove',function(e){
+    if(!drag||e.pointerId!==drag.id)return;
+    var F=tlFrame(),b=Object.assign({},tlGet(drag.k));
+    b.x=Math.max(.03,Math.min(.97,(e.clientX-drag.dx-F.r.left)/F.r.width));
+    b.y=Math.max(.05,Math.min(.95,(e.clientY-drag.dy-F.r.top)/F.r.height));
+    TL.lay[drag.k]=b;tlRender();
+  });
+  function end(e){if(drag&&e.pointerId===drag.id)drag=null;}
+  fr.addEventListener('pointerup',end);fr.addEventListener('pointercancel',end);
+  window.addEventListener('resize',function(){if(document.getElementById('tl-ed').classList.contains('on'))tlRender();});
+  applyTouchLayout();
 })();
 
 // ============================================================
@@ -9992,6 +10237,7 @@ var NEON_FONT_ASKED={};
 function askNeonFont(text){if(NEON_FONT_ASKED[text]||!document.fonts||!document.fonts.load)return;NEON_FONT_ASKED[text]=1;document.fonts.load('400 24px "Dela Gothic One"',text).catch(function(){});}
 // 中が暗い文字を、細い光の管でふち取る（光は控えめ。後ろに帯は敷かない）。font は呼ぶ前に FONT_NEON で決めておく
 var NEON_BLUE={ink:'rgba(8,10,40,.78)',glow:'rgba(120,130,255,.9)',tube:'#CBD2FF'};      // ふつうのレアの称号
+var NEON_PUMPKIN={ink:'rgba(40,12,0,.8)',glow:'rgba(255,140,30,.95)',tube:'#FFB45C'};   // ハロウィンの限定称号
 var NEON_GREEN={ink:'rgba(3,26,19,.78)',glow:'rgba(45,240,170,.9)',tube:'#9CFFD8'};       // 贈られた称号
 function drawNeonTitle(g,text,x,y,size,tm,col){
   askNeonFont(text);
@@ -10433,6 +10679,10 @@ function drawProfileCard(g,P,x,y,w,h,tm){
     var tsx=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
     drawGlitchTitle(g,titleText,x+pad,ty,tsx,tm);
     nameY=ty-tsx*1.22;
+  }else if(P.titleHw){   // ハロウィンの限定称号：かぼちゃ色のネオン
+    var tsh=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
+    drawNeonTitle(g,titleText,x+pad,ty,tsh,tm,NEON_PUMPKIN);
+    nameY=ty-tsh*1.22;
   }else if(P.titleGift){   // 贈られた称号：緑のネオン
     var tsg=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
     drawNeonTitle(g,titleText,x+pad,ty,tsg,tm,NEON_GREEN);
@@ -12145,7 +12395,7 @@ function myRecord(){
 function tierIdxOf(key){for(var i=1;i<TIER_LADDER.length;i++)if(TIER_LADDER[i].key===key)return i;return 0;}
 function oppCardData(){
   var ti=tierIdxOf(oppInfo.tier);
-  return{name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),titleCrown:isCrownTitle(oppInfo.title),titleGlitch:isGlitchTitle(oppInfo.title),dev:!!oppInfo.dev,bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
+  return{name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),titleCrown:isCrownTitle(oppInfo.title),titleGlitch:isGlitchTitle(oppInfo.title),titleHw:isHwTitle(oppInfo.title),dev:!!oppInfo.dev,bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
 }
 function drawRecPill(cx,y,rec,col){
   var total=rec?rec.w+rec.l:0;
@@ -12173,7 +12423,7 @@ function drawDiscordTag(cx,y,name){
 function teamCardData(s){
   if(s===mySlot){var m=myCardData();m.tier=myTier2Index();m.bg=bgIndex();return m;}
   var P=TM.players[s]||{},ti=tierIdxOf(P.tier);
-  return{name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),titleCrown:isCrownTitle(P.title),titleGlitch:isGlitchTitle(P.title),dev:!!P.dev,bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
+  return{name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),titleCrown:isCrownTitle(P.title),titleGlitch:isGlitchTitle(P.title),titleHw:isHwTitle(P.title),dev:!!P.dev,bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
 }
 function drawVsTeam(T){
   var cw=124,ch=164,cy=(VH-ch)/2+6,e=1-Math.pow(1-Math.min(1,T/.45),3),out=T>2.65?Math.min(1,(T-2.65)/.35):0;
@@ -12443,7 +12693,7 @@ function drawBgFx(tm){
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得

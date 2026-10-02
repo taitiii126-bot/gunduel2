@@ -196,9 +196,33 @@ var EVENTS = {
       { id: 'franken', items: ['h29', 'o27'], off: 25, look: { hat: 29, outfit: 27, neck: 0 } },
       { id: 'scarecrow', items: ['h31', 'o26', 'n22'], off: 25, look: { hat: 31, outfit: 26, neck: 22 } }
     ],
-    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 400 }
+    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 400 },
+    // 毎日のハロウィンミッション（その日の3つは全員同じ）：k=数えるもの n=目標 w=武器 c=キャンディ。3つ全部で bonus
+    // hwwin＝ハロウィンのステージで勝つ。キャンディの1日の上限（dayMax）とは別に数える
+    missions: [
+      { k: 'win', n: 2, c: 50 }, { k: 'play', n: 4, c: 40 }, { k: 'kill', n: 8, c: 50 }, { k: 'rolldodge', n: 3, c: 50 },
+      { k: 'emote', n: 3, c: 30 }, { k: 'online', n: 2, c: 60 }, { k: 'nodmg', n: 1, c: 60 }, { k: 'hwwin', n: 1, c: 70 },
+      { k: 'killw', n: 3, w: 14, c: 60 }, { k: 'killw', n: 3, w: 13, c: 60 }, { k: 'killw', n: 2, w: 1, c: 60 },
+      { k: 'killw', n: 2, w: 10, c: 60 }, { k: 'killw', n: 3, w: 5, c: 50 }, { k: 'killw', n: 3, w: 8, c: 50 }
+    ],
+    misBonus: 50,
+    // イベント中に集めたキャンディの合計（使った分も数える）が need をこえると、限定の称号
+    title: { id: 'pumpkin_king', need: 3000 }
   }
 };
+// その日のハロウィンミッション（ミッションの番号を3つ）
+function eventMissions(ev, day) {
+  var E = EVENTS[ev];
+  if (!E || !E.missions) return [];
+  var h = 2166136261, key = ev + '|' + day, pick = [], used = {}, i;
+  for (i = 0; i < key.length; i++) { h ^= key.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
+  while (pick.length < 3) {
+    h = Math.imul(h ^ (h >>> 13), 2246822507) >>> 0;
+    var j = h % E.missions.length, m = E.missions[j], u = m.k === 'killw' ? 'killw' : m.k;   // 武器のミッションは1日1つまで
+    if (!used[u]) { used[u] = 1; pick.push(j); }
+  }
+  return pick;
+}
 var EVENT_ITEMS = {};   // 限定アイテムの id → イベントの名前
 Object.keys(EVENTS).forEach(function (k) { EVENTS[k].shop.forEach(function (s) { EVENT_ITEMS[s[0]] = k; }); });
 // 今開いているイベント（なければ ''）。ms を省くと今
@@ -2017,7 +2041,9 @@ var TITLES = [
   { id: 'dev_tears', glitch: true, award: true, gate: { tears: true } },       // glitch：赤と水色にズレた「壊れた画面」の文字
   { id: 'world_author', prism: true, award: true, gate: { dev: true } },       // prism：明朝の白銀にプリズムの光
   // シーズンの最終1位（crown：赤と金）。一度もらったら、また1位になっても増えない
-  { id: 'unrivaled', crown: true, award: true, gate: { champion: true } }
+  { id: 'unrivaled', crown: true, award: true, gate: { champion: true } },
+  // ハロウィンのイベント中に、キャンディを合計 3000 個集める（称号の名前は「トリックオアトリート」。hw：かぼちゃ色のネオン）。イベントが終わったら、もう取れない
+  { id: 'pumpkin_king', hw: true, rare: true, award: true, gate: { hwking: true } }
 ];
 // 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
 // 前からある6つ（影の刃・千里眼・至近距離の鬼・蜂の巣職人・爆弾魔・電磁砲の申し子）は id をそのまま使う
@@ -2134,6 +2160,7 @@ function titleOk(id, ctx) {
     if (g.tears && !ctx.tears) return false;
     if (g.dev && !ctx.dev) return false;
     if (g.champion && !ctx.champion) return false;
+    if (g.hwking && !ctx.hwking) return false;
     return true;
   }
   return false;
@@ -2148,7 +2175,7 @@ var api = {
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
   DAY_SHIFT_MS: DAY_SHIFT_MS, dayEnd: dayEnd,
   LOGIN_REWARDS: deepFreeze(LOGIN_REWARDS), STREAK_MS: deepFreeze(STREAK_MS), SHIELD_MAX: SHIELD_MAX, dayNum: dayNum, loginStep: loginStep,
-  EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, candyOf: candyOf, eventSetPrice: eventSetPrice,
+  EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, eventMissions: eventMissions, candyOf: candyOf, eventSetPrice: eventSetPrice,
   PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift,
   SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
