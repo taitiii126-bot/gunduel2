@@ -2353,6 +2353,7 @@ body.mland .home-hero{height:72vh;}
     <div class="settings-section">
       <h3><span data-i18n="set.fx"></span><span>EFFECTS</span></h3>
       <div class="kb-row"><span class="kb-label" data-i18n="set.shake"></span><span class="lang-seg" data-fxopt="shake"></span></div>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.zoom"></span><small class="kb-hint" data-i18n="set.zoomHint"></small></span><span class="lang-seg" data-fxopt="zoom"></span></div>
       <div class="kb-row"><span class="kb-label" data-i18n="set.fxq"></span><span class="lang-seg" data-fxopt="fxq"></span></div>
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.boost"></span><small class="kb-hint" data-i18n="set.boostHint"></small></span><span class="lang-seg" data-fxopt="boost"></span></div>
     </div>
@@ -2624,7 +2625,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=44"></script>
-<script src="lang.js?v=50"></script>
+<script src="lang.js?v=51"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2672,7 +2673,7 @@ if(!window.GunDuelLang){
 // 画面の文字はすべて lang.js の辞書から取る。読み込んだら外から触れないように消す
 var LANGS=window.GunDuelLang||{ja:{}};
 try{delete window.GunDuelLang;}catch(e){}
-var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null};   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
+var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null,zoom:true};   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
 (function loadSettings(){
   var saved=null;
   try{saved=JSON.parse(localStorage.getItem('gunduel_settings')||'null');}catch(e){}
@@ -2684,6 +2685,7 @@ var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,
     if(saved.fxq==='high'||saved.fxq==='low')SETTINGS.fxq=saved.fxq;
     if(saved.boost===true)SETTINGS.boost=true;
     if(saved.vib===false)SETTINGS.vib=false;
+    if(saved.zoom===false)SETTINGS.zoom=false;
     if(saved.tpop>=30&&saved.tpop<=100)SETTINGS.tpop=Math.round(+saved.tpop);
     SETTINGS.tlay=cleanTlay(saved.tlay);
   }else{
@@ -2754,12 +2756,13 @@ function renderSettingsUI(){
   if(tr){tr.value=SETTINGS.tpop;tr.style.setProperty('--p',((SETTINGS.tpop-30)/70*100)+'%');}
   if(tv)tv.textContent=SETTINGS.tpop+'%';
   document.querySelectorAll('[data-fxopt]').forEach(function(el){
-    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
+    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'||k==='zoom'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
 }
 function setFxOpt(k,v){
   if(k==='boost'){SETTINGS.boost=!!v;saveSettings();renderSettingsUI();applyBoost();return;}
+  if(k==='zoom'){SETTINGS.zoom=!!v;saveSettings();renderSettingsUI();return;}
   if(k==='vib'){SETTINGS.vib=!!v;saveSettings();renderSettingsUI();if(v)vib(40);return;}
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
   saveSettings();renderSettingsUI();
@@ -7527,6 +7530,31 @@ function updateCamera(){
   camX=Math.max(0,Math.min(WORLD_W-VW,camX));
 }
 function wx(x){return x-camX;}
+// ---- ズーム（見た目だけ）：戦っている全員が必ず入る範囲で、少しだけ寄る ----
+// 当たり判定・操作・カメラの横の位置は変えず、描いた画面を拡大するだけ。寄るのは最大 CAMZ_MAX 倍まで
+var CAMZ={z:1,x:0,y:0},CAMZ_MAX=1.3;
+function zoomChars(){
+  if(gameMode==='ai')return[lp,lai];
+  if(gameMode==='online'&&TEAM2&&olW)return SIM.TEAM_SLOTS.map(function(sl){return olW.chars[sl];});
+  if(gameMode==='online')return[olMe,olOpp];
+  return[];
+}
+function updateZoom(){
+  var tz=1,tx=0,ty=0,list=zoomChars().filter(function(c){return c&&!c.dead;});
+  if(SETTINGS.zoom!==false&&list.length>=2&&!lobbyPhase&&!vsPhase&&!matchOver){
+    var x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    list.forEach(function(c){var sx=wx(c.x);x0=Math.min(x0,sx);x1=Math.max(x1,sx+CHAR_W);y0=Math.min(y0,c.y);y1=Math.max(y1,c.y+CHAR_H);});
+    x0-=90;x1+=90;y0-=105;y1+=40;   // まわりに余白（名前・ジャンプの高さ・足もと）。上は体力バーの分も空ける
+    var ww=Math.max(x1-x0,VW/CAMZ_MAX),wh=Math.max(y1-y0,VH/CAMZ_MAX);
+    tz=Math.max(1,Math.min(CAMZ_MAX,VW/ww,VH/wh));
+    var vw=VW/tz,vh=VH/tz;
+    tx=Math.max(0,Math.min(VW-vw,(x0+x1)/2-vw/2));
+    ty=Math.max(0,Math.min(VH-vh,VH-vh));   // 下（地面）は常に見せる。寄った分は上を切る
+    ty=Math.max(0,Math.min(ty,y0));         // ただし、いちばん上のキャラが切れないように
+  }
+  var k=.06;CAMZ.z+=(tz-CAMZ.z)*k;CAMZ.x+=(tx-CAMZ.x)*k;CAMZ.y+=(ty-CAMZ.y)*k;
+  if(Math.abs(CAMZ.z-1)<.002&&tz===1){CAMZ.z=1;CAMZ.x=0;CAMZ.y=0;}
+}
 
 // ============================================================
 // 描画
@@ -12684,6 +12712,8 @@ function drawScene(){
   }
   var sk=JUICE.shake;
   ctx.save();if(sk>.2)ctx.translate((Math.random()-.5)*2*sk,(Math.random()-.5)*2*sk);   // 画面の揺れ
+  updateZoom();
+  if(CAMZ.z>1.001){ctx.scale(CAMZ.z,CAMZ.z);ctx.translate(-CAMZ.x,-CAMZ.y);}   // ズーム（見た目だけ）
   // 寄る中心は画面の中に収める（離れた場所・穴に落ちたキャラでも、画面が大きくずれないように）
   if(kc){var kx=Math.max(VW*.18,Math.min(VW*.82,wx(kc.x))),ky=Math.max(VH*.2,Math.min(VH*.8,kc.y));ctx.save();ctx.translate(kx,ky);ctx.scale(kz,kz);ctx.translate(-kx,-ky);}
   drawBackground();
