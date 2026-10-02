@@ -6057,6 +6057,8 @@ var isTouch=window.matchMedia?window.matchMedia('(pointer:coarse)').matches:('on
 document.body.classList.toggle('touch',isTouch);
 function showGameScreen(mode){
   showScreen('game-screen');
+  document.getElementById('game-screen').classList.toggle('range',mode==='range');   // 射撃場の表を、ほかの試合に残さない
+  if(mode!=='range')RANGE=null;
   document.getElementById('difficulty-bar').style.display=(mode==='ai'&&difficulty!==EMP)?'':'none';   // 鬼帝との戦いは、途中で難易度を変えない
   document.getElementById('back-to-menu').style.display='';
   setInGameUI(true);   // ロビー中も下のパネルは出さない（設定はメニューで決め済み）
@@ -11067,6 +11069,7 @@ function drawChar(s,isMe,o){
   var dv=o.label?!!o.label.dev:isMe?!!(AUTH.user&&AUTH.user.dev):gameMode==='ai'?false:!!oppInfo.dev;
   var dw=dv?12:0;
   var tw=ctx.measureText(tag).width+8,nw=ctx.measureText(nm).width+8,px0=cxm-(tw+nw+dw)/2,py0=hy-22;
+  if(cxm>=0&&cxm<=VW)px0=Math.max(2,Math.min(VW-2-(tw+nw+dw),px0));   // キャラが画面の中にいるときだけ、はみ出す札を中へ寄せる
   ctx.fillStyle='rgba(6,8,14,.8)';rrect(px0,py0,tw+nw+dw,13,3);ctx.fill();
   var tagIdx=o.label?(o.label.tierIdx||0):isMe?computeTierIndex():gameMode==='ai'?0:tierIdxOf(oppInfo.tier);
   if(tagIdx>0)drawTierPill(ctx,tagIdx,px0,py0,tw,13,tag,performance.now()/1000);   // ティアの素材の札
@@ -11824,9 +11827,11 @@ function drawHudSide(left,label,sub,wins,col,chars){
   ctx.fillStyle=col;ctx.fillRect(left?0:VW-3,0,3,h);
   var lg=ctx.createLinearGradient(x0,0,x0+s*(w-22),0);lg.addColorStop(0,col);lg.addColorStop(1,rgba(col,0));ctx.fillStyle=lg;ctx.fillRect(x0,h-1,s*(w-22),1);
   ctx.textAlign=left?'left':'right';ctx.textBaseline='alphabetic';
-  ctx.font='700 13px '+FONT_UI;setLS(.5);ctx.fillStyle='#EDEBE6';ctx.fillText(label,tx,17);
+  // 名前と小さな文字は、取ったラウンドの◇の手前までに収める（長いときは「…」で切る）
+  var room=w-16-40-2*14-12,fit=function(str,max){if(ctx.measureText(str).width<=max)return str;while(str.length>1&&ctx.measureText(str+'…').width>max)str=str.slice(0,-1);return str+'…';};
+  ctx.font='700 13px '+FONT_UI;setLS(.5);ctx.fillStyle='#EDEBE6';label=fit(String(label),room);ctx.fillText(label,tx,17);
   var lw2=ctx.measureText(label).width;
-  if(sub){ctx.font='700 8.5px '+FONT_UI;setLS(1.5);ctx.fillStyle=col;ctx.fillText(sub,tx+s*(lw2+8),16);}
+  if(sub){ctx.font='700 8.5px '+FONT_UI;setLS(1.5);var sr=room-lw2-8;if(sr>24){ctx.fillStyle=col;ctx.fillText(fit(String(sub),sr),tx+s*(lw2+8),16);}}
   setLS(0);
   // 取ったラウンド（名前の行の外側の端）
   for(var k=0;k<3;k++){
@@ -11908,9 +11913,11 @@ function drawKillFx(kc,kt){
 // 右上の小さな通信状況
 function pingCol(p){return p<0?'rgba(255,255,255,.28)':p<60?'rgba(52,211,153,.85)':p<120?'rgba(251,191,36,.85)':'rgba(255,77,94,.9)';}
 function drawPing(){
-  ctx.font='600 9px '+FONT_UI;ctx.textAlign='right';ctx.textBaseline='alphabetic';setLS(.5);
-  ctx.fillStyle=pingCol(myPing);ctx.fillText(t('c.ping',{n:myPing<0?'--':myPing}),VW-10,60);
-  if(!TEAM2){ctx.fillStyle=pingCol(oppPing);ctx.fillText(t('c.pingOpp',{n:oppPing<0?'--':oppPing}),VW-10,71);}
+  // 真ん中の「ROUND」の下に1行で出す（左右の体力バーには重ねない）
+  ctx.font='600 8.5px '+FONT_UI;ctx.textBaseline='alphabetic';setLS(.5);
+  var a1=t('c.ping',{n:myPing<0?'--':myPing}),a2=TEAM2?'':t('c.pingOpp',{n:oppPing<0?'--':oppPing}),w1=ctx.measureText(a1).width,w2=a2?ctx.measureText(a2).width+10:0,x0=VW/2-(w1+w2)/2;
+  ctx.textAlign='left';ctx.fillStyle=pingCol(myPing);ctx.fillText(a1,x0,58);
+  if(a2){ctx.fillStyle=pingCol(oppPing);ctx.fillText(a2,x0+w1+10,58);}
   setLS(0);
 }
 // 対戦中の武器表示（画面下の武器バーを隠すかわり）：3つの武器・弾数・リロード・回復
