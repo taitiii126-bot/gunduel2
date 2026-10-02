@@ -910,6 +910,7 @@ body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
 .tp-xs{width:10vh;height:10vh;}
 #tp-emo{right:9vh;bottom:50vh;border-color:rgba(255,210,74,.6);}
 body.mland #emote-menu{bottom:auto;top:12vh;}
+body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:50px;}
 #tp-weps{position:absolute;left:50%;bottom:2vh;transform:translateX(-50%);display:flex;gap:1.5vh;pointer-events:auto;}
 .tp-w{min-width:16vh;height:9vh;padding:0 2vh;border-radius:2.4vh;border:1.5px solid rgba(255,255,255,.22);background:rgba(10,12,20,.5);color:rgba(255,255,255,.72);font-size:max(10px,2.8vh);font-weight:900;letter-spacing:.04em;touch-action:none;}
 .tp-w small{display:block;margin-top:1px;font-family:var(--f-ui);font-size:max(8px,2.2vh);font-weight:700;opacity:.7;}
@@ -937,9 +938,9 @@ body.mland #emote-menu{bottom:auto;top:12vh;}
 #tl-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:46%;margin:0;text-align:center;font-size:max(10px,2.4vh);font-weight:700;color:rgba(255,255,255,.55);pointer-events:none;}
 #tl-rot{display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(7,8,12,.92);color:var(--tx);font-weight:700;}
 @media (orientation:portrait){#tl-rot{display:flex;}}
-#tp-menu{position:absolute;top:48px;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);pointer-events:auto;}
+#tp-menu{position:absolute;top:19vh;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);pointer-events:auto;}
 #tp-menu svg.i{width:16px;height:16px;}
-#fs-btn{position:absolute;top:10px;right:10px;z-index:5;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);opacity:.5;transition:.15s var(--ease);}
+#fs-btn{position:absolute;bottom:10px;right:10px;z-index:5;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);opacity:.5;transition:.15s var(--ease);}
 #fs-btn:hover{opacity:1;color:var(--tx);}
 #fs-btn svg.i{width:16px;height:16px;}
 .canvas-frame:fullscreen{width:100vw;height:100vh;max-width:none;display:flex;align-items:center;justify-content:center;padding:0;border-radius:0;background:#07080C;box-shadow:none;}
@@ -2058,6 +2059,30 @@ body:not([data-scr="game-screen"]) #fps-meter{display:none!important;}
 .kb-hint{display:block;margin-top:2px;font-size:11px;font-weight:600;color:var(--tx-3);letter-spacing:0;}
 /* 窓を開いている間は、右上の設定・音のボタンを隠す（窓の閉じるボタンと重ならないように） */
 body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
+/* ---- ホーム（見た目の整理）：左はアイコンの小さな列にして、真ん中のキャラを大きく見せる ---- */
+@media (min-width:1000px){
+  .home-main{grid-template-columns:96px minmax(0,1fr) 420px;column-gap:24px;}
+  .home-side{gap:8px;}
+  .home-side .side-btn{flex-direction:column;justify-content:center;align-items:center;gap:5px;padding:10px 4px 9px;font-size:11px;font-weight:800;letter-spacing:.02em;text-align:center;line-height:1.15;}
+  .home-side .side-btn .sb-ic{width:36px;height:36px;}
+  .home-side .side-btn svg.i{width:27px;height:27px;}
+  .home-side .side-btn canvas{width:38px;height:38px;}
+  .home-side .side-btn .ev-tx{align-items:center;}
+  .home-side .side-btn .ev-tx small{font-size:10px;}
+  .home-side .mb-badge{top:-6px;right:-8px;}
+  .home-hero{height:min(72vh,660px);}
+}
+body.mland .home-main{grid-template-columns:124px minmax(0,1fr) minmax(0,1.15fr);}
+body.mland .home-side{grid-template-columns:1fr 1fr;gap:5px;align-content:center;}
+body.mland .play-btn b{font-size:clamp(16px,4.6vh,22px);white-space:nowrap;}
+body.mland .play-btn small{font-size:10px;}   /* 横持ちのスマホ：アイコンを2列にして、縦に収める */
+body.mland .home-side .side-btn{flex-direction:column;justify-content:center;align-items:center;gap:2px;padding:6px 2px;min-height:58px;font-size:9px;text-align:center;line-height:1.1;}
+body.mland .home-side .side-btn .sb-ic{width:24px;height:24px;}
+body.mland .home-side .side-btn svg.i{width:20px;height:20px;}
+body.mland .home-side .side-btn canvas{width:26px;height:26px;}
+body.mland .home-side .side-btn .ev-tx{align-items:center;}
+body.mland .home-side .side-btn .ev-tx small{display:none;}
+body.mland .home-hero{height:72vh;}
 </style>
 </head>
 <body>
@@ -2328,6 +2353,7 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
     <div class="settings-section">
       <h3><span data-i18n="set.fx"></span><span>EFFECTS</span></h3>
       <div class="kb-row"><span class="kb-label" data-i18n="set.shake"></span><span class="lang-seg" data-fxopt="shake"></span></div>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.zoom"></span><small class="kb-hint" data-i18n="set.zoomHint"></small></span><span class="lang-seg" data-fxopt="zoom"></span></div>
       <div class="kb-row"><span class="kb-label" data-i18n="set.fxq"></span><span class="lang-seg" data-fxopt="fxq"></span></div>
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.boost"></span><small class="kb-hint" data-i18n="set.boostHint"></small></span><span class="lang-seg" data-fxopt="boost"></span></div>
     </div>
@@ -2599,7 +2625,7 @@ body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=44"></script>
-<script src="lang.js?v=49"></script>
+<script src="lang.js?v=51"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2647,7 +2673,7 @@ if(!window.GunDuelLang){
 // 画面の文字はすべて lang.js の辞書から取る。読み込んだら外から触れないように消す
 var LANGS=window.GunDuelLang||{ja:{}};
 try{delete window.GunDuelLang;}catch(e){}
-var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null};   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
+var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null,zoom:true};   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
 (function loadSettings(){
   var saved=null;
   try{saved=JSON.parse(localStorage.getItem('gunduel_settings')||'null');}catch(e){}
@@ -2659,6 +2685,7 @@ var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,
     if(saved.fxq==='high'||saved.fxq==='low')SETTINGS.fxq=saved.fxq;
     if(saved.boost===true)SETTINGS.boost=true;
     if(saved.vib===false)SETTINGS.vib=false;
+    if(saved.zoom===false)SETTINGS.zoom=false;
     if(saved.tpop>=30&&saved.tpop<=100)SETTINGS.tpop=Math.round(+saved.tpop);
     SETTINGS.tlay=cleanTlay(saved.tlay);
   }else{
@@ -2729,12 +2756,13 @@ function renderSettingsUI(){
   if(tr){tr.value=SETTINGS.tpop;tr.style.setProperty('--p',((SETTINGS.tpop-30)/70*100)+'%');}
   if(tv)tv.textContent=SETTINGS.tpop+'%';
   document.querySelectorAll('[data-fxopt]').forEach(function(el){
-    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
+    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'||k==='zoom'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
 }
 function setFxOpt(k,v){
   if(k==='boost'){SETTINGS.boost=!!v;saveSettings();renderSettingsUI();applyBoost();return;}
+  if(k==='zoom'){SETTINGS.zoom=!!v;saveSettings();renderSettingsUI();return;}
   if(k==='vib'){SETTINGS.vib=!!v;saveSettings();renderSettingsUI();if(v)vib(40);return;}
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
   saveSettings();renderSettingsUI();
@@ -7502,6 +7530,31 @@ function updateCamera(){
   camX=Math.max(0,Math.min(WORLD_W-VW,camX));
 }
 function wx(x){return x-camX;}
+// ---- ズーム（見た目だけ）：戦っている全員が必ず入る範囲で、少しだけ寄る ----
+// 当たり判定・操作・カメラの横の位置は変えず、描いた画面を拡大するだけ。寄るのは最大 CAMZ_MAX 倍まで
+var CAMZ={z:1,x:0,y:0},CAMZ_MAX=1.3;
+function zoomChars(){
+  if(gameMode==='ai')return[lp,lai];
+  if(gameMode==='online'&&TEAM2&&olW)return SIM.TEAM_SLOTS.map(function(sl){return olW.chars[sl];});
+  if(gameMode==='online')return[olMe,olOpp];
+  return[];
+}
+function updateZoom(){
+  var tz=1,tx=0,ty=0,list=zoomChars().filter(function(c){return c&&!c.dead;});
+  if(SETTINGS.zoom!==false&&list.length>=2&&!lobbyPhase&&!vsPhase&&!matchOver){
+    var x0=1e9,x1=-1e9,y0=1e9,y1=-1e9;
+    list.forEach(function(c){var sx=wx(c.x);x0=Math.min(x0,sx);x1=Math.max(x1,sx+CHAR_W);y0=Math.min(y0,c.y);y1=Math.max(y1,c.y+CHAR_H);});
+    x0-=90;x1+=90;y0-=105;y1+=40;   // まわりに余白（名前・ジャンプの高さ・足もと）。上は体力バーの分も空ける
+    var ww=Math.max(x1-x0,VW/CAMZ_MAX),wh=Math.max(y1-y0,VH/CAMZ_MAX);
+    tz=Math.max(1,Math.min(CAMZ_MAX,VW/ww,VH/wh));
+    var vw=VW/tz,vh=VH/tz;
+    tx=Math.max(0,Math.min(VW-vw,(x0+x1)/2-vw/2));
+    ty=Math.max(0,Math.min(VH-vh,VH-vh));   // 下（地面）は常に見せる。寄った分は上を切る
+    ty=Math.max(0,Math.min(ty,y0));         // ただし、いちばん上のキャラが切れないように
+  }
+  var k=.06;CAMZ.z+=(tz-CAMZ.z)*k;CAMZ.x+=(tx-CAMZ.x)*k;CAMZ.y+=(ty-CAMZ.y)*k;
+  if(Math.abs(CAMZ.z-1)<.002&&tz===1){CAMZ.z=1;CAMZ.x=0;CAMZ.y=0;}
+}
 
 // ============================================================
 // 描画
@@ -10909,33 +10962,22 @@ function drawChar(s,isMe,o){
     ctx.beginPath();ctx.arc(cx2+d*8,s.y+20,8+12*wp,d>0?-1.2:Math.PI-1.9,d>0?1.2:Math.PI+1.9);ctx.stroke();ctx.restore();
   }
   if(o.hud===false)return;
-  // ---- 頭上HUD：名札・武器名・HP・リロード ----
-  var bY=s.ducking?s.y+(CHAR_H-28):s.y,cxm=sx+CHAR_W/2,bw=30,hx=cxm-bw/2,hy=bY-12;
-  var hpN=Math.max(0,s.hp),ratio=hpN/MAX_HP,hpCol=ratio>=.8?'#34D399':ratio>=.4?'#FBBF24':'#FF4D5E',segW=(bw-4*1.5)/5,segHp=MAX_HP/5;
-  ctx.fillStyle='rgba(0,0,0,.6)';rrect(hx-2,hy-2,bw+4,11,2);ctx.fill();
-  var nowm=performance.now(),hl=HPLAG[s.side]||(HPLAG[s.side]={v:hpN,h:hpN,t:0,last:nowm});
-  if(hpN<hl.h)hl.t=nowm;hl.h=hpN;
-  if(hpN>=hl.v)hl.v=hpN;else if(nowm-hl.t>420)hl.v=Math.max(hpN,hl.v-(nowm-hl.last)*.08);
-  hl.last=nowm;
-  for(var k=0;k<5;k++){
-    var fill=Math.max(0,Math.min(1,(hpN-k*segHp)/segHp)),lag=Math.max(0,Math.min(1,(hl.v-k*segHp)/segHp)),sxk=hx+k*(segW+1.5);
-    ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(sxk,hy,segW,4);
-    if(lag>fill){ctx.fillStyle='rgba(255,255,255,.9)';ctx.fillRect(sxk,hy,segW*lag,4);}
-    if(fill>0){ctx.fillStyle=hpCol;ctx.fillRect(sxk,hy,segW*fill,4);}
-  }
-  var reloading=s.rl>0,rr=reloading?1-s.rl/Math.max(1,s.rlMax):1-Math.max(0,s.cool||0)/Math.max(1,s.coolMax||1);
+  // ---- 頭上：名札だけ（体力は画面上の大きなバー）。自分には、弾の数とリロードの輪 ----
+  var bY=s.ducking?s.y+(CHAR_H-28):s.y,cxm=sx+CHAR_W/2,hy=bY-12;
+  var reloading=s.rl>0,rr=reloading?1-s.rl/Math.max(1,s.rlMax):1;
   rr=Math.min(Math.max(rr,0),1);
-  ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(hx,hy+6,bw,2);ctx.fillStyle=reloading?'#FB923C':(rr>=1?'#FFC53D':'rgba(255,255,255,.5)');ctx.fillRect(hx,hy+6,bw*rr,2);
-  if(isMe&&W&&W.mag>0){   // 自分だけ：体力の右に、弾の数（リロード中は進み具合の輪）
-    var ax=hx+bw+9,ay=hy+3,am=(s.ammo&&s.ammo[s.slot])|0;
-    ctx.save();ctx.fillStyle='rgba(0,0,0,.6)';ctx.beginPath();ctx.arc(ax,ay,6.5,0,Math.PI*2);ctx.fill();
-    if(reloading){ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ax,ay,5,0,Math.PI*2);ctx.stroke();
-      ctx.strokeStyle='#FB923C';ctx.shadowColor='#FB923C';ctx.shadowBlur=4;ctx.beginPath();ctx.arc(ax,ay,5,-Math.PI/2,-Math.PI/2+rr*Math.PI*2);ctx.stroke();}
-    else{ctx.font='800 7.5px '+FONT_UI;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=am<=0?'#FF4D5E':am<=Math.ceil(W.mag*.25)?'#FBBF24':'#FFFFFF';ctx.fillText(am,ax,ay+.5);}
-    ctx.restore();
+  hudLag(s);   // 体力の白く残る分（上のバーで使う）も、ここで進める
+  if(isMe&&W&&W.mag>0){
+    var am=(s.ammo&&s.ammo[s.slot])|0,low=am<=Math.ceil(W.mag*.25);
+    if(reloading||low){   // 気にするときだけ出す：リロード中・弾が少ないとき
+      var ax=cxm,ay=hy-1;
+      ctx.save();ctx.fillStyle='rgba(0,0,0,.6)';ctx.beginPath();ctx.arc(ax,ay,6.5,0,Math.PI*2);ctx.fill();
+      if(reloading){ctx.strokeStyle='rgba(255,255,255,.15)';ctx.lineWidth=2;ctx.beginPath();ctx.arc(ax,ay,5,0,Math.PI*2);ctx.stroke();
+        ctx.strokeStyle='#FB923C';ctx.beginPath();ctx.arc(ax,ay,5,-Math.PI/2,-Math.PI/2+rr*Math.PI*2);ctx.stroke();}
+      else{ctx.font='800 7.5px '+FONT_UI;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle=am<=0?'#FF4D5E':'#FBBF24';ctx.fillText(am,ax,ay+.5);}
+      ctx.restore();
+    }
   }
-  ctx.textAlign='center';ctx.textBaseline='alphabetic';
-  if(W){ctx.font='700 9px '+FONT_UI;setLS(1);ctx.fillStyle=W.color;ctx.fillText(reloading?'RELOAD':wShort(wid),cxm,hy-5);setLS(0);}
   var tag,tagCol,nm;
   if(o.label){tag=o.label.tag;tagCol=o.label.tagCol;nm=o.label.nm;}
   else if(isMe){var tIdx=computeTierIndex(),tInfo=TIER_LADDER[tIdx];tag=tIdx?tInfo.key:'--';tagCol=tInfo.color;nm=profile.name;}
@@ -10944,7 +10986,7 @@ function drawChar(s,isMe,o){
   ctx.font='700 9px '+FONT_UI;
   var dv=o.label?!!o.label.dev:isMe?!!(AUTH.user&&AUTH.user.dev):gameMode==='ai'?false:!!oppInfo.dev;
   var dw=dv?12:0;
-  var tw=ctx.measureText(tag).width+8,nw=ctx.measureText(nm).width+8,px0=cxm-(tw+nw+dw)/2,py0=hy-29;
+  var tw=ctx.measureText(tag).width+8,nw=ctx.measureText(nm).width+8,px0=cxm-(tw+nw+dw)/2,py0=hy-22;
   ctx.fillStyle='rgba(6,8,14,.8)';rrect(px0,py0,tw+nw+dw,13,3);ctx.fill();
   var tagIdx=o.label?(o.label.tierIdx||0):isMe?computeTierIndex():gameMode==='ai'?0:tierIdxOf(oppInfo.tier);
   if(tagIdx>0)drawTierPill(ctx,tagIdx,px0,py0,tw,13,tag,performance.now()/1000);   // ティアの素材の札
@@ -11452,18 +11494,9 @@ function drawBackground(){
       ctx.fillStyle=G.ground;ctx.fillRect(sx3,p.y,p.w,p.h);
       if(th.id!=='storm'&&th.id!=='western'){ctx.fillStyle='rgba(255,255,255,.035)';for(var gx=Math.max(p.x,Math.floor(camX/60)*60);gx<Math.min(p.x+p.w,camX+VW+60);gx+=60)ctx.fillRect(wx(gx),p.y+4,1,p.h);}
       ctx.fillStyle=th.edge;ctx.fillRect(sx3,p.y,p.w,2);ctx.fillStyle=th.edge2;ctx.fillRect(sx3,p.y+2,p.w,3);
+      drawGroundCap(th,p,sx3);
       drawGroundDeco(th,p,sx3);
-    }else if(th.id==='western')drawPlank(p,sx3);
-    else if(th.id==='city')drawBeam(p,sx3);
-    else{
-      ctx.fillStyle='rgba(0,0,0,.28)';ctx.fillRect(sx3+3,p.y+p.h,p.w-6,4);
-      ctx.fillStyle=th.plat;ctx.fillRect(sx3,p.y,p.w,p.h);
-      ctx.fillStyle=th.platTint;ctx.fillRect(sx3,p.y+2,p.w,p.h-2);
-      ctx.fillStyle=th.platHi;ctx.fillRect(sx3,p.y,p.w,2);
-      platTexture(th,p,sx3);
-      if(th.id==='ice'){ctx.fillStyle='rgba(230,248,255,.8)';for(var ic=6;ic<p.w-4;ic+=14){ctx.beginPath();ctx.moveTo(sx3+ic,p.y+p.h);ctx.lineTo(sx3+ic+3,p.y+p.h+6+(ic%3)*2);ctx.lineTo(sx3+ic+6,p.y+p.h);ctx.fill();}}
-      if(th.id==='jungle'){ctx.strokeStyle='rgba(90,160,70,.8)';ctx.lineWidth=1.5;for(var vn=8;vn<p.w;vn+=26){ctx.beginPath();ctx.moveTo(sx3+vn,p.y+p.h);ctx.quadraticCurveTo(sx3+vn+4,p.y+p.h+8,sx3+vn-1,p.y+p.h+15);ctx.stroke();}}
-    }
+    }else drawPlatArt(th,p,sx3);   // 足場：ステージごとの厚みのある絵（当たり判定は上の面だけで、今までと同じ）
   }
   // 遮蔽物（弾を止める）：テーマの石・氷・レンガで描く
   for(var m=0;m<solids.length;m++){
@@ -11490,6 +11523,126 @@ function drawBackground(){
   if(th.id==='western')drawTumbleweed();
   if(th.id==='jungle')drawTorches();
   if(HW_ON&&!SETTINGS.boost)drawHalloweenStage();
+}
+// 地面の表面：草・砂・雪の層が、波打つふちで少し垂れる（画面に見えている所だけ）
+var GROUND_CAP={storm:['#8FCB5C','#4F8A34'],desert:['#F2D29A','#D9A868'],ice:['#FFFFFF','#CFE8F8'],jungle:['#7DB84A','#3F7A2A']};
+function drawGroundCap(th,p,sx3){
+  var C=GROUND_CAP[th.id];if(!C)return;
+  var x0=Math.max(sx3,-10),x1=Math.min(sx3+p.w,VW+10),y=p.y;
+  var path=function(){
+    ctx.beginPath();ctx.moveTo(x0,y-1);ctx.lineTo(x1,y-1);ctx.lineTo(x1,y+5);
+    for(var wx2=Math.ceil((x1+camX)/12)*12;wx2>=Math.floor((x0+camX)/12)*12;wx2-=12){
+      var r=prand(wx2*.37+p.y),sx4=wx2-camX;if(sx4<x0-8||sx4>x1+8)continue;
+      if(r>.6){var rad=2.5+r*3;ctx.lineTo(sx4+rad,y+5);ctx.arc(sx4,y+5,rad,0,Math.PI,false);}
+    }
+    ctx.lineTo(x0,y+5);ctx.closePath();
+  };
+  path();ctx.save();ctx.translate(0,1.8);ctx.fillStyle='rgba(0,0,0,.22)';ctx.fill();ctx.restore();
+  path();var g=ctx.createLinearGradient(0,y,0,y+12);g.addColorStop(0,C[0]);g.addColorStop(1,C[1]);ctx.fillStyle=g;ctx.fill();
+  ctx.fillStyle='rgba(255,255,255,.5)';ctx.fillRect(x0,y,x1-x0,1);
+}
+// ---- 足場の絵：縁取り・厚み・表面（草・砂・雪・苔）・影で、ゲームらしい立体感を出す ----
+// 見た目の厚みは当たり判定（上の面）より下に伸ばすだけなので、遊び方は変わらない
+var PLAT_ART={
+  western:{body:['#9A6A3C','#5E3B1D'],line:'#2A170A',cap:null},
+  city:{body:['#4A5266','#23262F'],line:'#0C0D12',cap:null},
+  desert:{body:['#D29A5E','#8C5A30'],line:'#4A2A12',cap:['#F6DDA6','#E8BE7A'],taper:12,blocks:true},
+  ice:{body:['#9FD3F0','#4F8DBA'],line:'#1F4A6E',cap:['#FFFFFF','#DDF2FF'],taper:6,ice:true},
+  jungle:{body:['#7C7A5E','#3F3F2C'],line:'#1D1F12',cap:['#8BC753','#4E8C32'],taper:10,blocks:true,vines:true},
+  storm:{body:['#7A5A3C','#3E2C1C'],line:'#1C140B',cap:['#8FCB5C','#4F8A34'],taper:14},
+  night:{body:['#4A5290','#232850'],line:'#0E1130',cap:['#A8B2F0','#6E7BD0'],taper:8,blocks:true}
+};
+// 表面の層（雪・砂・苔など）の形：上は平ら、下のふちに丸いしずくがところどころ垂れる
+function capPath(x,y,w,h,seed){
+  ctx.beginPath();ctx.moveTo(x+2,y);ctx.lineTo(x+w-2,y);ctx.quadraticCurveTo(x+w,y,x+w,y+2);ctx.lineTo(x+w,y+h);
+  for(var dx=w-6;dx>4;dx-=9){
+    var r=prand(seed+dx*1.7);
+    if(r>.55){var rad=2+r*2.5;ctx.lineTo(x+dx+rad,y+h);ctx.arc(x+dx,y+h,rad,0,Math.PI,false);}
+    else ctx.lineTo(x+dx,y+h+(r-.3)*.8);
+  }
+  ctx.lineTo(x,y+h);ctx.lineTo(x,y+2);ctx.quadraticCurveTo(x,y,x+2,y);ctx.closePath();
+}
+function rrPathCtx(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);ctx.lineTo(x+w,y+h-r);ctx.quadraticCurveTo(x+w,y+h,x+w-r,y+h);ctx.lineTo(x+r,y+h);ctx.quadraticCurveTo(x,y+h,x,y+h-r);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();}
+function drawPlatArt(th,p,sx3){
+  if(th.id==='western'){drawPlankArt(p,sx3);return;}
+  if(th.id==='city'){drawBeamArt(p,sx3);return;}
+  var A=PLAT_ART[th.id]||PLAT_ART.night,x=sx3,y=p.y,w=p.w,H=p.h+6,tp=A.taper||0,seed=p.x*1.31+p.y;
+  // 影（下にふんわり）
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x+w/2,y+H+tp+5,w*.42,4,0,0,Math.PI*2);ctx.fill();
+  // 本体：上は四角、下は岩のようにすぼまる
+  var body=function(){
+    ctx.beginPath();ctx.moveTo(x+2,y);ctx.lineTo(x+w-2,y);ctx.quadraticCurveTo(x+w,y,x+w,y+3);ctx.lineTo(x+w,y+H-3);
+    if(tp){var n=Math.max(3,Math.round(w/22));for(var i=n;i>=0;i--){var fx=x+w*i/n,dy=H+(i===0||i===n?0:tp*(.45+.55*Math.sin(Math.PI*i/n))*(.75+prand(seed+i)*.5));ctx.lineTo(fx,y+dy);}}
+    else{ctx.lineTo(x+w,y+H);ctx.lineTo(x,y+H);}
+    ctx.lineTo(x,y+3);ctx.quadraticCurveTo(x,y,x+2,y);ctx.closePath();
+  };
+  body();
+  var bg=ctx.createLinearGradient(0,y,0,y+H+tp);bg.addColorStop(0,A.body[0]);bg.addColorStop(1,A.body[1]);
+  ctx.fillStyle=bg;ctx.fill();
+  ctx.save();ctx.clip();
+  if(A.blocks){   // 石のブロックの目地
+    ctx.strokeStyle='rgba(0,0,0,.25)';ctx.lineWidth=1;ctx.beginPath();
+    ctx.moveTo(x,y+H*.55);ctx.lineTo(x+w,y+H*.55);
+    for(var bx=x+14+prand(seed)*10;bx<x+w-6;bx+=22+prand(bx)*10){ctx.moveTo(bx,y+3);ctx.lineTo(bx,y+H*.55);ctx.moveTo(bx+11,y+H*.55);ctx.lineTo(bx+11,y+H+tp);}
+    ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.08)';ctx.fillRect(x,y+3,w,2);
+  }
+  if(A.ice){   // 氷のつや（ななめの光）
+    ctx.fillStyle='rgba(255,255,255,.35)';
+    for(var ix=x+8;ix<x+w;ix+=34){ctx.beginPath();ctx.moveTo(ix,y+H+tp);ctx.lineTo(ix+6,y+H+tp);ctx.lineTo(ix+18,y);ctx.lineTo(ix+12,y);ctx.closePath();ctx.fill();}
+  }
+  var dk=ctx.createLinearGradient(0,y+H*.5,0,y+H+tp);dk.addColorStop(0,'rgba(0,0,0,0)');dk.addColorStop(1,'rgba(0,0,0,.28)');
+  ctx.fillStyle=dk;ctx.fillRect(x,y+H*.5,w,H+tp);   // 下の方を少し暗く
+  ctx.restore();
+  body();ctx.strokeStyle=A.line;ctx.lineWidth=1.5;ctx.lineJoin='round';ctx.stroke();
+  // 表面（草・砂・雪・苔）：下のふちが波打って垂れる
+  if(A.cap){
+    var cH=5;
+    capPath(x-1,y-1,w+2,cH,seed);ctx.fillStyle='rgba(0,0,0,.22)';ctx.save();ctx.translate(0,1.6);ctx.fill();ctx.restore();   // 下にうすい影
+    capPath(x-1,y-1,w+2,cH,seed);
+    var cg=ctx.createLinearGradient(0,y,0,y+cH+5);cg.addColorStop(0,A.cap[0]);cg.addColorStop(1,A.cap[1]);
+    ctx.fillStyle=cg;ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillRect(x+3,y,w-6,1.2);   // 上のつや
+    if(th.id==='storm'||th.id==='jungle'){   // 草の葉先
+      ctx.fillStyle=A.cap[0];for(var gx2=x+4;gx2<x+w-3;gx2+=7){var gr=prand(seed+gx2);if(gr<.45)continue;ctx.beginPath();ctx.moveTo(gx2-2,y);ctx.lineTo(gx2,y-2-gr*3);ctx.lineTo(gx2+2,y);ctx.fill();}
+    }
+  }
+  if(A.ice){ctx.fillStyle='rgba(230,248,255,.9)';ctx.strokeStyle=A.line;ctx.lineWidth=.8;
+    for(var ic=10;ic<w-6;ic+=17){var ir=prand(seed+ic);if(ir<.3)continue;var iy=y+H+tp*.6;ctx.beginPath();ctx.moveTo(x+ic,iy-2);ctx.lineTo(x+ic+3,iy+5+ir*6);ctx.lineTo(x+ic+6,iy-2);ctx.fill();ctx.stroke();}}
+  if(A.vines){ctx.strokeStyle='rgba(78,140,50,.9)';ctx.lineWidth=1.6;
+    for(var vn=10;vn<w-4;vn+=24){var vr=prand(seed+vn);if(vr<.35)continue;var vy=y+H*.6;ctx.beginPath();ctx.moveTo(x+vn,vy);ctx.quadraticCurveTo(x+vn+5,vy+8+vr*6,x+vn-1,vy+14+vr*10);ctx.stroke();
+      ctx.fillStyle='#6FB84A';ctx.beginPath();ctx.ellipse(x+vn-1,vy+14+vr*10,2.2,1.4,.6,0,Math.PI*2);ctx.fill();}}
+  if(th.id==='desert')platTexture(th,p,sx3);
+}
+// 西部劇：太い板2枚を鉄の金具で留めた足場。下に支え・ランタン
+function drawPlankArt(p,sx3){
+  var x=sx3,y=p.y,w=p.w,H=p.h+5,L='#2A170A';
+  ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x+w/2,y+H+16,w*.4,3.5,0,0,Math.PI*2);ctx.fill();
+  ctx.strokeStyle=L;ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();   // 支え（ななめの柱）
+  ctx.moveTo(x+14,y+H-2);ctx.lineTo(x+28,y+H+13);ctx.moveTo(x+w-14,y+H-2);ctx.lineTo(x+w-28,y+H+13);ctx.stroke();
+  ctx.strokeStyle='#6B4526';ctx.lineWidth=2;ctx.stroke();ctx.lineCap='butt';
+  [[y,H*.55,'#B07A46','#7A4E28'],[y+H*.55,H*.45,'#8E6034','#5A381A']].forEach(function(b,i){   // 板2枚
+    rrPathCtx(x+(i?2:0),b[0],w-(i?4:0),b[1],2);
+    var g=ctx.createLinearGradient(0,b[0],0,b[0]+b[1]);g.addColorStop(0,b[2]);g.addColorStop(1,b[3]);ctx.fillStyle=g;ctx.fill();
+    ctx.strokeStyle=L;ctx.lineWidth=1.4;ctx.stroke();
+  });
+  ctx.fillStyle='#F0C68C';ctx.fillRect(x+2,y+.6,w-4,1.4);   // 上のつや
+  ctx.strokeStyle='rgba(40,20,8,.45)';ctx.lineWidth=.7;ctx.beginPath();   // 木目
+  for(var gy=y+3;gy<y+H-1;gy+=3)for(var gx=6;gx<w-8;gx+=24){var r=prand(p.x+gx*1.3+gy);if(r<.5)continue;ctx.moveTo(x+gx,gy);ctx.quadraticCurveTo(x+gx+6,gy+(r-.75)*2.4,x+gx+12+r*6,gy);}
+  ctx.stroke();
+  [x+4,x+w-12].forEach(function(bx){   // 鉄の金具とくぎ
+    ctx.fillStyle='#3B3B42';ctx.fillRect(bx,y+1,8,H-2);ctx.strokeStyle='#15151A';ctx.lineWidth=1;ctx.strokeRect(bx+.5,y+1.5,7,H-3);
+    ctx.fillStyle='#B8B8C4';ctx.fillRect(bx+3,y+3,2,2);ctx.fillRect(bx+3,y+H-5,2,2);
+  });
+  if(p.w>=120)drawLantern(x+p.w-22,y+H,p.x);
+}
+// 摩天楼：鉄骨。縁取りと面取りで厚みを出す（両端は黄と黒のしま）
+function drawBeamArt(p,sx3){
+  drawBeam(p,sx3);
+  var x=sx3,y=p.y,w=p.w,H=p.h;
+  ctx.fillStyle='#1A1D26';ctx.fillRect(x+2,y+H,w-4,4);   // 下のフランジ
+  ctx.strokeStyle='#0C0D12';ctx.lineWidth=1.4;ctx.strokeRect(x+.5,y+.5,w-1,H+3);
+  ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(x+10,y+H*.5,w-20,1);
 }
 // ハロウィン：足場の上のかぼちゃと、空を飛ぶコウモリ（見た目だけ。当たり判定はない）
 function drawHalloweenStage(){
@@ -11548,24 +11701,64 @@ function drawStageMap(g,id,w,h){
   g.fillStyle='#B794FF';g.fillRect(80*sx,(GND-40-44)*sy,Math.max(3,20*sx),44*sy);
   g.fillStyle='#FF6B7A';g.fillRect((WORLD_W-100)*sx,(GND-40-44)*sy,Math.max(3,20*sx),44*sy);
 }
-function drawHudSide(left,label,sub,wins,col){
-  var w=248,h=46,x0=left?0:VW,s=left?1:-1,tx=x0+s*18;
+// 体力の白く残る分（減ったあと少し待ってから追いつく）
+function hudLag(c){
+  var hpN=Math.max(0,c.hp),now=performance.now(),hl=HPLAG[c.side]||(HPLAG[c.side]={v:hpN,h:hpN,t:0,last:now});
+  if(now-hl.last<1)return hl;
+  if(hpN<hl.h)hl.t=now;hl.h=hpN;
+  if(hpN>=hl.v)hl.v=hpN;else if(now-hl.t>420)hl.v=Math.max(hpN,hl.v-(now-hl.last)*.08);
+  hl.last=now;return hl;
+}
+// 上の大きな体力バー（5つの区切り）。right＝右の陣営（右から減る）
+function hudHpBar(x,y,w,h,c,right,num){
+  var hpN=c?Math.max(0,c.hp):0,hl=c?hudLag(c):{v:0},ratio=hpN/MAX_HP,col=ratio>=.6?'#34D399':ratio>=.3?'#FBBF24':'#FF4D5E';
+  ctx.save();
+  ctx.fillStyle='rgba(0,0,0,.55)';rrect(x-2,y-2,w+4,h+4,3);ctx.fill();
+  var gap=2,segW=(w-gap*4)/5,segHp=MAX_HP/5;
+  for(var k=0;k<5;k++){
+    var kk=right?4-k:k,sx2=x+k*(segW+gap);
+    var fill=Math.max(0,Math.min(1,(hpN-kk*segHp)/segHp)),lag=Math.max(0,Math.min(1,(hl.v-kk*segHp)/segHp));
+    ctx.fillStyle='rgba(255,255,255,.1)';ctx.fillRect(sx2,y,segW,h);
+    var fx=function(f){return right?sx2+segW*(1-f):sx2;};
+    if(lag>fill){ctx.fillStyle='rgba(255,255,255,.85)';ctx.fillRect(fx(lag),y,segW*lag,h);}
+    if(fill>0){
+      var g=ctx.createLinearGradient(0,y,0,y+h);g.addColorStop(0,'#FFFFFF');g.addColorStop(.18,col);g.addColorStop(1,shade(col,-.35));
+      ctx.fillStyle=g;ctx.fillRect(fx(fill),y,segW*fill,h);
+    }
+  }
+  if(c&&c.dead){ctx.fillStyle='rgba(0,0,0,.45)';ctx.fillRect(x,y,w,h);}
+  if(num){
+    ctx.font='800 '+Math.round(h+3)+'px '+FONT_UI;ctx.textBaseline='middle';ctx.textAlign=right?'right':'left';
+    ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.75)';ctx.lineJoin='round';
+    var nx=right?x-7:x+w+7;ctx.strokeText(String(Math.ceil(hpN)),nx,y+h/2+.5);ctx.fillStyle=col;ctx.fillText(String(Math.ceil(hpN)),nx,y+h/2+.5);
+  }
+  ctx.restore();
+}
+// 画面上の左右：名前・体力・取ったラウンド。chars＝その陣営のキャラ（2v2 は2人）
+function drawHudSide(left,label,sub,wins,col,chars){
+  chars=(chars||[]).filter(Boolean);
+  var two=chars.length>1,w=262,h=two?62:58,x0=left?0:VW,s=left?1:-1,tx=x0+s*16;
   ctx.save();
   ctx.beginPath();ctx.moveTo(x0,0);ctx.lineTo(x0+s*w,0);ctx.lineTo(x0+s*(w-22),h);ctx.lineTo(x0,h);ctx.closePath();
-  var g=ctx.createLinearGradient(x0,0,x0+s*w,0);g.addColorStop(0,'rgba(6,8,14,.9)');g.addColorStop(1,'rgba(6,8,14,.25)');ctx.fillStyle=g;ctx.fill();
+  var g=ctx.createLinearGradient(x0,0,x0+s*w,0);g.addColorStop(0,'rgba(6,8,14,.92)');g.addColorStop(1,'rgba(6,8,14,.3)');ctx.fillStyle=g;ctx.fill();
   ctx.fillStyle=col;ctx.fillRect(left?0:VW-3,0,3,h);
   var lg=ctx.createLinearGradient(x0,0,x0+s*(w-22),0);lg.addColorStop(0,col);lg.addColorStop(1,rgba(col,0));ctx.fillStyle=lg;ctx.fillRect(x0,h-1,s*(w-22),1);
   ctx.textAlign=left?'left':'right';ctx.textBaseline='alphabetic';
-  ctx.font='700 14px '+FONT_UI;setLS(.5);ctx.fillStyle='#EDEBE6';ctx.fillText(label,tx,21);
+  ctx.font='700 13px '+FONT_UI;setLS(.5);ctx.fillStyle='#EDEBE6';ctx.fillText(label,tx,17);
   var lw2=ctx.measureText(label).width;
-  if(sub){ctx.font='700 9px '+FONT_UI;setLS(2);ctx.fillStyle=col;ctx.fillText(sub,tx+s*(lw2+8),20);}
+  if(sub){ctx.font='700 8.5px '+FONT_UI;setLS(1.5);ctx.fillStyle=col;ctx.fillText(sub,tx+s*(lw2+8),16);}
   setLS(0);
+  // 取ったラウンド（名前の行の外側の端）
   for(var k=0;k<3;k++){
-    ctx.save();ctx.translate(tx+s*(k*17+5),34);ctx.rotate(Math.PI/4);
-    if(k<wins){ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=10;ctx.fillRect(-4.5,-4.5,9,9);}
-    else{ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1.2;ctx.strokeRect(-4,-4,8,8);}
+    ctx.save();ctx.translate(x0+s*(w-40-k*14),12);ctx.rotate(Math.PI/4);
+    if(k<wins){ctx.fillStyle=col;ctx.shadowColor=col;ctx.shadowBlur=8;ctx.fillRect(-4,-4,8,8);}
+    else{ctx.strokeStyle='rgba(255,255,255,.3)';ctx.lineWidth=1.2;ctx.strokeRect(-3.5,-3.5,7,7);}
     ctx.restore();
   }
+  // 体力：1人なら太いバー＋数字、2人なら細いバーを2本
+  var bw=w-78,bx=left?tx:x0-16-bw;
+  if(two)chars.forEach(function(c,i){hudHpBar(bx,25+i*14,bw,9,c,!left,true);});
+  else if(chars.length)hudHpBar(bx,27,bw,15,chars[0],!left,true);
   ctx.restore();
 }
 function tierByKey(k){for(var i=0;i<TIER_LADDER.length;i++)if(TIER_LADDER[i].key===k)return TIER_LADDER[i];return null;}
@@ -12519,6 +12712,8 @@ function drawScene(){
   }
   var sk=JUICE.shake;
   ctx.save();if(sk>.2)ctx.translate((Math.random()-.5)*2*sk,(Math.random()-.5)*2*sk);   // 画面の揺れ
+  updateZoom();
+  if(CAMZ.z>1.001){ctx.scale(CAMZ.z,CAMZ.z);ctx.translate(-CAMZ.x,-CAMZ.y);}   // ズーム（見た目だけ）
   // 寄る中心は画面の中に収める（離れた場所・穴に落ちたキャラでも、画面が大きくずれないように）
   if(kc){var kx=Math.max(VW*.18,Math.min(VW*.82,wx(kc.x))),ky=Math.max(VH*.2,Math.min(VH*.8,kc.y));ctx.save();ctx.translate(kx,ky);ctx.scale(kz,kz);ctx.translate(-kx,-ky);}
   drawBackground();
@@ -12547,11 +12742,12 @@ function drawScene(){
   if(me&&!me.dead&&me.hp>0&&me.hp<=35&&!lobbyPhase&&!matchOver)drawLowHp(me.hp);
   if(kc&&kt<.16){ctx.save();ctx.globalAlpha=(1-kt/.16)*.55;ctx.fillStyle='#fff';ctx.fillRect(0,0,VW,VH);ctx.restore();}
   if(gameMode==='online'&&TEAM2){   // 2v2：左は自分のチーム、右は相手のチーム
-    drawHudSide(true,t('c.teamMine'),teamNames('me')+(teamSlots('ally').length?' / '+teamNames('ally'):''),pw,'#9D74FF');
-    drawHudSide(false,t('c.teamFoe'),teamNames('foe'),aw,'#FF4D5E');
+    var mine=olW?[mySlot].concat(teamSlots('ally')).map(function(sl){return olW.chars[sl];}):[],foes=olW?teamSlots('foe').map(function(sl){return olW.chars[sl];}):[];
+    drawHudSide(true,t('c.teamMine'),teamNames('me')+(teamSlots('ally').length?' / '+teamNames('ally'):''),pw,'#9D74FF',mine);
+    drawHudSide(false,t('c.teamFoe'),teamNames('foe'),aw,'#FF4D5E',foes);
   }else{
-    drawHudSide(true,profile.name,t('c.you'),pw,'#9D74FF');
-    drawHudSide(false,gameMode==='ai'?(isBossFight()?'BOSS':'CPU'):(oppInfo.name||t('c.opp')),gameMode==='ai'?diffName(difficulty):(oppInfo.tier||'ONLINE'),aw,isBossFight()?'#E8C66A':'#FF4D5E');
+    drawHudSide(true,profile.name,t('c.you'),pw,'#9D74FF',[me]);
+    drawHudSide(false,gameMode==='ai'?(isBossFight()?'BOSS':'CPU'):(oppInfo.name||t('c.opp')),gameMode==='ai'?diffName(difficulty):(oppInfo.tier||'ONLINE'),aw,isBossFight()?'#E8C66A':'#FF4D5E',[op]);
   }
   var rn=0;
   if(me&&op){
