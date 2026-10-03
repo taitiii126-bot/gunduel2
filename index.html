@@ -7683,6 +7683,42 @@ function lookColors(look,team){
   var L=look||LOOK_DEFAULT,T=team||TEAM.me;
   return{skin:LOOK_OPTS.skin[L.skin]||LOOK_OPTS.skin[1],hair:LOOK_OPTS.hairColor[L.hairColor]||LOOK_OPTS.hairColor[1],jacket:T.jacket,pants:T.pants};
 }
+// ---- 動きのリアル化：関節（IK）と、場面ごとの体の形 ----
+// 2本の骨（ふともも＋すね など）：根元から先へ届くように、ひざ（ひじ）の位置を計算する。bend＝曲がる向き
+function avIK2(ax,ay,bx,by,l1,l2,bend){
+  var dx=bx-ax,dy=by-ay,dist=Math.min(l1+l2-.01,Math.max(.01,Math.hypot(dx,dy)));
+  var a=Math.atan2(dy,dx),c=Math.acos(Math.max(-1,Math.min(1,(l1*l1+dist*dist-l2*l2)/(2*l1*dist)))),a1=a-bend*c;
+  return{jx:ax+Math.cos(a1)*l1,jy:ay+Math.sin(a1)*l1,ex:ax+Math.cos(a)*dist,ey:ay+Math.sin(a)*dist};
+}
+// 動きの状態 m={st, p, k} から、足の置き場所・体の上下(dy)・前傾(lean)・表情を作る。足の y は 0＝足もとの高さ（空中は体からの相対）
+function motionPose(m,d){
+  var st=m.st,k=m.k||0,i;
+  if(st==='run'){
+    var feet=[],sl=11,p=m.p%1;
+    for(i=0;i<2;i++){var q=(p+i*.5)%1,x,y;
+      if(q<.5){x=d*sl*(1-q*4);y=0;}                                                // 接地：前から後ろへ
+      else{var u=(q-.5)/.5;x=d*sl*(-1+u*2);y=-Math.sin(u*Math.PI)*7-(u<.3?u*6:0);}   // 浮かせる：後ろで蹴り上げて前へ
+      feet.push([x,y]);}
+    var sp=Math.min(1,m.spd||1);
+    return{feet:feet,dy:-1.5-Math.abs(Math.cos(p*Math.PI*2))*1.6,lean:.18*sp,face:{brows:1,mouth:Math.sin(p*Math.PI*4)>0?6:4}};
+  }
+  if(st==='skid'){   // 急停止・切り返し：前につんのめってから、後ろに反って踏ん張る
+    var lean=k<.3?.28+k*.3:.37-(k-.3)/.7*.5,dip=k<.5?k*2*5:5-(k-.5)*2*5;
+    return{feet:[[-d*8,0],[d*(12-k*4),0]],dy:dip,lean:lean,face:k<.75?{eyes:3,brows:2,mouth:4}:{brows:1,mouth:0},dust:k<.8};
+  }
+  if(st==='take')return{feet:[[-d*5,0],[d*5,0]],dy:3*(1-k)-k*2,lean:.12,face:{brows:1,mouth:6},air:true};
+  if(st==='rise')return{feet:[[-d*3,-4],[d*7,-12]],dy:0,lean:.05,face:{brows:1,mouth:6},air:true};
+  if(st==='apex')return{feet:[[-d*6,-10],[d*8,-14]],dy:0,lean:.08,face:{eyes:3,mouth:4},air:true};
+  if(st==='fall')return{feet:[[-d*5,2],[d*6,1]],dy:0,lean:-.04,face:{eyes:3,brows:2,mouth:4},air:true};
+  if(st==='land'){var dd=k<.35?k/.35:1-(k-.35)/.65,dv=Math.min(1,m.v||1);
+    return{feet:[[-d*7,0],[d*7,0]],dy:dd*10*dv,lean:.2*dd*dv,face:k<.6?{brows:1,mouth:3}:null};}
+  return null;
+}
+// IKの脚：腰から足の置き場所へ。ひざは前へ曲がる
+function avLegIK(g,hx,hy,fx,fy,d,col,boot){
+  var L=avIK2(hx,hy,fx,fy-3,15.5,15.5,d);
+  avLimb(g,[hx,hy,L.jx,L.jy,L.ex,L.ey],7,col);avBoot(g,L.ex,L.ey+3,d,boot);
+}
 function avLimb(g,pts,w,col){
   g.lineCap='round';g.lineJoin='round';
   var path=function(ox,oy){g.beginPath();g.moveTo(pts[0]+ox,pts[1]+oy);for(var i=2;i<pts.length;i+=2)g.lineTo(pts[i]+ox,pts[i+1]+oy);};
@@ -8634,6 +8670,10 @@ function drawAvatar(g,o){
   var P=avGunPose(o,W,d,handX,handY,supX,oneHand,hipY,air);
   if(o.walk!=null&&!WP&&!o.reload&&W){var wk=Math.sin(o.walk*2);P.gy+=wk*1.3;P.gx+=d*Math.cos(o.walk*2)*.6;P.sy+=wk*1.3;}   // 走るときは、足に合わせて銃が上下にゆれる
   if(WP&&W){P.gx+=WP.gx;P.gy+=WP.gy;P.rot+=WP.rot;if(WP.gx||WP.gy){P.sx=P.gx-d*2;P.sy=P.gy+2;}}   // 勝ちポーズ：銃の位置と向き
+  // 動きのリアル化（走る・止まる・跳ぶ・着地）：脚はIK、上半身は腰を軸に前傾して上下する。銃は水平のまま
+  var MO=o.mo&&!WP&&!cr?motionPose(o.mo,d):null,mLean=MO?MO.lean:0,mDy=MO?MO.dy:0;
+  var upB=function(){if(MO){g.save();g.translate(0,mDy+hipY);g.rotate(d*mLean);g.translate(0,-hipY);}},upE=function(){if(MO)g.restore();};
+  upB();
   // 体の後ろ：スカーフの長い端・コートのすそ
   if(neck===2||neck===3)drawScarfTail(g,neck===3?'#E8C66A':acc,topY,d,wind,tm,neck===3);
   if(neck>=4)drawNeckBack(g,neck,acc,topY,hipY,d,wind,tm);   // マント・翼など、体の後ろに出る物
@@ -8649,13 +8689,22 @@ function drawAvatar(g,o){
     g.fillStyle='#140A12';g.fill();g.restore();
   }
   if(fit===1||fit===4||OUTFIT_TAIL[fit])drawCoatTails(g,T,hipY,cr,air,d,wind,sw,fit===4?'#0E0C14':OUTFIT_TAIL[fit]||null,!!OUTFIT_TAIL_PLAIN[fit]);
+  upE();
   // 勝ちポーズ：先に脚を描き、上半身は腰を中心に前へ傾ける（しゃがむほど前かがみ＝重心を足の上に保つ）
   if(WP){winLegs(g,WP,d,hipY,T);g.save();var ln=WP.air?0:WP.sq*.035;g.translate(0,hipY);g.rotate(d*ln);g.translate(0,-hipY);}
   // 奥の腕（銃を支える手）
+  upB();
   if(rest){avLimb(g,[-d*7,shY,-d*10,shY+11,-d*9,shY+21],6,T.shade);if(band)avBand(g,-d*7,shY,-d*10,shY+11,shadeHex(band,-.15),6);avFist(g,-d*9,shY+22,shadeHex(glove,-.12),-d);}
   else{avLimb(g,[-d*1,shY,P.sx,P.sy],6,T.shade);if(band)avBand(g,-d*1,shY,P.sx,P.sy,shadeHex(band,-.15),6);if(!(P.hand&&P.front))avFist(g,P.sx,P.sy,shadeHex(glove,-.12),d,3);}
+  upE();
   // 脚
   if(WP){}
+  else if(MO){   // IKの脚（腰は体の上下に合わせる）
+    var mh=hipY+mDy;
+    avLegIK(g,-d*2.5,mh,MO.feet[0][0],MO.feet[0][1],d,shadeHex(T.pants,-.12),shadeHex(T.boots,-.1));
+    avLegIK(g,d*2.5,mh,MO.feet[1][0],MO.feet[1][1],d,T.pants,T.boots);
+    if(MO.dust){var dk=(o.mo.k||0);g.fillStyle='rgba(216,200,168,'+Math.max(0,.55-dk*.5).toFixed(2)+')';for(var di=0;di<4;di++){var da=dk*1.2+di*.15;g.beginPath();g.arc(d*(14+da*10+di*3),-2-da*6-di*1.5,2+da*3,0,Math.PI*2);g.fill();}}
+  }
   else if(cr){
     avLimb(g,[-d*3,hipY,-d*6,-5,-d*12,-5],7,T.pants);avBoot(g,-d*13,0,d,T.boots);
     avLimb(g,[d*3,hipY,d*11,-18,d*9,-7],7,T.pants);avBoot(g,d*9,0,d,T.boots);
@@ -8668,6 +8717,7 @@ function drawAvatar(g,o){
     avLimb(g,[d*3,hipY,(ff+d*3)/2+d*1.5,-19,ff,-6],7,T.pants);avBoot(g,ff,0,d,T.boots);
   }
   // 胴（服の形）と首・首もと
+  upB();
   drawTorso(g,fit,T,topY,hipY,d);
   if(!o.boss)torsoShade(g,topY,hipY,d);
   g.fillStyle=shadeHex(skin,-.18);g.fillRect(-3+d,topY-4,6,5);
@@ -8684,7 +8734,7 @@ function drawAvatar(g,o){
   g.fillStyle=skin;g.fill();g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
   drawEar(g,skin,headCX,headCY,headR,d);
   // 顔のパーツ → 髪（髪は顔の部分をよけて描く）→ 帽子。ニット帽の髪型は、帽子をかぶると描かない
-  drawFace(g,WP&&WP.face?Object.assign({},L,WP.face):o.face?Object.assign({},L,o.face):L,headCX,headCY,headR,d,eyeC,hairC,skin,!!o.blink||fl>.45);   // 勝ちポーズ中は表情も変える
+  drawFace(g,WP&&WP.face?Object.assign({},L,WP.face):o.face?Object.assign({},L,o.face):MO&&MO.face?Object.assign({},L,MO.face):L,headCX,headCY,headR,d,eyeC,hairC,skin,!!o.blink||fl>.45);   // 勝ちポーズ中は表情も変える
   if(!(cut&&L.hair===5))drawHair(g,L.hair,hairC,headCX,headCY,headR,d,cut);
   if(o.boss){   // 角と、光る目
     drawBossHorns(g,headCX,headCY,headR,d);
@@ -8696,12 +8746,13 @@ function drawAvatar(g,o){
   if(hat)shadedHat(g,function(lg){drawHat(lg,hat,acc,headCX,headCY,headR,d,wind,tm);},headCX,headCY,headR,d);
   g.restore();
   // 武器と手前の腕（反動・リロードでは持ち手を中心に傾ける）
-  if(W){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}
+  if(W){g.save();g.translate(P.gx,P.gy);g.rotate(P.rot-d*mLean);drawGun(g,o.wid,0,0,d,1.45,o.glow||0);g.restore();}   // 前傾しても銃は水平
   if(P.hand&&P.front)avHand(g,P);
   var hx2=P.gx-d*.5,hy2=P.gy+1;
   if(rest){avLimb(g,[d*7,shY,d*10,shY+11,d*9,shY+20],6.5,T.jacket);if(band)avBand(g,d*7,shY,d*10,shY+11,band,6.5);hx2=d*9;hy2=shY+21;}
   else{avLimb(g,[d*3,shY,P.gx-d*2,P.gy+1],6.5,T.jacket);if(band)avBand(g,d*3,shY,P.gx-d*2,P.gy+1,band,6.5);}
   avFist(g,hx2,hy2,glove,d,3.4);
+  upE();
   // 落ちていく空の弾倉・薬きょう
   P.drops.forEach(function(q){avItem(g,q.x,q.y,q.it,q.r,q.a);});
   if(WP&&W&&W.kind!=='melee'){   // 銃口の先：硝煙・祝砲の光
@@ -10986,6 +11037,27 @@ function drawCharShadow(s){
   ctx.fillStyle=sg;ctx.beginPath();ctx.arc(0,0,rx,0,Math.PI*2);ctx.fill();
   ctx.restore();
 }
+// 動きの状態（キャラごと）：速さ・接地・向きの変化から、走る／止まる／跳ぶ／着地を決める（見た目だけ。当たり判定は変えない）
+var MOT={};
+function motionState(s){
+  if(!s||s.ducking||s.rollT>0||s.dead)return null;
+  var key=String(s.side||'?'),M=MOT[key]||(MOT[key]={ph:0,lvx:0,ldir:s.dir,gr:true,skid:0,land:0,air:0,lv:0}),now=performance.now(),vx=s.vx||0,vy=s.vy||0,on=!!s.onGround,run=on&&Math.abs(vx)>.6;
+  if(on&&!M.gr){M.land=now;M.lv=Math.min(1,Math.max(.35,M.fallV/12));}   // 着地した
+  if(!on&&M.gr)M.air=now;                                                   // 地面を離れた
+  if(!on)M.fallV=Math.max(M.fallV||0,vy);else M.fallV=0;
+  // 走っていて急に止まった・切り返した（キーを離すと速さは少しずつ落ちるので、直前の最高の速さと向きで見る）
+  var pk0=M.pk||0;M.pk=Math.max(Math.abs(vx),pk0*.9);   // pk0＝このコマより前の速さ（止まっていた所から走り出したときは出さない）
+  if(on&&pk0>2&&now-M.skid>300&&(Math.abs(vx)<.9||vx*(M.pdir||0)<-.3)){M.skid=now;M.pk=0;}
+  if(Math.abs(vx)>2)M.pdir=vx>0?1:-1;   // 向きは判定のあとで覚える（切り返しを見のがさない）
+  if(run)M.ph+=Math.abs(vx)*.0155;
+  M.lvx=vx;M.gr=on;M.ldir=s.dir;
+  var r=null;
+  if(!on){var at=now-M.air;r=at<70&&vy<0?{st:'take',k:at/70}:vy<-3?{st:'rise'}:vy>3?{st:'fall'}:{st:'apex'};}
+  else if(now-M.skid<240&&(Math.abs(vx)<2.5||now-M.skid<150))r={st:'skid',k:(now-M.skid)/240};   // 止まりきる・逆へ走り出すまで（切り返しは一瞬だけ踏ん張る）
+  else if(run)r={st:'run',p:M.ph,spd:Math.abs(vx)/3.4};
+  else if(now-M.land<230)r={st:'land',k:(now-M.land)/230,v:M.lv};
+  return r;
+}
 // o: {look, team, hud:false で名札やHPを出さない}
 function drawChar(s,isMe,o){
   if(!s||s.dead)return;   // 倒されたら破片になって消える
@@ -11031,7 +11103,7 @@ function drawChar(s,isMe,o){
     ctx.translate(cx2,rcy);ctx.rotate(rdir*Math.PI*2*rp);ctx.scale(.9,.9);ctx.translate(-cx2,-rcy);
   }
   drawAvatar(ctx,{win:ch?{pose:(o.look&&o.look.win)|0,t:ch.t}:null,x:cx2,y:s.y+CHAR_H,s:.5,dir:d,look:o.look,team:team,wid:wid,crouch:s.ducking,boss:!!o.boss,
-    walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0,
+    walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0,mo:SETTINGS.boost?null:motionState(s),
     bob:A.bob,blink:A.blink,kick:A.kick,flinch:A.flinch,reload:A.reload,rlF:A.rlF,rlMax:A.rlMax,wind:A.wind,tm:A.tm});
   if(hitNew){var hk=(s.hit-(SIM.HIT_FRAMES-5))/5,hy0=s.y+(s.ducking?CHAR_H-14:CHAR_H/2);   // 撃たれた瞬間の白い光
     ctx.globalCompositeOperation='lighter';var hg=ctx.createRadialGradient(cx2,hy0,0,cx2,hy0,20);hg.addColorStop(0,'rgba(255,255,255,'+(.75*hk).toFixed(3)+')');hg.addColorStop(1,'rgba(255,255,255,0)');
@@ -11649,7 +11721,7 @@ function rrPathCtx(x,y,w,h,r){ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+w-r
 function drawPlatArt(th,p,sx3){
   if(th.id==='western'){drawPlankArt(p,sx3);return;}
   if(th.id==='city'){drawBeamArt(p,sx3);return;}
-  var A=PLAT_ART[th.id]||PLAT_ART.night,x=sx3,y=p.y,w=p.w,H=p.h+6,tp=A.taper||0,seed=p.x*1.31+p.y;
+  var A=PLAT_ART[th.id]||PLAT_ART.night,x=sx3,y=p.y,w=p.w,H=p.h,tp=0,seed=p.x*1.31+p.y;   // 固く見える部分は、当たり判定と同じ厚さだけ（下に伸ばすと、弾や頭がすり抜けて見える）
   // 影（下にふんわり）
   ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x+w/2,y+H+tp+5,w*.42,4,0,0,Math.PI*2);ctx.fill();
   // 本体：上は四角、下は岩のようにすぼまる
@@ -11699,7 +11771,7 @@ function drawPlatArt(th,p,sx3){
 }
 // 西部劇：太い板2枚を鉄の金具で留めた足場。下に支え・ランタン
 function drawPlankArt(p,sx3){
-  var x=sx3,y=p.y,w=p.w,H=p.h+5,L='#2A170A';
+  var x=sx3,y=p.y,w=p.w,H=p.h,L='#2A170A';   // 板の厚さは当たり判定と同じ
   ctx.fillStyle='rgba(0,0,0,.28)';ctx.beginPath();ctx.ellipse(x+w/2,y+H+16,w*.4,3.5,0,0,Math.PI*2);ctx.fill();
   ctx.strokeStyle=L;ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();   // 支え（ななめの柱）
   ctx.moveTo(x+14,y+H-2);ctx.lineTo(x+28,y+H+13);ctx.moveTo(x+w-14,y+H-2);ctx.lineTo(x+w-28,y+H+13);ctx.stroke();
@@ -11723,8 +11795,7 @@ function drawPlankArt(p,sx3){
 function drawBeamArt(p,sx3){
   drawBeam(p,sx3);
   var x=sx3,y=p.y,w=p.w,H=p.h;
-  ctx.fillStyle='#1A1D26';ctx.fillRect(x+2,y+H,w-4,4);   // 下のフランジ
-  ctx.strokeStyle='#0C0D12';ctx.lineWidth=1.4;ctx.strokeRect(x+.5,y+.5,w-1,H+3);
+  ctx.strokeStyle='#0C0D12';ctx.lineWidth=1.4;ctx.strokeRect(x+.5,y+.5,w-1,H-1);
   ctx.fillStyle='rgba(255,255,255,.18)';ctx.fillRect(x+10,y+H*.5,w-20,1);
 }
 // ハロウィン：足場の上のかぼちゃと、空を飛ぶコウモリ（見た目だけ。当たり判定はない）
@@ -11818,10 +11889,20 @@ function hudHpBar(x,y,w,h,c,right,num){
   ctx.restore();
 }
 // 画面上の左右：名前・体力・取ったラウンド。chars＝その陣営のキャラ（2v2 は2人）
+// 上の体力バーの裏にキャラがいるか（ズームしていても画面上の位置で調べる）
+function hudHides(left,w,h){
+  var z=CAMZ.z||1,list=zoomChars();
+  for(var i=0;i<list.length;i++){var c=list[i];if(!c||c.dead)continue;
+    var sx=(wx(c.x)-CAMZ.x)*z,sy=(c.y-CAMZ.y)*z,sw=CHAR_W*z,sh=CHAR_H*z;
+    var hx0=left?0:VW-w,hx1=left?w:VW;
+    if(sx<hx1&&sx+sw>hx0&&sy<h+4)return true;}
+  return false;
+}
 function drawHudSide(left,label,sub,wins,col,chars){
   chars=(chars||[]).filter(Boolean);
   var two=chars.length>1,w=262,h=two?62:58,x0=left?0:VW,s=left?1:-1,tx=x0+s*16;
   ctx.save();
+  if(hudHides(left,w,h))ctx.globalAlpha=.32;   // 裏にキャラがいるときは、すけさせて見えるようにする
   ctx.beginPath();ctx.moveTo(x0,0);ctx.lineTo(x0+s*w,0);ctx.lineTo(x0+s*(w-22),h);ctx.lineTo(x0,h);ctx.closePath();
   var g=ctx.createLinearGradient(x0,0,x0+s*w,0);g.addColorStop(0,'rgba(6,8,14,.92)');g.addColorStop(1,'rgba(6,8,14,.3)');ctx.fillStyle=g;ctx.fill();
   ctx.fillStyle=col;ctx.fillRect(left?0:VW-3,0,3,h);
