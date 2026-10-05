@@ -3816,11 +3816,21 @@ function renderShop(){
       '<button class="sh-buy'+(cf?' confirm':'')+(profile.coins<pr?' poor':'')+'" onclick="shopBadge(\''+k+'\')">'+(cf?'<b>'+esc(t('shop.sure'))+'</b>':'<i class="pi coin"></i><b>'+pr+'</b>')+'</button></div>';});
   h+='</div><p class="v2-note">'+esc(t('shop.how'))+'</p>';
   body.innerHTML=h;
-  drawShopArt(0);
+  drawShopArt(0);watchArt(body);
 }
+// ショップ・イベントの絵：画面に見えている物だけを動かす（全部を毎回描くとすごく重い）
+var ART_IO=window.IntersectionObserver?new IntersectionObserver(function(es){es.forEach(function(e){e.target._vis=e.isIntersecting;});},{rootMargin:'40px'}):null;
+function watchArt(root){if(!ART_IO)return;root.querySelectorAll('canvas').forEach(function(cv){cv._vis=false;ART_IO.observe(cv);});}
+function artSkip(cv,tm){return tm>0&&(cv._vis===false||cv._still||SETTINGS.boost);}
+// 動きのない絵（光や揺れのないアイテム）は最初の1回だけ描く：1回目に動かして描いたとき、最初の絵と同じなら止める
+function itemArt(cv,tm,s,draw){
+  var g=cv.getContext('2d'),W=cv.width,first=tm>0&&cv._still==null,a0=first?g.getImageData(0,0,W,W).data:null;
+  g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);g.save();g.translate(W/2,W*.42);draw(g,s);g.restore();
+  if(first){var a1=g.getImageData(0,0,W,W).data,same=true;for(var i=0;i<a1.length;i+=16)if(a0[i]!==a1[i]||a0[i+3]!==a1[i+3]){same=false;break;}cv._still=same;}
+}   // 最初の1回（tm=0）は全部描く。FPSブースト中は止める
 function drawShopArt(tm){
-  document.querySelectorAll('#shop-body canvas[data-si]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);g.save();g.translate(W/2,W*.42);drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],W/190,tm);g.restore();});
-  document.querySelectorAll('#shop-body canvas[data-sb]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var k=cv.getAttribute('data-sb');drawBadge(g,W/2,W/2,W/190,k==='chaos'?2:1,k,tm,{glow:false});});
+  document.querySelectorAll('#shop-body canvas[data-si]').forEach(function(cv){if(artSkip(cv,tm))return;itemArt(cv,tm,cv.width/190,function(g,s){drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],s,tm);});});
+  document.querySelectorAll('#shop-body canvas[data-sb]').forEach(function(cv){if(artSkip(cv,tm))return;var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var k=cv.getAttribute('data-sb');drawBadge(g,W/2,W/2,W/190,k==='chaos'?2:1,k,tm,{glow:false});});
 }
 // 1回目のタップで「購入する？」、2回目で買う（押しまちがい防止）
 function shopArm(key){if(SHOP.confirm!==key){SHOP.confirm=key;SHOP.ct=Date.now();SFX.switchW();renderShop();return false;}SHOP.confirm=-1;return true;}
@@ -3934,18 +3944,18 @@ function renderEvent(){
   });
   h+='</div>';
   body.innerHTML=h;
-  drawEventArt(0);
+  drawEventArt(0);watchArt(document.getElementById('event-screen'));
 }
 function drawEventArt(tm){
-  document.querySelectorAll('#event-screen canvas[data-si]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);g.save();g.translate(W/2,W*.42);drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],W/240,tm);g.restore();});
+  document.querySelectorAll('#event-screen canvas[data-si]').forEach(function(cv){if(artSkip(cv,tm))return;itemArt(cv,tm,cv.width/240,function(g,s){drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],s,tm);});});
   var ev=evNow(),E=ev&&SIM.EVENTS[ev];
-  document.querySelectorAll('#event-screen canvas[data-set]').forEach(function(cv,i){var g=cv.getContext('2d'),W=cv.width,Hh=cv.height;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,Hh);
+  document.querySelectorAll('#event-screen canvas[data-set]').forEach(function(cv,i){if(artSkip(cv,tm))return;var g=cv.getContext('2d'),W=cv.width,Hh=cv.height;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,Hh);
     var st=E&&E.sets.filter(function(x){return x.id===cv.getAttribute('data-set');})[0];if(!st)return;
     var L=Object.assign({},profile.look,st.look),wp=((tm+i*.7)%6)-3.6;
     var gl=g.createRadialGradient(W/2,Hh*.5,10,W/2,Hh*.5,W*.55);gl.addColorStop(0,'rgba(255,220,255,.35)');gl.addColorStop(1,'rgba(255,220,255,0)');g.fillStyle=gl;g.fillRect(0,0,W,Hh);
     g.fillStyle='rgba(20,0,40,.35)';g.beginPath();g.ellipse(W/2,Hh*.965,W*.3,Hh*.035,0,0,Math.PI*2);g.fill();
     drawAvatar(g,{x:W/2-8,y:Hh*.965,s:Hh/104,dir:1,look:L,team:TEAM.me,wid:(loadout&&loadout[0])||2,bob:Math.sin(tm*2.1+i)*.8,tm:tm,wind:.4,win:wp>0&&wp<2.4?{pose:L.win|0,t:wp}:null});});
-  document.querySelectorAll('#event-screen canvas[data-candy]').forEach(function(cv){var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var big=cv.getAttribute('data-candy')==='1';drawCandy(g,W/2,W/2,W/(big?40:42),big?-.35+Math.sin(tm*2)*.08:-.35);});
+  document.querySelectorAll('#event-screen canvas[data-candy]').forEach(function(cv){var big=cv.getAttribute('data-candy')==='1';if(tm>0&&!big)return;if(artSkip(cv,tm))return;var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var big=cv.getAttribute('data-candy')==='1';drawCandy(g,W/2,W/2,W/(big?40:42),big?-.35+Math.sin(tm*2)*.08:-.35);});   // 小さいアメは動かないので最初の1回だけ
 }
 function evBuy(id){
   var ev=evNow();if(!ev)return;
@@ -10990,9 +11000,10 @@ function cardLoop(ts){
   var lbw=document.getElementById('lb-week');
   if(lbw&&lbw.offsetParent){any=true;drawRewardCanvases(lbw,tm);}
   var sb=document.getElementById('shop-body');
-  if(sb&&sb.offsetParent){any=true;drawShopArt(tm);}
+  var artTick=(cardLoop.n=(cardLoop.n|0)+1)%2===0;   // ショップ・イベントの絵は1秒に15回で十分
+  if(sb&&sb.offsetParent){any=true;if(artTick)drawShopArt(tm);}
   var evb=document.getElementById('ev-body');
-  if(evb&&evb.offsetParent){any=true;drawEventArt(tm);}
+  if(evb&&evb.offsetParent){any=true;if(artTick)drawEventArt(tm);}
   var evc=document.getElementById('he-ev-cv');
   if(evc&&evc.offsetParent){any=true;var eg=evc.getContext('2d');eg.setTransform(1,0,0,1,0,0);eg.clearRect(0,0,96,96);flatPumpkin(eg,48,54,26,tm,0,2);}
   var hh=document.getElementById('home-hero');
