@@ -10713,11 +10713,11 @@ function drawMythicTitle(g,text,x,y,size,tm){
   g.fillStyle=gr;g.fillText(text,x,y);g.shadowBlur=0;
   var p=((tm||0)*.4)%1.8-.4;
   if(p>-.1&&p<1.1&&tw>0){
-    var sg=g.createLinearGradient(x,0,x+tw,0),a=Math.max(0,p-.12),b=Math.min(1,Math.max(0,p)),c=Math.min(1,p+.12);
+    var sg=g.createLinearGradient(x,0,x+tw,0),a=Math.min(1,Math.max(0,p-.12)),b=Math.min(1,Math.max(0,p)),c=Math.min(1,Math.max(0,p+.12));   // 色の位置は 0〜1 の外だと例外になる
     sg.addColorStop(0,'rgba(255,255,255,0)');
-    if(a>0)sg.addColorStop(a,'rgba(255,255,255,0)');
+    if(a>0&&a<1)sg.addColorStop(a,'rgba(255,255,255,0)');
     if(b>a&&b<c)sg.addColorStop(b,'rgba(255,255,255,.85)');
-    if(c<1)sg.addColorStop(c,'rgba(255,255,255,0)');
+    if(c>0&&c<1)sg.addColorStop(c,'rgba(255,255,255,0)');
     sg.addColorStop(1,'rgba(255,255,255,0)');
     g.fillStyle=sg;g.fillText(text,x,y);
   }
@@ -10799,11 +10799,11 @@ function drawCrownTitle(g,text,x,y,size,tm){
   g.fillStyle=gr;g.fillText(text,x,y);g.shadowBlur=0;
   var p=((tm||0)*.36)%2-.5;
   if(p>-.15&&p<1.15&&tw>0){
-    var sg=g.createLinearGradient(x,0,x+tw,0),a=Math.max(0,p-.14),b=Math.min(1,Math.max(0,p)),c=Math.min(1,p+.14);
+    var sg=g.createLinearGradient(x,0,x+tw,0),a=Math.min(1,Math.max(0,p-.14)),b=Math.min(1,Math.max(0,p)),c=Math.min(1,Math.max(0,p+.14));   // 色の位置は 0〜1 の外だと例外になる
     sg.addColorStop(0,'rgba(255,240,200,0)');
-    if(a>0)sg.addColorStop(a,'rgba(255,240,200,0)');
+    if(a>0&&a<1)sg.addColorStop(a,'rgba(255,240,200,0)');
     if(b>a&&b<c)sg.addColorStop(b,'rgba(255,245,215,.9)');
-    if(c<1)sg.addColorStop(c,'rgba(255,240,200,0)');
+    if(c>0&&c<1)sg.addColorStop(c,'rgba(255,240,200,0)');
     sg.addColorStop(1,'rgba(255,240,200,0)');
     g.fillStyle=sg;g.fillText(text,x,y);
   }
@@ -12961,7 +12961,9 @@ function loop(ts){
     updateCamera();
   }
   if(frame%60===0)fitCanvas();   // 表示サイズが変わっても解像度を合わせ続ける
-  drawScene();requestAnimationFrame(loop);
+  requestAnimationFrame(loop);
+  // 描いている途中で失敗しても、切り抜きや変形が残ったままにならないように描く準備から戻す（残ると画面の一部しか更新されなくなる）
+  try{drawScene();}catch(e){if(ctx.reset)ctx.reset();else canvas.width=canvas.width;fitCanvas();if(!loop.errN){loop.errN=1;console.error(e);}}
 }
 function startLoop(){frame=0;loopRunning=true;lastTime=0;accumulator=0;fitCanvas();requestAnimationFrame(loop);}
 
