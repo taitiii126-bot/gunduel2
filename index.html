@@ -2209,6 +2209,7 @@ body.mland .home-hero{height:72vh;}
       <h1 class="scr-title" data-i18n="cpu.title"></h1>
       <p class="scr-sub" data-i18n="cpu.sub"></p>
       <p class="pill" id="cpu-stage-note"></p><p class="pill" id="cpu-loadout-note"></p><button class="pill-btn" onclick="showLoadoutScreen('cpu')"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg><span data-i18n="cpu.change"></span></button>
+      <button class="pill-btn" id="cpu-replay" onclick="startReplay()" style="display:none"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="m10 9 5 3-5 3z"/></svg><span data-i18n="rp.watch"></span></button>
     </div>
     <div id="cpu-list"></div>
     <button class="back-btn" onclick="showStageScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="cpu.backStage"></span></button>
@@ -2625,7 +2626,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=44"></script>
-<script src="lang.js?v=51"></script>
+<script src="lang.js?v=52"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3391,7 +3392,7 @@ function achRoundStart(){ACH_R={dmg:0,minHp:100,fell:false};}
 function achMatchStart(){ACH_M={kills:[]};achRoundStart();}
 function achMyChar(){return gameMode==='ai'?lp:olMe;}
 // 自分の試合の出来事だけ数える（ホームの背景の CPU 同士の試合などは数えない）
-function achTracks(me){return(gameMode==='ai'&&me==='a')||(gameMode==='online'&&!!me&&me===mySlot);}
+function achTracks(me){return(gameMode==='ai'&&me==='a'&&!RP)||(gameMode==='online'&&!!me&&me===mySlot);}
 function achEvent(e,me){
   if(e.t==='hit'&&e.who===me){ACH_R.dmg++;var c=achMyChar();if(c)ACH_R.minHp=Math.min(ACH_R.minHp,c.hp);}
   else if(e.t==='dead'&&e.who!==me&&(!TEAM2||(e.by===me&&SIM.teamOf(e.who)!==SIM.teamOf(me)))){   // 1対1は相手が倒れたら自分のとどめ。2v2 は自分が倒した敵だけ
@@ -6014,7 +6015,7 @@ function showProfileScreen(){showScreen('profile-screen');renderProfileUI();rend
 var pfSavedT=null;
 function pfSaved(){if(currentScreen!=='profile-screen')return;clearTimeout(pfSavedT);pfSavedT=setTimeout(function(){note(t(STORE_ACC?'pf.savedSync':'pf.saved'));},700);}
 function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
-function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();}
+function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();renderReplayBtn();}
 function renderLoadoutNotes(){
   ['cpu-loadout-note','room-loadout-note'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=t('cpu.weapons',{list:loadoutText()});});
 }
@@ -6331,6 +6332,7 @@ function leaveMatch(){
   escWarnAt=0;backToMenu();
 }
 function backToMenu(){
+  var wasRp=!!RP;rpStop();
   clearGameTimers();endWaitUI();CV=null;
   if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range');}
   loopRunning=false;lobbyPhase=false;gameMode='ai';
@@ -6338,7 +6340,7 @@ function backToMenu(){
   rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;
   keys={};clearPending();clearFx();
   setInGameUI(false);exitFullscreen();
-  disconnectWS();unlockDifficulty();showModeScreen();
+  disconnectWS();unlockDifficulty();if(wasRp)showCpuScreen();else showModeScreen();
   presenceStatus('online');
 }
 
@@ -6668,7 +6670,7 @@ function demoFrame(D,ts){
 // AI対戦（ローカル・ラグなし）
 // ============================================================
 var lw=null,lp=null,lai=null,aiBrain=null,cpuLoad=null,cpuLook=null;
-function localStyle(side){return side==='a'?{look:profile.look,team:TEAM.me}:{look:cpuLook,team:isBossFight()?TEAM.boss:TEAM.foe};}
+function localStyle(side){return side==='a'?{look:RP?RP.R.look:profile.look,team:TEAM.me}:{look:cpuLook,team:isBossFight()?TEAM.boss:TEAM.foe};}
 function onlineStyle(side){if(TEAM2)return teamStyle(side);return side===mySlot?{look:profile.look,team:TEAM.me}:{look:oppInfo.look,team:TEAM.foe};}
 // ---- 2v2（チーム戦）----
 // a・c が左のチーム、b・d が右のチーム。自分＝紫、味方＝青緑、敵＝赤（名前の色と、足元の輪）
@@ -6721,8 +6723,11 @@ function initLocalRound(){
 function gameUpdateLocal(){
   if(lRoundOver||!lw)return;
   if(RINTRO&&RINTRO.freeze&&(!RINTRO.t0||performance.now()-RINTRO.t0<RI_READY))return;   // 「READY」の間は動かない
-  var pin=playerInput();cvFrame(pin);SIM.setInput(lp,pin);
-  SIM.setInput(lai,SIM.think(aiBrain,lw,'b'));
+  if(RP){rpStep();return;}
+  var pin=playerInput();cvFrame(pin);
+  var aiIn=SIM.think(aiBrain,lw,'b');
+  rpRecFrame(pin,aiIn);
+  SIM.setInput(lp,pin);SIM.setInput(lai,aiIn);
   var V=AC.watch,hit=V?SIM.watchPre(V,lw,'a','b',pin):'';
   var ev=[];SIM.step(lw,ev);
   if(V)hit=hit||SIM.watchPost(V,lw,ev,'a','b');
@@ -6733,7 +6738,9 @@ function gameUpdateLocal(){
   if(lp.dead||lai.dead)endRoundL(lp.dead&&lai.dead?null:(lp.dead?'ai':'player'));
 }
 function endRoundL(winner){
-  if(lRoundOver)return;lRoundOver=true;cvRoundEnd();
+  if(lRoundOver)return;
+  if(RP){rpRoundEnd(winner);return;}
+  lRoundOver=true;cvRoundEnd();
   startKillCam(winner==='player'?lai:lp);       // とどめの演出
   if(winner)startCheer(winner==='player'?lp.side:lai.side);
   if(winner==='player'){lpWins++;SFX.koWin();achRoundWon();cpuEmote(false);}else{if(winner==='ai'){laWins++;cpuEmote(true);}SFX.koLose();}
@@ -6743,6 +6750,7 @@ function endRoundL(winner){
     recordMatchResult(difficulty,lpWins>=3,laWins===0);   // CPU戦の記録（レートとティアは動かない）
     achMatchDone(lpWins>=3);
     cvMatchEnd();   // ログイン中は、サーバーが計算し直した結果で置きかわる
+    rpRecSave(lpWins>=3);
     later(function(){
       flashMsg=lpWins>=3?'YOU WIN!':'LOSE';flashTimer=9999;matchOver=true;if(lpWins>=3)startConfetti();
       presenceStatus('online');showNextInvite();   // CPU戦が終わったので、待っていた招待を出す
@@ -6757,6 +6765,7 @@ function endRoundL(winner){
 // 再戦（ESCで抜ける／Rでもう一度）
 function doRematch(){
   if(!matchOver)return;
+  if(RP){startReplay();return;}
   if(gameMode==='ai'){startAI();return;}
   if(rematchMine||rematchOff)return;
   rematchMine=true;
@@ -7125,14 +7134,96 @@ function srvAdopt(p,rev){
   if(currentScreen==='profile-screen')renderProfileUI();
 }
 var aiTamper=false;   // この試合で、外から値を書き換えられたか
-function startAI(){
+// ---- リプレイ（直前のCPU戦をもう一度見る）----
+// 試合中、自分とCPUの操作を1フレームずつ記録しておき、同じ世界に同じ操作を入れ直して再生する（計算はいつも同じ結果になる）
+// 記録はこの端末の中だけ。見ている間は、記録・実績・ミッション・ズルの見張りは動かない
+var RP=null,RPREC=null,RP_KEY='gunduel_replay';
+function rpRecStart(){RPREC=difficulty===EMP?null:{v:1,stage:selectedStage,diff:difficulty,look:profile.look,cpuLook:cpuLook,at:Date.now(),rounds:[]};}
+// 武器の持ち替えをしないフレームは「今の武器」を入れておく（記録の形では「変えない」を表せないため）
+function rpPack(i,c){return SIM.packInput(Object.assign({},i,{slot:i.slot===0||i.slot===1||i.slot===2?i.slot:c.wantSlot}));}
+function rpRecFrame(pin,aiIn){
+  if(!RPREC)return;
+  if(lw.frame===0){if(RPREC.rounds.length>=5){RPREC=null;return;}RPREC.cur={load:lp.load.slice(),cpu:lai.load.slice(),a:[],b:[]};RPREC.rounds.push(RPREC.cur);}
+  var R=RPREC.cur;if(!R)return;
+  if(R.a.length>=SIM.REPLAY_MAX_FRAMES){RPREC=null;return;}
+  SIM.logAdd(R.a,rpPack(pin,lp));SIM.logAdd(R.b,rpPack(aiIn,lai));
+}
+function rpRecSave(won){
+  var R=RPREC;RPREC=null;if(!R||aiTamper||!R.rounds.length)return;
+  var out={v:1,stage:R.stage,diff:R.diff,look:R.look,cpuLook:R.cpuLook,at:R.at,won:!!won,rounds:R.rounds.map(function(r){return{load:r.load,cpu:r.cpu,a:SIM.logEncode(r.a),b:SIM.logEncode(r.b)};})};
+  try{localStorage.setItem(RP_KEY,JSON.stringify(out));}catch(e){}
+  renderReplayBtn();
+}
+function rpLoad(){
+  try{var R=JSON.parse(localStorage.getItem(RP_KEY)||'null');
+    if(!R||R.v!==1||!SIM.STAGES[R.stage]||!Array.isArray(R.rounds)||!R.rounds.length)return null;
+    for(var i=0;i<R.rounds.length;i++){var r=R.rounds[i];r.A=SIM.logDecode(r.a);r.B=SIM.logDecode(r.b);if(!r.A||!r.B||r.A.length!==r.B.length)return null;}
+    return R;}catch(e){return null;}
+}
+function startReplay(){
+  var R=rpLoad();if(!R){note(t('rp.none'));return;}
   clearGameTimers();aiTamper=false;
+  var keepDiff=RP?RP.keepDiff:difficulty;
+  RP={R:R,round:0,f:0,speed:1,keepDiff:keepDiff};
+  difficulty=R.diff;cpuLook=R.cpuLook||SIM.randomLook();
+  gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};keys={};
+  bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;lobbyPhase=false;flashMsg='';flashTimer=0;
+  CONF.length=0;showGameScreen('ai');rpRound();startLoop();
+}
+function rpRound(){
+  var r=RP.R.rounds[RP.round];
+  useStage(RP.R.stage);
+  lw=SIM.newWorld(RP.R.stage,r.load,r.cpu);lp=lw.chars.a;lai=lw.chars.b;RP.f=0;
+  playerSlot=0;clearPending();lRoundOver=false;clearFx();
+  startRoundIntro(true);camX=0;updateWeaponBar();CHEER=null;
+}
+function rpStep(){
+  for(var n=0;n<RP.speed;n++){
+    if(lRoundOver)return;
+    var r=RP.R.rounds[RP.round];
+    if(RP.f>=r.A.length){endRoundL(lp.dead&&lai.dead?null:lp.dead?'ai':lai.dead?'player':null);return;}
+    SIM.setInput(lp,SIM.unpackInput(r.A[RP.f]));SIM.setInput(lai,SIM.unpackInput(r.B[RP.f]));RP.f++;
+    var ev=[];SIM.step(lw,ev);handleEvents(ev,'a',localStyle);
+    if(lp.dead||lai.dead){endRoundL(lp.dead&&lai.dead?null:(lp.dead?'ai':'player'));return;}
+  }
+}
+function rpRoundEnd(winner){
+  lRoundOver=true;
+  startKillCam(winner==='player'?lai:lp);
+  if(winner)startCheer(winner==='player'?lp.side:lai.side);
+  if(winner==='player'){lpWins++;SFX.koWin();}else{if(winner==='ai')laWins++;SFX.koLose();}
+  later(function(){flashMsg=winner==='player'?'WIN!':winner==='ai'?'LOSE...':'DRAW';flashTimer=80;},560);
+  var last=RP.round>=RP.R.rounds.length-1;
+  if(lpWins>=3||laWins>=3||last){
+    later(function(){flashMsg=lpWins>laWins?'YOU WIN!':'LOSE';flashTimer=9999;matchOver=true;},1800);
+  }else later(function(){if(!RP)return;RP.round++;rpRound();},2000);
+}
+function rpStop(){if(!RP)return;difficulty=RP.keepDiff;RP=null;}
+function rpSpeed(){if(!RP)return;RP.speed=RP.speed>=4?1:RP.speed*2;SFX.switchW();}
+// 画面の上：「リプレイ」と速さ
+function drawReplayBadge(){
+  if(!RP)return;
+  var x=VW/2,y=118,tx=t('rp.badge',{n:RP.speed}),hint=isTouch?t('rp.hintTouch'):t('rp.hint');
+  ctx.save();ctx.font='700 10px '+FONT_UI;var w=ctx.measureText(tx).width+22;
+  ctx.fillStyle='rgba(220,38,38,.88)';rrect(x-w/2,y-9,w,18,9);ctx.fill();
+  ctx.fillStyle='#FFFFFF';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(tx,x,y+.5);
+  if(!matchOver){ctx.font='600 9px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.6)';ctx.fillText(hint,x,y+18);}
+  ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
+function rpHas(){try{return !!localStorage.getItem(RP_KEY);}catch(e){return false;}}
+function renderReplayBtn(){
+  var b=document.getElementById('cpu-replay');if(!b)return;
+  var has=false;try{has=!!localStorage.getItem(RP_KEY);}catch(e){}
+  b.style.display=has?'':'none';
+}
+function startAI(){
+  rpStop();clearGameTimers();aiTamper=false;
   useStage(selectedStage);
   gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};keys={};
   var boss=difficulty===EMP;
   cpuLoad=boss?SIM.emperorLoadout():SIM.cpuLoadout();cpuLook=boss?EMPEROR_LOOK:SIM.randomLook();
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;
-  presenceStatus('cpu');achMatchStart();acMatchStart();cvStart();
+  presenceStatus('cpu');achMatchStart();acMatchStart();cvStart();rpRecStart();
   if(INV.cur){INV.queue.unshift(INV.cur);INV.cur=null;hideInviteToast();}   // 表示中の招待は試合のあとで出し直す
   showGameScreen('ai');initLocalRound();unlockDifficulty();
   if(boss)startBossIntro();else startLobby(10);
@@ -7271,6 +7362,8 @@ document.addEventListener('keydown',function(e){
   var k=e.key.toLowerCase();
   if(e.key==='Escape'&&onGameScreen()){leaveMatch();e.preventDefault();return;}   // 対戦中でもESCでメニューへ（途中なら一度確認）
   if(matchOver&&k==='r'&&onGameScreen()){doRematch();e.preventDefault();return;}
+  if(matchOver&&k==='v'&&gameMode==='ai'&&!RP&&onGameScreen()){startReplay();e.preventDefault();return;}   // 終わった試合のリプレイ
+  if(RP&&onGameScreen()&&!matchOver){if(k==='f'||e.key==='ArrowRight'){rpSpeed();}e.preventDefault();return;}   // リプレイ中は操作しない（F・→で速さ）
   if((bossIntro||unlockFx||slayFx)&&(e.key==='Enter'||k===' ')&&onGameScreen()){skipOverlayFx();e.preventDefault();return;}
   if(lobbyPhase&&gameMode==='ai'&&(e.key==='Enter'||k===' ')&&onGameScreen()){endLobby();e.preventDefault();return;}
   if(WAIT&&gameMode==='online'&&e.key==='Enter'&&onGameScreen()){matchReady();e.preventDefault();return;}
@@ -7293,6 +7386,7 @@ window.addEventListener('blur',function(){keys={};if(gameMode==='online')sendInp
   cv.addEventListener('mousedown',function(e){
     if(listeningFor||!acTrusted(e))return;e.preventDefault();
     if(bossIntro||unlockFx||slayFx){skipOverlayFx();return;}   // 演出の間は、クリック・タップでとばす
+    if(RP&&!matchOver){rpSpeed();return;}   // リプレイ中：タップで速さ
     if(matchOver&&isTouch){doRematch();return;}   // スマホは画面タップで再戦
     handleBindDown('mouse'+e.button,false);
   });
@@ -12172,7 +12266,8 @@ function drawMatchResult(lines){
   }
   if(gameMode==='online'&&rematchOff)drawKeyHints([['ESC',t('c.toMenu')]],cx,ry+32);
   else if(isTouch)drawKeyHints([['TAP',t('c.again')]],cx,ry+32);
-  else drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')]],cx,ry+32);
+  else if(gameMode==='ai'&&!RP&&rpHas())drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')],['V',t('rp.short')]],cx,ry+32);
+  else drawKeyHints([['ESC',t('c.toMenu')],['R',RP?t('rp.again'):t('c.again')]],cx,ry+32);
   ctx.restore();
 }
 // リザルトのレート表示：数字が動いて増減し、ティアの中のどこにいるかが棒で分かる
@@ -12927,7 +13022,7 @@ function drawScene(){
   drawBackground();
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins,me=null,op=null;
   if(gameMode==='ai'&&lp&&lai){
-    me=lp;op=lai;drawChar(lp,true,{look:profile.look});drawChar(lai,false,{look:cpuLook,boss:isBossFight()});
+    me=lp;op=lai;drawChar(lp,true,{look:RP?RP.R.look:profile.look});drawChar(lai,false,{look:cpuLook,boss:isBossFight()});
     drawEffects(lw?lw.shots:[]);drawEmotes([lp,lai]);
   }
   if(gameMode==='online'&&TEAM2&&olW&&olMe){
@@ -12976,6 +13071,7 @@ function drawScene(){
   if(slayFx)drawSlayFx();
   if(rematchFx)drawRematchFx();
   if(stageFx)drawStageFx();
+  drawReplayBadge();
 }
 
 // ============================================================
@@ -13099,7 +13195,7 @@ function drawBgFx(tm){
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得
