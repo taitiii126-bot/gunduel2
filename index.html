@@ -431,6 +431,23 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .cl-rk{font-family:var(--f-ui);font-weight:800;color:var(--gold);text-align:center;}
 .cl-r small{font-size:10px;color:var(--tx-3);}
 .cl-rp{font-family:var(--f-ui);font-weight:800;text-align:right;}
+.sale-ban{margin:0 0 14px;padding:14px 16px;clip-path:var(--cut-s);background:linear-gradient(120deg,#3A0A1E,#1A0F2E 55%,#0F1A2E);box-shadow:inset 0 0 0 1px rgba(255,77,120,.55);}
+.sale-ban.peak{background:linear-gradient(120deg,#6A0A2A,#3A0A40 55%,#1A0F3A);box-shadow:inset 0 0 0 2px rgba(255,197,61,.8),0 0 28px -10px rgba(255,90,140,.9);}
+.sale-top{display:flex;align-items:center;gap:14px;}
+.sale-11{flex:none;font-family:var(--f-ui);font-style:italic;font-weight:800;font-size:34px;letter-spacing:.02em;color:#FFE27A;text-shadow:0 0 12px rgba(255,90,140,.9),0 2px 0 #7A1030;}
+.sale-top span{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.sale-top strong{font-size:17px;color:#fff;}
+.sale-top small{font-size:12px;color:var(--tx-2);line-height:1.4;}
+.sale-goals{margin-top:10px;display:grid;gap:6px;}
+.sale-goals>p{margin:0;font-size:11px;font-weight:800;letter-spacing:.12em;color:#FF9AB8;}
+.sale-g{display:grid;grid-template-columns:minmax(0,1fr) 90px 64px;align-items:center;gap:8px;font-size:12px;}
+.sale-g span{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sale-g small{text-align:right;font-family:var(--f-ui);font-weight:700;color:var(--tx-2);}
+.sale-g.got small{color:#34D399;}
+.sale-g .v2-bar i{background:linear-gradient(90deg,#FF5A8C,#FFC53D);}
+.sale-login{margin:4px 0 0;font-size:11px;color:var(--tx-3);}
+@media (max-width:560px){.sale-g{grid-template-columns:minmax(0,1fr) 54px;}.sale-g .v2-bar{grid-column:1 / -1;grid-row:2;}}
+.mb-badge.sale{width:auto;padding:0 5px;font-size:9px;letter-spacing:.04em;background:#FF3D7F;}
 .tl-rules{display:grid;gap:8px;margin:0 0 12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);}
 .tl-rules h4{margin:0;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--tx-3);}
 .tl-rules label,.tl-rules p{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;font-size:13px;}
@@ -1916,9 +1933,10 @@ body[data-scr="pass-screen"] #bs-bg,body[data-scr="shop-screen"] #bs-bg{display:
 .sh-bcard.chaos{--bc:var(--gd-rare2);}
 .sh-bcard canvas{width:76px;height:76px;flex:none;filter:drop-shadow(0 0 14px color-mix(in srgb,var(--bc) 55%,transparent));}
 .sh-btxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
-.sh-btxt b{font-family:var(--f-disp);font-weight:400;font-size:19px;letter-spacing:.04em;color:var(--tx);}
+.sh-btxt b{font-family:var(--f-disp);font-weight:400;font-size:19px;letter-spacing:.04em;color:var(--tx);white-space:nowrap;}
+.sh-bcard .sh-buy s{font-size:12px;}
 .sh-btxt small{font-size:11.5px;font-weight:700;color:var(--tx-3);line-height:1.45;}
-.sh-bcard .sh-buy{width:auto;clip-path:var(--cut-s);padding:9px 16px;font-size:17px;}
+.sh-bcard .sh-buy{width:auto;flex:none;clip-path:var(--cut-s);padding:9px 12px;font-size:17px;}
 /* ---- ログインボーナス（連続記録）---- */
 .lb-sheet.v2{position:relative;width:min(700px,100%);padding:24px 24px 20px;border-radius:0;clip-path:var(--cut-l);border:0;
   background:radial-gradient(70% 40% at 20% 0%,rgba(255,170,60,.12),transparent 70%),linear-gradient(180deg,#151926,#0C0F17);box-shadow:inset 0 0 0 1px var(--line-2),inset 0 3px 0 var(--gold);}
@@ -2679,8 +2697,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=45"></script>
-<script src="lang.js?v=56"></script>
+<script src="sim.js?v=46"></script>
+<script src="lang.js?v=57"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3839,7 +3857,7 @@ function renderHomeEco(){
   var eb=document.getElementById('he-evbtn');
   if(eb){var on=!!evNow();eb.style.display=on?'':'none';if(on){var af=evAffordable();eb.classList.toggle('has',af);document.getElementById('he-ev-n').style.display=af?'':'none';
     document.getElementById('he-ev-c').textContent=AUTH.user?t('ev.candy')+' '+candyN():'';}}
-  var sn=document.getElementById('he-shop-n');if(sn){sn.style.display=giftReady()?'':'none';document.getElementById('he-shopbtn').classList.toggle('has',giftReady());}
+  var sn=document.getElementById('he-shop-n');if(sn){var onSale=SIM.saleOn(SIM.dayKey());sn.textContent=onSale?'SALE':'!';sn.classList.toggle('sale',onSale);sn.style.display=giftReady()||onSale?'':'none';document.getElementById('he-shopbtn').classList.toggle('has',giftReady()||onSale);}
   var pn=document.getElementById('he-pass-n');if(pn){pn.style.display=sr?'':'none';pn.textContent=sr;document.getElementById('he-passbtn').classList.toggle('has',sr>0);}
   var mc=document.getElementById('mis-crate');mc.style.display=n>0?'':'none';mc.textContent=t('eco.crate')+' '+t('eco.crateN',{n:n});
 }
@@ -3851,13 +3869,14 @@ function showShopScreen(){showScreen('shop-screen');SHOP.confirm=-1;renderShop()
 function renderShop(){
   var body=document.getElementById('shop-body');if(!body)return;
   ensureProfileShape();
-  var day=SIM.dayKey(),left=Math.max(1,Math.ceil((SIM.dayEnd(day)-Date.now())/36e5)),offers=SIM.shopOffers(day,shopWho()),gf=SIM.shopGift(day),gr=giftReady();
+  var day=SIM.dayKey(),left=Math.max(1,Math.ceil((SIM.dayEnd(day)-Date.now())/36e5)),offers=SIM.shopOffers(day,shopWho()),gf=SIM.shopGift(day),gr=giftReady(),onSale=SIM.saleOn(day),peak=SIM.salePeak(day);
   document.getElementById('shop-left').innerHTML=CLOCK_SVG+esc(t('shop.left',{h:left}));
   document.getElementById('shop-coins').innerHTML='<i class="pi coin"></i><b>'+profile.coins+'</b>';
-  var h='<div class="v2-sec"><h3>'+esc(t('shop.gift'))+'</h3></div>'+
+  var h=onSale?saleBannerHtml(day,peak):'';
+  h+='<div class="v2-sec"><h3>'+esc(t('shop.gift'))+'</h3></div>'+
     '<button class="sh-gift'+(gr?'':' done')+'" onclick="shopGiftClaim()"'+(gr?'':' disabled')+'>'+
     '<span class="sh-gift-art">'+(gf.lucky?'<canvas data-sb="lucky" width="160" height="160"></canvas>':'<i class="pi coin big"></i>')+'</span>'+
-    '<span class="sh-gift-txt"><small>'+esc(t('shop.giftSub'))+'</small><b>'+esc(gf.lucky?t('eco.lucky'):t('pass.coins',{n:gf.coins}))+'</b></span>'+
+    '<span class="sh-gift-txt"><small>'+esc(t(peak?'sale.giftSub':'shop.giftSub'))+'</small><b>'+esc(giftLabel(gf))+'</b></span>'+
     '<span class="v2-btn '+(gr?'green':'off')+'">'+esc(gr?t('shop.free'):t('eco.claimed'))+'</span></button>';
   h+='<div class="v2-sec"><h3>'+esc(t('shop.daily'))+'</h3></div><div class="sh-grid">';
   offers.forEach(function(o,i){
@@ -3866,14 +3885,14 @@ function renderShop(){
       '<div class="sh-head">'+esc(o.sale?t('shop.special'):rarName(o.r))+'</div>'+
       '<div class="sh-stage"><canvas data-si="'+o.item+'" width="240" height="240"></canvas></div>'+
       '<div class="sh-nm"><b>'+esc(itemName(o.item))+'</b><small>'+esc(t('look.'+it.key))+' ・ '+esc(rarName(o.r))+'</small></div>'+
-      (o.sale?'<em class="sh-sale">'+esc(t('shop.off',{n:30}))+'</em>':'')+
+      (o.price<SIM.SHOP_PRICE[o.r]?'<em class="sh-sale">'+esc(t('shop.off',{n:Math.round((o.off||(1-o.price/SIM.SHOP_PRICE[o.r]))*100)}))+'</em>':'')+
       (own?'<span class="sh-owned">'+CHECK_SVG+esc(t('shop.owned'))+'</span>':
-        '<button class="sh-buy'+(cf?' confirm':'')+(poor?' poor':'')+'" onclick="shopBuy('+i+')">'+(cf?'<b>'+esc(t('shop.sure'))+'</b>':(o.sale?'<s>'+SIM.SHOP_PRICE[o.r]+'</s>':'')+'<i class="pi coin"></i><b>'+o.price+'</b>')+'</button>')+'</div></div>';
+        '<button class="sh-buy'+(cf?' confirm':'')+(poor?' poor':'')+'" onclick="shopBuy('+i+')">'+(cf?'<b>'+esc(t('shop.sure'))+'</b>':(o.price<SIM.SHOP_PRICE[o.r]?'<s>'+SIM.SHOP_PRICE[o.r]+'</s>':'')+'<i class="pi coin"></i><b>'+o.price+'</b>')+'</button>')+'</div></div>';
   });
   h+='</div><div class="v2-sec"><h3>'+esc(t('shop.badges'))+'</h3></div><div class="sh-badges">';
-  ['lucky','chaos'].forEach(function(k){var pr=SIM.SHOP_BADGE[k],cf=SHOP.confirm===k;
+  ['lucky','chaos'].forEach(function(k){var pr=SIM.badgePrice(k,day),cf=SHOP.confirm===k;
     h+='<div class="sh-bcard '+k+'"><canvas data-sb="'+k+'" width="160" height="160"></canvas><div class="sh-btxt"><b>'+esc(t('eco.'+k))+'</b><small>'+esc(t('shop.b.'+k))+'</small></div>'+
-      '<button class="sh-buy'+(cf?' confirm':'')+(profile.coins<pr?' poor':'')+'" onclick="shopBadge(\''+k+'\')">'+(cf?'<b>'+esc(t('shop.sure'))+'</b>':'<i class="pi coin"></i><b>'+pr+'</b>')+'</button></div>';});
+      '<button class="sh-buy'+(cf?' confirm':'')+(profile.coins<pr?' poor':'')+'" onclick="shopBadge(\''+k+'\')">'+(cf?'<b>'+esc(t('shop.sure'))+'</b>':(pr<SIM.SHOP_BADGE[k]?'<s>'+SIM.SHOP_BADGE[k]+'</s>':'')+'<i class="pi coin"></i><b>'+pr+'</b>')+'</button></div>';});
   h+='</div><p class="v2-note">'+esc(t('shop.how'))+'</p>';
   body.innerHTML=h;
   drawShopArt(0);watchArt(body);
@@ -3888,6 +3907,24 @@ function itemArt(cv,tm,s,draw){
   g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);g.save();g.translate(W/2,W*.42);draw(g,s);g.restore();
   if(first){var a1=g.getImageData(0,0,W,W).data,same=true;for(var i=0;i<a1.length;i+=16)if(a0[i]!==a1[i]||a0[i+3]!==a1[i+3]){same=false;break;}cv._still=same;}
 }   // 最初の1回（tm=0）は全部描く。FPSブースト中は止める
+// ---- 11.11 セール ----
+function giftLabel(gf){var a=[];if(gf.lucky)a.push(gf.lucky>1?t('eco.lucky')+' ×'+gf.lucky:t('eco.lucky'));if(gf.coins)a.push(t('pass.coins',{n:gf.coins}));return a.join(' + ');}
+function saleGoalText(g){return t('sale.g.'+g.k,{n:g.n})+' → '+(g.coins?t('pass.coins',{n:g.coins}):g.chaos?t('eco.chaos')+(g.chaos>1?' ×'+g.chaos:''):t('eco.lucky')+' ×'+g.lucky);}
+function saleBannerHtml(day,peak){
+  var S=AUTH.user&&AUTH.user.sale&&AUTH.user.sale.m===day.slice(0,7)?AUTH.user.sale:null;
+  var h='<div class="sale-ban'+(peak?' peak':'')+'"><div class="sale-top"><b class="sale-11">11.11</b><span><strong>'+esc(t(peak?'sale.peakTitle':'sale.title'))+'</strong><small>'+esc(t(peak?'sale.peakSub':'sale.sub',{a:Math.round(SIM.SALE.itemOff*100),b:Math.round(SIM.SALE.badgeOff*100)}))+'</small></span></div>';
+  h+='<div class="sale-goals"><p>'+esc(t('sale.goals'))+'</p>';
+  SIM.SALE.goals.forEach(function(g,i){var v=S?Math.min(g.n,S[g.k]||0):0,got=S&&S.got&&S.got[i];
+    h+='<div class="sale-g'+(got?' got':'')+'"><span>'+esc(saleGoalText(g))+'</span><div class="v2-bar sm"><i style="width:'+Math.round(v/g.n*100)+'%"></i></div><small>'+(got?esc(t('sale.done')):v+' / '+g.n)+'</small></div>';});
+  if(!AUTH.user)h+='<p class="sale-login">'+esc(t('sale.login'))+'</p>';
+  return h+'</div></div>';
+}
+function saleToast(sl){
+  if(!sl||!sl.state)return;
+  if(AUTH.user)AUTH.user.sale=sl.state;
+  (sl.done||[]).forEach(function(i){var g=SIM.SALE.goals[i];if(g){note(t('sale.got',{g:saleGoalText(g)}));SFX.coin();}});
+  if(currentScreen==='shop-screen')renderShop();
+}
 function drawShopArt(tm){
   document.querySelectorAll('#shop-body canvas[data-si]').forEach(function(cv){if(artSkip(cv,tm))return;itemArt(cv,tm,cv.width/190,function(g,s){drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],s,tm);});});
   document.querySelectorAll('#shop-body canvas[data-sb]').forEach(function(cv){if(artSkip(cv,tm))return;var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var k=cv.getAttribute('data-sb');drawBadge(g,W/2,W/2,W/190,k==='chaos'?2:1,k,tm,{glow:false});});
@@ -3901,13 +3938,13 @@ function shopBuy(i){
   shopDo({op:'buy',slot:i},function(){profile.coins-=o.price;profile.inv.push(o.item);},function(){ecoMarkNew(o.item);SFX.coin();shopReveal(o);});
 }
 function shopBadge(k){
-  var pr=SIM.SHOP_BADGE[k];if(profile.coins<pr){note(t('shop.poor'));SFX.dry();return;}
+  var pr=SIM.badgePrice(k,SIM.dayKey());if(profile.coins<pr){note(t('shop.poor'));SFX.dry();return;}
   if(!shopArm(k))return;
   shopDo({op:'badge',kind:k},function(){profile.coins-=pr;if(k==='chaos')profile.misChaos++;else profile.misCrates++;},function(){SFX.coin();note(t('shop.gotBadge',{b:t('eco.'+k)}));renderShop();renderHomeEco();});
 }
 function shopGiftClaim(){
   if(!giftReady())return;var gf=SIM.shopGift(SIM.dayKey());
-  shopDo({op:'gift'},function(){if(gf.lucky)profile.misCrates+=gf.lucky;if(gf.coins)profile.coins+=gf.coins;},function(){profile.giftDay=SIM.dayKey();writeProfileLocal();SFX.coin();note(t('shop.gotGift',{r:gf.lucky?t('eco.lucky'):t('pass.coins',{n:gf.coins})}));renderShop();renderHomeEco();});
+  shopDo({op:'gift'},function(){if(gf.lucky)profile.misCrates+=gf.lucky;if(gf.coins)profile.coins+=gf.coins;},function(){profile.giftDay=SIM.dayKey();writeProfileLocal();SFX.coin();note(t('shop.gotGift',{r:giftLabel(gf)}));renderShop();renderHomeEco();});
 }
 // ログイン中はサーバーで買う（コインと持ち物はサーバーが決める）。ゲストはこの端末の中だけ
 function shopDo(body,local,done){
@@ -7225,7 +7262,7 @@ function handleOnlineMsg(msg){
     setTimeout(function(){if(AUTH.token)refreshMe();},900);   // オンライン戦績（称号の条件）を読み直す
   }
   else if(mt==='rate'){applyRateResult(msg);}
-  else if(mt==='progress'){srvAdopt(msg.profile,msg.rev);candyToast(msg.candy,msg.ev);}   // オンライン対戦の記録（サーバーが数えた分）
+  else if(mt==='progress'){srvAdopt(msg.profile,msg.rev);candyToast(msg.candy,msg.ev);saleToast(msg.sale);}   // オンライン対戦の記録（サーバーが数えた分）
   else if(mt==='wait'){onWaitMsg(msg);}   // 試合前の準備／ラウンド間の武器変更   // ランクマッチのレートの増減（サーバーが決める）
   else if(mt==='auth_ok'){AUTH.user=msg.user;adoptRate(msg.user);renderLoginUI();}
   else if(mt==='auth_fail'){AUTH.token='';AUTH.user=null;try{localStorage.removeItem('gunduel_token');}catch(e){}switchStore('');renderLoginUI();}
@@ -7314,7 +7351,7 @@ function cvMatchEnd(){
   fetch(httpBase()+'/api/cpu/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},
     body:JSON.stringify({mid:my.mid,diff:my.diff,stage:selectedStage,loads:my.loads,logs:my.logs,emotes:my.emotes})})
     .then(function(r){return r.json();}).then(function(d){
-      if(d&&d.ok&&d.profile){srvAdopt(d.profile,d.rev);candyToast(d.candy,d.ev);return;}
+      if(d&&d.ok&&d.profile){srvAdopt(d.profile,d.rev);candyToast(d.candy,d.ev);saleToast(d.sale);return;}
       if(d&&d.why&&d.why!=='suspect')note(t('c.unverified'));
     }).catch(function(){});
 }
