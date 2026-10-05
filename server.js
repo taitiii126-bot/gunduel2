@@ -54,6 +54,7 @@ const ALLOW_SAME_IP_RECORDS = process.env.ALLOW_SAME_IP_RECORDS === '1';
 const BANNED_IPS = new Set(list(process.env.BANNED_IPS));
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';          // 昇格を投稿するDiscordのWebhook
 const ADMIN_WEBHOOK_URL = process.env.ADMIN_WEBHOOK_URL || '';      // 怪しいプレイを知らせる、管理者だけのチャンネルのWebhook
+const UPDATE_WEBHOOK_URL = process.env.UPDATE_WEBHOOK_URL || '';    // アップデートのお知らせを投稿するチャンネルのWebhook（Railway の Variables に入れる）
 const GAME_URL = process.env.GAME_URL || '';                        // 投稿にゲームへのリンクを付ける（任意）
 const MSG_PER_SEC = 120;        // 1接続あたりの受信上限（超えた分は捨てる）
 const MSG_KICK_PER_SEC = 600;   // 明らかな連打・攻撃は切断
@@ -1219,7 +1220,36 @@ server.listen(PORT, HOST, () => {
     (ALLOWED_ORIGINS.length ? ` (origins: ${ALLOWED_ORIGINS.join(', ')})` : '') +
     (REQUIRE_LOGIN ? ' (login required)' : ''));
   if (interactions.enabled()) interactions.register(log);   // Discord に /info を登録
+  setTimeout(announceUpdates, 8000);   // 起動が落ち着いてから、まだ知らせていないアップデートを投稿
 });
+// ---- アップデートのお知らせ：updates.json に書いた新しい更新を、Discord に1回だけ投稿する ----
+// 投稿済みの印は DATA_DIR の announced.json に残す（再起動・再デプロイで二重に投稿しない）。初めて動いたときは一番新しい1件だけ
+function announceUpdates() {
+  const fs = require('fs'), path = require('path');
+  const mark = path.join(process.env.DATA_DIR || process.env.STATE_DIRECTORY || __dirname, 'announced.json');
+  let list = [];
+  try { list = JSON.parse(fs.readFileSync(path.join(__dirname, 'updates.json'), 'utf8')); } catch (e) { return log('updates.json を読めません:', e.message); }
+  if (!Array.isArray(list) || !list.length) return;
+  let done = null;
+  try { done = JSON.parse(fs.readFileSync(mark, 'utf8')); } catch (e) { /* まだ投稿したことがない */ }
+  const posted = new Set(done && Array.isArray(done.ids) ? done.ids : []);
+  const fresh = (done ? list.filter(u => u && u.id && !posted.has(u.id)) : list.slice(0, 1)).reverse();   // 古い順に投稿
+  if (!fresh.length) return;
+  if (!UPDATE_WEBHOOK_URL) return log('update announcement skipped: UPDATE_WEBHOOK_URL is not set (' + fresh.map(u => u.id).join(', ') + ')');
+  const save = () => { try { fs.writeFileSync(mark, JSON.stringify({ ids: [...posted].slice(-200) })); } catch (e) { log('announced.json の保存に失敗:', e.message); } };
+  (function next() {
+    const u = fresh.shift();
+    if (!u) return;
+    const items = (Array.isArray(u.items) ? u.items : []).map(t => '・' + String(t)).join('\n').slice(0, 3800);
+    fetch(UPDATE_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ allowed_mentions: { parse: [] }, embeds: [{
+        title: '📢 アップデート：' + String(u.title || u.id).slice(0, 200), url: GAME_URL || undefined, color: 0xFFC53D,
+        description: items + (GAME_URL ? '\n\n▶ [遊ぶ](' + GAME_URL + ')（古い画面のときは再読み込みしてください）' : ''),
+        footer: { text: 'GUN DUEL  ·  ' + u.id }, timestamp: new Date().toISOString() }] }) })
+      .then(r => { if (r.ok) { posted.add(u.id); save(); log('update announced', u.id); setTimeout(next, 1500); } else log('update announcement failed', r.status); })
+      .catch(e => log('update announcement error', e.message));
+  })();
+}
 function shutdown(sig) {
   log('shutting down', sig);
   for (const ws of sockets) ws.close();
