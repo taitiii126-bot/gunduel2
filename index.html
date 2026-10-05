@@ -401,6 +401,13 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .tl-slot.me{outline:2px solid var(--gold);}
 .tl-slot small{font-size:10px;color:var(--gold);}
 .tl-slot.empty{border:1px dashed var(--line-2);color:var(--tx-3);}
+.tl-rules{display:grid;gap:8px;margin:0 0 12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);}
+.tl-rules h4{margin:0;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--tx-3);}
+.tl-rules label,.tl-rules p{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;font-size:13px;}
+.tl-rules label span,.tl-rules p span{color:var(--tx-2);}
+.tl-rules select{min-width:0;max-width:60%;padding:6px 8px;border-radius:8px;border:1px solid var(--line-2);background:#141824;color:#fff;font:inherit;}
+.tl-wsel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
+.tl-wsel select{max-width:none;width:100%;}
 .tl-slot.empty:hover{border-color:var(--gold);color:var(--tx);}
 .tl-slot.empty small{color:var(--tx-3);}
 .rk-season{display:flex;flex-direction:column;align-items:center;gap:2px;margin:-6px 0 10px;text-align:center;}
@@ -2626,7 +2633,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=44"></script>
-<script src="lang.js?v=52"></script>
+<script src="lang.js?v=53"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -5881,6 +5888,7 @@ function renderTeamLobby(){
     return'<button class="tl-slot empty" onclick="teamSlot(\''+k+'\')"><span>'+esc(t('tl.empty'))+'</span><small>'+esc(t('tl.moveHere'))+'</small></button>';
   };
   var h='<div class="tl-teams"><div class="tl-team a"><h4>'+esc(t('tl.teamA'))+'</h4>'+slot('a')+slot('c')+'</div><div class="tl-vs">VS</div><div class="tl-team b"><h4>'+esc(t('tl.teamB'))+'</h4>'+slot('b')+slot('d')+'</div></div>';
+  h+=tlRulesHtml(host);
   h+=host?'<button class="room-btn" onclick="teamStart()">'+esc(t('tl.start'))+'</button><p class="ol-note">'+esc(t('tl.startNote'))+'</p>':'<p class="ol-note">'+esc(t('tl.waitHost'))+'</p>';
   if(host&&AUTH.user){
     var on=FR.friends.filter(function(p){return p.status==='online';});
@@ -5889,6 +5897,30 @@ function renderTeamLobby(){
   el.innerHTML=h;
 }
 function teamSlot(k){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'team_slot',to:k}));}
+// フレンドの部屋のルール：ステージ（投票 or 固定）と武器（それぞれ or 全員同じ）。決めるのは部屋を作った人
+function tlRules(){return(TLOBBY&&TLOBBY.rules)||{stage:null,load:null};}
+function tlRulesHtml(host){
+  var R=tlRules(),h='<div class="tl-rules"><h4>'+esc(t('tl.rules'))+'</h4>';
+  if(!host){
+    h+='<p><span>'+esc(t('tl.stage'))+'</span><b>'+esc(R.stage?t('stage.'+R.stage+'.name'):t('tl.stageVote'))+'</b></p>'+
+      '<p><span>'+esc(t('tl.weapons'))+'</span><b>'+esc(R.load?R.load.map(wName).join(' / '):t('tl.wFree'))+'</b></p>';
+    return h+'</div>';
+  }
+  var so='<option value="">'+esc(t('tl.stageVote'))+'</option>'+STAGE_ORDER.map(function(sid){return'<option value="'+sid+'"'+(R.stage===sid?' selected':'')+'>'+esc(t('stage.'+sid+'.name'))+'</option>';}).join('');
+  h+='<label><span>'+esc(t('tl.stage'))+'</span><select onchange="tlSetRule(\'stage\',this.value)">'+so+'</select></label>';
+  h+='<label><span>'+esc(t('tl.weapons'))+'</span><select onchange="tlSetRule(\'mode\',this.value)"><option value="free"'+(R.load?'':' selected')+'>'+esc(t('tl.wFree'))+'</option><option value="same"'+(R.load?' selected':'')+'>'+esc(t('tl.wSame'))+'</option></select></label>';
+  if(R.load){
+    h+='<div class="tl-wsel">'+[0,1,2].map(function(i){return'<select onchange="tlSetRule(\'w'+i+'\',this.value)">'+WEAPON_ORDER.map(function(id){return'<option value="'+id+'"'+(R.load[i]===id?' selected':'')+'>'+(i+1)+'. '+esc(wName(id))+'</option>';}).join('')+'</select>';}).join('')+'</div>';
+  }
+  return h+'</div>';
+}
+function tlSetRule(k,v){
+  var R=tlRules(),N={stage:R.stage,load:R.load?R.load.slice():null};
+  if(k==='stage')N.stage=v||null;
+  else if(k==='mode')N.load=v==='same'?(N.load||(loadout||[2,3,1]).slice()):null;
+  else if(N.load){var i=+k.slice(1),id=+v,j=N.load.indexOf(id);if(j>=0&&j!==i)N.load[j]=N.load[i];N.load[i]=id;}   // 同じ武器が別の枠にあれば入れ替える
+  if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'team_rules',rules:N}));
+}
 function teamStart(){if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'team_start'}));}
 function inviteToRoom(fid){
   var rid=TLOBBY&&TLOBBY.roomId;
@@ -6100,7 +6132,7 @@ function onWaitMsg(msg){
   var now=performance.now();
   if(msg.team){
     var rd=msg.ready||{};
-    WAIT={team:true,kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),total:waitTotal(msg),vsUntil:now+(+msg.vsMs||0),ready:rd,
+    WAIT={team:true,fixed:!!msg.fixed,kind:msg.kind==='pick'?'pick':msg.kind==='stage'?'stage':'prep',until:now+(+msg.ms||0),total:waitTotal(msg),vsUntil:now+(+msg.vsMs||0),ready:rd,
       meReady:!!rd[mySlot],oppReady:false,mine:SIM.cleanLoadout(msg.mine,false),opp:null,loads:msg.loads||{},
       stages:msg.stages||null,votes:msg.votes||{},myVote:(msg.votes||{})[mySlot]||null};
     matchLoadout=WAIT.mine.slice();
@@ -6133,7 +6165,7 @@ function matchReady(){
   WAIT.meReady=true;if(WAIT.team)WAIT.ready[mySlot]=true;ws.send(JSON.stringify({type:'ready'}));SFX.switchW();renderMatchPanel();
 }
 // ラウンド間：自分の枠を選ぶ → 武器を選ぶ（同じ武器が別の枠にあれば入れ替える）
-function canPickWeapon(){return !!WAIT&&(WAIT.kind==='pick'||WAIT.kind==='prep')&&!WAIT.meReady;}
+function canPickWeapon(){if(WAIT&&WAIT.fixed)return false;return !!WAIT&&(WAIT.kind==='pick'||WAIT.kind==='prep')&&!WAIT.meReady;}
 function pickMatchSlot(i){if(!canPickWeapon())return;pickSel=i;SFX.switchW();renderMatchPanel();}
 function pickMatchWeapon(id){
   if(!canPickWeapon())return;
@@ -6274,16 +6306,17 @@ function renderMatchPanel(){
   }else who.push({nm:oppInfo.name||t('c.opp'),col:'#FF8A96',lo:WAIT.opp||oppInfo.loadout||[],rd:WAIT.oppReady});
   h+='<div class="mp-opps">';
   who.forEach(function(o){h+='<span class="mp-opp"><b style="color:'+o.col+'">'+esc(o.nm)+'</b>'+o.lo.map(function(id){return mpIcon(id,92,40);}).join('')+(o.rd?'<span class="rd">✓</span>':'')+'</span>';});
-  h+='</div><div class="mp-main"><div class="mp-slots">';
+  h+='</div>'+(WAIT.fixed?'<p class="mp-hint">'+esc(t('tl.fixedNote'))+'</p>':'')+'<div class="mp-main'+(WAIT.fixed?' fixed':'')+'"><div class="mp-slots">';
+  var lock=WAIT.meReady||WAIT.fixed;
   WAIT.mine.forEach(function(id,i){
     var W=WEAPONS[id];
-    h+='<button class="mp-slot'+(i===pickSel&&!WAIT.meReady?' sel':'')+'" onclick="pickMatchSlot('+i+')"'+(WAIT.meReady?' disabled':'')+'><span class="n">'+(i+1)+'</span>'+
+    h+='<button class="mp-slot'+(i===pickSel&&!lock?' sel':'')+'" onclick="pickMatchSlot('+i+')"'+(lock?' disabled':'')+'><span class="n">'+(i+1)+'</span>'+
       mpIcon(id,156,68)+'<b style="color:'+W.color+'">'+esc(wName(id))+'</b></button>';
   });
-  h+='</div><div><div class="mp-tiles'+(WAIT.meReady?' off':'')+'">';
+  h+='</div><div><div class="mp-tiles'+(lock?' off':'')+'">';
   WEAPON_ORDER.forEach(function(id){
     var slot=WAIT.mine.indexOf(id);
-    h+='<button class="mp-tile'+(slot>=0?' eq':'')+'" data-w="'+id+'" onclick="pickMatchWeapon('+id+')" onmouseenter="mpFocus('+id+')"'+(WAIT.meReady?' disabled':'')+'>'+
+    h+='<button class="mp-tile'+(slot>=0?' eq':'')+'" data-w="'+id+'" onclick="pickMatchWeapon('+id+')" onmouseenter="mpFocus('+id+')"'+(lock?' disabled':'')+'>'+
       (slot>=0?'<span class="q">'+(slot+1)+'</span>':'')+mpIcon(id,148,64)+'<b>'+esc(wName(id))+'</b></button>';
   });
   if(!mpFocusId||!WEAPONS[mpFocusId])mpFocusId=WAIT.mine[pickSel]||WAIT.mine[0];
@@ -13195,7 +13228,7 @@ function drawBgFx(tm){
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得

@@ -764,6 +764,9 @@ function onMessage(ws, raw) {
       log('room created (2v2)', room.id, 'from', ws.ip, ws.account ? 'discord=' + ws.account.uid : 'guest');
       break;
     }
+    case 'team_rules':                                  // フレンドの部屋のルール（部屋を作った人だけ・開始前）
+      if (ws.room && ws.room.kind === 'team') ws.room.setRules(ws.slot, m.rules);
+      break;
     case 'team_slot':                                   // 開始前に、空いている場所（チーム）へ移る
       if (ws.room && ws.room.kind === 'team') ws.room.moveSlot(ws.slot, String(m.to || ''));
       break;
