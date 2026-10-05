@@ -2697,8 +2697,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=46"></script>
-<script src="lang.js?v=58"></script>
+<script src="sim.js?v=47"></script>
+<script src="lang.js?v=59"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2971,6 +2971,8 @@ var SFX={
   windup:function(){playSweep(220,760,.2,'triangle',.08);},
   shootPistol:function(){playNoiseFilt(.05,.38,0,'highpass',1800,1800,.8);playPunch(1200,300,.06,.24,0,'square');},
   shootSniper:function(){playNoiseFilt(.09,.42,0,'bandpass',2200,300,.9);playPunch(1800,150,.18,.3,0,'sawtooth');playPunch(120,40,.3,.2,.02,'sine');},
+  shootBall:function(){playPunch(620,320,.05,.1,0,'square');playTone(900,.05,'triangle',.04,.02);},
+  ballBounce:function(){playTone(1300+Math.random()*300,.03,'triangle',.025,0);},
   shootSMG:function(){playNoiseFilt(.04,.24,0,'highpass',2400,2400,.8);playPunch(950,280,.04,.14,0,'square');},
   shootShotgun:function(){playNoiseFilt(.2,.5,0,'lowpass',2600,260,.7);playPunch(200,45,.22,.34,0,'sine');},
   shootAR:function(){playNoiseFilt(.05,.3,0,'bandpass',1900,520,.9);playPunch(720,170,.06,.19,0,'square');},
@@ -3055,7 +3057,7 @@ var SFX={
     playTone(2093,.9,'sine',.1,.95);playTone(1568,.9,'sine',.08,.95);
   }
 };
-var FIRE_SFX={1:'meleeSwing',2:'shootPistol',3:'shootSniper',4:'shootSMG',5:'shootShotgun',6:'shootAR',7:'shootBurst',8:'shootRevolver',9:'shootLMG',10:'shootGL',11:'shootRail'};
+var FIRE_SFX={15:'shootBall',1:'meleeSwing',2:'shootPistol',3:'shootSniper',4:'shootSMG',5:'shootShotgun',6:'shootAR',7:'shootBurst',8:'shootRevolver',9:'shootLMG',10:'shootGL',11:'shootRail'};
 function sfxFire(wid){var f=SFX[FIRE_SFX[wid]];if(f)f();}
 // ---- BGM（その場で作る音楽。メニュー用と対戦用の2曲）----
 // 16分音符ごとに少し先の音を予約していく。タブが裏にあるときは止める
@@ -6842,6 +6844,7 @@ function handleEvents(ev,me,styleOf){
         if(trk&&mine)ecoTrack('rolldodge');break;
       case'boom':SFX.explode();FX.boom.push({x:e.x,y:e.y,r:e.r||60,life:26});addSparks(e.x,e.y,'#FFB36B',12);if(me!=='-')addShake(Math.max(2,6-Math.abs(wx(e.x)-VW/2)/120));break;
       case'spark':addSparks(e.x,e.y,'#FFE9A8',4);addMark(e.x,e.y);break;
+      case'bounce':if(fxOn(.6))addSparks(e.x,e.y,'#A5F3FC',2);if(Math.random()<.35)SFX.ballBounce();break;
       case'reload':if(mine&&e.mag>1)SFX.reload();break;
       case'dry':if(mine){dryFlash=24;SFX.dry();}break;   // 弾切れで撃とうとした
     }
@@ -8021,6 +8024,13 @@ function drawGun(g,id,x,y,dir,s,glow){
       R('#9CA3AF',38,-.4,10,.8);R('#B45309',35,-2,3,4);
       g.fillStyle='#DC2626';g.beginPath();g.moveTo(35,1.5);g.lineTo(31,6);g.lineTo(34,6.5);g.lineTo(36.5,2);g.closePath();g.fill();
       break;
+    case 15:   // バウンドボール：ずんぐりした発射機。上に玉の入った透明なタンク、太い筒の先は水色
+      R('#334155',-10,-2.5,8,5.5);R('#475569',-2,-4,20,8.5);R('#64748B',-2,-4,20,1.3);R('#1E293B',3,4.5,3.5,6);R('#1E293B',-1,4.5,3,4);
+      R('#0E7490',18,-3.5,7,7.5);R('#22D3EE',23,-3,2.5,6.5);R('#155E75',18,-3.5,7,1.2);
+      g.fillStyle='rgba(186,230,253,.35)';g.beginPath();g.arc(7,-8.5,5.2,Math.PI,0);g.lineTo(12.2,-4);g.lineTo(1.8,-4);g.closePath();g.fill();
+      g.strokeStyle='#94A3B8';g.lineWidth=.8;g.stroke();
+      [['#22D3EE',4.6,-6.2],['#F472B6',8,-6.4],['#FACC15',6.2,-9]].forEach(function(q){g.fillStyle=q[0];g.beginPath();g.arc(q[1],q[2],1.7,0,Math.PI*2);g.fill();});
+      break;
     case 14:   // ウォーハンマー：太い柄と重い鉄の頭
       R('#4A2E14',-6,-1.6,26,3.2);R('#2F1D0C',-6,-1.6,26,.9);
       R('#57534E',16,-10,12,20);R('#78716C',16,-10,12,2.5);R('#292524',16,-1.6,12,3.2);
@@ -8032,7 +8042,7 @@ function drawGun(g,id,x,y,dir,s,glow){
 // 銃の絵の大きさ（左右・上下の端）。アイコンを枠いっぱいに、真ん中へ置くのに使う
 var GUN_BOUNDS={1:[-4,17,-3,2],2:[0,14.5,-3,6.5],3:[-12,34,-7,6.5],4:[-7,19,-3,10.5],5:[-12,27,-3.5,3.2],6:[-12,27,-5.5,9.5],
   7:[-12,30,-6,9],8:[-3,18,-5,6.5],9:[-14,36,-4.5,11.5],10:[-6,19,-6,10.5],11:[-12,33,-4.5,8],
-  12:[-1,11,-5.2,5.2],13:[-14,51,-3.4,6.6],14:[-6,29,-10,10]};
+  12:[-1,11,-5.2,5.2],13:[-14,51,-3.4,6.6],14:[-6,29,-10,10],15:[-10,26,-14,10.5]};
 function drawGunIcon(g,id,x,y,w,h){
   var b=GUN_BOUNDS[id];if(!b)return;
   var s=Math.min(w*.9/(b[1]-b[0]),h*.84/(b[3]-b[2]));
@@ -8114,7 +8124,7 @@ function avBoot(g,x,y,d,col){
 }
 // ---- 試合中の細かい動き（反動・リロード）----
 // 撃った反動：[後ろへ下がる量, 銃口がはね上がる角度（ラジアン）]
-var AV_KICK={2:[2.2,.2],3:[3.5,.28],4:[1.1,.06],5:[3.5,.26],6:[1.5,.08],7:[1.6,.09],8:[2.6,.3],9:[1.3,.06],10:[2.4,.18],11:[4,.16]};
+var AV_KICK={2:[2.2,.2],3:[3.5,.28],4:[1.1,.06],5:[3.5,.26],6:[1.5,.08],7:[1.6,.09],8:[2.6,.3],9:[1.3,.06],10:[2.4,.18],11:[4,.16],15:[1.2,.08]};
 // リロードの動き。k：swap=弾倉を替える pistol=弾倉を替えてスライドを引く bolt=ボルトを引く shell=1発ずつ込める cyl=シリンダーに込める
 //   tilt=銃口を上げる角度、at=手を持っていく場所（銃の絵の座標：持ち手が原点・前が+x・下が+y）、item=[幅,高さ,色,丸い]（手に持つ物・落ちる物）
 var AV_RELOAD={
@@ -8127,7 +8137,8 @@ var AV_RELOAD={
   8:{k:'cyl',tilt:.5,at:[3.2,-1.2],item:[1,2.4,'#E0B84A']},
   9:{k:'swap',tilt:.22,at:[6.5,5],item:[11,8,'#27272A']},
   10:{k:'shell',tilt:.16,at:[3,6],item:[3.4,3.4,'#FB7185',1]},
-  11:{k:'swap',tilt:.3,at:[8,4],item:[4,4.5,'#4338CA']}
+  11:{k:'swap',tilt:.3,at:[8,4],item:[4,4.5,'#4338CA']},
+  15:{k:'shell',tilt:.2,at:[7,-6],item:[3.4,3.4,'#22D3EE',1]}
 };
 function avEase(t){t=t<0?0:t>1?1:t;return t*t*(3-2*t);}
 // キーフレーム [[進み,x,y],...] の間をなめらかにつなぐ
@@ -11645,6 +11656,13 @@ var BULLET_SZ={
 };
 function drawShot(b,col){
   var bsx=wx(b.x);if(bsx<-40||bsx>VW+40)return;
+  if(b.k==='o'){   // バウンドボール：小さな光る玉と、短い残像
+    ctx.fillStyle=rgba(col,.25);ctx.beginPath();ctx.arc(bsx-(b.vx||0)*.9,b.y-(b.vy||0)*.9,2.4,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#22D3EE';ctx.beginPath();ctx.arc(bsx,b.y,2.6,0,Math.PI*2);ctx.fill();
+    ctx.lineWidth=1;ctx.strokeStyle=col;ctx.stroke();
+    ctx.fillStyle='rgba(255,255,255,.85)';ctx.beginPath();ctx.arc(bsx-.8,b.y-.9,.9,0,Math.PI*2);ctx.fill();
+    return;
+  }
   if(b.k==='g'){
     ctx.save();ctx.translate(bsx,b.y);ctx.rotate(Math.atan2(b.vy||0,b.vx||1));
     ctx.fillStyle='#3F3F46';rrect(-4.5,-3,9,6,2.5);ctx.fill();ctx.fillStyle=col;ctx.fillRect(-1,-3,2,6);
@@ -13132,8 +13150,8 @@ function onlineShots(){
     var age=olStateAt?Math.min(6,Math.max(0,(performance.now()-olStateAt)/FRAME_MS)):0;
     olState.shots.forEach(function(b){
       if(b.own===mySlot)return;
-      var vy=b.vy||0,y=b.y+vy*age+(b.k==='g'?.5*SIM.GREN_G*age*age:0);
-      out.push({k:b.k,w:b.w,x:b.x+b.vx*age,y:y,vx:b.vx,vy:vy+(b.k==='g'?SIM.GREN_G*age:0),col:'#F87171'});
+      var gg=b.k==='g'?SIM.GREN_G:b.k==='o'?SIM.BALL_G:0,vy=b.vy||0,y=b.y+vy*age+.5*gg*age*age;
+      out.push({k:b.k,w:b.w,x:b.x+b.vx*age,y:y,vx:b.vx,vy:vy+gg*age,col:'#F87171'});
     });
   }
   return out;

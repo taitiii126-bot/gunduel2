@@ -46,8 +46,9 @@ var LAND_LAG = 14;         // 空中で撃った（攻撃した）跳びの着�
 var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
 var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
-var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 10;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）
+var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;
+var BALL_G = 0.16, BALL_BOUNCE = 0.72;   // バウンドボール：重力と、跳ねたときに残る速さ   // グレネード：重力を強めて、遠くには届きにくい弧に
+var PROTO = 11;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -72,9 +73,11 @@ var WEAPONS = {
   11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 34, rate: 0,  mag: 1,  reload: 155, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
   12: { id: 12, key: 'knuckle',  kind: 'melee',   range: 34,  dmg: 13, rate: 9,  mag: 0,  reload: 0,   spd: 0,  wind: 0,  rec: 2,  auto: true, color: '#E5E7EB', band: [0, 24] },
   13: { id: 13, key: 'spear',    kind: 'melee',   range: 96,  dmg: 46, rate: 48, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, color: '#FCD34D', band: [36, 84] },
-  14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] }
+  14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] },
+  // バウンドボール：1回で小さな玉を3つ。弧を描いて落ち、床や壁で2回まで跳ねる（life=玉が消えるまでのフレーム）
+  15: { id: 15, key: 'bouncer',  kind: 'bounce',  range: 240, dmg: 4,  rate: 12, mag: 10, reload: 150, spd: 7.5, balls: 3, life: 80, bounces: 2, color: '#22D3EE', band: [60, 200], auto: true }
 };
-var WEAPON_IDS = [2, 3, 1, 12, 13, 14, 4, 5, 6, 7, 8, 9, 10, 11];
+var WEAPON_IDS = [2, 3, 1, 12, 13, 14, 4, 5, 6, 7, 8, 9, 15, 10, 11];
 var DEFAULT_LOADOUT = [2, 3, 1];
 
 // ---- ステージの地形 ----
@@ -969,12 +972,16 @@ function fireRound(w, c, W, ev, t, vis) {
   if (close) {
     ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid });
     if (W.kind === 'grenade') explode(w, { own: c.side, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, sid: sid }, close, ev, vis, close.x + CHAR_W / 2, my, true);
-    else damage(w, close, W.kind === 'pellet' ? W.dmg * W.pellets : W.dmg, c.side, ev, vis, close.x + CHAR_W / 2, my, dir, sid);
+    else damage(w, close, W.kind === 'pellet' ? W.dmg * W.pellets : W.kind === 'bounce' ? W.dmg * W.balls : W.dmg, c.side, ev, vis, close.x + CHAR_W / 2, my, dir, sid);
   } else if (W.kind === 'bullet') {
     w.shots.push({ k: 'b', w: wid, x: mx, y: my, vx: W.spd * dir, vy: 0, own: c.side, dist: 0, range: W.range, dmg: W.dmg, age: 0, sid: sid });
   } else if (W.kind === 'pellet') {
     for (var i = 0; i < W.pellets; i++) {
       w.shots.push({ k: 'p', w: wid, x: mx, y: my, vx: W.spd * dir, vy: (i - (W.pellets - 1) / 2) * 1.1, own: c.side, dist: 0, range: W.range, dmg: W.dmg, age: 0, sid: sid });
+    }
+  } else if (W.kind === 'bounce') {
+    for (var j = 0; j < W.balls; j++) {
+      w.shots.push({ k: 'o', w: wid, x: mx, y: my, vx: W.spd * dir * (1 - j * 0.07), vy: -1.6 + j * 1.0, own: c.side, life: W.life, bn: 0, dmg: W.dmg, age: 0, sid: sid });
     }
   } else if (W.kind === 'grenade') {
     w.shots.push({ k: 'g', w: wid, x: c.x + CHAR_W / 2 + dir * 14, y: my - 6, vx: W.spd * dir + c.vx * 0.5, vy: GREN_VY, own: c.side, life: GREN_LIFE, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, age: 0, sid: sid });
@@ -1027,9 +1034,12 @@ function stepShots(w, ev, vis, only) {
     var t = w.targets || w.teams ? null : w.chars[other(b.own)];
     b.age++;
     if (b.k === 'g') { if (stepGrenade(w, b, t, ev, vis)) out.push(b); continue; }
-    b.x += b.vx; b.y += b.vy; b.dist += Math.abs(b.vx);
-    if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20 || b.y < -60 || b.y > VH + 20) continue;
-    if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
+    if (b.k === 'o') { if (!moveBall(w, b, ev)) continue; }
+    else {
+      b.x += b.vx; b.y += b.vy; b.dist += Math.abs(b.vx);
+      if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20 || b.y < -60 || b.y > VH + 20) continue;
+      if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
+    }
     if (w.targets || w.teams) {                        // 射撃場・チーム戦：いちばん先に触れた相手に当たる（味方はすり抜ける）
       var fl = foes(w, b.own);
       for (var k = 0; k < fl.length && !t; k++) if (!fl[k].dead && hits(b, fl[k]) && !(rollSafe(fl[k]) && b.rd)) t = fl[k];
@@ -1049,6 +1059,29 @@ function stepShots(w, ev, vis, only) {
     out.push(b);
   }
   w.shots = out;
+}
+// バウンドボールを1フレーム進める。床・足場の上・遮蔽物・端の壁で跳ね、跳ねる回数をこえたら消える。返り値＝まだ飛んでいるか
+function moveBall(w, b, ev) {
+  var px = b.x, py = b.y, i, p;
+  b.vy += BALL_G; b.x += b.vx; b.y += b.vy;
+  if (--b.life <= 0 || b.y > VH + 20) return false;
+  var bounce = function () { if (++b.bn > WEAPONS[15].bounces) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); return false; } ev.push({ t: 'bounce', x: b.x, y: b.y, own: b.own }); return true; };
+  if (b.x < 0 || b.x > WORLD_W) { b.x = clamp(b.x, 0, WORLD_W); b.vx = -b.vx; if (!bounce()) return false; }
+  if (b.vy > 0) {
+    for (i = 0; i < w.plats.length; i++) {
+      p = w.plats[i];
+      if (b.x >= p.x && b.x <= p.x + p.w && py <= p.y && b.y >= p.y) { b.y = p.y - 0.5; b.vy = -Math.max(2.2, b.vy * BALL_BOUNCE); return bounce(); }
+    }
+  }
+  for (i = 0; i < w.solids.length; i++) {
+    p = w.solids[i];
+    if (b.x >= p.x && b.x <= p.x + p.w && b.y >= p.y && b.y <= p.y + p.h) {
+      if (py < p.y) { b.y = p.y - 0.5; b.vy = -Math.max(2.2, Math.abs(b.vy) * BALL_BOUNCE); }   // 上から当たった：上へ跳ねる
+      else { b.x = px; b.vx = -b.vx; }                                                       // 横から当たった：はね返る
+      return bounce();
+    }
+  }
+  return true;
 }
 function stepGrenade(w, b, t, ev, vis) {
   var py = b.y;
@@ -2224,7 +2257,7 @@ var api = {
   guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,
   WATCH: deepFreeze(WATCH), newWatch: newWatch, watchRound: watchRound, watchPre: watchPre, watchPost: watchPost,
   newTally: newTally, tallyRoundStart: tallyRoundStart, tallyEvents: tallyEvents, tallyRoundEnd: tallyRoundEnd, matchXp: matchXp,
-  rng: rng, cpuSeedLoad: cpuSeedLoad, roundRng: roundRng, packInput: packInput, unpackInput: unpackInput, logAdd: logAdd, logEncode: logEncode, logDecode: logDecode, replayCpu: replayCpu, REPLAY_MAX_FRAMES: REPLAY_MAX_FRAMES,
+  BALL_G: BALL_G, rng: rng, cpuSeedLoad: cpuSeedLoad, roundRng: roundRng, packInput: packInput, unpackInput: unpackInput, logAdd: logAdd, logEncode: logEncode, logDecode: logDecode, replayCpu: replayCpu, REPLAY_MAX_FRAMES: REPLAY_MAX_FRAMES,
   SEASON_TZ_MIN: SEASON_TZ_MIN, SEASON_DROP: SEASON_DROP, seasonNo: seasonNo, seasonStart: seasonStart, seasonEnd: seasonEnd,
   seasonLeftMs: seasonLeftMs, seasonLeftDays: seasonLeftDays, seasonNextRate: seasonNextRate,
   PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles, upgradeProfile: upgradeProfile,
