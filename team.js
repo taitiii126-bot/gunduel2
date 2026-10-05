@@ -39,6 +39,7 @@ class TeamRoom {
   constructor(id, hooks, opt) {
     this.id = id; this.hooks = hooks || {}; this.kind = 'team';
     this.private = !!(opt && opt.private);
+    this.rules = { stage: null, load: null };   // フレンドの部屋だけ：部屋を作った人が決めるルール（ステージ固定・全員同じ武器）
     this.players = { a: null, b: null, c: null, d: null };
     this.hostSlot = null;
     this.phase = 'waiting';                 // waiting → lobby → playing ⇄ roundOver/pick → ended
@@ -77,7 +78,7 @@ class TeamRoom {
     if (!s) return null;
     const acc = ws.account || null;
     this.players[s] = {
-      ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc, dev: !!(acc && acc.dev), slot: s,
+      ws, ip: ws.ip || '', uid: acc ? acc.uid : null, verified: !!acc, dev: !!(acc && acc.dev), clan: acc ? require('./clans').tagOf(acc.uid) : '', slot: s,
       name: G.cleanName(info && info.name), discord: acc ? G.cleanName(acc.name) : '',
       // 2v2 のティアとレートは、ログイン中ならサーバーが持っている本物（ゲストは未ランク）
       tier: acc && acc.tier2Key ? acc.tier2Key : '', rate: acc ? (acc.rate2 || SIM.RATE_START) : SIM.RATE_START,
@@ -130,7 +131,16 @@ class TeamRoom {
     }
     return out;
   }
-  sendLobby() { this.broadcast({ type: 'team_lobby', roomId: this.id, host: this.hostSlot, players: this.lobbyInfo() }); }
+  sendLobby() { this.broadcast({ type: 'team_lobby', roomId: this.id, host: this.hostSlot, players: this.lobbyInfo(), rules: this.rules }); }
+  // ルールを変える（フレンドの部屋で、開始前に、部屋を作った人だけ）。stage：null＝投票で決める。load：null＝それぞれが選ぶ
+  setRules(slot, r) {
+    if (!this.private || this.phase !== 'waiting' || slot !== this.hostSlot || !r || typeof r !== 'object') return false;
+    const st = typeof r.stage === 'string' && SIM.STAGES[r.stage] ? r.stage : null;
+    const load = Array.isArray(r.load) ? SIM.cleanLoadout(r.load, false) : null;
+    this.rules = { stage: st, load: load };
+    this.sendLobby();
+    return true;
+  }
   // 開始前だけ、空いている場所へ移れる（チームを変える）
   moveSlot(slot, to) {
     if (this.phase !== 'waiting' || !this.players[slot] || !SLOTS.includes(to) || this.players[to]) return false;
@@ -147,15 +157,17 @@ class TeamRoom {
     this.phase = 'lobby';
     this.rate0 = {};
     for (const k of SLOTS) { const p = this.players[k]; if (p) this.rate0[k] = p.rate || SIM.RATE_START; }
+    if (this.rules.load) for (const k of SLOTS) { const p = this.players[k]; if (p) p.loadout = this.rules.load.slice(); }   // 全員同じ武器
     const info = {};
     for (const k of SLOTS) {
       const p = this.players[k];
-      if (p) info[k] = { name: p.name, discord: p.discord, tier: p.tier, rate: p.rate, verified: p.verified, dev: !!p.dev, loadout: p.loadout,
+      if (p) info[k] = { name: p.name, discord: p.discord, tier: p.tier, rate: p.rate, verified: p.verified, dev: !!p.dev, clan: p.clan || '', loadout: p.loadout,
         look: p.look, title: p.title, bio: p.bio, bg: p.bg, rec: p.rec };
     }
     for (const k of SLOTS) { const p = this.players[k]; if (p && !p.bot) this.send(p, { type: 'team_ready', slot: k, ranked: this.ranked, players: info }); }
     this.schedulePing();
-    this.stagePick = G.FORCE_STAGE ? null : G.stageOptions(); this.votes = {};
+    this.stagePick = G.FORCE_STAGE || this.rules.stage ? null : G.stageOptions(); this.votes = {};
+    if (this.rules.stage && !G.FORCE_STAGE) this.stage = this.rules.stage;   // ステージ固定：投票はしない
     if (this.stagePick && G.STAGE_MS > 0) this.beginWait('stage', G.STAGE_MS, G.VS_MS);
     else this.beginWait('prep', G.PREP_MS, G.VS_MS);
   }
@@ -182,7 +194,7 @@ class TeamRoom {
       const p = this.players[s];
       if (!p || p.bot) continue;
       this.send(p, { type: 'wait', team: true, kind: w.kind, ms: Math.max(0, w.until - now), vsMs: Math.max(0, w.earliest - now),
-        ready, loads, mine: p.loadout,
+        ready, loads, mine: p.loadout, fixed: !!this.rules.load,
         stage: this.stage,
         stages: w.kind === 'stage' ? this.stagePick : null,
         votes: w.kind === 'stage' ? this.votes : null });
@@ -211,7 +223,7 @@ class TeamRoom {
   }
   setLoadout(slot, v) {
     const w = this.waitState, p = this.players[slot];
-    if (!w || (w.kind !== 'pick' && w.kind !== 'prep') || !p || w.ready[slot]) return;
+    if (!w || (w.kind !== 'pick' && w.kind !== 'prep') || !p || w.ready[slot] || this.rules.load) return;
     p.loadout = SIM.cleanLoadout(v, false);
     this.sendWait();
   }

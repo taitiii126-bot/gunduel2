@@ -46,8 +46,9 @@ var LAND_LAG = 14;         // 空中で撃った（攻撃した）跳びの着�
 var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
 var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
-var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 10;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）
+var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;
+var BALL_G = 0.16, BALL_BOUNCE = 0.72;   // バウンドボール：重力と、跳ねたときに残る速さ   // グレネード：重力を強めて、遠くには届きにくい弧に
+var PROTO = 11;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -72,9 +73,11 @@ var WEAPONS = {
   11: { id: 11, key: 'railgun',  kind: 'beam',    range: 700, dmg: 34, rate: 0,  mag: 1,  reload: 155, spd: 0,  charge: 24, color: '#A78BFA', band: [280, 600] },
   12: { id: 12, key: 'knuckle',  kind: 'melee',   range: 34,  dmg: 13, rate: 9,  mag: 0,  reload: 0,   spd: 0,  wind: 0,  rec: 2,  auto: true, color: '#E5E7EB', band: [0, 24] },
   13: { id: 13, key: 'spear',    kind: 'melee',   range: 96,  dmg: 46, rate: 48, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, color: '#FCD34D', band: [36, 84] },
-  14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] }
+  14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] },
+  // バウンドボール：1回で小さな玉を3つ。弧を描いて落ち、床や壁で2回まで跳ねる（life=玉が消えるまでのフレーム）
+  15: { id: 15, key: 'bouncer',  kind: 'bounce',  range: 240, dmg: 4,  rate: 12, mag: 10, reload: 150, spd: 7.5, balls: 3, life: 80, bounces: 2, color: '#22D3EE', band: [60, 200], auto: true }
 };
-var WEAPON_IDS = [2, 3, 1, 12, 13, 14, 4, 5, 6, 7, 8, 9, 10, 11];
+var WEAPON_IDS = [2, 3, 1, 12, 13, 14, 4, 5, 6, 7, 8, 9, 15, 10, 11];
 var DEFAULT_LOADOUT = [2, 3, 1];
 
 // ---- ステージの地形 ----
@@ -154,7 +157,7 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 32, outfit: 29, neck: 23, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 35, outfit: 31, neck: 25, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent', 'win'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
 // ---- 宝箱から出るアイテム（帽子・服・首もと＝50種、勝ちポーズ＝10種、エモート＝16種）とレアリティ ----
@@ -166,9 +169,9 @@ var PITY_AT = 25;               // これだけ開けてもレジェンダリー
 var LOOK_BASE = { hat: 6, outfit: 5, neck: 4, win: 7 };
 // [番号, レアリティ]。名前と絵はブラウザ側（lang.js の item.<id>、index.html の描き方）
 var ITEM_RAR = {
-  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4], [24, 4], [25, 3], [26, 2], [27, 2], [28, 1], [29, 2], [30, 1], [31, 1]],
-  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4], [21, 4], [22, 2], [23, 3], [24, 1], [25, 2], [26, 1], [27, 2], [28, 2]],
-  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4], [20, 1], [21, 3], [22, 1]],
+  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4], [24, 4], [25, 3], [26, 2], [27, 2], [28, 1], [29, 2], [30, 1], [31, 1], [32, 2], [33, 1], [34, 2]],
+  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4], [21, 4], [22, 2], [23, 3], [24, 1], [25, 2], [26, 1], [27, 2], [28, 2], [29, 3], [30, 2]],
+  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4], [20, 1], [21, 3], [22, 1], [23, 1], [24, 1]],
   win: [[7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 2], [13, 2], [14, 3], [15, 3], [16, 4]]   // 勝ちポーズ
 };
 // エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
@@ -207,7 +210,26 @@ var EVENTS = {
     ],
     misBonus: 50,
     // イベント中に集めたキャンディの合計（使った分も数える）が need をこえると、限定の称号
-    title: { id: 'pumpkin_king', need: 3000 }
+    title: { id: 'pumpkin_king', need: 3000, flag: 'hwking' }
+  },
+  // 冬のイベント（12月）：雪の結晶を集めて、雪だるま・サンタ・トナカイと交換する。しくみはハロウィンと同じ
+  winter: {
+    month: 11,
+    shop: [['h32', 250], ['h33', 150], ['h34', 200], ['o29', 450], ['o30', 300], ['n23', 120], ['n24', 100]],
+    sets: [
+      { id: 'snowman', items: ['h32', 'o29', 'n24'], off: 50, look: { hat: 32, outfit: 29, neck: 24 } },
+      { id: 'santa', items: ['h33', 'o30'], off: 33, look: { hat: 33, outfit: 30, neck: 0 } },
+      { id: 'reindeer', items: ['h34', 'n23'], off: 25, look: { hat: 34, outfit: 0, neck: 23 } }
+    ],
+    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 400 },
+    missions: [
+      { k: 'win', n: 2, c: 50 }, { k: 'play', n: 4, c: 40 }, { k: 'kill', n: 8, c: 50 }, { k: 'rolldodge', n: 3, c: 50 },
+      { k: 'emote', n: 3, c: 30 }, { k: 'online', n: 2, c: 60 }, { k: 'nodmg', n: 1, c: 60 },
+      { k: 'killw', n: 3, w: 3, c: 60 }, { k: 'killw', n: 3, w: 6, c: 60 }, { k: 'killw', n: 2, w: 11, c: 60 },
+      { k: 'killw', n: 3, w: 4, c: 50 }, { k: 'killw', n: 3, w: 9, c: 50 }
+    ],
+    misBonus: 50,
+    title: { id: 'snow_king', need: 3000, flag: 'snowking' }
   }
 };
 // その日のハロウィンミッション（ミッションの番号を3つ）
@@ -380,9 +402,18 @@ function shopOffers(day, who) {
     used[it.id] = 1; out.push({ item: it.id, r: r, price: SHOP_PRICE[r] });
   });
   var sale = next() % out.length; out[sale].sale = true; out[sale].price = Math.round(out[sale].price * 0.7 / 10) * 10;
+  if (saleOn(day)) out.forEach(function (o) { o.off = salePeak(day) ? SALE.peakOff : o.sale ? 0.3 : SALE.itemOff; o.price = cutPrice(SHOP_PRICE[o.r], o.off); });   // 11.11 セール
   return out;
 }
-function shopGift(day) { return hashStr('gift' + day) % 2 ? { lucky: 1 } : { coins: 100 }; }
+function shopGift(day) { if (salePeak(day)) return { lucky: SALE.peakGift.lucky, coins: SALE.peakGift.coins }; return hashStr('gift' + day) % 2 ? { lucky: 1 } : { coins: 100 }; }
+// ---- 11.11 セール（11月・シンガポール時間）：11月はずっと値下げ、11月11日は全部半額＋特別なギフト。
+// 「11」のチャレンジ（11勝・111回倒す・11日遊ぶ）は、達成するとサーバーが自動で報酬を渡す
+var SALE = { itemOff: 0.11, badgeOff: 0.2, peakOff: 0.5, peakGift: { lucky: 1, coins: 1111 },
+  goals: [{ k: 'w', n: 11, coins: 1111 }, { k: 'k', n: 111, chaos: 1 }, { k: 'd', n: 11, lucky: 3 }] };
+function saleOn(day) { return typeof day === 'string' && day.slice(5, 7) === '11'; }
+function salePeak(day) { return saleOn(day) && day.slice(8, 10) === '11'; }
+function cutPrice(p, off) { return Math.round(p * (1 - off) / 10) * 10; }
+function badgePrice(kind, day) { var p = SHOP_BADGE[kind]; return saleOn(day) ? cutPrice(p, salePeak(day) ? SALE.peakOff : SALE.badgeOff) : p; }
 function passCost(k) { return 80 + k * 25; }             // k 段目（0から）から次へ上がるのに要るパスXP
 function passTierOf(pxp) {
   var t = 0, x = Math.max(0, Math.floor(+pxp) || 0);
@@ -941,12 +972,16 @@ function fireRound(w, c, W, ev, t, vis) {
   if (close) {
     ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid });
     if (W.kind === 'grenade') explode(w, { own: c.side, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, sid: sid }, close, ev, vis, close.x + CHAR_W / 2, my, true);
-    else damage(w, close, W.kind === 'pellet' ? W.dmg * W.pellets : W.dmg, c.side, ev, vis, close.x + CHAR_W / 2, my, dir, sid);
+    else damage(w, close, W.kind === 'pellet' ? W.dmg * W.pellets : W.kind === 'bounce' ? W.dmg * W.balls : W.dmg, c.side, ev, vis, close.x + CHAR_W / 2, my, dir, sid);
   } else if (W.kind === 'bullet') {
     w.shots.push({ k: 'b', w: wid, x: mx, y: my, vx: W.spd * dir, vy: 0, own: c.side, dist: 0, range: W.range, dmg: W.dmg, age: 0, sid: sid });
   } else if (W.kind === 'pellet') {
     for (var i = 0; i < W.pellets; i++) {
       w.shots.push({ k: 'p', w: wid, x: mx, y: my, vx: W.spd * dir, vy: (i - (W.pellets - 1) / 2) * 1.1, own: c.side, dist: 0, range: W.range, dmg: W.dmg, age: 0, sid: sid });
+    }
+  } else if (W.kind === 'bounce') {
+    for (var j = 0; j < W.balls; j++) {
+      w.shots.push({ k: 'o', w: wid, x: mx, y: my, vx: W.spd * dir * (1 - j * 0.07), vy: -1.6 + j * 1.0, own: c.side, life: W.life, bn: 0, dmg: W.dmg, age: 0, sid: sid });
     }
   } else if (W.kind === 'grenade') {
     w.shots.push({ k: 'g', w: wid, x: c.x + CHAR_W / 2 + dir * 14, y: my - 6, vx: W.spd * dir + c.vx * 0.5, vy: GREN_VY, own: c.side, life: GREN_LIFE, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, age: 0, sid: sid });
@@ -999,9 +1034,12 @@ function stepShots(w, ev, vis, only) {
     var t = w.targets || w.teams ? null : w.chars[other(b.own)];
     b.age++;
     if (b.k === 'g') { if (stepGrenade(w, b, t, ev, vis)) out.push(b); continue; }
-    b.x += b.vx; b.y += b.vy; b.dist += Math.abs(b.vx);
-    if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20 || b.y < -60 || b.y > VH + 20) continue;
-    if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
+    if (b.k === 'o') { if (!moveBall(w, b, ev)) continue; }
+    else {
+      b.x += b.vx; b.y += b.vy; b.dist += Math.abs(b.vx);
+      if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20 || b.y < -60 || b.y > VH + 20) continue;
+      if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
+    }
     if (w.targets || w.teams) {                        // 射撃場・チーム戦：いちばん先に触れた相手に当たる（味方はすり抜ける）
       var fl = foes(w, b.own);
       for (var k = 0; k < fl.length && !t; k++) if (!fl[k].dead && hits(b, fl[k]) && !(rollSafe(fl[k]) && b.rd)) t = fl[k];
@@ -1021,6 +1059,29 @@ function stepShots(w, ev, vis, only) {
     out.push(b);
   }
   w.shots = out;
+}
+// バウンドボールを1フレーム進める。床・足場の上・遮蔽物・端の壁で跳ね、跳ねる回数をこえたら消える。返り値＝まだ飛んでいるか
+function moveBall(w, b, ev) {
+  var px = b.x, py = b.y, i, p;
+  b.vy += BALL_G; b.x += b.vx; b.y += b.vy;
+  if (--b.life <= 0 || b.y > VH + 20) return false;
+  var bounce = function () { if (++b.bn > WEAPONS[15].bounces) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); return false; } ev.push({ t: 'bounce', x: b.x, y: b.y, own: b.own }); return true; };
+  if (b.x < 0 || b.x > WORLD_W) { b.x = clamp(b.x, 0, WORLD_W); b.vx = -b.vx; if (!bounce()) return false; }
+  if (b.vy > 0) {
+    for (i = 0; i < w.plats.length; i++) {
+      p = w.plats[i];
+      if (b.x >= p.x && b.x <= p.x + p.w && py <= p.y && b.y >= p.y) { b.y = p.y - 0.5; b.vy = -Math.max(2.2, b.vy * BALL_BOUNCE); return bounce(); }
+    }
+  }
+  for (i = 0; i < w.solids.length; i++) {
+    p = w.solids[i];
+    if (b.x >= p.x && b.x <= p.x + p.w && b.y >= p.y && b.y <= p.y + p.h) {
+      if (py < p.y) { b.y = p.y - 0.5; b.vy = -Math.max(2.2, Math.abs(b.vy) * BALL_BOUNCE); }   // 上から当たった：上へ跳ねる
+      else { b.x = px; b.vx = -b.vx; }                                                       // 横から当たった：はね返る
+      return bounce();
+    }
+  }
+  return true;
 }
 function stepGrenade(w, b, t, ev, vis) {
   var py = b.y;
@@ -2043,7 +2104,8 @@ var TITLES = [
   // シーズンの最終1位（crown：赤と金）。一度もらったら、また1位になっても増えない
   { id: 'unrivaled', crown: true, award: true, gate: { champion: true } },
   // ハロウィンのイベント中に、キャンディを合計 3000 個集める（称号の名前は「トリックオアトリート」。hw：かぼちゃ色のネオン）。イベントが終わったら、もう取れない
-  { id: 'pumpkin_king', hw: true, rare: true, award: true, gate: { hwking: true } }
+  { id: 'pumpkin_king', hw: true, rare: true, award: true, gate: { hwking: true } },
+  { id: 'snow_king', rare: true, award: true, gate: { snowking: true } }   // 冬のイベントの限定称号
 ];
 // 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
 // 前からある6つ（影の刃・千里眼・至近距離の鬼・蜂の巣職人・爆弾魔・電磁砲の申し子）は id をそのまま使う
@@ -2158,6 +2220,7 @@ function titleOk(id, ctx) {
     if (g.pioneer10 && !ctx.pioneer10) return false;
     if (g.hacker && !ctx.hacker) return false;
     if (g.tears && !ctx.tears) return false;
+    if (g.snowking && !ctx.snowking) return false;
     if (g.dev && !ctx.dev) return false;
     if (g.champion && !ctx.champion) return false;
     if (g.hwking && !ctx.hwking) return false;
@@ -2177,7 +2240,7 @@ var api = {
   LOGIN_REWARDS: deepFreeze(LOGIN_REWARDS), STREAK_MS: deepFreeze(STREAK_MS), SHIELD_MAX: SHIELD_MAX, dayNum: dayNum, loginStep: loginStep,
   EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, eventMissions: eventMissions, candyOf: candyOf, eventSetPrice: eventSetPrice,
   PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
-  SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift,
+  SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift, SALE: SALE, saleOn: saleOn, salePeak: salePeak, badgePrice: badgePrice,
   SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
@@ -2194,7 +2257,7 @@ var api = {
   guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,
   WATCH: deepFreeze(WATCH), newWatch: newWatch, watchRound: watchRound, watchPre: watchPre, watchPost: watchPost,
   newTally: newTally, tallyRoundStart: tallyRoundStart, tallyEvents: tallyEvents, tallyRoundEnd: tallyRoundEnd, matchXp: matchXp,
-  rng: rng, cpuSeedLoad: cpuSeedLoad, roundRng: roundRng, packInput: packInput, unpackInput: unpackInput, logAdd: logAdd, logEncode: logEncode, logDecode: logDecode, replayCpu: replayCpu, REPLAY_MAX_FRAMES: REPLAY_MAX_FRAMES,
+  BALL_G: BALL_G, rng: rng, cpuSeedLoad: cpuSeedLoad, roundRng: roundRng, packInput: packInput, unpackInput: unpackInput, logAdd: logAdd, logEncode: logEncode, logDecode: logDecode, replayCpu: replayCpu, REPLAY_MAX_FRAMES: REPLAY_MAX_FRAMES,
   SEASON_TZ_MIN: SEASON_TZ_MIN, SEASON_DROP: SEASON_DROP, seasonNo: seasonNo, seasonStart: seasonStart, seasonEnd: seasonEnd,
   seasonLeftMs: seasonLeftMs, seasonLeftDays: seasonLeftDays, seasonNextRate: seasonNextRate,
   PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles, upgradeProfile: upgradeProfile,

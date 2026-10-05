@@ -33,6 +33,7 @@ const { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM } = G;
 const { TeamRoom, SLOTS: TEAM_SLOTS, teamOf } = require('./team');   // 2v2（チーム戦）
 const auth = require('./auth');
 const presence = require('./presence');
+const clans = require('./clans');   // クラン
 // bots.js が無くても動くようにする（上げ忘れてもサーバー全体が止まらないように）
 let bots = null;
 try { bots = require('./bots'); } catch (e) { console.error('bots.js を読み込めませんでした。BOTの相手は出ません:', e.message); }
@@ -98,6 +99,7 @@ const tierRange = idx => {
 };
 const TIER_COOLDOWN_MS = 20 * 1000;
 const tierLastReport = new Map();
+const clientErrHits = limiter(12, 10 * 60 * 1000);   // ブラウザのエラーの知らせ：同じIPから10分で12回まで
 const webhookPosts = limiter(10, 60 * 1000);   // 投稿は全体で1分10件まで
 // Discordの書式記号で表示が崩れないようにする
 const mdEscape = s => String(s).replace(/([*_~`|>\\])/g, '\\$1');
@@ -128,7 +130,8 @@ function postTierUp(user, key) {
 function progressOnline(p, win, stage) {
   if (!p || p.bot || !p.uid || p.suspect || p.acts < ACTIVE_MIN_INPUTS || !p.tally) return;
   const r = auth.applyMatch(p.uid, { mode: 'online', win, stage, tally: p.tally, emotes: p.emotes });
-  if (r && p.ws) p.ws.send(JSON.stringify({ type: 'progress', rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy, ev: r.ev }));
+  clans.addMatch(p.uid, win);   // クランのポイント（勝ち3・負け1）
+  if (r && p.ws) p.ws.send(JSON.stringify({ type: 'progress', rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy, ev: r.ev, sale: r.sale }));
 }
 // ---- 戦績の記録（水増し・途中退出への対策つき）----
 const pairCounts = new Map();
@@ -214,6 +217,39 @@ function postAdmin(embed) {
     body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }) })
     .then(r => { if (!r.ok) log('admin webhook failed', r.status); }).catch(e => log('admin webhook error', e.message));
 }
+// ---- ブラウザで起きたエラー（プレイヤーの画面の不具合を、報告をもらう前に見つける）----
+// 同じエラー（文言＋場所）はまとめて数える。初めて出たとき・10回目・100回目に運営の Discord へ知らせ、errors.log にも残す
+const ERR_FILE = require('path').join(process.env.DATA_DIR || process.env.STATE_DIRECTORY || __dirname, 'errors.log');
+const clientErrs = new Map();   // 印 → { msg, where, n, first, last, screen, ver }
+function clientError(m, ip, u) {
+  const cl = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '').slice(0, n);
+  const msg = cl(m.msg, 300), where = cl(m.src, 120).replace(/^https?:\/\/[^/]+/, '') + ':' + (Math.floor(+m.line) || 0) + ':' + (Math.floor(+m.col) || 0);
+  if (!msg) return;
+  const sig = msg + '|' + where, now = Date.now();
+  let e = clientErrs.get(sig);
+  if (!e) { if (clientErrs.size >= 300) return; e = { msg, where, n: 0, first: now, last: 0, screen: '', ver: '' }; clientErrs.set(sig, e); }
+  e.n++; e.last = now; e.screen = cl(m.screen, 30); e.ver = cl(m.ver, 30);
+  const rec = { t: new Date(now).toISOString(), msg, where, stack: cl(m.stack, 1500), screen: e.screen, mode: cl(m.mode, 20), ver: e.ver, ua: cl(m.ua, 160), user: u ? u.id : null, n: e.n };
+  try {
+    const fs = require('fs');
+    try { if (fs.statSync(ERR_FILE).size > 5e6) fs.renameSync(ERR_FILE, ERR_FILE + '.old'); } catch (x) { /* まだない */ }
+    fs.appendFileSync(ERR_FILE, JSON.stringify(rec) + '\n');
+  } catch (x) { /* 書けなくても続ける */ }
+  log('CLIENT ERROR', '#' + e.n, msg, '@', where, 'screen=' + e.screen, u ? 'discord=' + u.id : 'guest');
+  if (e.n === 1 || e.n === 10 || e.n === 100) postAdmin({
+    title: e.n === 1 ? 'プレイヤーの画面でエラーが起きました' : `同じエラーが ${e.n} 回起きています`,
+    color: e.n === 1 ? 0xF59E0B : 0xEF4444,
+    description: '```' + mdEscape(msg).slice(0, 300) + '```',
+    fields: [
+      { name: '場所', value: mdEscape(where) || '-', inline: true },
+      { name: '画面', value: (e.screen || '-') + (rec.mode ? ' / ' + rec.mode : ''), inline: true },
+      { name: '版', value: e.ver || '-', inline: true },
+      { name: '最初の行', value: '```' + (mdEscape(rec.stack.split('\n').slice(0, 4).join('\n')) || '-').slice(0, 900) + '```' },
+    ],
+    footer: { text: rec.ua.slice(0, 120) || '-' },
+    timestamp: new Date(now).toISOString(),
+  });
+}
 function onSuspect(p, reason, room, pts) {
   const r = p.uid ? auth.flag(p.uid, reason, pts, p.ip) : null;
   const act = !r ? 'ゲストのため記録のみ（IPで止めるなら BANNED_IPS）'
@@ -284,7 +320,7 @@ function cpuEnd(u, m, ip) {
   }
   const r = auth.applyMatch(u.id, { mode: 'cpu', diff, stage, win: R.win, straight: R.straight, tally: R.tally, emotes: m.emotes });
   log('cpu verified', 'discord=' + u.id, diff, stage, R.win ? 'win' : 'lose', R.wins.join('-'), R.frames + 'f', cost + 'ms');
-  return r ? { ok: true, win: R.win, wins: R.wins, rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy, ev: r.ev } : { ok: false, why: 'user' };
+  return r ? { ok: true, win: R.win, wins: R.wins, rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy, ev: r.ev, sale: r.sale } : { ok: false, why: 'user' };
 }
 const cheatSeen = new Map();   // 同じ人・同じ種類の報告は10分に1回だけ数える（通信のやり直しで二重に数えない）
 function cheatReport(u, m, ip) {
@@ -414,7 +450,7 @@ const rankPub = (r, rank) => ({ rank, name: r.name, title: r.title, tier: r.tier
 
 // ---- フレンドへのお知らせ（ページを開いている人にだけ届く）----
 function pushTo(uid, obj) { const s = JSON.stringify(obj); for (const w of presence.sockets(uid)) w.send(s); }
-function cardOf(uid) { const u = auth.user(uid); return u ? auth.card(u, presence.statusOf(uid)) : null; }
+function cardOf(uid) { const u = auth.user(uid); return u ? Object.assign(auth.card(u, presence.statusOf(uid)), { clan: clans.tagOf(uid) }) : null; }
 
 // ---- ランダムマッチ（ランクマッチ／アンランクマッチ）----
 // 待っている人を1つの列に入れ、1秒ごとに近いレート同士を組ませる。
@@ -764,6 +800,9 @@ function onMessage(ws, raw) {
       log('room created (2v2)', room.id, 'from', ws.ip, ws.account ? 'discord=' + ws.account.uid : 'guest');
       break;
     }
+    case 'team_rules':                                  // フレンドの部屋のルール（部屋を作った人だけ・開始前）
+      if (ws.room && ws.room.kind === 'team') ws.room.setRules(ws.slot, m.rules);
+      break;
     case 'team_slot':                                   // 開始前に、空いている場所（チーム）へ移る
       if (ws.room && ws.room.kind === 'team') ws.room.moveSlot(ws.slot, String(m.to || ''));
       break;
@@ -984,6 +1023,17 @@ function handleHttp(req, res) {
   }
   // コンソール（開発者ツール）を開いた人を、管理者のDiscordに知らせる。
   // ブラウザからの知らせ（窓の大きさなどからの推測）なので、証拠ではなく「見ておく」ための通知
+  // ブラウザのエラー（ゲストも送れる）。運営は GET で、まとめた一覧を見られる
+  if (url === '/api/clienterr') {
+    const u = auth.verify(bearer(req));
+    if (req.method === 'GET') {
+      if (!u || !u.dev) return json(res, 403, { error: 'dev only' });
+      return json(res, 200, { errors: [...clientErrs.values()].sort((a, b) => b.last - a.last).slice(0, 100) });
+    }
+    if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+    if (!clientErrHits.hit(ip)) return json(res, 429, { error: 'busy' });
+    return readJson(req, m => { if (m && typeof m === 'object') clientError(m, ip, u); json(res, 200, { ok: true }); });
+  }
   if (url === '/api/devtools' && req.method === 'POST') {
     if (!devtoolsReports.hit(ip)) return json(res, 429, { error: 'too many' });
     const u = auth.verify(bearer(req));
@@ -1088,6 +1138,28 @@ function handleHttp(req, res) {
     const q = new URLSearchParams((req.url || '').split('?')[1] || '');
     const t = auth.byFid(q.get('id'));
     return t ? json(res, 200, { player: auth.card(t, presence.statusOf(t.id)) }) : json(res, 404, { error: 'not_found' });
+  }
+  // クラン：自分のクランとランキング（GET）、作る・入る・抜ける・外す（POST { op, ... }）
+  if (url === '/api/clan') {
+    const u = auth.verify(bearer(req));
+    const q = new URLSearchParams((req.url || '').split('?')[1] || '');
+    const by = q.get('by') === 'total' ? 'total' : 'week';
+    const mine = () => { const c = u && clans.clanOf(u.id); return c ? clans.view(c, id => { const k = cardOf(id); return k ? { fid: k.fid, name: k.name, status: k.status } : null; }) : null; };
+    if (req.method === 'GET') return json(res, 200, { mine: mine(), top: clans.top(by, 20), by, pts: { win: clans.PTS_WIN, play: clans.PTS_PLAY } });
+    if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!friendOps.hit(u.id)) return json(res, 429, { error: 'too_many' });
+    return readJson(req, m => {
+      const op = m && m.op;
+      let r;
+      if (op === 'create') r = clans.create(u.id, m.name, m.tag);
+      else if (op === 'join') r = clans.join(u.id, m.id);
+      else if (op === 'leave') r = clans.leave(u.id);
+      else if (op === 'kick') { const t = auth.byFid(m.fid); r = t ? clans.kick(u.id, t.id) : { error: 'not_member' }; }
+      else return json(res, 400, { error: 'bad' });
+      if (r.ok) log('clan', op, 'discord=' + u.id, r.clan ? r.clan.id + ' [' + r.clan.tag + ']' : '');
+      json(res, r.ok ? 200 : 400, { ok: !!r.ok, error: r.error || null, mine: mine(), top: clans.top(by, 20), by });
+    });
   }
   if (url === '/api/logout' && req.method === 'POST') { auth.logout(bearer(req)); return json(res, 200, { ok: true }); }
   if (url === '/api/tier' && req.method === 'POST') {

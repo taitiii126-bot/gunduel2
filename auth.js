@@ -262,11 +262,33 @@ function payEvMissions(pr) {
 // イベントの限定称号：集めたキャンディの合計が届いたら、サーバーの記録に印を付ける。返り値＝今回はじめて届いたか
 function checkEvTitle(u, pr) {
   const c = pr.candy, T = c && c.ev && SIM.EVENTS[c.ev] && SIM.EVENTS[c.ev].title;
-  if (!T || T.id !== 'pumpkin_king' || u.hwking || !(c.tot >= T.need)) return false;
-  u.hwking = true; touch();
+  const flag = T && T.flag;   // 称号ごとの印（hwking・snowking）
+  if (!T || !flag || u[flag] || !(c.tot >= T.need)) return false;
+  u[flag] = true; touch();
   return true;
 }
 // シーズンが変わっていたら、パスとシーズンミッションを白紙に戻す
+// 11.11 セールの「11」チャレンジ（11月だけ）。記録はアカウント（u.sale）に持ち、達成したら報酬をプロフィールへ
+function trackSale(u, pr, win, kills) {
+  const day = SIM.dayKey();
+  if (!SIM.saleOn(day)) return null;
+  const key = day.slice(0, 7);
+  let s = u.sale;
+  if (!s || s.m !== key) s = u.sale = { m: key, w: 0, k: 0, d: 0, last: '', got: [false, false, false] };
+  if (win) s.w++;
+  s.k += Math.max(0, Math.min(50, kills | 0));
+  if (s.last !== day) { s.last = day; s.d++; }
+  const done = [];
+  SIM.SALE.goals.forEach((g, i) => {
+    if (s.got[i] || s[g.k] < g.n) return;
+    s.got[i] = true; done.push(i);
+    if (g.coins) pr.coins = (pr.coins || 0) + g.coins;
+    if (g.chaos) pr.misChaos = (pr.misChaos || 0) + g.chaos;
+    if (g.lucky) pr.misCrates = (pr.misCrates || 0) + g.lucky;
+  });
+  touch();
+  return { state: s, done };
+}
 function seasonFresh(pr) {
   const s = SIM.seasonNo();
   if (!pr.pass || pr.pass.s !== s) pr.pass = { s, xp: 0 };
@@ -325,7 +347,7 @@ function trackMission(pr, kind, n, w) {
   });
   trackEvMission(pr, kind, n, w);
 }
-const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, hwking: !!u.hwking, badges: u.badges || [] });
+const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, hwking: !!u.hwking, snowking: !!u.snowking, badges: u.badges || [] });
 
 // ---- レート ----
 // ティアはレートの数値だけで決まる。最初は全員1000。レートが動くのはランクマッチだけ（CPU戦では動かない）
@@ -390,7 +412,7 @@ function giveBadge(u) {
 }
 function publicUser(u) {
   const r = rateState(u), r2 = rateState2(u);
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0, hwking: !!u.hwking, badges: SIM.cleanBadges(u.badges),
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0, hwking: !!u.hwking, snowking: !!u.snowking, sale: u.sale || null, badges: SIM.cleanBadges(u.badges),
     rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak,
     rate2: r2.rate, tier2: r2.tier, rgames2: r2.games, ranked2: { w: r2.w, l: r2.l }, peak2: r2.peak };
 }
@@ -668,8 +690,9 @@ const auth = {
     const proof = { stats: pr.stats, tierProgress: pr.tierProgress, ach: A, emperor: pr.emperor }, fresh = [];
     for (const t of SIM.TITLES) if (!t.gate && !A.got[t.id] && SIM.titleProof(t.id, proof, ctx)) { A.got[t.id] = 1; fresh.push(t.id); }
     const candy = addCandy(pr, win, kills), em = payEvMissions(pr), king = checkEvTitle(u, pr);
-    if (king) fresh.push('pumpkin_king');
-    return saveServerProfile(u, pr, { titles: fresh, candy: candy + em.add, ev: { mis: em.done, bonus: em.bonus, misCandy: em.add, king } });
+    if (king) fresh.push(SIM.EVENTS[pr.candy.ev].title.id);
+    const sale = trackSale(u, pr, win, kills);
+    return saveServerProfile(u, pr, { titles: fresh, candy: candy + em.add, ev: { mis: em.done, bonus: em.bonus, misCandy: em.add, king }, sale });
   },
   // ログインボーナス（1日1回）：連続記録を進めて、7日カレンダーの報酬と節目の報酬を渡す
   loginBonus(uid) {
@@ -731,7 +754,7 @@ const auth = {
       return saveServerProfile(u, pr, { bought: of.item });
     }
     if (m.op === 'badge') {
-      const kind = m.kind === 'chaos' ? 'chaos' : 'lucky', price = SIM.SHOP_BADGE[kind];
+      const kind = m.kind === 'chaos' ? 'chaos' : 'lucky', price = SIM.badgePrice(kind, day);
       if (pr.coins < price) return { error: 'coins' };
       pr.coins -= price;
       if (kind === 'chaos') pr.misChaos = (pr.misChaos || 0) + 1; else pr.misCrates = (pr.misCrates || 0) + 1;
