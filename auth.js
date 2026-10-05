@@ -590,6 +590,8 @@ const auth = {
     const u = db.users[uid];
     if (!u) return null;
     const rt = rateState(u).tier;
+    // 持ち物はサーバーの値で確かめる（ブラウザは持ち物を送らないので、そのままだと着ている宝箱の服・エモート・限定背景が外れてしまう）
+    if (raw && typeof raw === 'object') raw = Object.assign({}, raw, { inv: u.profile && Array.isArray(u.profile.inv) ? u.profile.inv : [] });
     const ctx = titleCtx(u), inc = P.clean(raw, ctx, rt), rev = u.profileRev || 0;
     const merged = !!u.profile && Math.floor(+base) !== rev;
     const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
