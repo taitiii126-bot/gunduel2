@@ -6422,7 +6422,7 @@ function setDiff(d){
 // 演出（弾の光・爆発・破片など。対戦の結果には関係しない）
 // ホームの背景デモも同じ描画を使うので、演出の入れ物をまとめて差し替えられるようにしておく
 // ============================================================
-function newFx(){return{melee:[],heal:[],boom:[],beam:[],muzzle:[],spark:[],shards:[],num:[],shell:[],smoke:[],dust:[],mark:[],av:{},ft:{}};}   // ft：キャラごとの足元の前の状態（土ぼこり）   // av：キャラごとの最後に撃った時刻（反動の動き）
+function newFx(){return{melee:[],heal:[],boom:[],beam:[],muzzle:[],spark:[],shards:[],num:[],shell:[],smoke:[],dust:[],mark:[],ko:[],av:{},ft:{}};}   // ft：キャラごとの足元の前の状態（土ぼこり）   // av：キャラごとの最後に撃った時刻（反動の動き）
 var FX=newFx(),GRADS={};
 function clearFx(){FX=newFx();}
 // ---- 手ごたえ：ヒットストップ（止める）・画面の揺れ・とどめのスロー。見た目だけで、対戦の結果には関係しない ----
@@ -6501,7 +6501,15 @@ function shatter(x,y,dir,ducking,style){
   for(var n=0;n<14;n++){var a=Math.random()*Math.PI*2,v=2+Math.random()*5;FX.spark.push({x:x+CHAR_W/2,y:top+h/2,vx:Math.cos(a)*v,vy:Math.sin(a)*v-1.5,life:16+Math.random()*14,col:'#FFFFFF'});}
   SFX.shatter();
 }
+// とどめ：撃たれた勢いで後ろへのけぞって倒れかけ、そこで砕ける（見た目だけ。FPSブースト・しゃがみ中はすぐ砕ける）
+var KO_F=18;
+function koFall(e,style){
+  if(SETTINGS.boost||e.duck){shatter(e.x,e.y,e.dir,e.duck,style);return;}
+  var c=charBySide(e.who);
+  FX.ko.push({x:e.x,y:e.y,dir:e.dir||1,style:style,wid:c?charWid(c):0,f:0});
+}
 function updateFx(){
+  FX.ko=FX.ko.filter(function(k){if(++k.f<KO_F)return true;var a=koAng(k);shatter(k.x+koDx(k)-Math.sin(a)*12*k.dir,k.y+(1-Math.cos(a))*14,k.dir,false,k.style);return false;});
   var live=function(m){return m.life-->0;};
   var plat=function(o,py){if(o.vy<=0)return false;for(var i=0;i<platforms.length;i++){var p=platforms[i];if(o.x>=p.x&&o.x<=p.x+p.w&&py<=p.y&&o.y>=p.y){o.y=p.y-.5;return true;}}return false;};
   FX.shell=FX.shell.filter(function(c){var py=c.y;c.vy+=.3;c.x+=c.vx;c.y+=c.vy;c.rot+=c.vr;
@@ -6564,7 +6572,7 @@ function handleEvents(ev,me,styleOf){
         }
         break;
       case'vhit':addSparks(e.x,e.y,'#FFD27A',4);break;
-      case'dead':shatter(e.x,e.y,e.dir,e.duck,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);feelKO(e.who===me);}break;
+      case'dead':koFall(e,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);feelKO(e.who===me);}break;
       case'heal':SFX.heal();FX.heal.push({x:e.x,y:e.y,life:30});break;
       case'jump':if(mine)SFX.jump();break;
       case'roll':SFX.roll();rollDust(e.who);if(trk&&mine)ecoTrack('roll');break;
@@ -7720,11 +7728,15 @@ function motionPose(m,d){
   if(st==='rise')return{feet:[[-d*3,-4],[d*7,-12]],dy:0,lean:.05,face:{brows:1,mouth:6},air:true};
   if(st==='apex')return{feet:[[-d*6,-10],[d*8,-14]],dy:0,lean:.08,face:{eyes:3,mouth:4},air:true};
   if(st==='fall')return{feet:[[-d*5,2],[d*6,1]],dy:0,lean:-.04,face:{eyes:3,brows:2,mouth:4},air:true};
+  if(st==='stand')return{feet:[[-d*5,0],[d*5,0]],dy:0,lean:0};
+  if(st==='ko')return{feet:[[-d*(5+k*6),0],[d*(6+k*4),-k*9]],dy:k*3,lean:-.14-k*.12,face:{eyes:4,brows:2,mouth:4}};   // 後ろへ踏ん張りきれず、前の足が浮く
   if(st==='land'){var dd=k<.35?k/.35:1-(k-.35)/.65,dv=Math.min(1,m.v||1);
     return{feet:[[-d*7,0],[d*7,0]],dy:dd*10*dv,lean:.2*dd*dv,face:k<.6?{brows:1,mouth:3}:null};}
   return null;
 }
 // IKの脚：腰から足の置き場所へ。ひざは前へ曲がる
+function koAng(k){var p=k.f/KO_F;return .78*p*p*(3-2*p);}   // 倒れる角度（ゆっくり始まって速くなる）
+function koDx(k){return -k.dir*k.f/KO_F*10;}
 function avLegIK(g,hx,hy,fx,fy,d,col,boot){
   var L=avIK2(hx,hy,fx,fy-3,15.5,15.5,d);
   avLimb(g,[hx,hy,L.jx,L.jy,L.ex,L.ey],7,col);avBoot(g,L.ex,L.ey+3,d,boot);
@@ -8681,7 +8693,15 @@ function drawAvatar(g,o){
   if(o.walk!=null&&!WP&&!o.reload&&W){var wk=Math.sin(o.walk*2);P.gy+=wk*1.3;P.gx+=d*Math.cos(o.walk*2)*.6;P.sy+=wk*1.3;}   // 走るときは、足に合わせて銃が上下にゆれる
   if(WP&&W){P.gx+=WP.gx;P.gy+=WP.gy;P.rot+=WP.rot;if(WP.gx||WP.gy){P.sx=P.gx-d*2;P.sy=P.gy+2;}}   // 勝ちポーズ：銃の位置と向き
   // 動きのリアル化（走る・止まる・跳ぶ・着地）：脚はIK、上半身は腰を軸に前傾して上下する。銃は水平のまま
-  var MO=o.mo&&!WP&&!cr?motionPose(o.mo,d):null,mLean=MO?MO.lean:0,mDy=MO?MO.dy:0;
+  var mo0=o.mo||(o.react&&((o.kick||0)>.02||(o.flinch||0)>0)?{st:'stand'}:null);   // 試合中：止まっていても、撃った反動・撃たれたひるみで体が動く
+  var MO=mo0&&!WP&&!cr?motionPose(mo0,d):null;
+  if(MO&&o.react){
+    var kq=W&&AV_KICK[o.wid]?AV_KICK[o.wid][0]/4:0,kk2=(o.kick||0)*kq,fl0=o.flinch||0;
+    MO.lean-=kk2*.12+fl0*.2;MO.dy+=fl0*2.5;   // 反動は重い銃ほど後ろへ。ひるむと後ろへのけぞって沈む
+    if(!MO.air&&(kk2>.05||fl0>.05)){MO.feet=MO.feet.map(function(f,i){return i===0?[f[0]-d*(kk2*3+fl0*3),f[1]]:[f[0]+d*fl0*1.5,f[1]-fl0*2];});}
+    if(fl0>.3&&!MO.face)MO.face={eyes:4,brows:2,mouth:4};
+  }
+  var mLean=MO?MO.lean:0,mDy=MO?MO.dy:0;
   var upB=function(){if(MO){g.save();g.translate(0,mDy+hipY);g.rotate(d*mLean);g.translate(0,-hipY);}},upE=function(){if(MO)g.restore();};
   upB();
   // 体の後ろ：スカーフの長い端・コートのすそ
@@ -11114,7 +11134,7 @@ function drawChar(s,isMe,o){
     ctx.translate(cx2,rcy);ctx.rotate(rdir*Math.PI*2*rp);ctx.scale(.9,.9);ctx.translate(-cx2,-rcy);
   }
   drawAvatar(ctx,{win:ch?{pose:(o.look&&o.look.win)|0,t:ch.t}:null,x:cx2,y:s.y+CHAR_H,s:.5,dir:d,look:o.look,team:team,wid:wid,crouch:s.ducking,boss:!!o.boss,
-    walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0,mo:SETTINGS.boost?null:motionState(s),
+    walk:moving?s.x*.2:null,air:!s.onGround,glow:s.chg>0&&W&&W.charge?1-s.chg/W.charge:0,mo:SETTINGS.boost?null:motionState(s),react:!SETTINGS.boost,
     bob:A.bob,blink:A.blink,kick:A.kick,flinch:A.flinch,reload:A.reload,rlF:A.rlF,rlMax:A.rlMax,wind:A.wind,tm:A.tm});
   if(hitNew){var hk=(s.hit-(SIM.HIT_FRAMES-5))/5,hy0=s.y+(s.ducking?CHAR_H-14:CHAR_H/2);   // 撃たれた瞬間の白い光
     ctx.globalCompositeOperation='lighter';var hg=ctx.createRadialGradient(cx2,hy0,0,cx2,hy0,20);hg.addColorStop(0,'rgba(255,255,255,'+(.75*hk).toFixed(3)+')');hg.addColorStop(1,'rgba(255,255,255,0)');
@@ -11290,6 +11310,15 @@ function drawEffects(shotList){
     ctx.restore();
   });
   FX.spark.forEach(function(s){ctx.globalAlpha=Math.min(1,s.life/10);ctx.fillStyle=s.col;ctx.fillRect(wx(s.x)-1,s.y-1,2,2);});
+  ctx.globalAlpha=1;
+  FX.ko.forEach(function(k){   // 倒れかける体：足もとを軸に後ろへ回り、少し浮いて下がる
+    var a=koAng(k),fx=wx(k.x+koDx(k))+CHAR_W/2,fy=k.y+CHAR_H-Math.sin(k.f/KO_F*Math.PI)*5,st=k.style||{};
+    ctx.save();ctx.translate(fx,fy);ctx.rotate(-k.dir*a);ctx.translate(-fx,-fy);
+    drawAvatar(ctx,{x:fx,y:fy,s:.5,dir:k.dir,look:st.look,team:st.team,wid:k.wid,flinch:1,face:{eyes:4,brows:2,mouth:4},
+      mo:{st:'ko',k:k.f/KO_F},react:true,tm:performance.now()/1000});
+    var hk=Math.max(0,1-k.f/6);if(hk>0){ctx.globalCompositeOperation='lighter';ctx.globalAlpha=hk*.7;ctx.fillStyle='#FFFFFF';ctx.beginPath();ctx.arc(fx,fy-CHAR_H/2,16,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  });
   ctx.globalAlpha=1;
   FX.shards.forEach(function(s){
     ctx.save();ctx.globalAlpha=Math.min(1,s.life/30);ctx.translate(wx(s.x),s.y);ctx.rotate(s.rot);ctx.fillStyle=s.col;
