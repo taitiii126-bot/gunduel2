@@ -2427,7 +2427,7 @@ body.mland .home-hero{height:72vh;}
       <h3><span data-i18n="set.fx"></span><span>EFFECTS</span></h3>
       <div class="kb-row"><span class="kb-label" data-i18n="set.shake"></span><span class="lang-seg" data-fxopt="shake"></span></div>
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.zoom"></span><small class="kb-hint" data-i18n="set.zoomHint"></small></span><span class="lang-seg" data-fxopt="zoom"></span></div>
-      <div class="kb-row"><span class="kb-label" data-i18n="set.fxq"></span><span class="lang-seg" data-fxopt="fxq"></span></div>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.fxq"></span><small class="kb-hint" id="lite-note" style="display:none" data-i18n="set.liteNote"></small></span><span class="lang-seg" data-fxopt="fxq"></span></div>
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.boost"></span><small class="kb-hint" data-i18n="set.boostHint"></small></span><span class="lang-seg" data-fxopt="boost"></span></div>
     </div>
     <div class="settings-section">
@@ -2698,7 +2698,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=46"></script>
-<script src="lang.js?v=57"></script>
+<script src="lang.js?v=58"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2840,6 +2840,7 @@ function setLang(k){
 }
 // ---- 設定画面：音量 ----
 function renderSettingsUI(){
+  var ln=document.getElementById('lite-note');if(ln)ln.style.display=LITE.on&&!SETTINGS.boost&&(SETTINGS.fxq||'auto')==='auto'?'':'none';
   ['bgm','se'].forEach(function(kind){
     var r=document.getElementById('vol-'+kind),v=document.getElementById('vol-'+kind+'-v');
     if(r){r.value=SETTINGS[kind];r.style.setProperty('--p',SETTINGS[kind]+'%');}
@@ -3915,7 +3916,7 @@ function renderShop(){
 // ショップ・イベントの絵：画面に見えている物だけを動かす（全部を毎回描くとすごく重い）
 var ART_IO=window.IntersectionObserver?new IntersectionObserver(function(es){es.forEach(function(e){e.target._vis=e.isIntersecting;});},{rootMargin:'40px'}):null;
 function watchArt(root){if(!ART_IO)return;root.querySelectorAll('canvas').forEach(function(cv){cv._vis=false;ART_IO.observe(cv);});}
-function artSkip(cv,tm){return tm>0&&(cv._vis===false||cv._still||SETTINGS.boost);}
+function artSkip(cv,tm){return tm>0&&(cv._vis===false||cv._still||lite());}
 // 動きのない絵（光や揺れのないアイテム）は最初の1回だけ描く：1回目に動かして描いたとき、最初の絵と同じなら止める
 function itemArt(cv,tm,s,draw){
   var g=cv.getContext('2d'),W=cv.width,first=tm>0&&cv._still==null,a0=first?g.getImageData(0,0,W,W).data:null;
@@ -6687,12 +6688,24 @@ function addDmgNum(x,y,v,toMe){
 }
 // 演出の量（1＝全部、低いほど粒を減らす）。自動のときは、重さを見て下げる（fxAutoTick）
 var FXQ={auto:1,ms:16.7,lowT:0,hiT:0};
+// ---- 軽量モード（自動）：古い・非力な端末を見分けて、重い演出を減らす。演出の量が「自動」のときだけ ----
+// 見分け方：CPUのコア数・メモリが少ない端末、または試合で重さが続いた端末（次からは最初から軽くする）
+var LITE={on:false,fast:0};
+(function(){
+  var n=navigator,c=n.hardwareConcurrency||8,m=n.deviceMemory||8,touch=window.matchMedia&&window.matchMedia('(pointer:coarse)').matches,st=false;
+  try{st=localStorage.getItem('gunduel_lite')==='1';}catch(e){}
+  LITE.on=st||c<=4||m<=2||(touch&&c<=6&&m<=4);
+  if(LITE.on)FXQ.auto=.35;
+})();
+function lite(){return SETTINGS.boost||(LITE.on&&(SETTINGS.fxq||'auto')==='auto');}
+function liteSet(on){if(LITE.on===on)return;LITE.on=on;try{if(on)localStorage.setItem('gunduel_lite','1');else localStorage.removeItem('gunduel_lite');}catch(e){}if(on){FXQ.auto=.35;if(DPR>1)DPR=1;}else DPR=Math.min(2,window.devicePixelRatio||1);fitCanvas();if(typeof renderSettingsUI==='function'&&currentScreen==='settings-screen')renderSettingsUI();}
 // 1フレームにかかった時間の平均を見て、重ければ演出を減らす（2秒続いたら）。軽くなったら少しずつ戻す（6秒続いたら）
 function fxAutoTick(dt){
   if(!(dt>0)||dt>120||document.hidden)return;
   FXQ.ms+=(dt-FXQ.ms)*.05;
-  if(FXQ.ms>21){FXQ.hiT=0;if((FXQ.lowT+=dt)>2000){FXQ.lowT=0;if(FXQ.auto>.35){FXQ.auto=Math.max(.35,FXQ.auto-.3);if(FXQ.auto<=.35&&DPR>1){DPR=1;fitCanvas();}}}}
-  else if(FXQ.ms<17.8){FXQ.lowT=0;if((FXQ.hiT+=dt)>6000){FXQ.hiT=0;FXQ.auto=Math.min(1,FXQ.auto+.15);}}
+  if(FXQ.ms>21){FXQ.hiT=0;LITE.fast=0;if((FXQ.lowT+=dt)>2000){FXQ.lowT=0;if(FXQ.auto>.35){FXQ.auto=Math.max(.35,FXQ.auto-.3);if(FXQ.auto<=.35&&DPR>1){DPR=1;fitCanvas();}}else if(currentScreen==='game-screen')liteSet(true);}}   // いちばん軽くしても重い → 軽量モード
+  else if(FXQ.ms<17.8){FXQ.lowT=0;if((FXQ.hiT+=dt)>6000){FXQ.hiT=0;if(!LITE.on)FXQ.auto=Math.min(1,FXQ.auto+.15);}
+    if(LITE.on&&FXQ.ms<14&&(LITE.fast+=dt)>30000){LITE.fast=0;liteSet(false);}}   // 軽量モードでも十分に速いなら、元に戻す
 }
 // FPSブースト中は、試合の画面の隅に今のFPSを出す（0.5秒ごとに更新）
 var FPSM={n:0,t:0};
@@ -6890,10 +6903,10 @@ function demoFrame(D,ts){
       camX+=(mid-VW/2-camX)*.05;camX=Math.max(0,Math.min(WORLD_W-VW,camX));
     }
     // 描くのは1秒に30回まで（FPSブースト中は20回）。動きの計算は今まで通り
-    var gap=SETTINGS.boost?48:31;
+    var gap=lite()?48:31;
     if(D.drawn&&ts-D.drawn<gap)return;
     D.drawn=ts;
-    var cv=D.cv,cw,chh,sc,rs=SETTINGS.boost?.38:.5;
+    var cv=D.cv,cw,chh,sc,rs=lite()?.38:.5;
     if(D.mode==='cover'){   // 背景：解像度を落として軽く（少しぼやけるのも背景としてちょうどいい）
       cw=Math.max(300,Math.round(innerWidth*rs));chh=Math.max(170,Math.round(innerHeight*rs));
     }else{                  // プレビュー：枠の大きさ×画面の精細さでくっきり
@@ -7923,7 +7936,7 @@ function updateZoom(){
 var canvas=document.getElementById('c'),ctx=canvas.getContext('2d');
 // 画面に表示されている大きさ（＋画面の精細さ）に合わせた解像度で描く。
 // 720x360のまま引き伸ばすとぼやけるので、表示サイズが変わるたびに作り直す
-var DPR=Math.min(2,window.devicePixelRatio||1);   // 重いときは fxAutoTick が 1 に下げる
+var DPR=LITE.on?1:Math.min(2,window.devicePixelRatio||1);   // 重いときは fxAutoTick が 1 に下げる
 function fitCanvas(){
   var cssW=canvas.getBoundingClientRect().width||VW;
   var w=Math.max(VW,Math.min(2560,Math.round(cssW*(SETTINGS.boost?.6:DPR)))),h=Math.round(w/2);   // FPSブースト：表示の75%で描いて拡大
@@ -7933,7 +7946,7 @@ function fitCanvas(){
 }
 // FPSブースト：ゲームの影のぼかし（重い）を止める。値を入れても 0 のままにする
 (function(){var D=Object.getOwnPropertyDescriptor(CanvasRenderingContext2D.prototype,'shadowBlur');if(!D||!D.set)return;
-  Object.defineProperty(ctx,'shadowBlur',{configurable:true,get:function(){return D.get.call(this);},set:function(v){D.set.call(this,SETTINGS.boost?0:v);}});})();
+  Object.defineProperty(ctx,'shadowBlur',{configurable:true,get:function(){return D.get.call(this);},set:function(v){D.set.call(this,SETTINGS.boost||(LITE.on&&(SETTINGS.fxq||'auto')==='auto'&&this===ctx)?0:v);}});})();
 function applyBoost(){fitCanvas();if(typeof sizeBgFx==='function'&&BGFX.cv){sizeBgFx();}var fm=document.getElementById('fps-meter');if(fm)fm.style.display=SETTINGS.boost?'':'none';}
 setTimeout(function(){if(SETTINGS.boost)applyBoost();},0);
 fitCanvas();
@@ -9034,7 +9047,7 @@ function torsoShade(g,topY,hipY,d){
 // 帽子：別の紙に描いてから、帽子の形の中だけに影と光をのせて貼る（頭や髪には影をのせない）
 var HAT_LAYER=null;
 function shadedHat(g,draw,hx,hy,r,d){
-  if(SETTINGS.boost||!g.getTransform||typeof document==='undefined'){draw(g);return;}
+  if(lite()||!g.getTransform||typeof document==='undefined'){draw(g);return;}
   var m=g.getTransform(),x0=hx-r*3.4,x1=hx+r*3.4,y0=hy-r*4.2,y1=hy+r*1.6;
   var pts=[[x0,y0],[x1,y0],[x0,y1],[x1,y1]].map(function(p){return[m.a*p[0]+m.c*p[1]+m.e,m.b*p[0]+m.d*p[1]+m.f];});
   var bx=Math.floor(Math.min(pts[0][0],pts[1][0],pts[2][0],pts[3][0])),by=Math.floor(Math.min(pts[0][1],pts[1][1],pts[2][1],pts[3][1]));
@@ -11416,7 +11429,7 @@ var cardLoopOn=false;
 function startCardLoop(){if(cardLoopOn)return;cardLoopOn=true;requestAnimationFrame(cardLoop);}
 var cardLast=0;
 function cardLoop(ts){
-  if(cardLast&&ts-cardLast<(SETTINGS.boost?48:31)&&!document.hidden){requestAnimationFrame(cardLoop);return;}   // メニューの絵は1秒に30回で十分
+  if(cardLast&&ts-cardLast<(lite()?48:31)&&!document.hidden){requestAnimationFrame(cardLoop);return;}   // メニューの絵は1秒に30回で十分
   cardLast=ts;
   var any=false,tm=ts/1000;
   var pc=document.getElementById('pf-card');
@@ -13446,7 +13459,7 @@ function initBgFx(){
 }
 function sizeBgFx(){
   // ぼんやりした光とうすい線だけなので、画面より粗く描いて引きのばす（全画面を毎回描くのはとても重い）
-  var d=SETTINGS.boost?.4:.6;
+  var d=lite()?.4:.6;
   BGFX.dpr=d;BGFX.w=innerWidth;BGFX.h=innerHeight;
   BGFX.cv.width=Math.round(BGFX.w*d);BGFX.cv.height=Math.round(BGFX.h*d);
   BGFX.drawn=false;
