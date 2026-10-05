@@ -2727,6 +2727,21 @@ body.mland .home-hero{height:72vh;}
  */
 (function(){
 'use strict';
+// ---- 不具合の自動報告：この画面で起きたエラーをサーバーへ知らせる（同じエラーは1回だけ・1回の起動で8件まで）----
+var ERR_SENT={},ERR_N=0;
+function reportError(msg,src,line,col,stack){
+  try{
+    msg=String(msg||'').slice(0,300);if(!msg||ERR_N>=8)return;
+    if(/^Script error\.?$/.test(msg)||/extension|chrome-extension|moz-extension/.test(String(src||'')+String(stack||'')))return;   // 拡張機能など、ゲームの外のエラーは送らない
+    var key=msg+'|'+line;if(ERR_SENT[key])return;ERR_SENT[key]=1;ERR_N++;
+    var vs=document.querySelector('script[src*="sim.js"]'),ver=vs?(vs.getAttribute('src').split('v=')[1]||''):'';
+    var h={'Content-Type':'application/json'};try{if(AUTH&&AUTH.token)h.Authorization='Bearer '+AUTH.token;}catch(e){}
+    var scr='',mode='';try{scr=currentScreen;mode=gameMode;}catch(e){}
+    fetch(httpBase()+'/api/clienterr',{method:'POST',headers:h,keepalive:true,body:JSON.stringify({msg:msg,src:src||'',line:line||0,col:col||0,stack:String(stack||'').slice(0,1500),screen:scr,mode:mode,ver:ver,ua:navigator.userAgent.slice(0,160)})}).catch(function(){});
+  }catch(e){}
+}
+window.addEventListener('error',function(e){if(e&&e.message)reportError(e.message,e.filename,e.lineno,e.colno,e.error&&e.error.stack);});
+window.addEventListener('unhandledrejection',function(e){var r=e&&e.reason;if(r&&r.stack&&/index\.html|sim\.js|lang\.js/.test(r.stack))reportError('(promise) '+(r.message||r),'',0,0,r.stack);});
 // コンソールやブックマークレットから、ゲームの数値や敵の位置を読み書きできないように全体を閉じ込める。
 // 外から呼べるのは、画面のボタンが使う関数だけ（一番下で登録）。
 var NativeWebSocket=window.WebSocket;   // あとから差し替えられても、読み込み時点の本物を使う
@@ -13401,7 +13416,7 @@ function loop(ts){
   if(frame%60===0)fitCanvas();   // 表示サイズが変わっても解像度を合わせ続ける
   requestAnimationFrame(loop);
   // 描いている途中で失敗しても、切り抜きや変形が残ったままにならないように描く準備から戻す（残ると画面の一部しか更新されなくなる）
-  try{drawScene();}catch(e){if(ctx.reset)ctx.reset();else canvas.width=canvas.width;fitCanvas();if(!loop.errN){loop.errN=1;console.error(e);}}
+  try{drawScene();}catch(e){if(ctx.reset)ctx.reset();else canvas.width=canvas.width;fitCanvas();if(!loop.errN){loop.errN=1;console.error(e);reportError('(draw) '+e.message,'',0,0,e.stack);}}
 }
 function startLoop(){frame=0;loopRunning=true;lastTime=0;accumulator=0;fitCanvas();requestAnimationFrame(loop);}
 

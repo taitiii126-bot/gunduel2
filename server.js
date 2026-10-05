@@ -99,6 +99,7 @@ const tierRange = idx => {
 };
 const TIER_COOLDOWN_MS = 20 * 1000;
 const tierLastReport = new Map();
+const clientErrHits = limiter(12, 10 * 60 * 1000);   // ブラウザのエラーの知らせ：同じIPから10分で12回まで
 const webhookPosts = limiter(10, 60 * 1000);   // 投稿は全体で1分10件まで
 // Discordの書式記号で表示が崩れないようにする
 const mdEscape = s => String(s).replace(/([*_~`|>\\])/g, '\\$1');
@@ -215,6 +216,39 @@ function postAdmin(embed) {
   fetch(ADMIN_WEBHOOK_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ embeds: [embed], allowed_mentions: { parse: [] } }) })
     .then(r => { if (!r.ok) log('admin webhook failed', r.status); }).catch(e => log('admin webhook error', e.message));
+}
+// ---- ブラウザで起きたエラー（プレイヤーの画面の不具合を、報告をもらう前に見つける）----
+// 同じエラー（文言＋場所）はまとめて数える。初めて出たとき・10回目・100回目に運営の Discord へ知らせ、errors.log にも残す
+const ERR_FILE = require('path').join(process.env.DATA_DIR || process.env.STATE_DIRECTORY || __dirname, 'errors.log');
+const clientErrs = new Map();   // 印 → { msg, where, n, first, last, screen, ver }
+function clientError(m, ip, u) {
+  const cl = (v, n) => String(v == null ? '' : v).replace(/[\u0000-\u0008\u000B-\u001F\u007F]/g, '').slice(0, n);
+  const msg = cl(m.msg, 300), where = cl(m.src, 120).replace(/^https?:\/\/[^/]+/, '') + ':' + (Math.floor(+m.line) || 0) + ':' + (Math.floor(+m.col) || 0);
+  if (!msg) return;
+  const sig = msg + '|' + where, now = Date.now();
+  let e = clientErrs.get(sig);
+  if (!e) { if (clientErrs.size >= 300) return; e = { msg, where, n: 0, first: now, last: 0, screen: '', ver: '' }; clientErrs.set(sig, e); }
+  e.n++; e.last = now; e.screen = cl(m.screen, 30); e.ver = cl(m.ver, 30);
+  const rec = { t: new Date(now).toISOString(), msg, where, stack: cl(m.stack, 1500), screen: e.screen, mode: cl(m.mode, 20), ver: e.ver, ua: cl(m.ua, 160), user: u ? u.id : null, n: e.n };
+  try {
+    const fs = require('fs');
+    try { if (fs.statSync(ERR_FILE).size > 5e6) fs.renameSync(ERR_FILE, ERR_FILE + '.old'); } catch (x) { /* まだない */ }
+    fs.appendFileSync(ERR_FILE, JSON.stringify(rec) + '\n');
+  } catch (x) { /* 書けなくても続ける */ }
+  log('CLIENT ERROR', '#' + e.n, msg, '@', where, 'screen=' + e.screen, u ? 'discord=' + u.id : 'guest');
+  if (e.n === 1 || e.n === 10 || e.n === 100) postAdmin({
+    title: e.n === 1 ? 'プレイヤーの画面でエラーが起きました' : `同じエラーが ${e.n} 回起きています`,
+    color: e.n === 1 ? 0xF59E0B : 0xEF4444,
+    description: '```' + mdEscape(msg).slice(0, 300) + '```',
+    fields: [
+      { name: '場所', value: mdEscape(where) || '-', inline: true },
+      { name: '画面', value: (e.screen || '-') + (rec.mode ? ' / ' + rec.mode : ''), inline: true },
+      { name: '版', value: e.ver || '-', inline: true },
+      { name: '最初の行', value: '```' + (mdEscape(rec.stack.split('\n').slice(0, 4).join('\n')) || '-').slice(0, 900) + '```' },
+    ],
+    footer: { text: rec.ua.slice(0, 120) || '-' },
+    timestamp: new Date(now).toISOString(),
+  });
 }
 function onSuspect(p, reason, room, pts) {
   const r = p.uid ? auth.flag(p.uid, reason, pts, p.ip) : null;
@@ -989,6 +1023,17 @@ function handleHttp(req, res) {
   }
   // コンソール（開発者ツール）を開いた人を、管理者のDiscordに知らせる。
   // ブラウザからの知らせ（窓の大きさなどからの推測）なので、証拠ではなく「見ておく」ための通知
+  // ブラウザのエラー（ゲストも送れる）。運営は GET で、まとめた一覧を見られる
+  if (url === '/api/clienterr') {
+    const u = auth.verify(bearer(req));
+    if (req.method === 'GET') {
+      if (!u || !u.dev) return json(res, 403, { error: 'dev only' });
+      return json(res, 200, { errors: [...clientErrs.values()].sort((a, b) => b.last - a.last).slice(0, 100) });
+    }
+    if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+    if (!clientErrHits.hit(ip)) return json(res, 429, { error: 'busy' });
+    return readJson(req, m => { if (m && typeof m === 'object') clientError(m, ip, u); json(res, 200, { ok: true }); });
+  }
   if (url === '/api/devtools' && req.method === 'POST') {
     if (!devtoolsReports.hit(ip)) return json(res, 429, { error: 'too many' });
     const u = auth.verify(bearer(req));

@@ -2,3 +2,5 @@ dist/
 node_modules/
 clans.json
 clans.json.tmp
+errors.log
+errors.log.old
