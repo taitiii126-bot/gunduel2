@@ -2055,6 +2055,7 @@ body[data-scr="event-screen"] #bs-bg{display:block;background:radial-gradient(70
 .ev-king-top{display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
 .ev-king-lb{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.2em;color:#C9A6FF;}
 .ev-king-top b.hw{font-family:var(--f-neon);font-weight:400;font-size:22px;letter-spacing:.05em;color:rgba(40,12,0,.82);-webkit-text-stroke:1px #FFB45C;text-shadow:0 0 4px rgba(255,140,30,.95),0 0 12px rgba(160,60,255,.55);}
+.ev-king-top b.wn{font-family:var(--f-neon);font-weight:400;font-size:22px;letter-spacing:.05em;color:rgba(0,20,40,.82);-webkit-text-stroke:1px #A8DCFF;text-shadow:0 0 4px rgba(120,200,255,.95),0 0 12px rgba(80,140,255,.55);}
 .ev-king p{margin:6px 0 8px;font-size:12px;color:var(--tx-2);}
 .ev-king small{display:block;margin-top:6px;text-align:right;font-family:var(--f-ui);font-weight:700;font-size:12px;color:var(--hw-or2);}
 .ev-king.got{box-shadow:inset 0 0 0 1px rgba(255,180,90,.7),0 0 22px -8px rgba(255,140,30,.8);}
@@ -2678,8 +2679,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=44"></script>
-<script src="lang.js?v=54"></script>
+<script src="sim.js?v=45"></script>
+<script src="lang.js?v=55"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2762,8 +2763,13 @@ function cleanTlay(v){
 }
 function saveSettings(){try{localStorage.setItem('gunduel_settings',JSON.stringify(SETTINGS));}catch(e){}}
 // t('キー', {name:'値'}) → 今の言語の文字。無ければ日本語、それも無ければキーそのもの
+// イベントの言葉：ev.〇〇 は、ハロウィン以外のイベント中は ev.<イベント>.〇〇 があればそちらを使う（キャンディ→雪の結晶 など）
+var EV_CUR='',EV_AT=0;
+function curEv(){var n=Date.now();if(n-EV_AT>60000){EV_AT=n;EV_CUR=(typeof SIM!=='undefined'&&SIM.eventNow)?SIM.eventNow():'';}return EV_CUR;}
 function t(key,vars){
-  var d=LANGS[SETTINGS.lang]||LANGS.ja,s=d[key];
+  var d=LANGS[SETTINGS.lang]||LANGS.ja,s;
+  if(key.charCodeAt(0)===101&&key.slice(0,3)==='ev.'){var e=curEv();if(e&&e!=='halloween'){var k2='ev.'+e+key.slice(2);s=d[k2];if(s==null&&LANGS.ja)s=LANGS.ja[k2];}}
+  if(s==null)s=d[key];
   if(s==null&&LANGS.ja)s=LANGS.ja[key];
   if(s==null)s=key;
   if(vars)s=s.replace(/\{(\w+)\}/g,function(m,k){return vars[k]!=null?vars[k]:m;});
@@ -3360,7 +3366,7 @@ function titleCond(id){var d=titleDef(id);return d&&d.kill?t('tcond.kill',{weapo
 function beaten(d){var p=profile.tierProgress&&profile.tierProgress[d];return !!(p&&p.beat);}
 function totalWL(){var c=cpuTotals();return{w:c.w+(AUTH.user?AUTH.user.wins||0:0),l:c.l+(AUTH.user?AUTH.user.losses||0:0)};}   // CPU戦＋オンライン対戦
 function killsWith(wid){return +(profile.ach.kills[wid]||0);}
-function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,tears:!!AUTH.user.tears,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion,hwking:!!AUTH.user.hwking}:null;}
+function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,tears:!!AUTH.user.tears,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion,hwking:!!AUTH.user.hwking,snowking:!!AUTH.user.snowking}:null;}
 function titleUnlocked(id){
   var d=titleDef(id);if(!d)return false;
   if(d.gate)return SIM.titleOk(id,myTitleCtx());
@@ -3917,8 +3923,8 @@ function shopDo(body,local,done){
 function shopReveal(o){renderShop();renderHomeEco();openCrateScreen('lucky');CR.res={kind:'lucky',r:o.r,n:1,items:[{item:o.item,dup:false}]};CR.tier=o.r;crateBurst();}
 // ---- 期間限定イベント（ハロウィン）：キャンディの交換所 ----
 // キャンディはサーバーが試合の記録から数える（ログイン中だけ）。交換もサーバーで行う
-var EVS={confirm:'',ct:0},HW_ON=false;
-function evRefresh(){HW_ON=SIM.eventNow()==='halloween';document.body.classList.toggle('ev-hw',HW_ON);if(typeof renderHomeEco==='function')try{renderHomeEco();}catch(e){}}
+var EVS={confirm:'',ct:0},HW_ON=false,WN_ON=false;
+function evRefresh(){var e=SIM.eventNow();HW_ON=e==='halloween';WN_ON=e==='winter';EV_AT=0;document.body.classList.toggle('ev-hw',HW_ON);document.body.classList.toggle('ev-wn',WN_ON);if(typeof renderHomeEco==='function')try{renderHomeEco();}catch(e){}}
 setTimeout(evRefresh,0);setInterval(evRefresh,600000);
 function evNow(){return SIM.eventNow();}
 function candyN(){ensureProfileShape();var c=profile.candy;return c&&c.ev===evNow()?(c.n|0):0;}
@@ -3934,12 +3940,54 @@ function candyToday(){var c=profile.candy;return c&&c.ev===evNow()&&c.day===SIM.
 function evAffordable(){var ev=evNow();if(!ev||!AUTH.user)return false;var n=candyN();return SIM.EVENTS[ev].shop.some(function(r){return !itemOwned(r[0])&&n>=r[1];});}
 // キャンディの絵（ねじった包み紙のアメ）
 function drawCandy(g,x,y,s,rot,col){
+  if(curEv()==='winter'){drawSnowflake(g,x,y,s*11,rot);return;}
   g.save();g.translate(x,y);g.rotate(rot||0);g.scale(s,s);col=col||'#FF7A1A';g.lineJoin='round';g.strokeStyle='#2A0E06';g.lineWidth=2.2;
   [-1,1].forEach(function(sd){g.beginPath();g.moveTo(sd*8,0);g.lineTo(sd*17,-7);g.quadraticCurveTo(sd*14,0,sd*17,7);g.closePath();g.fillStyle=shadeHex(col,-.12);g.fill();g.stroke();});
   g.beginPath();g.ellipse(0,0,10,8,0,0,Math.PI*2);g.fillStyle=col;g.fill();g.stroke();
   g.save();g.clip();g.strokeStyle='rgba(255,255,255,.75)';g.lineWidth=2.6;for(var i=-3;i<=3;i++){g.beginPath();g.moveTo(i*6-8,-10);g.lineTo(i*6+8,10);g.stroke();}g.restore();
   g.fillStyle='rgba(255,255,255,.7)';g.beginPath();g.ellipse(-3.5,-3.5,3,1.6,-.5,0,Math.PI*2);g.fill();
   g.restore();
+}
+// 雪の結晶（冬のイベントの通貨）：6本の枝に小枝。青く光る
+function drawSnowflake(g,x,y,R,rot){
+  g.save();g.translate(x,y);g.rotate(rot||0);g.lineCap='round';
+  var gl=g.createRadialGradient(0,0,0,0,0,R*1.3);gl.addColorStop(0,'rgba(140,200,255,.45)');gl.addColorStop(1,'rgba(140,200,255,0)');g.fillStyle=gl;g.beginPath();g.arc(0,0,R*1.3,0,Math.PI*2);g.fill();
+  [[R*.2+2.4,'#1B3A66'],[R*.2,'#EAF6FF']].forEach(function(st){
+    g.strokeStyle=st[1];g.lineWidth=st[0];g.beginPath();
+    for(var i=0;i<6;i++){var a=i*Math.PI/3,c=Math.cos(a),sn=Math.sin(a);g.moveTo(0,0);g.lineTo(c*R,sn*R);
+      [.45,.72].forEach(function(f){var bx=c*R*f,by=sn*R*f,l=R*(f<.5?.32:.24);[-1,1].forEach(function(sd){var b=a+sd*.8;g.moveTo(bx,by);g.lineTo(bx+Math.cos(b)*l,by+Math.sin(b)*l);});});}
+    g.stroke();});
+  g.fillStyle='#FFFFFF';g.beginPath();g.arc(0,0,R*.16,0,Math.PI*2);g.fill();
+  g.restore();
+}
+// 雪だるま（飾り）
+function flatSnowman(g,x,y,r,tm,i,lw){
+  var sw=Math.sin(tm*1.6+i)*.06;g.save();g.translate(x,y);g.rotate(sw);g.lineWidth=lw;g.strokeStyle='#1B2A44';
+  g.fillStyle='#F6F9FF';g.beginPath();g.arc(0,-r*.7,r*.75,0,Math.PI*2);g.fill();g.stroke();g.beginPath();g.arc(0,-r*1.75,r*.52,0,Math.PI*2);g.fill();g.stroke();
+  g.fillStyle='rgba(140,170,215,.4)';g.beginPath();g.arc(r*.18,-r*.55,r*.55,0,Math.PI*2);g.fill();
+  g.fillStyle='#1C1A22';[[-.17,-1.82],[.17,-1.82]].forEach(function(e){g.beginPath();g.arc(e[0]*r,e[1]*r,r*.07,0,Math.PI*2);g.fill();});
+  g.fillStyle='#F07A1A';g.beginPath();g.moveTo(0,-r*1.72);g.lineTo(r*.42,-r*1.66);g.lineTo(0,-r*1.6);g.closePath();g.fill();
+  g.fillStyle='#C8202C';g.fillRect(-r*.5,-r*1.32,r,r*.16);
+  g.fillStyle='#1C1A22';g.fillRect(-r*.42,-r*2.2,r*.84,r*.1);g.fillRect(-r*.28,-r*2.62,r*.56,r*.44);
+  g.restore();
+}
+var SNOW=[];
+// 冬のイベント中の試合：雪が降り、足場に雪が積もり、地面に雪だるま
+function drawWinterStage(){
+  var tm=performance.now()/1000,q;
+  for(q=0;q<platforms.length;q++){
+    var p=platforms[q],sx=wx(p.x);if(sx>VW+20||sx+p.w<-20)continue;
+    ctx.fillStyle='rgba(246,250,255,.92)';ctx.beginPath();ctx.moveTo(sx,p.y+1);
+    for(var k=0;k<=p.w;k+=10){var h=2.2+prand(p.x+k*.37)*2.6;ctx.lineTo(sx+k,p.y-h);}
+    ctx.lineTo(sx+p.w,p.y+1);ctx.closePath();ctx.fill();
+    if(p.ground){for(var gx=200;gx<p.w;gx+=420){var x=wx(p.x+gx+prand(p.x+gx)*80);if(x>-20&&x<VW+20)flatSnowman(ctx,x,p.y-1,9,tm,gx,1.1);}}
+  }
+  var n=Math.round(60*fxMul());
+  while(SNOW.length<n)SNOW.push({x:Math.random()*VW,y:Math.random()*VH,r:.8+Math.random()*1.8,v:.3+Math.random()*.6,ph:Math.random()*6});
+  SNOW.length=n;
+  ctx.save();ctx.fillStyle='rgba(255,255,255,.8)';
+  SNOW.forEach(function(f){f.y+=f.v;f.x+=Math.sin(tm*1.3+f.ph)*.3;if(f.y>VH+4){f.y=-4;f.x=Math.random()*VW;}ctx.globalAlpha=.45+f.r*.2;ctx.beginPath();ctx.arc(f.x,f.y,f.r,0,Math.PI*2);ctx.fill();});
+  ctx.restore();
 }
 function showEventScreen(){if(!evNow())return;showScreen('event-screen');EVS.confirm='';renderEvent();}
 function renderEvent(){
@@ -3967,7 +4015,7 @@ function renderEvent(){
   if(E.title){
     var tot=candyTotal(),need=E.title.need,have=titleUnlocked(E.title.id);
     h+='<div class="ev-king'+(have?' got':'')+'"><div class="ev-king-top"><span class="ev-king-lb">'+esc(t('ev.kingLabel'))+'</span>'+
-      '<b class="hw">'+esc(titleText(E.title.id))+'</b></div>'+
+      '<b class="'+(ev==='winter'?'wn':'hw')+'">'+esc(titleText(E.title.id))+'</b></div>'+
       '<p>'+esc(have?t('ev.kingGot'):t('ev.kingHow',{n:need}))+'</p>'+
       '<div class="v2-bar sm"><i style="width:'+Math.round(Math.min(1,tot/need)*100)+'%"></i></div>'+
       '<small>'+esc(t('ev.kingProg',{n:Math.min(tot,need),m:need}))+'</small></div>';
@@ -4029,7 +4077,7 @@ function evBuy(id){
 }
 // 試合でもらったキャンディを知らせる
 function candyToast(n,ev){
-  if(ev&&ev.king&&AUTH.user){AUTH.user.hwking=true;checkTitles();}   // 限定称号（お祝いの演出は checkTitles から）
+  if(ev&&ev.king&&AUTH.user){var ET=SIM.EVENTS[evNow()]&&SIM.EVENTS[evNow()].title;AUTH.user[(ET&&ET.flag)||'hwking']=true;checkTitles();}   // 限定称号（お祝いの演出は checkTitles から）
   if(ev&&ev.misCandy>0){note(t(ev.bonus?'ev.misAll':'ev.misGot',{n:ev.misCandy}));if(currentScreen==='event-screen')renderEvent();return;}
   if(!(n>0))return;note(t('ev.candyGot',{n:n}));
 }
@@ -4840,7 +4888,7 @@ var LOOK_FOCUS={eyes:[.24,-.02,6.2],brows:[.24,-.1,6.2],nose:[.36,.32,8.6],mouth
 var lookTab='skin',lookHover=null;   // lookHover：マウスをのせている選択肢（プレビューで試着）
 function pickLookTab(k){lookTab=k;lookHover=null;renderLookEditor();}
 // 持っていないアイテムの手に入れ方（限定イベント・シーズンパス・バッジ）
-function lockText(id){var it=SIM.ITEM_BY_ID[id];return t(it&&it.ev?'look.lockedEv':it&&it.pass?'look.lockedPass':'look.locked');}
+function lockText(id){var it=SIM.ITEM_BY_ID[id];return t(it&&it.ev?(it.ev==='halloween'?'look.lockedEv':'look.lockedEv.'+it.ev):it&&it.pass?'look.lockedPass':'look.locked');}
 function pickLook(k,i){
   i=+i;if(!(i>=0&&i<SIM.LOOK_SIZES[k]))return;
   if(SIM.LOOK_DEV[k]===i&&!isDevUser())return;
@@ -5889,7 +5937,9 @@ function drawHomeHero(tm){
   g.strokeStyle='rgba(255,197,61,.35)';g.lineWidth=2*dpr;g.beginPath();g.ellipse(gx,gy,52*s,9*s,0,0,Math.PI*2);g.stroke();
   var cyc=tm%9,wt=cyc-5.4,L=profile.look;
   if(HW_ON){flatPumpkin(g,gx-44*s,gy-5*s,9*s,tm,0,1.5*dpr);flatPumpkin(g,gx+46*s,gy-4*s,7*s,tm,1,1.5*dpr);}   // ハロウィン：足元にかぼちゃ
+  if(WN_ON){flatSnowman(g,gx-46*s,gy-2*s,10*s,tm,0,1.5*dpr);flatSnowman(g,gx+48*s,gy-2*s,8*s,tm,1,1.5*dpr);}   // 冬：足元に雪だるま
   drawAvatar(g,{x:gx-2*s,y:gy,s:s,dir:1,look:L,team:TEAM.me,wid:(loadout&&loadout[0])||2,bob:Math.sin(tm*2.1)*.8,blink:(tm%4.2)<.13,tm:tm,win:wt>0&&wt<3.4?{pose:L.win|0,t:wt}:null});
+  if(WN_ON){g.fillStyle='rgba(255,255,255,.75)';for(var sf=0;sf<26;sf++){var fy=((tm*(18+sf%5*6)*s+sf*97)%H),fx=(sf*61%100)/100*W+Math.sin(tm+sf)*6*s;g.beginPath();g.arc(fx,fy,(1+sf%3*.6)*s,0,Math.PI*2);g.fill();}}
   if(HW_ON){g.fillStyle='rgba(20,6,31,.85)';for(var hb=0;hb<3;hb++){var k=(tm*.08+hb*.33)%1;flatBat(g,W*(1.1-k*1.2),H*(.12+hb*.07)+Math.sin(tm*2+hb)*H*.02,s*(.9+hb*.2),tm*11+hb);}}
 }
 function showModeScreen(){disconnectWS();showScreen('mode-screen');}
@@ -8154,7 +8204,7 @@ var OUTFIT_TAIL={10:'#806345',15:'#7E1A1A',18:'#2E1B18',19:'#6E0F22',21:'#E2DAC6
 function drawOutfitX(g,fit,T,topY,hipY,d,tm){
   var tw=12.5,bw=10.5,long=!!OUTFIT_TAIL[fit],botY=long?Math.min(hipY+9,-8):hipY,hw=long?bw+2:bw,i,k,x,y;
   function tp(){g.beginPath();g.moveTo(-tw,topY+4);g.quadraticCurveTo(-tw,topY,-tw+4,topY);g.lineTo(tw-4,topY);g.quadraticCurveTo(tw,topY,tw,topY+4);g.lineTo(bw,hipY);if(botY!==hipY){g.lineTo(hw,botY);g.lineTo(-hw,botY);}g.lineTo(-bw,hipY);g.closePath();}
-  var base={22:'#16141C',23:'#16101A',24:'#E6DEC6',25:'#F7F5FF',26:'#3E6AA8',27:'#3A463A',28:'#1E1B24',21:'#F2ECDD',5:'#B8955E',6:T.jacket,7:T.jacket,8:'#EFE8DA',9:'#C8553D',10:'#9A7B55',11:'#2E2A33',12:'#3A6EA5',13:'#23355E',14:'#F4F1EA',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#3B2420',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
+  var base={29:'#F4F8FF',30:'#C8202C',22:'#16141C',23:'#16101A',24:'#E6DEC6',25:'#F7F5FF',26:'#3E6AA8',27:'#3A463A',28:'#1E1B24',21:'#F2ECDD',5:'#B8955E',6:T.jacket,7:T.jacket,8:'#EFE8DA',9:'#C8553D',10:'#9A7B55',11:'#2E2A33',12:'#3A6EA5',13:'#23355E',14:'#F4F1EA',15:'#9A2020',16:'#9AA4B4',17:'#E6B94A',18:'#3B2420',19:'#8E1230',20:'#0B0A1E'}[fit]||T.jacket;
   tp();g.fillStyle=base;g.fill();
   g.save();tp();g.clip();
   g.fillStyle='rgba(0,0,0,.22)';g.fillRect(d>0?-tw-1:2,topY-1,tw-1,botY-topY+2);   // 奥側の影
@@ -8289,6 +8339,20 @@ function drawOutfitX(g,fit,T,topY,hipY,d,tm){
       g.fillStyle='#7A8494';[topY+6,topY+12,topY+18].forEach(function(yy){g.beginPath();g.arc(d*2.6,yy,.9,0,Math.PI*2);g.fill();});
       g.fillStyle='rgba(0,0,0,.35)';g.beginPath();g.moveTo(-bw,hipY-1);for(x=-bw;x<=bw;x+=3)g.lineTo(x+1.5,hipY-(x%2?3:0));g.lineTo(bw,hipY+1);g.lineTo(-bw,hipY+1);g.fill();
       break;
+    case 29:  // 雪だるまの体（冬限定）：まんまるの雪玉に、炭のボタン3つ。ほんのり青い影と雪のつぶ
+      var sg3=g.createRadialGradient(-d*5,topY+6,2,0,(topY+hipY)/2,18);sg3.addColorStop(0,'rgba(255,255,255,0)');sg3.addColorStop(1,'rgba(140,170,215,.45)');g.fillStyle=sg3;g.fillRect(-tw,topY,tw*2,botY-topY);
+      g.fillStyle='rgba(200,215,240,.7)';for(i=0;i<9;i++){var rr3=prand(i*3.1);g.beginPath();g.arc(-9+rr3*18,topY+3+((i*5.3)%(hipY-topY-4)),.7,0,Math.PI*2);g.fill();}
+      g.strokeStyle='rgba(150,175,215,.6)';g.lineWidth=1;g.beginPath();g.moveTo(-tw+1,topY+12);g.quadraticCurveTo(0,topY+15,tw-1,topY+12);g.stroke();
+      g.fillStyle='#1E1B24';[topY+6,topY+12.5,topY+19].forEach(function(yy){g.beginPath();g.arc(d*2,yy,1.5,0,Math.PI*2);g.fill();});
+      break;
+    case 30:  // サンタの服（冬限定）：赤い上着、前と下のふちに白い毛、黒いベルトに金のバックル
+      g.fillStyle='rgba(0,0,0,.12)';g.fillRect(d>0?-tw:-2,topY,tw-2,hipY-topY);
+      g.fillStyle='#F7F5F0';g.fillRect(d*1.5-2.2,topY+2,4.4,hipY-topY-2);g.fillRect(-bw,hipY-3.2,bw*2,3.4);
+      g.fillStyle='rgba(180,190,210,.5)';for(y=topY+4;y<hipY-4;y+=3.2){g.beginPath();g.arc(d*1.5+(y%2?-1:1),y,.8,0,Math.PI*2);g.fill();}
+      g.fillStyle='#1C1A22';g.fillRect(-bw-.5,hipY-9,bw*2+1,3.6);
+      rrPath(g,d*1.5-2.6,hipY-9.6,5.2,4.8,.8);g.fillStyle='#E8C66A';g.fill();g.fillStyle='#1C1A22';g.fillRect(d*1.5-1.2,hipY-8.4,2.4,2.4);
+      g.fillStyle='#F7F5F0';g.beginPath();g.moveTo(-6,topY);g.quadraticCurveTo(d*1,topY+4,6,topY);g.lineTo(6,topY+2);g.quadraticCurveTo(d*1,topY+6,-6,topY+2);g.closePath();g.fill();
+      break;
     case 28:  // 黒猫スーツ（ハロウィン限定）：黒い毛並みに、白いふわふわの胸元と肉球のボタン
       g.fillStyle='#F4F1EA';g.beginPath();g.moveTo(-5,topY);g.quadraticCurveTo(-6.5,topY+8,-3,topY+13);g.quadraticCurveTo(0,topY+16,3,topY+13);g.quadraticCurveTo(6.5,topY+8,5,topY);g.closePath();g.fill();
       g.strokeStyle='rgba(255,255,255,.12)';g.lineWidth=.6;for(i=0;i<8;i++){x=-10+i*2.8;g.beginPath();g.moveTo(x,topY+14);g.lineTo(x+1,topY+17);g.stroke();}
@@ -8404,6 +8468,21 @@ function drawNeckX(g,neck,acc,t,d,tm){
       g.fillStyle='rgba(255,255,255,.55)';g.fillRect(d*1-3,t+9.4,2,5);
       g.fillStyle='#5A3A10';g.beginPath();g.arc(d*1,t+11.3,1.1,0,Math.PI*2);g.fill();g.fillRect(d*1-.5,t+11.5,1,2.2);
       var gl3=(tm*.7)%1.6;if(gl3<.4){g.save();g.globalCompositeOperation='lighter';g.globalAlpha=1-gl3/.4;starPath(g,d*1+2.5,t+9.5,2.6,.6,4);g.fillStyle='#FFF6C8';g.fill();g.restore();}
+      break;
+    case 23:  // クリスマスライト（冬限定）：首に巻いた電線に、色とりどりの電球が順に光る
+      g.beginPath();for(i=0;i<=20;i++){var la=Math.PI*(.06+.88*i/20);var lx=Math.cos(la)*-9.5*d+d*1,ly=t+Math.sin(la)*6.8-1.5;if(i)g.lineTo(lx,ly);else g.moveTo(lx,ly);}g.lineWidth=.9;g.strokeStyle='#1F4A2A';g.stroke();
+      for(i=0;i<8;i++){var ba=Math.PI*(.1+.8*i/7),bx=Math.cos(ba)*-9.5*d+d*1,by=t+Math.sin(ba)*6.8-.2,on=((Math.floor(tm*3)+i)%3)!==0,bc=['#FF4D5E','#FFC53D','#34D399','#4FA3FF'][i%4];
+        if(on){g.save();g.globalCompositeOperation='lighter';var bg3=g.createRadialGradient(bx,by,0,bx,by,4);bg3.addColorStop(0,hexA(bc,.7));bg3.addColorStop(1,hexA(bc,0));g.fillStyle=bg3;g.beginPath();g.arc(bx,by,4,0,Math.PI*2);g.fill();g.restore();}
+        g.beginPath();g.ellipse(bx,by+.6,1.2,1.7,0,0,Math.PI*2);g.fillStyle=on?bc:shadeHex(bc,-.45);g.fill();g.lineWidth=.5;g.strokeStyle=OUTLINE;g.stroke();}
+      break;
+    case 24:  // しましまマフラー（冬限定）：赤と白のしま。首に巻いて、前に端を垂らす（ふさつき）
+      rrPath(g,-9.5,t-3.8,19,6.6,3.2);g.fillStyle='#F7F5F0';g.fill();
+      g.save();g.clip();g.fillStyle='#D8262F';for(x=-10;x<11;x+=4)g.fillRect(x,t-4,2,8);g.restore();
+      rrPath(g,-9.5,t-3.8,19,6.6,3.2);g.lineWidth=1.3;g.stroke();
+      g.beginPath();g.moveTo(-d*4.8,t+1.5);g.lineTo(-d*.8,t+1.5);g.lineTo(-d*.4,t+12);g.lineTo(-d*4.4,t+12.5);g.closePath();g.fillStyle='#F7F5F0';g.fill();
+      g.save();g.clip();g.fillStyle='#D8262F';for(var yy4=t+2;yy4<t+13;yy4+=3.4)g.fillRect(-12,yy4,24,1.7);g.restore();
+      g.beginPath();g.moveTo(-d*4.8,t+1.5);g.lineTo(-d*.8,t+1.5);g.lineTo(-d*.4,t+12);g.lineTo(-d*4.4,t+12.5);g.closePath();g.lineWidth=1.1;g.stroke();
+      g.strokeStyle='#D8262F';g.lineWidth=.8;for(i=0;i<4;i++){var fx4=-d*(4.2-i*1.2);g.beginPath();g.moveTo(fx4,t+12.4);g.lineTo(fx4,t+14.2);g.stroke();}
       break;
     case 22:  // キャンディのネックレス（ハロウィン限定）：パステルのラムネ玉
       for(i=0;i<11;i++){var na=Math.PI*(.08+.84*i/10);g.beginPath();g.arc(Math.cos(na)*-9*d+d*1,t+Math.sin(na)*6.5-1,1.6,0,Math.PI*2);g.fillStyle=['#FFB3D9','#B8FFD8','#FFF3A8','#A8E6FF','#D8C2FF'][i%5];g.fill();g.lineWidth=.6;g.stroke();
@@ -8587,7 +8666,7 @@ function drawHat(g,hat,acc,hx,hy,r,d,wind,tm){
 }
 // ---- 宝箱の帽子（6〜23）。形は「頭の半径＝1、右向き」の座標（H.M/L/Q/C と H.at）----
 HAT_CUT[6]=[-.35,-.45];HAT_CUT[7]=[-.25,-.4];HAT_CUT[8]=[-.3,-.42];HAT_CUT[9]=[-.55,-.55];HAT_CUT[10]=[-.55,-.55];HAT_CUT[11]=[-.6,-.6];
-HAT_CUT[25]=[2,2];HAT_CUT[26]=[-.55,-.55];HAT_CUT[27]=[2,2];HAT_CUT[28]=[2,2];HAT_CUT[29]=[-.42,-.42];HAT_CUT[31]=[-.55,-.55];
+HAT_CUT[25]=[2,2];HAT_CUT[32]=[2,2];HAT_CUT[33]=[-.5,-.55];HAT_CUT[34]=[-.75,-.75];HAT_CUT[26]=[-.55,-.55];HAT_CUT[27]=[2,2];HAT_CUT[28]=[2,2];HAT_CUT[29]=[-.42,-.42];HAT_CUT[31]=[-.55,-.55];
 HAT_CUT[12]=[-.5,-.55];HAT_CUT[15]=[-.55,-.55];HAT_CUT[16]=[-.3,-.35];HAT_CUT[17]=[-.6,-.6];HAT_CUT[18]=[-.5,-.5];HAT_CUT[19]=[-.55,-.55];HAT_CUT[20]=[-.25,-.3];HAT_CUT[21]=[-.62,-.62];
 function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
   var p,c,i,k;
@@ -8814,6 +8893,40 @@ function drawHatX(g,hat,acc,hx,hy,r,d,wind,tm,H,paint,shine){
       g.setLineDash([r*.06,r*.05]);g.strokeStyle='#F2E6C8';g.strokeRect(p[0]-r*.15,p[1]-r*.12,r*.28,r*.22);g.setLineDash([]);g.lineWidth=1.5;g.strokeStyle=OUTLINE;
       shine(-.5,-1.3,-.3,-1.48,-.08,-1.45,.07);
       break;
+    case 32:  // 雪だるまの頭（冬限定）：頭をすっぽり雪玉に。炭の目と口、にんじんの鼻、小さな黒いシルクハット
+      var sn=H.at(0,-.1);
+      g.beginPath();g.arc(sn[0],sn[1],r*1.12,0,Math.PI*2);paint('#F6F9FF');
+      g.save();g.clip();var sg2=g.createRadialGradient(sn[0]-d*r*.4,sn[1]-r*.5,r*.2,sn[0],sn[1],r*1.2);sg2.addColorStop(0,'rgba(255,255,255,0)');sg2.addColorStop(1,'rgba(150,180,220,.45)');g.fillStyle=sg2;g.fillRect(sn[0]-r*1.3,sn[1]-r*1.3,r*2.6,r*2.6);g.restore();
+      g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+      [[.18,-.25],[.62,-.28]].forEach(function(e){var z=H.at(e[0],e[1]);g.beginPath();g.arc(z[0],z[1],r*.1,0,Math.PI*2);g.fillStyle='#1C1A22';g.fill();});
+      for(i=0;i<5;i++){var mz=H.at(.1+i*.14,.32+Math.sin(i/4*Math.PI)*.1);g.beginPath();g.arc(mz[0],mz[1],r*.055,0,Math.PI*2);g.fillStyle='#2A2630';g.fill();}
+      p=H.at(.5,.02);g.beginPath();g.moveTo(p[0],p[1]-r*.1);g.lineTo(p[0]+d*r*.62,p[1]+r*.04);g.lineTo(p[0],p[1]+r*.12);g.closePath();g.fillStyle='#F07A1A';g.fill();g.lineWidth=1;g.stroke();g.lineWidth=1.5;
+      var tb=H.at(-.05,-1.1);g.beginPath();g.ellipse(tb[0],tb[1],r*.7,r*.15,-d*.15,0,Math.PI*2);paint('#1C1A22');
+      g.save();g.translate(tb[0],tb[1]);g.rotate(-d*.15);rrPath(g,-r*.46,-r*.78,r*.92,r*.78,r*.06);paint('#24212C');g.fillStyle='#C8202C';g.fillRect(-r*.46,-r*.24,r*.92,r*.16);
+      g.fillStyle='#3E7A3A';g.beginPath();g.ellipse(r*.28*d,-r*.18,r*.16,r*.08,.4*d,0,Math.PI*2);g.fill();g.fillStyle='#E0303A';g.beginPath();g.arc(r*.18*d,-r*.15,r*.06,0,Math.PI*2);g.fill();g.restore();
+      break;
+    case 33:  // サンタの帽子（冬限定）：赤い三角が後ろへ垂れ、白いふわふわのふちと、ゆれるぼんぼり
+      var sw3=Math.sin(tm*(3+wind*4))*(.08+wind*.12);
+      g.beginPath();H.M(-1.0,-.42);H.C(-1.02,-1.2,-.5,-1.55,.1,-1.5);H.C(-.4,-1.7,-1.1,-1.75,-1.55-sw3,-1.2+sw3);H.Q(-1.2,-1.0,-1.0,-.42);g.closePath();paint('#C8202C');
+      g.beginPath();H.M(.1,-1.5);H.C(.6,-1.4,.98,-1.05,.98,-.5);H.L(-1.0,-.42);H.C(-1.02,-1.2,-.5,-1.55,.1,-1.5);g.closePath();paint('#D8262F');
+      g.save();g.clip();g.fillStyle='rgba(0,0,0,.14)';var sh3=H.at(-1.2,-1.6);g.fillRect(sh3[0],sh3[1],r*.9,r*1.4);g.restore();
+      g.beginPath();H.M(-1.08,-.3);H.Q(0,-.62,1.06,-.36);H.L(1.06,-.68);H.Q(0,-.96,-1.08,-.66);g.closePath();paint('#F7F5F0');
+      g.fillStyle='rgba(180,190,210,.5)';for(i=0;i<6;i++){var fz=H.at(-.9+i*.36,-.5-(i%2)*.06);g.beginPath();g.arc(fz[0],fz[1],r*.07,0,Math.PI*2);g.fill();}
+      p=H.at(-1.58-sw3,-1.16+sw3);g.beginPath();g.arc(p[0],p[1],r*.24,0,Math.PI*2);paint('#F7F5F0');
+      shine(-.6,-1.2,-.3,-1.42,.1,-1.42,.07);
+      break;
+    case 34:  // トナカイの角（冬限定）：カチューシャに枝分かれした角、赤く光る鼻
+      g.beginPath();H.M(-.98,-.3);H.Q(-.2,-1.36,.92,-.5);g.lineWidth=r*.14;g.strokeStyle='#5A3A1E';g.stroke();g.lineWidth=1.5;g.strokeStyle=OUTLINE;
+      [[-.55,-.98,-1],[.35,-1.06,1]].forEach(function(e){
+        var z=H.at(e[0],e[1]);g.save();g.translate(z[0],z[1]);g.scale(d,1);g.rotate(e[2]*.25);
+        g.lineCap='round';
+        var br=function(pts,w){g.beginPath();g.moveTo(pts[0]*r,pts[1]*r);for(var q=2;q<pts.length;q+=2)g.lineTo(pts[q]*r,pts[q+1]*r);g.lineWidth=w*r+2.4;g.strokeStyle=OUTLINE;g.stroke();g.lineWidth=w*r;g.strokeStyle='#A0703A';g.stroke();};
+        br([0,0,.05,-.5,-.1,-.95],.13);br([.03,-.35,.3,-.62],.1);br([-.03,-.65,-.32,-.9],.09);br([-.07,-.8,.15,-1.1],.08);
+        g.restore();});
+      p=H.at(1.02,.06);var ng=.7+.3*Math.sin(tm*4);
+      g.save();g.globalCompositeOperation='lighter';var nrg=g.createRadialGradient(p[0],p[1],0,p[0],p[1],r*.5);nrg.addColorStop(0,'rgba(255,60,60,'+(.55*ng).toFixed(3)+')');nrg.addColorStop(1,'rgba(255,0,0,0)');g.fillStyle=nrg;g.beginPath();g.arc(p[0],p[1],r*.5,0,Math.PI*2);g.fill();g.restore();
+      g.beginPath();g.arc(p[0],p[1],r*.17,0,Math.PI*2);paint('#E0202A');g.beginPath();g.arc(p[0]-r*.05,p[1]-r*.06,r*.05,0,Math.PI*2);g.fillStyle='rgba(255,255,255,.85)';g.fill();
+      break;
     case 26:  // 魔女の帽子（ハロウィン限定）：広いつばと、後ろへ折れたとんがり。オレンジの帯と金のバックル
       var wb=H.at(.04,-.62);
       g.beginPath();g.ellipse(wb[0],wb[1],r*1.62,r*.3,-d*.06,0,Math.PI*2);paint('#2A1840');
@@ -8851,7 +8964,8 @@ var SKIN_TEAM={
   21:{jacket:'#F2ECDD',shade:'#D6CEB8',pants:'#3A3440',boots:'#6B4423',glove:'#6B4423'},  // 伝説の保安官
   22:{jacket:'#24212C',shade:'#16141C',pants:'#16141C'},23:{jacket:'#1E1622',shade:'#140A12',pants:'#140A12'},
   24:{jacket:'#E6DEC6',shade:'#CFC6AA',pants:'#D9CFB2',boots:'#9E9478'},25:{jacket:'#F7F5FF',shade:'#DCD6F4',pants:'#ECE8FA',boots:'#BDB4E4'},
-  26:{jacket:'#C8553D',shade:'#9A3A28',pants:'#3E6AA8',boots:'#5A3A1E',glove:'#E8C66A'},27:{jacket:'#3A463A',shade:'#2A342A',pants:'#2A2A30',glove:'#5E7A4A'},28:{jacket:'#24212C',shade:'#1E1B24',pants:'#1E1B24',boots:'#2A2632',glove:'#1E1B24'}};
+  26:{jacket:'#C8553D',shade:'#9A3A28',pants:'#3E6AA8',boots:'#5A3A1E',glove:'#E8C66A'},27:{jacket:'#3A463A',shade:'#2A342A',pants:'#2A2A30',glove:'#5E7A4A'},28:{jacket:'#24212C',shade:'#1E1B24',pants:'#1E1B24',boots:'#2A2632',glove:'#1E1B24'},
+  29:{jacket:'#F4F8FF',shade:'#CBD7EA',pants:'#EAF0FA',boots:'#C2CEE2',glove:'#6B4423'},30:{jacket:'#C8202C',shade:'#981420',pants:'#C8202C',boots:'#1C1917',glove:'#F4F1EA'}};
 var SKIN_TEAM_SLEEVE={6:1,7:1,12:1};   // 袖はチームの色のまま（服の柄としてチームの色を使う物）
 // ---- アニメ塗り（服と帽子）：光は右上から。奥側と下に影、手前の肩とふちに光 ----
 function torsoShade(g,topY,hipY,d){
@@ -11269,7 +11383,7 @@ function cardLoop(ts){
   var evb=document.getElementById('ev-body');
   if(evb&&evb.offsetParent){any=true;if(artTick)drawEventArt(tm);}
   var evc=document.getElementById('he-ev-cv');
-  if(evc&&evc.offsetParent){any=true;var eg=evc.getContext('2d');eg.setTransform(1,0,0,1,0,0);eg.clearRect(0,0,96,96);flatPumpkin(eg,48,54,26,tm,0,2);}
+  if(evc&&evc.offsetParent){any=true;var eg=evc.getContext('2d');eg.setTransform(1,0,0,1,0,0);eg.clearRect(0,0,96,96);if(WN_ON)flatSnowman(eg,48,86,26,tm,0,2);else flatPumpkin(eg,48,54,26,tm,0,2);}
   var hh=document.getElementById('home-hero');
   if(hh&&hh.offsetParent){any=true;drawHomeHero(tm);}
   var hc=document.getElementById('he-crate-cv');
@@ -11962,6 +12076,7 @@ function drawBackground(){
   if(th.id==='western')drawTumbleweed();
   if(th.id==='jungle')drawTorches();
   if(HW_ON&&!SETTINGS.boost)drawHalloweenStage();
+  if(WN_ON&&!SETTINGS.boost)drawWinterStage();
 }
 // 地面の表面：草・砂・雪の層が、波打つふちで少し垂れる（画面に見えている所だけ）
 var GROUND_CAP={storm:['#8FCB5C','#4F8A34'],desert:['#F2D29A','#D9A868'],ice:['#FFFFFF','#CFE8F8'],jungle:['#7DB84A','#3F7A2A']};

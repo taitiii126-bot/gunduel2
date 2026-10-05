@@ -154,7 +154,7 @@ function cleanLoadout(v, allowDup) {
 // ---- 見た目（それぞれ何番目の選択肢か。色や形そのものはブラウザ側で描く）----
 // hat=帽子 outfit=服の形 neck=首もと accent=自分の色（帽子のリボンと首もとの色）
 // あとから足した4つは 0 が「なし・今までの見た目」。前に保存した見た目は 0 になるので、見た目は変わらない
-var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 32, outfit: 29, neck: 23, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
+var LOOK_SIZES = { skin: 8, eyes: 5, eyeColor: 8, brows: 5, hair: 7, hairColor: 8, nose: 5, mouth: 5, hat: 35, outfit: 31, neck: 25, accent: 8, win: 17 };   // win＝勝ちポーズ（7〜16 は宝箱）
 var LOOK_KEYS = ['skin', 'eyes', 'eyeColor', 'brows', 'hair', 'hairColor', 'nose', 'mouth', 'hat', 'outfit', 'neck', 'accent', 'win'];
 var LOOK_GEAR = ['hat', 'outfit', 'neck', 'accent'];
 // ---- 宝箱から出るアイテム（帽子・服・首もと＝50種、勝ちポーズ＝10種、エモート＝16種）とレアリティ ----
@@ -166,9 +166,9 @@ var PITY_AT = 25;               // これだけ開けてもレジェンダリー
 var LOOK_BASE = { hat: 6, outfit: 5, neck: 4, win: 7 };
 // [番号, レアリティ]。名前と絵はブラウザ側（lang.js の item.<id>、index.html の描き方）
 var ITEM_RAR = {
-  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4], [24, 4], [25, 3], [26, 2], [27, 2], [28, 1], [29, 2], [30, 1], [31, 1]],
-  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4], [21, 4], [22, 2], [23, 3], [24, 1], [25, 2], [26, 1], [27, 2], [28, 2]],
-  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4], [20, 1], [21, 3], [22, 1]],
+  hat: [[6, 0], [7, 0], [8, 0], [9, 0], [10, 1], [11, 1], [12, 1], [13, 1], [14, 2], [15, 2], [16, 2], [17, 2], [18, 1], [19, 3], [20, 3], [21, 3], [22, 4], [23, 4], [24, 4], [25, 3], [26, 2], [27, 2], [28, 1], [29, 2], [30, 1], [31, 1], [32, 2], [33, 1], [34, 2]],
+  outfit: [[5, 0], [6, 0], [7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 1], [13, 2], [14, 2], [15, 2], [16, 3], [17, 3], [18, 2], [19, 3], [20, 4], [21, 4], [22, 2], [23, 3], [24, 1], [25, 2], [26, 1], [27, 2], [28, 2], [29, 3], [30, 2]],
+  neck: [[4, 0], [5, 0], [6, 0], [7, 0], [8, 1], [9, 2], [10, 1], [11, 1], [12, 2], [13, 2], [14, 2], [15, 1], [16, 2], [17, 3], [18, 3], [19, 4], [20, 1], [21, 3], [22, 1], [23, 1], [24, 1]],
   win: [[7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 2], [13, 2], [14, 3], [15, 3], [16, 4]]   // 勝ちポーズ
 };
 // エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
@@ -207,7 +207,26 @@ var EVENTS = {
     ],
     misBonus: 50,
     // イベント中に集めたキャンディの合計（使った分も数える）が need をこえると、限定の称号
-    title: { id: 'pumpkin_king', need: 3000 }
+    title: { id: 'pumpkin_king', need: 3000, flag: 'hwking' }
+  },
+  // 冬のイベント（12月）：雪の結晶を集めて、雪だるま・サンタ・トナカイと交換する。しくみはハロウィンと同じ
+  winter: {
+    month: 11,
+    shop: [['h32', 250], ['h33', 150], ['h34', 200], ['o29', 450], ['o30', 300], ['n23', 120], ['n24', 100]],
+    sets: [
+      { id: 'snowman', items: ['h32', 'o29', 'n24'], off: 50, look: { hat: 32, outfit: 29, neck: 24 } },
+      { id: 'santa', items: ['h33', 'o30'], off: 33, look: { hat: 33, outfit: 30, neck: 0 } },
+      { id: 'reindeer', items: ['h34', 'n23'], off: 25, look: { hat: 34, outfit: 0, neck: 23 } }
+    ],
+    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 400 },
+    missions: [
+      { k: 'win', n: 2, c: 50 }, { k: 'play', n: 4, c: 40 }, { k: 'kill', n: 8, c: 50 }, { k: 'rolldodge', n: 3, c: 50 },
+      { k: 'emote', n: 3, c: 30 }, { k: 'online', n: 2, c: 60 }, { k: 'nodmg', n: 1, c: 60 },
+      { k: 'killw', n: 3, w: 3, c: 60 }, { k: 'killw', n: 3, w: 6, c: 60 }, { k: 'killw', n: 2, w: 11, c: 60 },
+      { k: 'killw', n: 3, w: 4, c: 50 }, { k: 'killw', n: 3, w: 9, c: 50 }
+    ],
+    misBonus: 50,
+    title: { id: 'snow_king', need: 3000, flag: 'snowking' }
   }
 };
 // その日のハロウィンミッション（ミッションの番号を3つ）
@@ -2043,7 +2062,8 @@ var TITLES = [
   // シーズンの最終1位（crown：赤と金）。一度もらったら、また1位になっても増えない
   { id: 'unrivaled', crown: true, award: true, gate: { champion: true } },
   // ハロウィンのイベント中に、キャンディを合計 3000 個集める（称号の名前は「トリックオアトリート」。hw：かぼちゃ色のネオン）。イベントが終わったら、もう取れない
-  { id: 'pumpkin_king', hw: true, rare: true, award: true, gate: { hwking: true } }
+  { id: 'pumpkin_king', hw: true, rare: true, award: true, gate: { hwking: true } },
+  { id: 'snow_king', rare: true, award: true, gate: { snowking: true } }   // 冬のイベントの限定称号
 ];
 // 武器ごとの称号：その武器でとどめを 10・50・100 回（100 回はすべてレア）。kill = { w: 武器id, n: 回数 }
 // 前からある6つ（影の刃・千里眼・至近距離の鬼・蜂の巣職人・爆弾魔・電磁砲の申し子）は id をそのまま使う
@@ -2158,6 +2178,7 @@ function titleOk(id, ctx) {
     if (g.pioneer10 && !ctx.pioneer10) return false;
     if (g.hacker && !ctx.hacker) return false;
     if (g.tears && !ctx.tears) return false;
+    if (g.snowking && !ctx.snowking) return false;
     if (g.dev && !ctx.dev) return false;
     if (g.champion && !ctx.champion) return false;
     if (g.hwking && !ctx.hwking) return false;
