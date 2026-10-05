@@ -1,2 +1,4 @@
 dist/
 node_modules/
+clans.json
+clans.json.tmp

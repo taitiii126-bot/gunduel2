@@ -33,6 +33,7 @@ const { Room, TICK_MS, ACTIVE_MIN_INPUTS, SIM } = G;
 const { TeamRoom, SLOTS: TEAM_SLOTS, teamOf } = require('./team');   // 2v2（チーム戦）
 const auth = require('./auth');
 const presence = require('./presence');
+const clans = require('./clans');   // クラン
 // bots.js が無くても動くようにする（上げ忘れてもサーバー全体が止まらないように）
 let bots = null;
 try { bots = require('./bots'); } catch (e) { console.error('bots.js を読み込めませんでした。BOTの相手は出ません:', e.message); }
@@ -128,6 +129,7 @@ function postTierUp(user, key) {
 function progressOnline(p, win, stage) {
   if (!p || p.bot || !p.uid || p.suspect || p.acts < ACTIVE_MIN_INPUTS || !p.tally) return;
   const r = auth.applyMatch(p.uid, { mode: 'online', win, stage, tally: p.tally, emotes: p.emotes });
+  clans.addMatch(p.uid, win);   // クランのポイント（勝ち3・負け1）
   if (r && p.ws) p.ws.send(JSON.stringify({ type: 'progress', rev: r.rev, profile: r.profile, titles: r.titles, candy: r.candy, ev: r.ev }));
 }
 // ---- 戦績の記録（水増し・途中退出への対策つき）----
@@ -414,7 +416,7 @@ const rankPub = (r, rank) => ({ rank, name: r.name, title: r.title, tier: r.tier
 
 // ---- フレンドへのお知らせ（ページを開いている人にだけ届く）----
 function pushTo(uid, obj) { const s = JSON.stringify(obj); for (const w of presence.sockets(uid)) w.send(s); }
-function cardOf(uid) { const u = auth.user(uid); return u ? auth.card(u, presence.statusOf(uid)) : null; }
+function cardOf(uid) { const u = auth.user(uid); return u ? Object.assign(auth.card(u, presence.statusOf(uid)), { clan: clans.tagOf(uid) }) : null; }
 
 // ---- ランダムマッチ（ランクマッチ／アンランクマッチ）----
 // 待っている人を1つの列に入れ、1秒ごとに近いレート同士を組ませる。
@@ -1091,6 +1093,28 @@ function handleHttp(req, res) {
     const q = new URLSearchParams((req.url || '').split('?')[1] || '');
     const t = auth.byFid(q.get('id'));
     return t ? json(res, 200, { player: auth.card(t, presence.statusOf(t.id)) }) : json(res, 404, { error: 'not_found' });
+  }
+  // クラン：自分のクランとランキング（GET）、作る・入る・抜ける・外す（POST { op, ... }）
+  if (url === '/api/clan') {
+    const u = auth.verify(bearer(req));
+    const q = new URLSearchParams((req.url || '').split('?')[1] || '');
+    const by = q.get('by') === 'total' ? 'total' : 'week';
+    const mine = () => { const c = u && clans.clanOf(u.id); return c ? clans.view(c, id => { const k = cardOf(id); return k ? { fid: k.fid, name: k.name, status: k.status } : null; }) : null; };
+    if (req.method === 'GET') return json(res, 200, { mine: mine(), top: clans.top(by, 20), by, pts: { win: clans.PTS_WIN, play: clans.PTS_PLAY } });
+    if (req.method !== 'POST') return json(res, 405, { error: 'method' });
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!friendOps.hit(u.id)) return json(res, 429, { error: 'too_many' });
+    return readJson(req, m => {
+      const op = m && m.op;
+      let r;
+      if (op === 'create') r = clans.create(u.id, m.name, m.tag);
+      else if (op === 'join') r = clans.join(u.id, m.id);
+      else if (op === 'leave') r = clans.leave(u.id);
+      else if (op === 'kick') { const t = auth.byFid(m.fid); r = t ? clans.kick(u.id, t.id) : { error: 'not_member' }; }
+      else return json(res, 400, { error: 'bad' });
+      if (r.ok) log('clan', op, 'discord=' + u.id, r.clan ? r.clan.id + ' [' + r.clan.tag + ']' : '');
+      json(res, r.ok ? 200 : 400, { ok: !!r.ok, error: r.error || null, mine: mine(), top: clans.top(by, 20), by });
+    });
   }
   if (url === '/api/logout' && req.method === 'POST') { auth.logout(bearer(req)); return json(res, 200, { ok: true }); }
   if (url === '/api/tier' && req.method === 'POST') {

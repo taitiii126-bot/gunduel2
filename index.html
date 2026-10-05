@@ -401,6 +401,36 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .tl-slot.me{outline:2px solid var(--gold);}
 .tl-slot small{font-size:10px;color:var(--gold);}
 .tl-slot.empty{border:1px dashed var(--line-2);color:var(--tx-3);}
+.cl-form{display:grid;gap:10px;}
+.cl-form label{display:grid;grid-template-columns:110px minmax(0,1fr);align-items:center;gap:10px;font-size:13px;color:var(--tx-2);}
+.cl-note{margin:0;font-size:11px;color:var(--tx-3);line-height:1.5;}
+.cl-hrow{display:flex;align-items:center;gap:10px;margin-bottom:10px;min-width:0;}
+.cl-tag{flex:none;padding:3px 9px;border-radius:7px;background:linear-gradient(180deg,#FFD46B,#E2A325);color:#1A1204;font-family:var(--f-ui);font-weight:800;font-size:14px;letter-spacing:.08em;}
+.cl-tag.sm{font-size:11px;padding:2px 6px;}
+.cl-nm{font-size:20px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px;}
+.cl-stats span{display:flex;flex-direction:column;align-items:center;padding:8px;border-radius:10px;background:rgba(255,255,255,.04);}
+.cl-stats small{font-size:10px;color:var(--tx-3);font-weight:700;}
+.cl-stats b{font-family:var(--f-ui);font-size:20px;color:var(--gold);}
+.cl-mem,.cl-rank{display:grid;gap:6px;}
+.cl-m,.cl-r{display:grid;align-items:center;gap:8px;padding:8px 10px;border-radius:10px;background:rgba(255,255,255,.035);font-size:13px;min-width:0;}
+.cl-m{grid-template-columns:10px minmax(0,1fr) auto auto 52px;}
+.cl-m.me,.cl-r.me{outline:1.5px solid var(--gold);}
+.cl-m b,.cl-r b{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-m em{margin-left:6px;font-style:normal;font-size:10px;color:var(--gold);}
+.cl-p{display:flex;flex-direction:column;align-items:flex-end;font-family:var(--f-ui);font-weight:700;}
+.cl-p small{font-size:9px;color:var(--tx-3);}
+.cl-dot{width:8px;height:8px;border-radius:50%;background:#4B5563;}
+.cl-dot.online{background:#34D399;}.cl-dot.ingame,.cl-dot.cpu{background:#FBBF24;}
+.cl-kick{padding:4px 6px;border-radius:7px;border:1px solid rgba(255,77,94,.5);background:none;color:#FF8A96;font-size:11px;font-weight:800;}
+.cl-leave{margin-top:10px;width:100%;padding:9px;border-radius:10px;border:1px solid rgba(255,77,94,.45);background:rgba(255,77,94,.08);color:#FF8A96;font-weight:800;}
+.cl-tabs{display:flex;gap:6px;margin-bottom:8px;}
+.cl-tabs button{flex:1;padding:7px;border-radius:9px;border:1px solid var(--line);background:none;color:var(--tx-2);font-weight:800;}
+.cl-tabs button.on{background:var(--gold);color:#1A1204;border-color:var(--gold);}
+.cl-r{grid-template-columns:28px auto minmax(0,1fr) auto 56px;}
+.cl-rk{font-family:var(--f-ui);font-weight:800;color:var(--gold);text-align:center;}
+.cl-r small{font-size:10px;color:var(--tx-3);}
+.cl-rp{font-family:var(--f-ui);font-weight:800;text-align:right;}
 .tl-rules{display:grid;gap:8px;margin:0 0 12px;padding:10px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.03);}
 .tl-rules h4{margin:0;font-size:11px;font-weight:700;letter-spacing:.12em;color:var(--tx-3);}
 .tl-rules label,.tl-rules p{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0;font-size:13px;}
@@ -1707,9 +1737,10 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
 .home-hero:hover .hh-edit,.home-hero:focus-visible .hh-edit{opacity:1;}
 .home-main>.play-grid{order:2;}
 .home-side{order:3;display:grid;grid-template-columns:1fr 1fr;gap:10px;}
-.home-main>.sub-grid{order:4;grid-template-columns:repeat(4,1fr);margin-top:0;}
+.home-main>.sub-grid{order:4;grid-template-columns:repeat(5,1fr);margin-top:0;}
+.home-main>.sub-grid>.sub-btn:last-child{grid-column:auto;}
 .home-main>#login-bar{order:5;}
-@media (max-width:560px){.home-main>.sub-grid{grid-template-columns:1fr 1fr;}}
+@media (max-width:560px){.home-main>.sub-grid{grid-template-columns:1fr 1fr;}.home-main>.sub-grid>.sub-btn:last-child{grid-column:1 / -1;}}
 .side-btn{position:relative;display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:14px;background:rgba(15,18,27,.9);border:1px solid var(--line);color:var(--tx);font-size:14px;font-weight:900;text-align:left;transition:.18s var(--ease);}
 .side-btn:hover{transform:translateY(-2px);border-color:var(--line-2);}
 .side-btn .sb-ic{flex:none;width:30px;height:30px;display:grid;place-items:center;}
@@ -1724,6 +1755,7 @@ body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:n
   .home-hero{grid-column:2;grid-row:1 / span 3;height:min(62vh,560px);}
   .home-main>.play-grid{grid-column:3;grid-row:1;grid-template-columns:1fr;}
   .home-main>.sub-grid{grid-column:3;grid-row:2;grid-template-columns:1fr 1fr;}
+  .home-main>.sub-grid>.sub-btn:last-child{grid-column:1 / -1;}
   .home-main>#login-bar{grid-column:3;grid-row:3;}
 }
 body.mland .home-main{display:grid;grid-template-columns:minmax(0,.8fr) minmax(0,1fr) minmax(0,1.2fr);column-gap:14px;row-gap:6px;align-items:center;text-align:left;}
@@ -1732,6 +1764,9 @@ body.mland .side-btn{padding:7px 10px;font-size:12px;}
 body.mland .home-hero{grid-column:2;grid-row:1 / span 3;height:62vh;}
 body.mland .home-main>.play-grid{grid-column:3;grid-row:1;}
 body.mland .home-main>.sub-grid{grid-column:3;grid-row:2;grid-template-columns:1fr 1fr;}
+body.mland .home-main>.sub-grid{grid-template-columns:repeat(6,minmax(0,1fr));}
+body.mland .home-main>.sub-grid>.sub-btn{grid-column:span 2;padding-left:6px;padding-right:6px;gap:5px;}
+body.mland .home-main>.sub-grid>.sub-btn:nth-child(n+4){grid-column:span 3;}
 body.mland .home-main>#login-bar{grid-column:3;grid-row:3;}
 /* ==== シーズンパス・ショップ・ログインボーナス（ホームと同じ見た目）====
    ・背景は夜の西部の町（ホームと同じ）に、暗い幕をかける
@@ -2164,6 +2199,7 @@ body.mland .home-hero{height:72vh;}
       <div class="sub-grid">
         <button class="sub-btn" onclick="showLoadoutScreen('mode')"><svg class="i" viewBox="0 0 24 24"><path d="M3 10h13l2-2h3v4h-3l-1 1H9l-1 5H5l1-5H3z"/><path d="M11 13v2"/></svg><span data-i18n="menu.loadout"></span></button>
         <button class="sub-btn" onclick="showFriendsScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><circle cx="17" cy="9" r="2.8"/><path d="M16.5 14.2A5.5 5.5 0 0 1 21.5 20"/></svg><span class="mb-badge" id="fr-badge" style="display:none;"></span></span><span data-i18n="menu.friends"></span></button>
+        <button class="sub-btn" onclick="showClanScreen()"><svg class="i" viewBox="0 0 24 24"><path d="M12 2.5 4 5.5v6c0 5 3.4 8.7 8 10 4.6-1.3 8-5 8-10v-6z"/><path d="M8.5 12.5 11 15l4.5-5"/></svg><span data-i18n="menu.clan"></span></button>
         <button class="sub-btn" onclick="showRankScreen()"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg><span data-i18n="menu.rank"></span></button>
         <button class="sub-btn" onclick="startRange()"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="4.5"/><circle cx="12" cy="12" r="1" fill="currentColor" stroke="none"/><path d="M12 1.5v3M12 19.5v3M1.5 12h3M19.5 12h3"/></svg><span data-i18n="menu.range"></span></button>
       </div>
@@ -2322,6 +2358,16 @@ body.mland .home-hero{height:72vh;}
     <div class="v2-sec"><h3 data-i18n="pass.missions"></h3><p id="pass-note"></p></div>
     <div class="ps-mis" id="pass-mis"></div>
     <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
+  </div>
+
+  <div id="clan-screen" class="screen menu" style="display:none;">
+    <div class="scr-head">
+      <span class="kicker" data-i18n="cl.kicker"></span>
+      <h2 class="scr-title" data-i18n="cl.title"></h2>
+      <p class="scr-sub" id="cl-sub"></p>
+    </div>
+    <div id="cl-body"></div>
+    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
   </div>
 
   <div id="friends-screen" class="screen menu" style="display:none;">
@@ -2633,7 +2679,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=44"></script>
-<script src="lang.js?v=53"></script>
+<script src="lang.js?v=54"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4758,7 +4804,7 @@ function applyRateResult(r){
 function bgIndex(){return profile.bg==null?profile.bestTier:profile.bg;}
 function titleText(id){return t('title.'+(id||'rookie'));}
 function myCardData(){
-  return{name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),titleHw:isHwTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
+  return{clan:AUTH.user?clanTag():'',name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),titleHw:isHwTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
 }
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
@@ -5406,7 +5452,7 @@ function presenceStatus(st){
   if(PRES.ws&&PRES.ws.readyState===1)PRES.ws.send(JSON.stringify({type:'status',s:st}));
 }
 function handlePresenceMsg(m){
-  if(m.type==='hello_ok'){PRES.wait=2000;setPresState('on');if(m.user&&AUTH.user){AUTH.user=m.user;renderLoginUI();}loadFriends();try{PRES.ws.send(JSON.stringify({type:'party_get'}));}catch(e){}}
+  if(m.type==='hello_ok'){PRES.wait=2000;setPresState('on');if(m.user&&AUTH.user){AUTH.user=m.user;renderLoginUI();}loadFriends();loadClan();try{PRES.ws.send(JSON.stringify({type:'party_get'}));}catch(e){}}
   else if(m.type==='friend_status')onFriendStatus(m);
   else if(m.type==='friend_event')onFriendEvent(m);
   else if(m.type==='invite')onInvite(m);
@@ -5576,6 +5622,72 @@ function renderRanking(failed){
   meEl.innerHTML=inList?'':d.me?rankRowHtml(d.me,true):(AUTH.user?'<div class="rk-empty">'+esc(t('rank.meNone'))+'</div>':'<div class="rk-empty">'+esc(t('rank.needLogin'))+'</div>');
   note.textContent=t('rank.note',{n:d.total,min:Math.max(1,Math.round((d.ttl||300000)/60000))});
 }
+// ---- クラン：仲間で集まって、オンライン対戦のポイント（勝ち3・負け1）を合計で競う ----
+var CLAN={mine:null,top:[],by:'week',loaded:false,busy:false,msg:'',err:false,leaveAt:0,kickAt:{}};
+function clanTag(){return CLAN.mine?CLAN.mine.tag:'';}
+function cleanTagC(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);}
+function showClanScreen(){CLAN.msg='';showScreen('clan-screen');renderClan();loadClan();}
+function clanApi(method,body){
+  var h={};if(AUTH.token)h.Authorization='Bearer '+AUTH.token;if(body)h['Content-Type']='application/json';
+  return fetch(httpBase()+'/api/clan?by='+CLAN.by,{method:method,headers:h,body:body?JSON.stringify(body):undefined})
+    .then(function(r){return r.json().catch(function(){return{};}).then(function(d){return{status:r.status,d:d||{}};});});
+}
+function clanAdopt(d){if(!d)return;if('mine' in d)CLAN.mine=d.mine||null;if(d.top)CLAN.top=d.top;CLAN.loaded=true;if(d.pts)CLAN.pts=d.pts;}
+function loadClan(){
+  clanApi('GET').then(function(r){clanAdopt(r.d);if(currentScreen==='clan-screen')renderClan();}).catch(function(){CLAN.msg=t('cl.err.net');CLAN.err=true;if(currentScreen==='clan-screen')renderClan();});
+}
+function clanOp(op,extra){
+  if(!AUTH.user||CLAN.busy)return;
+  CLAN.busy=true;
+  clanApi('POST',Object.assign({op:op},extra||{})).then(function(r){
+    CLAN.busy=false;clanAdopt(r.d);
+    var e=r.status===429?'too_many':r.d.error;
+    CLAN.msg=e?t('cl.err.'+e):t('cl.ok.'+op);CLAN.err=!!e;
+    if(!e&&op!=='kick')SFX.coin();
+    renderClan();
+  }).catch(function(){CLAN.busy=false;CLAN.msg=t('cl.err.net');CLAN.err=true;renderClan();});
+}
+function clanCreate(){var n=document.getElementById('cl-name').value,tg=document.getElementById('cl-tag').value;clanOp('create',{name:n,tag:tg});}
+function clanJoin(){clanOp('join',{id:document.getElementById('cl-id').value});}
+function clanLeave(){if(Date.now()-CLAN.leaveAt>4000){CLAN.leaveAt=Date.now();CLAN.msg=t('cl.leaveSure');CLAN.err=true;renderClan();return;}CLAN.leaveAt=0;clanOp('leave');}
+function clanKick(fid){if(Date.now()-(CLAN.kickAt[fid]||0)>4000){CLAN.kickAt[fid]=Date.now();CLAN.msg=t('cl.kickSure');CLAN.err=true;renderClan();return;}CLAN.kickAt[fid]=0;clanOp('kick',{fid:fid});}
+function clanBy(b){CLAN.by=b;loadClan();renderClan();}
+function clanCopy(btn){var id=CLAN.mine&&CLAN.mine.id;if(!id)return;try{navigator.clipboard.writeText(id);}catch(e){}btn.textContent=t('pf.copied');setTimeout(function(){btn.textContent=t('pf.copy');},1500);}
+function renderClan(){
+  var el=document.getElementById('cl-body');if(!el)return;
+  var P=CLAN.pts||{win:3,play:1};
+  document.getElementById('cl-sub').textContent=t('cl.sub',{w:P.win,p:P.play});
+  var h='';
+  if(!AUTH.user)h+='<div class="settings-section fr-login"><p>'+esc(t('cl.needLogin'))+'</p><button class="login-btn" onclick="discordLogin()"><span>'+esc(t('login.discord'))+'</span></button></div>';
+  else if(!CLAN.loaded)h+='<div class="rk-empty">'+esc(t('rank.loading'))+'</div>';
+  else if(!CLAN.mine){
+    h+='<div class="settings-section cl-form"><h3><span>'+esc(t('cl.create'))+'</span><span>CREATE</span></h3>'+
+      '<label><span>'+esc(t('cl.name'))+'</span><input id="cl-name" class="fr-input" maxlength="16" placeholder="'+esc(t('cl.namePh'))+'" autocomplete="off"></label>'+
+      '<label><span>'+esc(t('cl.tag'))+'</span><input id="cl-tag" class="fr-input" maxlength="4" placeholder="ABC" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\')"></label>'+
+      '<p class="cl-note">'+esc(t('cl.tagNote'))+'</p><button class="fr-send" onclick="clanCreate()">'+esc(t('cl.createBtn'))+'</button></div>'+
+      '<div class="settings-section cl-form"><h3><span>'+esc(t('cl.join'))+'</span><span>JOIN</span></h3>'+
+      '<div class="fr-add"><input id="cl-id" class="fr-input" maxlength="6" inputmode="numeric" placeholder="'+esc(t('cl.idPh'))+'" oninput="this.value=this.value.replace(/\\D/g,\'\')" onkeydown="if(event.key===\'Enter\')clanJoin()"><button class="fr-send" onclick="clanJoin()">'+esc(t('cl.joinBtn'))+'</button></div></div>';
+  }else{
+    var C=CLAN.mine,me=AUTH.user&&AUTH.user.fid,owner=C.members.some(function(m){return m.owner&&m.fid===me;});
+    h+='<div class="settings-section cl-head"><div class="cl-hrow"><span class="cl-tag">'+esc(C.tag)+'</span><b class="cl-nm">'+esc(C.name)+'</b></div>'+
+      '<div class="cl-stats"><span><small>'+esc(t('cl.week'))+'</small><b>'+C.week+'</b></span><span><small>'+esc(t('cl.total'))+'</small><b>'+C.pts+'</b></span><span><small>'+esc(t('cl.members'))+'</small><b>'+C.members.length+'/'+C.max+'</b></span></div>'+
+      '<div class="fr-me"><span>'+esc(t('cl.id'))+'</span><b>'+esc(C.id)+'</b><button class="acc-copy" onclick="clanCopy(this)">'+esc(t('pf.copy'))+'</button></div>'+
+      '<p class="cl-note">'+esc(t('cl.idNote'))+'</p></div>';
+    var ms=C.members.slice().sort(function(a,b){return b.week-a.week||b.pts-a.pts;});
+    h+='<div class="settings-section"><h3><span>'+esc(t('cl.members'))+'</span><span>MEMBERS</span></h3><div class="cl-mem">'+ms.map(function(m){
+      return'<div class="cl-m'+(m.fid===me?' me':'')+'"><span class="cl-dot '+esc(m.status||'offline')+'"></span><b>'+esc(m.name)+(m.owner?'<em>'+esc(t('cl.leader'))+'</em>':'')+'</b>'+
+        '<span class="cl-p"><small>'+esc(t('cl.week'))+'</small>'+m.week+'</span><span class="cl-p"><small>'+esc(t('cl.total'))+'</small>'+m.pts+'</span>'+
+        (owner&&m.fid!==me?'<button class="cl-kick" onclick="clanKick(\''+safeFid(m.fid)+'\')">'+esc(t('cl.kick'))+'</button>':'<span></span>')+'</div>';}).join('')+'</div>'+
+      '<button class="cl-leave" onclick="clanLeave()">'+esc(t('cl.leave'))+'</button></div>';
+  }
+  if(CLAN.msg)h='<p class="fr-msg '+(CLAN.err?'err':'ok')+'">'+esc(CLAN.msg)+'</p>'+h;
+  // ランキング
+  h+='<div class="settings-section"><h3><span>'+esc(t('cl.rank'))+'</span><span>RANKING</span></h3><div class="cl-tabs">'+
+    ['week','total'].map(function(b){return'<button class="'+(CLAN.by===b?'on':'')+'" onclick="clanBy(\''+b+'\')">'+esc(t('cl.'+b))+'</button>';}).join('')+'</div><div class="cl-rank">';
+  h+=CLAN.top.length?CLAN.top.map(function(c){var mine=CLAN.mine&&CLAN.mine.id===c.id;return'<div class="cl-r'+(mine?' me':'')+'"><span class="cl-rk">'+c.rank+'</span><span class="cl-tag sm">'+esc(c.tag)+'</span><b>'+esc(c.name)+'</b><small>'+esc(t('cl.nMem',{n:c.n}))+'</small><span class="cl-rp">'+c.pts+'</span></div>';}).join(''):'<div class="rk-empty">'+esc(t('cl.noRank'))+'</div>';
+  h+='</div></div>';
+  el.innerHTML=h;
+}
 function showFriendsScreen(){setFrMsg('','');showScreen('friends-screen');renderFriends();loadFriends();}
 function sendFriendRequest(){
   if(!AUTH.user)return;
@@ -5598,7 +5710,7 @@ function friendOp(op,fid){
 }
 // ---- フレンドのプロフィール（自分のプロフィールと同じカード）----
 function friendCardData(p){
-  return{name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),titleHw:isHwTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
+  return{clan:cleanTagC(p.clan),name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),titleHw:isHwTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
     look:SIM.cleanLook(p.look||LOOK_DEFAULT,true),loadout:p.loadout?SIM.cleanLoadout(p.loadout,false):null,team:TEAM.me,badge:p.badge==null?null:+p.badge};
 }
 function openFriend(fid){
@@ -5739,7 +5851,7 @@ function renderPresDot(){
 // ============================================================
 // 画面遷移
 // ============================================================
-var SCREENS=['event-screen','tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen','shop-screen'];
+var SCREENS=['event-screen','tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen','shop-screen','clan-screen'];
 var currentScreen='';
 function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
@@ -6980,7 +7092,7 @@ function handleOnlineMsg(msg){
     TEAM2=true;mySlot=msg.slot;RANKED=!!msg.ranked;TM={players:{},ranked:!!msg.ranked};TLOBBY=null;
     SIM.TEAM_SLOTS.forEach(function(s){
       var p=msg.players&&msg.players[s];if(!p)return;
-      TM.players[s]={dev:!!p.dev,name:String(p.name||'').slice(0,12),discord:p.verified?String(p.discord||'').slice(0,32):'',tier:String(p.tier||'').slice(0,5),
+      TM.players[s]={clan:cleanTagC(p.clan),dev:!!p.dev,name:String(p.name||'').slice(0,12),discord:p.verified?String(p.discord||'').slice(0,32):'',tier:String(p.tier||'').slice(0,5),
         loadout:SIM.cleanLoadout(p.loadout,true),look:SIM.cleanLook(p.look,true),title:String(p.title||'rookie'),bio:String(p.bio||'').slice(0,40),
         bg:(p.bg===EMP_BG||p.bg===CHAMP_BG||p.bg==='dev'||p.bg===HW_BG)?p.bg:p.bg>=0&&p.bg<=10?Math.floor(p.bg):null,
         rec:p.rec&&p.rec.w>=0&&p.rec.l>=0?{w:Math.floor(p.rec.w),l:Math.floor(p.rec.l),kind:p.rec.kind==='online'?'online':'cpu'}:null};
@@ -6997,7 +7109,7 @@ function handleOnlineMsg(msg){
     if(!msg.ended)note(t('c.teamLeft',{name:msg.name||(PL&&PL.name)||'?'}));
   }
   else if(mt==='both_ready'){
-    if(msg.opp)oppInfo={dev:!!msg.opp.dev,name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),look:SIM.cleanLook(msg.opp.look,true),
+    if(msg.opp)oppInfo={clan:cleanTagC(msg.opp.clan),dev:!!msg.opp.dev,name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),look:SIM.cleanLook(msg.opp.look,true),
       title:String(msg.opp.title||'rookie'),bio:String(msg.opp.bio||'').slice(0,40),bg:(msg.opp.bg===EMP_BG||msg.opp.bg===CHAMP_BG||msg.opp.bg==='dev'||msg.opp.bg===HW_BG)?msg.opp.bg:msg.opp.bg>=0&&msg.opp.bg<=10?Math.floor(msg.opp.bg):null,
       rec:msg.opp.rec&&msg.opp.rec.w>=0&&msg.opp.rec.l>=0?{w:Math.floor(msg.opp.rec.w),l:Math.floor(msg.opp.rec.l),kind:msg.opp.rec.kind==='online'?'online':'cpu'}:null};
     startPingLoop();achMatchStart();
@@ -11040,6 +11152,11 @@ function drawProfileCard(g,P,x,y,w,h,tm){
   g.strokeText(P.name||'',x+pad,nameY);
   g.fillStyle='#FFFFFF';g.fillText(P.name||'',x+pad,nameY);
   if(P.dev)drawDevBadge(g,x+pad+g.measureText(P.name||'').width+nsz*.42,nameY-nsz*.31,nsz*.33);   // 名前のうしろに運営の印
+  if(P.clan){   // クランのタグ：名前の上に小さな金の札
+    g.save();var cs=Math.round(w*.045);g.font='800 '+cs+'px '+FONT_UI;var cw2=g.measureText(P.clan).width+cs*.9,cy2=nameY-nsz*1.02-cs*1.25;
+    rrPath(g,x+pad,cy2,cw2,cs*1.25,cs*.3);var cg=g.createLinearGradient(0,cy2,0,cy2+cs*1.25);cg.addColorStop(0,'#FFD46B');cg.addColorStop(1,'#E2A325');g.fillStyle=cg;g.fill();
+    g.fillStyle='#1A1204';g.textBaseline='middle';g.fillText(P.clan,x+pad+cs*.45,cy2+cs*.66);g.restore();
+  }
   // 右下：持っている武器
   for(var i=0;i<icons;i++){
     var ix=x+w-pad-(icons-i)*iconW*1.02,iy=top+ch-pad*.8-iconW*.7,col=WEAPONS[P.loadout[i]].color;
@@ -12924,7 +13041,7 @@ function myRecord(){
 function tierIdxOf(key){for(var i=1;i<TIER_LADDER.length;i++)if(TIER_LADDER[i].key===key)return i;return 0;}
 function oppCardData(){
   var ti=tierIdxOf(oppInfo.tier);
-  return{name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),titleCrown:isCrownTitle(oppInfo.title),titleGlitch:isGlitchTitle(oppInfo.title),titleHw:isHwTitle(oppInfo.title),dev:!!oppInfo.dev,bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
+  return{clan:cleanTagC(oppInfo.clan),name:oppInfo.name||t('c.opp'),title:titleText(oppInfo.title),titleRare:isRareTitle(oppInfo.title),titleMythic:isMythicTitle(oppInfo.title),titleGift:isGiftTitle(oppInfo.title),titlePrism:isPrismTitle(oppInfo.title),titleCrown:isCrownTitle(oppInfo.title),titleGlitch:isGlitchTitle(oppInfo.title),titleHw:isHwTitle(oppInfo.title),dev:!!oppInfo.dev,bio:oppInfo.bio||'',tier:ti,bg:bgOf(oppInfo.bg,ti),look:oppInfo.look,loadout:oppInfo.loadout,team:TEAM.foe};
 }
 function drawRecPill(cx,y,rec,col){
   var total=rec?rec.w+rec.l:0;
@@ -12952,7 +13069,7 @@ function drawDiscordTag(cx,y,name){
 function teamCardData(s){
   if(s===mySlot){var m=myCardData();m.tier=myTier2Index();m.bg=bgIndex();return m;}
   var P=TM.players[s]||{},ti=tierIdxOf(P.tier);
-  return{name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),titleCrown:isCrownTitle(P.title),titleGlitch:isGlitchTitle(P.title),titleHw:isHwTitle(P.title),dev:!!P.dev,bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
+  return{clan:cleanTagC(P.clan),name:P.name||'?',title:titleText(P.title),titleRare:isRareTitle(P.title),titleMythic:isMythicTitle(P.title),titleGift:isGiftTitle(P.title),titlePrism:isPrismTitle(P.title),titleCrown:isCrownTitle(P.title),titleGlitch:isGlitchTitle(P.title),titleHw:isHwTitle(P.title),dev:!!P.dev,bio:P.bio||'',tier:ti,bg:bgOf(P.bg,ti),look:P.look||LOOK_DEFAULT,loadout:P.loadout,team:teamStyle(s).team};
 }
 function drawVsTeam(T){
   var cw=124,ch=164,cy=(VH-ch)/2+6,e=1-Math.pow(1-Math.min(1,T/.45),3),out=T>2.65?Math.min(1,(T-2.65)/.35):0;
@@ -13228,7 +13345,7 @@ function drawBgFx(tm){
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,showClanScreen,clanCreate,clanJoin,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得
