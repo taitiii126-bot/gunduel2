@@ -815,7 +815,7 @@ const auth = {
     };
   },
   ownedLook(uid, look) { const u = uid && db.users[uid]; return SIM.lookOwned(look, u && u.profile ? SIM.cleanInv(u.profile.inv) : null); },
-  ownsEmote(uid, n) { n = Math.floor(+n); if (!(n >= 0 && n < SIM.EMOTE_N)) return false; if (n < SIM.EMOTE_FREE) return true; const u = uid && db.users[uid]; return !!(u && u.profile && SIM.cleanInv(u.profile.inv).indexOf('e' + n) >= 0); },
+  ownsEmote(uid, n) { n = Math.floor(+n); if (!(n >= 0 && n < SIM.EMOTE_N)) return false; if (SIM.emoteFree(n)) return true; const u = uid && db.users[uid]; return !!(u && u.profile && SIM.cleanInv(u.profile.inv).indexOf('e' + n) >= 0); },
   user(uid) { return db.users[uid] || null; },
   rollSeason, seasonTop,                              // シーズン（テストから呼べるように）
   users() { return Object.values(db.users); },

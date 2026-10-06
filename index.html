@@ -1411,7 +1411,13 @@ body.demo #bg-shade{opacity:1;}
 .ph-result .cr-btns{animation:crUp .35s var(--ease);}
 @keyframes crUp{from{opacity:0;transform:translateY(16px);}}
 #emote-menu{position:absolute;left:50%;bottom:120px;z-index:30;display:none;gap:8px;transform:translateX(-50%);padding:8px;border-radius:16px;background:rgba(8,10,18,.8);border:1px solid var(--line);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);}
-#emote-menu.show{display:flex;animation:crUp .2s var(--ease);}
+#emote-menu.show{display:flex;flex-direction:column;align-items:center;gap:8px;animation:crUp .2s var(--ease);max-width:min(96vw,560px);}
+#emote-menu .emo-row{display:flex;gap:8px;}
+#emote-menu .qc-row{display:flex;flex-wrap:wrap;justify-content:center;gap:6px;}
+#emote-menu button.qc{width:auto;height:auto;padding:6px 11px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid var(--line-2);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;}
+#emote-menu button.qc.mine{border-color:rgba(255,197,61,.6);color:#FFE7A0;}
+#emote-menu button.qc:hover{background:rgba(255,255,255,.2);}
+.qc-ins{display:flex;gap:6px;flex:1;max-width:340px;}.qc-ins input{min-width:0;flex:1;}
 #emote-menu button{position:relative;width:60px;height:60px;padding:0;border-radius:50%;background:none;}
 #emote-menu canvas{width:60px;height:60px;}
 #emote-menu kbd{position:absolute;right:-2px;bottom:-2px;padding:0 4px;border-radius:4px;background:#000;font-size:10px;color:var(--tx-2);}
@@ -2102,6 +2108,21 @@ body[data-scr="event-screen"] #bs-bg{display:block;background:radial-gradient(70
 .ev-oname small{margin-top:2px;font-family:var(--f-jp);font-weight:900;font-size:11px;color:#7FE8FF;text-shadow:0 1px 0 #1A0A2E;}
 .ev-ofoot{position:relative;height:64px;display:flex;align-items:center;justify-content:flex-start;gap:6px;padding:0 82px 0 14px;border:3px solid #1A0A2E;border-top:2px solid #1A0A2E;background:linear-gradient(180deg,#5A2496,#3E1474);cursor:pointer;font-family:var(--f-ui);color:#fff;}
 .ev-ofoot:hover{filter:brightness(1.1);}
+/* ---- 冬のイベント：同じ画面を、氷の青と白にぬりかえる ---- */
+body.ev-wn{--hw-or:#5CC8FF;--hw-or2:#A8DCFF;--hw-pu:#2F6FD6;}
+body.ev-wn[data-scr="event-screen"] #bs-bg{background:radial-gradient(70% 45% at 50% 0%,rgba(60,130,240,.35),transparent 70%),radial-gradient(70% 40% at 50% 100%,rgba(170,225,255,.18),transparent 70%),linear-gradient(180deg,rgba(5,12,28,.75),rgba(4,8,18,.92));}
+body.ev-wn #event-screen .v2-chip{background:rgba(92,200,255,.1);box-shadow:inset 0 0 0 1px rgba(92,200,255,.45);}
+body.ev-wn .ev-candy{background:linear-gradient(90deg,rgba(92,200,255,.2),rgba(15,18,27,.9));box-shadow:inset 0 0 0 1px rgba(92,200,255,.5);}
+body.ev-wn .ev-login{background:rgba(47,111,214,.16);box-shadow:inset 0 0 0 1px rgba(92,170,255,.4);}
+body.ev-wn .ev-mis,body.ev-wn .ev-king{background:linear-gradient(180deg,#101a2c,#0b111d);box-shadow:inset 0 0 0 1px rgba(92,170,255,.35);}
+body.ev-wn .ev-mi-ic{background:rgba(92,200,255,.14);color:#A8DCFF;}
+body.ev-wn .ev-mis .v2-bar i,body.ev-wn .ev-king .v2-bar i,body.ev-wn .ev-how .v2-bar i{background:linear-gradient(90deg,#5CC8FF,#E6F6FF);box-shadow:0 0 10px rgba(92,200,255,.5);}
+body.ev-wn .ev-king-lb{color:#A8DCFF;}
+body.ev-wn .ev-king.got{box-shadow:inset 0 0 0 1px rgba(168,220,255,.7),0 0 22px -8px rgba(92,200,255,.8);}
+body.ev-wn .ev-ohead{background:linear-gradient(180deg,#4F9BEA,#2F6FD6);border-color:#0A1A33;text-shadow:0 2px 0 #0A1A33;}
+body.ev-wn .ev-ofoot{background:linear-gradient(180deg,#245BB8,#173E86);border-color:#0A1A33;}
+body.ev-wn .ev-obody{background:radial-gradient(circle at 20% 30%,rgba(255,255,255,.5) 0 1.5px,transparent 2px) 0 0/34px 34px,radial-gradient(circle at 70% 65%,rgba(255,255,255,.35) 0 1px,transparent 1.5px) 0 0/26px 26px,radial-gradient(80% 60% at 50% 45%,#5B8FE0,#2A4E9E 70%,#1A3270);border-color:#0A1A33;}
+body.ev-wn .ev-off{background:linear-gradient(180deg,#8FD8FF,#3D8FE6);border-color:#0A1A33;box-shadow:0 4px 0 #0A1A33;}
 .ev-ofoot s{font-weight:700;font-size:16px;color:#E8DDF5;text-decoration:line-through 3px #FF3B5C;}
 .ev-ofoot canvas{width:30px;height:30px;}
 .ev-ofoot b{font-weight:700;font-size:26px;text-shadow:0 2px 0 #1A0A2E;}
@@ -2433,6 +2454,13 @@ body.mland .home-hero{height:72vh;}
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.boost"></span><small class="kb-hint" data-i18n="set.boostHint"></small></span><span class="lang-seg" data-fxopt="boost"></span></div>
     </div>
     <div class="settings-section">
+      <h3><span data-i18n="set.chat"></span><span>CHAT</span></h3>
+      <div class="kb-row"><span class="kb-label"><span data-i18n="set.chatShow"></span><small class="kb-hint" data-i18n="set.chatHint"></small></span><span class="lang-seg" data-fxopt="chat"></span></div>
+      <div class="kb-row qc-edit"><span class="kb-label"><span data-i18n="set.qc"></span><small class="kb-hint" data-i18n="set.qcHint"></small></span>
+        <span class="qc-ins"><input id="qc-0" class="fr-input" maxlength="20" onchange="setQc(0,this)"><input id="qc-1" class="fr-input" maxlength="20" onchange="setQc(1,this)"></span></div>
+      <p class="fr-msg" id="qc-msg"></p>
+    </div>
+    <div class="settings-section">
       <h3><span data-i18n="set.touch"></span><span>TOUCH</span></h3>
       <div class="kb-row"><span class="kb-label"><span data-i18n="set.tlay"></span><small class="kb-hint" data-i18n="set.tlayHint"></small></span><button class="kb-key" onclick="openTouchEditor()" data-i18n="set.tlayEdit"></button></div>
       <div class="vol-row"><label for="tp-op" data-i18n="set.tpop"></label><input type="range" id="tp-op" min="30" max="100" step="5" oninput="setTpOp(this.value)"><span class="vol-val" id="tp-op-v"></span></div>
@@ -2699,8 +2727,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=48"></script>
-<script src="lang.js?v=60"></script>
+<script src="sim.js?v=51"></script>
+<script src="lang.js?v=63"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2763,7 +2791,7 @@ if(!window.GunDuelLang){
 // 画面の文字はすべて lang.js の辞書から取る。読み込んだら外から触れないように消す
 var LANGS=window.GunDuelLang||{ja:{}};
 try{delete window.GunDuelLang;}catch(e){}
-var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null,zoom:true};   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
+var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,tpop:100,tlay:null,zoom:true,chat:true,qc:['','']};   // chat=ほかの人のチャットを出す qc=自分で決めたチャットの言葉   // vib=振動 tpop=タッチボタンの濃さ(%) tlay=タッチボタンの配置   // shake=画面の揺れ fxq=演出の量（auto/high/low） boost=FPSブースト
 (function loadSettings(){
   var saved=null;
   try{saved=JSON.parse(localStorage.getItem('gunduel_settings')||'null');}catch(e){}
@@ -2776,6 +2804,8 @@ var SETTINGS={lang:'ja',bgm:60,se:80,shake:true,fxq:'auto',boost:false,vib:true,
     if(saved.boost===true)SETTINGS.boost=true;
     if(saved.vib===false)SETTINGS.vib=false;
     if(saved.zoom===false)SETTINGS.zoom=false;
+    if(saved.chat===false)SETTINGS.chat=false;
+    if(Array.isArray(saved.qc))SETTINGS.qc=[0,1].map(function(i){return SIM.cleanSay(saved.qc[i]);});
     if(saved.tpop>=30&&saved.tpop<=100)SETTINGS.tpop=Math.round(+saved.tpop);
     SETTINGS.tlay=cleanTlay(saved.tlay);
   }else{
@@ -2842,6 +2872,7 @@ function setLang(k){
 }
 // ---- 設定画面：音量 ----
 function renderSettingsUI(){
+  [0,1].forEach(function(i){var q=document.getElementById('qc-'+i);if(q&&document.activeElement!==q){q.value=SETTINGS.qc[i]||'';q.placeholder=t('set.qcPh',{n:i+1});}});
   var ln=document.getElementById('lite-note');if(ln)ln.style.display=LITE.on&&!SETTINGS.boost&&(SETTINGS.fxq||'auto')==='auto'?'':'none';
   ['bgm','se'].forEach(function(kind){
     var r=document.getElementById('vol-'+kind),v=document.getElementById('vol-'+kind+'-v');
@@ -2852,13 +2883,14 @@ function renderSettingsUI(){
   if(tr){tr.value=SETTINGS.tpop;tr.style.setProperty('--p',((SETTINGS.tpop-30)/70*100)+'%');}
   if(tv)tv.textContent=SETTINGS.tpop+'%';
   document.querySelectorAll('[data-fxopt]').forEach(function(el){
-    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'||k==='zoom'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
+    var k=el.getAttribute('data-fxopt'),opts=k==='shake'||k==='boost'||k==='vib'||k==='zoom'||k==='chat'?[[true,'set.on'],[false,'set.off']]:[['auto','set.fxAuto'],['high','set.fxHigh'],['low','set.fxLow']];
     el.innerHTML=opts.map(function(o){return'<button class="'+(SETTINGS[k]===o[0]?'sel':'')+'" onclick="setFxOpt(\''+k+'\','+JSON.stringify(o[0]).replace(/"/g,"'")+')">'+esc(t(o[1]))+'</button>';}).join('');
   });
 }
 function setFxOpt(k,v){
   if(k==='boost'){SETTINGS.boost=!!v;saveSettings();renderSettingsUI();applyBoost();return;}
   if(k==='zoom'){SETTINGS.zoom=!!v;saveSettings();renderSettingsUI();return;}
+  if(k==='chat'){SETTINGS.chat=!!v;saveSettings();renderSettingsUI();return;}
   if(k==='vib'){SETTINGS.vib=!!v;saveSettings();renderSettingsUI();if(v)vib(40);return;}
   if(k==='shake')SETTINGS.shake=!!v;else if(k==='fxq'&&(v==='auto'||v==='high'||v==='low'))SETTINGS.fxq=v;else return;
   saveSettings();renderSettingsUI();
@@ -4677,6 +4709,7 @@ function drawCrateText(g,cx,cy,S,r,tm,W,H){
 // ============================================================
 var EMO_OL='#2A1A08';
 // 顔の位置（直径100のシールの中）：頭の中心 (0,HY)、半径 HR。目は手前 (EFX,EY)・奥 (EBX,EY)、口 (MX,MY)
+var EMO_K=.84,EMO_DY=3;   // シールの中身の大きさと、下へのずらし
 var EMO_S=1.72,EMO_HY=11,EMO_HR=13*EMO_S,EMO_EY=EMO_HY+EMO_HR*.1,EMO_EFX=EMO_HR*.5,EMO_EBX=-EMO_HR*.04,EMO_MX=EMO_HR*.3,EMO_MY=EMO_HY+EMO_HR*.63;
 // エモートごと：bg=背景の色、face=表情、hat=帽子を替える、back/front=顔の後ろ・前に描く小物、tilt/bob=頭の傾き・はずみ
 var EMOTE_DEF=[
@@ -4686,7 +4719,7 @@ var EMOTE_DEF=[
   {bg:['#FF6A4A','#7A1410'],face:{eyes:1,mouth:3,brows:1},tint:'rgba(255,40,20,.28)',front:function(g,T){emoAnger(g,26,-18,1+Math.max(0,Math.sin(T*8))*.25);for(var i=0;i<2;i++){var k=(T*1.2+i*.5)%1;g.globalAlpha=1-k;g.fillStyle='#F4F1EA';g.beginPath();g.arc(-30-k*8,-14-k*10,4+k*3,0,Math.PI*2);g.fill();g.globalAlpha=1;}}},   // むかっ
   {bg:['#5CC8FF','#1E3C8A'],face:{eyes:4,mouth:1},front:function(g,T){emoText(g,'GG',0,34,26,['#FFFFFF','#9BF0FF'],-.08+Math.sin(T*3)*.04);}},   // GG
   {bg:['#B8C4D8','#3A4660'],face:{eyes:3,mouth:0,brows:2},tilt:function(T){return .18+Math.sin(T*2)*.05;},front:function(g,T){emoText(g,'?',28,-14+Math.sin(T*4)*3,34,['#FFE27A','#FFB020'],.2);}},   // はてな
-  {bg:['#FF8A3D','#7A1A0A'],face:{eyes:1,mouth:6,brows:1},back:function(g,T){emoFlames(g,T,1);},front:function(g,T){g.save();g.beginPath();g.rect(-50,30,100,30);g.clip();emoFlames(g,T,.5,true);g.restore();}},   // アツい
+  {bg:['#FF8A3D','#7A1A0A'],face:{eyes:1,mouth:6,brows:1},inner:true,back:function(g,T){emoFlames(g,T,1);},front:function(g,T){g.save();g.beginPath();g.rect(-50,30,100,30);g.clip();emoFlames(g,T,.5,true);g.restore();}},   // アツい
   {bg:['#6A78C8','#1A1E48'],face:{eyes:2,mouth:0},tilt:function(T){return -.12+Math.sin(T*1.5)*.06;},front:function(g,T){g.font='900 15px '+UI_FONT;g.lineWidth=3;g.strokeStyle='#1A1E48';for(var z=0;z<3;z++){var k=(T*.6+z/3)%1;g.globalAlpha=Math.sin(k*Math.PI);g.fillStyle='#CFE3FF';g.strokeText('Z',20+k*14,-8-k*24);g.fillText('Z',20+k*14,-8-k*24);}g.globalAlpha=1;}},   // ねむい
   {bg:['#FFB020','#8A4A0A'],face:{eyes:0,mouth:5,brows:1},front:function(g,T){emoShades(g,T);}},   // よゆう
   {bg:['#8FD3FF','#2A5A8A'],face:{eyes:3,mouth:3,brows:2},jit:1.2,front:function(g,T){[[-24,-10],[30,-4]].forEach(function(p,i){var k=(T*1.3+i*.45)%1;emoDrop(g,p[0],p[1]+k*12,4.5,'#6CC8FF',1-k*.6);});}},   // あせあせ
@@ -4712,7 +4745,8 @@ var EMOTE_DEF=[
       emoText(g,'ニャ!',24,-30,18,['#FFFFFF','#E0C2FF'],.15);}},   // 黒猫（ハロウィン限定）
   {bg:['#FFB347','#5A1C66'],hat:26,face:{eyes:4,mouth:1,blush:true},bob:function(T){return -Math.abs(Math.sin(T*5))*3;},
     front:function(g,T){g.save();g.translate(24,26);g.rotate(Math.sin(T*3)*.1);flatPumpkin(g,0,0,13,T,0,2.2);g.fillStyle='#3A1404';g.fillRect(-14,-14,28,3);g.strokeStyle='#2A0E06';g.lineWidth=2;g.beginPath();g.arc(0,-6,14,Math.PI*1.1,Math.PI*1.9);g.stroke();g.restore();
-      for(var i=0;i<4;i++){var k=(T*.9+i/4)%1;g.globalAlpha=k<.8?1:(1-k)*5;emoCandy(g,24+Math.sin(i*2.1)*(6+k*18),14-k*44,T*4+i,i);}g.globalAlpha=1;}}   // トリック・オア・トリート（ハロウィン限定）
+      for(var i=0;i<4;i++){var k=(T*.9+i/4)%1;g.globalAlpha=k<.8?1:(1-k)*5;emoCandy(g,24+Math.sin(i*2.1)*(6+k*18),14-k*44,T*4+i,i);}g.globalAlpha=1;}},   // トリック・オア・トリート（ハロウィン限定）
+  {bg:['#8A93A8','#262A38'],face:{eyes:1,mouth:3,brows:1},tilt:function(T){return -.06;},front:function(g,T){var d=Math.abs(Math.sin(T*5))*4;g.save();g.translate(23,24+d);g.rotate(Math.PI);g.scale(.55,.55);emoThumb(g);g.restore();}},   // バッド👎（最初から使える）
 ];
 function emoCandy(g,x,y,rot,i){g.save();g.translate(x,y);g.rotate(rot);var c=['#FF5A8A','#5AD0FF','#FFD84A','#8AF07A'][i%4];g.fillStyle=c;g.strokeStyle=EMO_OL;g.lineWidth=2;
   g.beginPath();g.moveTo(-6,0);g.lineTo(-11,-5);g.lineTo(-11,5);g.closePath();g.fill();g.stroke();g.beginPath();g.moveTo(6,0);g.lineTo(11,-5);g.lineTo(11,5);g.closePath();g.fill();g.stroke();
@@ -4761,6 +4795,7 @@ function drawEmote(g,n,x,y,size,tm,look){
   var bg=g.createRadialGradient(0,-10,6,0,0,48);bg.addColorStop(0,E.bg[0]);bg.addColorStop(1,E.bg[1]);g.fillStyle=bg;g.fillRect(-50,-50,100,100);   // 背景
   g.globalAlpha=.18;g.fillStyle='#fff';for(var i=0;i<8;i++){var a0=i/8*Math.PI*2+T*.3;g.beginPath();g.moveTo(0,0);g.arc(0,0,60,a0,a0+.18);g.closePath();g.fill();}g.globalAlpha=1;   // 放射線
   g.lineJoin='round';g.lineCap='round';
+  g.translate(0,EMO_DY);g.scale(EMO_K,EMO_K);   // 顔と小物を少し小さくして、丸の中に収める
   if(E.back)E.back(g,T);
   var tilt=E.tilt?E.tilt(T):0,bob=E.bob?E.bob(T):0,jx=E.jit?(Math.sin(T*40)*E.jit):0;
   g.save();g.translate(jx,bob);if(tilt){g.translate(0,40);g.rotate(tilt);g.translate(0,-40);}
@@ -4768,8 +4803,9 @@ function drawEmote(g,n,x,y,size,tm,look){
   if(E.tint){g.fillStyle=E.tint;g.beginPath();g.arc(1,EMO_HY,EMO_HR,0,Math.PI*2);g.fill();}
   if(E.glowEyes){g.save();g.globalCompositeOperation='lighter';[EMO_EFX,EMO_EBX].forEach(function(ex){var eg=g.createRadialGradient(ex,EMO_EY,0,ex,EMO_EY,7);eg.addColorStop(0,E.glowEyes+'.9)');eg.addColorStop(1,E.glowEyes+'0)');g.fillStyle=eg;g.beginPath();g.arc(ex,EMO_EY,7,0,Math.PI*2);g.fill();});g.restore();}
   g.restore();
-  if(E.front)E.front(g,T);
   g.restore();
+  // 手前の小物は、白いふちまではみ出してよい（丸で切れて見えなくならないように）
+  if(E.front){g.save();g.beginPath();g.arc(0,0,E.inner?41.5:48,0,Math.PI*2);g.clip();g.translate(0,EMO_DY);g.scale(EMO_K,EMO_K);g.lineJoin='round';g.lineCap='round';E.front(g,T);g.restore();}
   var sw=(T%2.6)/.55;   // 光が走る（エピック以上）
   if(r>=2&&sw<1){g.save();g.globalCompositeOperation='lighter';g.beginPath();g.arc(0,0,41.5,0,Math.PI*2);g.clip();g.rotate(-.6);
     var bx=-60+sw*120,sg=g.createLinearGradient(bx-14,0,bx+14,0);sg.addColorStop(0,'rgba(255,255,255,0)');sg.addColorStop(.5,'rgba(255,255,255,.35)');sg.addColorStop(1,'rgba(255,255,255,0)');
@@ -4814,7 +4850,7 @@ function emoLookOf(sd){
   return profile.look;
 }
 function drawEmotes(list){
-  drawRollFx();
+  drawRollFx();drawChats(list);
   var now=performance.now(),tm=now/1000;
   list.forEach(function(s){
     if(!s)return;var e=EMO.on[s.side];if(!e)return;
@@ -4827,13 +4863,54 @@ function drawEmotes(list){
     ctx.restore();
   });
 }
-// スマホ：エモートのボタン → 4つ並ぶ
+// ---- クイックチャット：決まった言葉と、自分で決めた言葉（禁止ワードはブラウザとサーバーの両方で止める）----
+var CHAT={on:{},last:0},CHAT_MS=3200,CHAT_GAP=1800;
+function setQc(i,el){
+  var raw=String(el.value||'').trim(),v=SIM.cleanSay(raw),m=document.getElementById('qc-msg');
+  if(raw&&!v){if(m){m.textContent=t('chat.ng');m.className='fr-msg err';}el.value=SETTINGS.qc[i]||'';return;}
+  SETTINGS.qc[i]=v;saveSettings();el.value=v;if(m){m.textContent=raw?t('chat.saved'):'';m.className='fr-msg ok';}
+}
+function chatText(c){return c.text!=null?c.text:t('qc.'+(SIM.QUICK_CHAT[c.i]||'nice'));}
+function doChat(kind,i){
+  if(!onGameScreen()||gameMode==='range'||vsPhase)return;
+  var now=performance.now();if(now-CHAT.last<CHAT_GAP)return;
+  var msg=kind==='c'?{text:SIM.cleanSay(SETTINGS.qc[i])}:{i:i};
+  if(msg.text===''){note(t('chat.ng'));return;}
+  var me=gameMode==='ai'?'a':mySlot;if(!me)return;
+  CHAT.last=now;closeEmoteMenu();
+  if(gameMode==='online'&&ws&&ws.readyState===1)ws.send(JSON.stringify(Object.assign({type:'chat'},msg)));
+  showChat(me,msg);
+}
+function showChat(side,c){
+  if(!side||!c)return;
+  var tx=c.text!=null?SIM.cleanSay(c.text):(c.i>=0&&c.i<SIM.QUICK_CHAT.length?null:'');
+  if(tx==='')return;   // 届いた言葉も念のため確かめる
+  CHAT.on[side]={c:c.text!=null?{text:tx}:{i:c.i},t0:performance.now()};SFX.switchW();
+}
+function drawChats(list){
+  var now=performance.now();
+  list.forEach(function(s){
+    if(!s)return;var e=CHAT.on[s.side];if(!e)return;
+    var k=(now-e.t0)/CHAT_MS;if(k>=1){delete CHAT.on[s.side];return;}
+    var tx=chatText(e.c),x=wx(s.x)+CHAR_W/2,y=(s.dead?s.y+CHAR_H-20:s.y)-(s.ducking?30:66)-(EMO.on[s.side]?48:0);
+    ctx.save();ctx.globalAlpha=k<.06?k/.06:k>.85?1-(k-.85)/.15:1;
+    ctx.font='700 11px '+FONT_JP;var w=Math.min(170,ctx.measureText(tx).width+16),h=20;
+    ctx.fillStyle='rgba(255,255,255,.96)';rrect(x-w/2,y-h,w,h,8);ctx.fill();
+    ctx.beginPath();ctx.moveTo(x-5,y-1);ctx.lineTo(x,y+6);ctx.lineTo(x+5,y-1);ctx.fill();
+    ctx.fillStyle='#161A26';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(tx,x,y-h/2+.5,w-10);
+    ctx.restore();
+  });
+  ctx.textAlign='left';ctx.textBaseline='alphabetic';
+}
+// スマホ：エモートのボタン → 4つ並ぶ（下にチャットの言葉）
 function toggleEmoteMenu(){
   var m=document.getElementById('emote-menu');if(!m)return;
   EMO.menu=!EMO.menu;m.classList.toggle('show',EMO.menu);
   if(EMO.menu){
     ensureProfileShape();
-    m.innerHTML=profile.emo.map(function(id,i){return'<button onclick="doEmote('+i+')"><canvas width="96" height="96" data-emo="'+id+'"></canvas><kbd>'+esc(kdn(keybinds['e'+(i+1)])||'')+'</kbd></button>';}).join('');
+    var qc=SIM.QUICK_CHAT.map(function(k,i){return'<button class="qc" onclick="doChat(\'p\','+i+')">'+esc(t('qc.'+k))+'</button>';}).join('')+
+      (SETTINGS.qc||[]).map(function(v,i){return v?'<button class="qc mine" onclick="doChat(\'c\','+i+')">'+esc(v)+'</button>':'';}).join('');
+    m.innerHTML='<div class="emo-row">'+profile.emo.map(function(id,i){return'<button onclick="doEmote('+i+')"><canvas width="96" height="96" data-emo="'+id+'"></canvas><kbd>'+esc(kdn(keybinds['e'+(i+1)])||'')+'</kbd></button>';}).join('')+'</div><div class="qc-row">'+qc+'</div>';
     m.querySelectorAll('canvas').forEach(function(cv){var g=cv.getContext('2d');drawEmote(g,+cv.getAttribute('data-emo'),48,48,92,0);});
   }
 }
@@ -4967,11 +5044,11 @@ var emoSlot=0;
 function pickEmoSlot(i){emoSlot=i|0;renderLookEditor();}
 function pickEmote(id){
   id=+id;ensureProfileShape();
-  if(id>=SIM.EMOTE_FREE&&!itemOwned('e'+id)){note(lockText('e'+id));SFX.switchW();return;}
+  if(!SIM.emoteFree(id)&&!itemOwned('e'+id)){note(lockText('e'+id));SFX.switchW();return;}
   var e=profile.emo.slice(),j=e.indexOf(id);
   if(j>=0)e[j]=e[emoSlot];
   e[emoSlot]=id;profile.emo=SIM.cleanEmotes(e,profile.inv);
-  if(id>=SIM.EMOTE_FREE)seenItem('e'+id);
+  if(!SIM.emoteFree(id))seenItem('e'+id);
   emoSlot=(emoSlot+1)%4;SFX.emote(SIM.EMOTE_RAR[id]||0);saveProfile();renderLookEditor();pfSaved();
 }
 function isDevUser(){return !!(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&AUTH.user.dev);}
@@ -5033,12 +5110,12 @@ function renderLookEditor(){
     html+='<p class="look-sub">'+esc(t('look.emoteHint'))+'</p><div class="emo-slots">';
     profile.emo.forEach(function(id,i){html+='<button class="emo-slot'+(i===emoSlot?' sel':'')+'" onclick="pickEmoSlot('+i+')"><canvas data-emo="'+id+'" width="112" height="112"></canvas><small>'+esc(t('look.emoteSlot',{k:kdn(keybinds['e'+(i+1)])||'-'}))+'</small></button>';});
     html+='</div>';
-    var own=0;for(var q=SIM.EMOTE_FREE;q<SIM.EMOTE_N;q++)if(itemOwned('e'+q))own++;
-    html+='<p class="look-sub">'+esc(t('look.owned',{n:own,m:SIM.EMOTE_N-SIM.EMOTE_FREE}))+'</p><div class="opt-grid">';
+    var own=0,tot=0;for(var q=0;q<SIM.EMOTE_N;q++)if(!SIM.emoteFree(q)){tot++;if(itemOwned('e'+q))own++;}
+    html+='<p class="look-sub">'+esc(t('look.owned',{n:own,m:tot}))+'</p><div class="opt-grid">';
     var ids=[];for(var ei=0;ei<SIM.EMOTE_N;ei++)ids.push(ei);
     ids.sort(function(a,b){return(SIM.EMOTE_RAR[a]-SIM.EMOTE_RAR[b])||a-b;});
     ids.forEach(function(id){
-      var free=id<SIM.EMOTE_FREE,have=free||itemOwned('e'+id),r=SIM.EMOTE_RAR[id],inUse=profile.emo.indexOf(id)>=0;
+      var free=SIM.emoteFree(id),have=free||itemOwned('e'+id),r=SIM.EMOTE_RAR[id],inUse=profile.emo.indexOf(id)>=0;
       html+='<button class="opt rar r'+r+(have?'':' locked')+(inUse?' sel':'')+'" title="'+esc(t('emote.'+id))+' · '+esc(rarName(r))+(have?'':' · '+esc(lockText('e'+id)))+'" onclick="pickEmote('+id+')"><canvas data-emo="'+id+'"'+(have?'':' data-lock="1"')+' width="132" height="132"></canvas>'+
         (have?'':'<b class="opt-lock"></b>')+(have&&!free&&isNewItem('e'+id)?'<b class="opt-new">'+esc(t('eco.new'))+'</b>':'')+'</button>';
     });
@@ -7186,6 +7263,8 @@ function handleServerFx(fx){
 function handleOnlineMsg(msg){
   var mt=msg.type;
   if(mt==='emote'){if(msg.slot&&msg.slot!==mySlot)showEmote(msg.slot,msg.id);return;}
+  if(mt==='chat'){if(msg.slot&&msg.slot!==mySlot&&SETTINGS.chat!==false)showChat(msg.slot,msg.text!=null?{text:String(msg.text)}:{i:Math.floor(+msg.i)});return;}
+  if(mt==='chat_ng'){note(t('chat.ng'));return;}
   if(mt==='room_created'){
     mySlot=msg.slot;
     var nd=document.getElementById('room-number-display');
@@ -7641,6 +7720,7 @@ document.addEventListener('keydown',function(e){
   }
   if(!onGameScreen())return;
   if(gameMode==='range'&&(k==='q'||k==='e')&&!e.repeat&&!keyIsBound(k)){rangeCycle(k==='e'?1:-1);e.preventDefault();return;}
+  if(k==='t'&&!e.repeat&&!keyIsBound(k)&&gameMode!=='range'&&!RP){toggleEmoteMenu();e.preventDefault();return;}   // T：エモートとチャット
   if(k===keybinds.attack||k===keybinds.jump)e.preventDefault();
   handleBindDown(k,e.repeat);
 });
@@ -13547,7 +13627,7 @@ function drawBgFx(tm){
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,showClanScreen,clanCreate,clanJoin,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,doChat,setQc,showClanScreen,clanCreate,clanJoin,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得

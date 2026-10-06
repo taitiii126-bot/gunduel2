@@ -105,6 +105,7 @@ class TeamRoom {
     this.makeBot(p, bot.cfg);
     p.rate = bot.rate; p.tier = bot.tierKey; p.title = bot.title; p.bg = bot.bg; p.discord = bot.name; p.verified = true;
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
+    require('./botchat').init(p);   // チャットの性格
     p.srtt = 16 + Math.floor(Math.random() * 46);
     return s;
   }
@@ -299,6 +300,7 @@ class TeamRoom {
     if (!this.matchLive) {
       this.matchLive = true; this.roundsDone = 0;
       for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot) { p.tally = SIM.newTally(); p.emotes = 0; } }   // 称号・ミッションの記録（試合ごと）
+      for (const s of SLOTS) require('./botchat').onStart(this, s);   // BOTのあいさつ
     }
     const loads = {};
     for (const s of SLOTS) { const p = this.players[s]; loads[s] = p ? p.loadout : null; }
@@ -321,7 +323,8 @@ class TeamRoom {
     if (winTeam === 0 || winTeam === 1) this.wins[winTeam]++;
     for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyRoundEnd(p.tally, SIM.teamOf(s) === winTeam, this.stage); }
     this.broadcast({ type: 'round_end', winTeam: winTeam === 'draw' ? null : winTeam, wins: this.wins.slice(), state: this.state(), fx: fx || [] });
-    const done = (winTeam === 0 || winTeam === 1) && this.wins[winTeam] >= G.WIN_ROUNDS;
+    const done = (winTeam === 0 || winTeam === 1) && this.wins[winTeam] >= G.WIN_ROUNDS, BC = require('./botchat');
+    for (const s of SLOTS) { const c = this.world.chars[s], won = SIM.teamOf(s) === winTeam; if (done) BC.onEnd(this, s, won, this.canRematch()); else BC.onRound(this, s, won, c && !c.dead ? c.hp : 0); }
     if (done) {
       this.matchLive = false;
       if (this.hooks.onResult) this.hooks.onResult(this, winTeam);
@@ -338,6 +341,21 @@ class TeamRoom {
   }
 
   // エモート：持っている物だけ、1.5秒に1回まで。部屋の全員に配る
+  // クイックチャット：決まった言葉（番号）か、自分で決めた言葉（禁止ワードが入っていたら送らず、本人にだけ知らせる）
+  // 1.8秒に1回まで・20秒で6回まで。部屋の全員に配る
+  chat(slot, m) {
+    const p = this.players[slot]; if (!p || p.bot || !m) return;
+    const now = Date.now();
+    if (now - (p.chatT || 0) < 1800) return;
+    p.chatW = (p.chatW || []).filter(t => now - t < 20000);
+    if (p.chatW.length >= 6) return;
+    let out;
+    if (m.i != null) { const i = Math.floor(+m.i); if (!(i >= 0 && i < SIM.QUICK_CHAT.length)) return; out = { i }; }
+    else { const t = SIM.cleanSay(m.text); if (!t) return this.send(p, { type: 'chat_ng' }); out = { text: t }; }
+    p.chatT = now; p.chatW.push(now);
+    this.broadcast(Object.assign({ type: 'chat', slot }, out));
+    require('./botchat').onHeard(this, slot, out);   // BOTが返事をすることがある
+  }
   emote(slot, id) {
     const p = this.players[slot]; if (!p || p.bot) return;
     const n = Math.floor(+id), now = Date.now();

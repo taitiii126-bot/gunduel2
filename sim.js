@@ -175,8 +175,10 @@ var ITEM_RAR = {
   win: [[7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 2], [13, 2], [14, 3], [15, 3], [16, 4]]   // 勝ちポーズ
 };
 // エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
-var EMOTE_N = 24, EMOTE_FREE = 4;
-var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4, 1, 3, 2, 1];   // 20〜23 はハロウィンの限定
+var EMOTE_N = 25, EMOTE_FREE = 4;
+var EMOTE_FREE_X = [24];   // あとから足した、最初から使えるエモート（24＝バッド👎）
+function emoteFree(n) { return n >= 0 && (n < EMOTE_FREE || EMOTE_FREE_X.indexOf(n) >= 0); }
+var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4, 1, 3, 2, 1, 0];   // 20〜23 はハロウィンの限定、24 はバッド（最初から）
 var PASS_ONLY = { h24: 1, o21: 1 };   // シーズンパスでしか手に入らない（バッジ・ショップには出ない）
 // ---- 期間限定イベント（ハロウィン）----
 // 10月（シーズンの月の区切りで）に開く。限定アイテムはキャンディで交換するだけで、バッジ・ショップ・パスには出ない。
@@ -271,11 +273,47 @@ function candyOf(ev, win, kills, first) {
   if (!c) return 0;
   return c.match + (win ? c.win : 0) + Math.min(c.killMax, Math.max(0, kills | 0)) * c.kill + (win && first ? c.firstWin : 0);
 }
+// ---- クイックチャットと禁止ワード（サーバーとブラウザで同じ決まり）----
+// 決まった言葉は番号だけを送る。自分で決めた言葉（2つまで・20文字まで）は、禁止ワードが入っていると送れない
+var QUICK_CHAT = ['nice', 'gg', 'thanks', 'sorry', 'wow', 'close', 'again', 'hello'];
+var CHAT_MAX = 20;
+// 判定用にそろえる：全角半角・大文字小文字・カタカナ→ひらがな・よくある置きかえ数字・記号と空白は消す
+function normText(v) {
+  var s = String(v == null ? '' : v);
+  if (s.normalize) s = s.normalize('NFKC');
+  s = s.toLowerCase().replace(/[ァ-ヶ]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0x60); });
+  s = s.replace(/[0134@$5]/g, function (c) { return { '0': 'o', '1': 'i', '3': 'e', '4': 'a', '@': 'a', '$': 's', '5': 's' }[c]; });
+  return s.replace(/[\s_\-.,!?・…~〜*#'"`^|\/\\()\[\]{}<>「」『』【】:;=+%&]/g, '');
+}
+// どこに入っていてもだめな言葉
+var BAD_ANY = ['しね', 'しんで', '死ね', '氏ね', '市ね', 'ころす', 'ころして', '殺す', '殺して', 'きえろ', '消えろ', 'ちんこ', 'ちんぽ', 'ちんちん', 'まんこ', 'おまんこ', 'せっくす', 'れいぷ', 'きちがい', '基地外', 'きちがい', 'がいじ', '害児', 'ちしょう', '池沼', 'かたわ', 'めくら', 'つんぼ', 'ちょうせんじん', 'しなじん', 'にがー', 'くそやろう', 'くそが', '糞',
+  'fuck', 'fuk', 'fck', 'fack', 'phuck', 'shit', 'bitch', 'cunt', 'dick', 'pussy', 'nigger', 'nigga', 'faggot', 'retard', 'whore', 'slut', 'rape', 'kys', 'killyourself', 'porn', 'penis', 'vagina', 'asshole'];
+// 言葉だけのとき（ほかの言葉の一部にはよく入るので、それだけを送ったときにだめにする）
+var BAD_WORD = ['ばか', 'あほ', 'かす', 'くず', 'ごみ', 'ぶす', 'でぶ', 'きもい', 'きしょい', 'うざい', 'ざこ', 'くそ', 'へたくそ', 'のろま', 'ちょん', 'sex', 'fag', 'ass', 'idiot', 'stupid', 'trash'];
+// まちがえて引っかかる、ふつうの言葉（判定の前に取りのぞく）
+var BAD_OK = ['しねま', 'しねる', 'ころすけ', 'ましね', 'あしね', 'すぺしね', 'dickens', 'scunthorpe', 'shitake', 'cocktail', 'grape', 'scrape', 'drape', 'dickson'];
+var BAD_ANY_N = BAD_ANY.map(normText), BAD_WORD_N = BAD_WORD.map(normText);
+var BAD_OK_N = BAD_OK.map(normText);
+// 禁止ワードが入っているか
+function badText(v) {
+  var s = normText(v);
+  if (!s) return false;
+  for (var a = 0; a < BAD_OK_N.length; a++) s = s.split(BAD_OK_N[a]).join('・');
+  for (var i = 0; i < BAD_ANY_N.length; i++) if (BAD_ANY_N[i] && s.indexOf(BAD_ANY_N[i]) >= 0) return true;
+  var core = s.replace(/[wｗ笑ーっ]+$/g, '').replace(/^(おまえ|お前|てめえ|おまえら|you|ur|your)/, '').replace(/(すぎ|じゃん|かよ|だな|め|やろう|ども)$/, '');
+  for (var j = 0; j < BAD_WORD_N.length; j++) { var w = BAD_WORD_N[j]; if (core === w || core === w + w) return true; }
+  return false;
+}
+// 自分で決めたチャットの言葉：整えて、だめなら ''
+function cleanSay(v) {
+  var s = String(v == null ? '' : v).replace(/[\u0000-\u001F\u007F<>]/g, '').replace(/\s+/g, ' ').trim().slice(0, CHAT_MAX);
+  return s && !badText(s) ? s : '';
+}
 var ITEMS = [];   // { id:'h6', key:'hat', idx:6, r:1 } / { id:'e6', key:'emote', idx:6, r:1 }
 (function () {
   var pre = { hat: 'h', outfit: 'o', neck: 'n', win: 'w' };
   Object.keys(ITEM_RAR).forEach(function (k) { ITEM_RAR[k].forEach(function (a) { var id = pre[k] + a[0], it = { id: id, key: k, idx: a[0], r: a[1] }; if (PASS_ONLY[id]) it.pass = true; ITEMS.push(it); }); });
-  for (var e = EMOTE_FREE; e < EMOTE_N; e++) ITEMS.push({ id: 'e' + e, key: 'emote', idx: e, r: EMOTE_RAR[e] });
+  for (var e = EMOTE_FREE; e < EMOTE_N; e++) if (!emoteFree(e)) ITEMS.push({ id: 'e' + e, key: 'emote', idx: e, r: EMOTE_RAR[e] });
   ITEMS.push({ id: 'bHW', key: 'bg', idx: 'halloween', r: 3 });   // カードの背景「ハロウィンの夜」
   ITEMS.forEach(function (it) { if (EVENT_ITEMS[it.id]) it.ev = EVENT_ITEMS[it.id]; });
 })();
@@ -302,7 +340,7 @@ function cleanEmotes(v, inv) {
   var o = [], def = [0, 1, 2, 3];
   for (var i = 0; i < 4; i++) {
     var n = Array.isArray(v) ? Math.floor(+v[i]) : NaN;
-    var ok = n >= 0 && n < EMOTE_N && (n < EMOTE_FREE || (inv && inv.indexOf('e' + n) >= 0)) && o.indexOf(n) < 0;
+    var ok = n >= 0 && n < EMOTE_N && (emoteFree(n) || (inv && inv.indexOf('e' + n) >= 0)) && o.indexOf(n) < 0;
     o.push(ok ? n : -1);
   }
   for (var j = 0; j < 4; j++) if (o[j] < 0) { for (var d = 0; d < def.length; d++) if (o.indexOf(def[d]) < 0) { o[j] = def[d]; break; } }
@@ -2242,9 +2280,9 @@ var api = {
   LOGIN_REWARDS: deepFreeze(LOGIN_REWARDS), STREAK_MS: deepFreeze(STREAK_MS), SHIELD_MAX: SHIELD_MAX, dayNum: dayNum, loginStep: loginStep,
   EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, eventMissions: eventMissions, candyOf: candyOf, eventSetPrice: eventSetPrice,
   PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
-  SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift, SALE: SALE, saleOn: saleOn, salePeak: salePeak, badgePrice: badgePrice,
+  SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift, QUICK_CHAT: QUICK_CHAT, CHAT_MAX: CHAT_MAX, normText: normText, badText: badText, cleanSay: cleanSay, SALE: SALE, saleOn: saleOn, salePeak: salePeak, badgePrice: badgePrice,
   SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
-  EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
+  EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, emoteFree: emoteFree, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
   cleanBadges: cleanBadges, cleanBadgeSel: cleanBadgeSel, badgeShown: badgeShown, randomLook: randomLook,

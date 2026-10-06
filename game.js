@@ -98,7 +98,7 @@ function cleanName(v) {
   let n = '';
   for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
   n = n.trim().slice(0, 12);
-  return n || 'プレイヤー';
+  return n && !SIM.badText(n) ? n : 'プレイヤー';   // 禁止ワードの入った名前は使わない
 }
 // 相手のカードに出す項目。自己申告なので、形と長さだけ整えて中身は信用しない
 // 称号：オンライン戦績・フレンド数などが足りないものは使えない（ログインしていない人は、それらの称号は使えない）
@@ -111,7 +111,8 @@ function cleanTitle(v, acc) {
 function cleanBio(v) {
   let n = '';
   for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
-  return n.trim().slice(0, 40);
+  n = n.trim().slice(0, 40);
+  return SIM.badText(n) ? '' : n;   // 禁止ワードの入ったひとことは出さない
 }
 // 背景：ログイン中はサーバーに保存してある物（届いたティアの分まで・鬼帝は倒した人だけ）。ゲストは鬼帝と開発者の背景を使えない
 function cleanBg(v, acc) {
@@ -210,6 +211,7 @@ class Room {
     p.title = bot.title; p.bg = bot.bg; p.discord = bot.name; p.verified = true;
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     p.srtt = 16 + Math.floor(Math.random() * 46);   // 通信の速さ（人と同じように相手の画面に出る）
+    require('./botchat').init(p);   // チャットの性格
     return slot;
   }
   // BOT の操作（人が押すかわりに、考えた結果を入れる）
@@ -371,6 +373,7 @@ class Room {
     if (!this.matchLive) {                  // 新しい試合の1ラウンド目：試合単位の記録をリセット
       this.matchLive = true; this.roundsDone = 0;
       for (const s of SLOTS) if (this.players[s]) this.resetStats(this.players[s]);
+      for (const s of SLOTS) require('./botchat').onStart(this, s);   // BOTのあいさつ
     }
     const a = this.players.a, b = this.players.b;
     this.world = SIM.newWorld(this.stage, a ? a.loadout : null, b ? b.loadout : null);
@@ -392,7 +395,9 @@ class Room {
     if (winner) this.wins[winner]++;
     for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyRoundEnd(p.tally, winner === s, this.stage); }
     this.broadcast({ type: 'round_end', winner, wins: { ...this.wins }, state: this.state(), fx: fx || [] });
-    if (winner && this.wins[winner] >= WIN_ROUNDS) {
+    const over = !!(winner && this.wins[winner] >= WIN_ROUNDS), BC = require('./botchat');
+    for (const s of SLOTS) { const c = this.world.chars[s]; if (over) BC.onEnd(this, s, winner === s, this.canRematch()); else BC.onRound(this, s, winner === s, c && !c.dead ? c.hp : 0); }
+    if (over) {
       // 決着した瞬間に記録する（この後の演出中に抜けても結果は変わらない）
       this.matchLive = false;
       if (this.hooks.onResult) this.hooks.onResult(this.players[winner], this.players[other(winner)], 'match');
@@ -409,6 +414,21 @@ class Room {
     }
   }
 
+  // クイックチャット：決まった言葉（番号）か、自分で決めた言葉（禁止ワードが入っていたら送らず、本人にだけ知らせる）
+  // 1.8秒に1回まで・20秒で6回まで。部屋の全員に配る
+  chat(slot, m) {
+    const p = this.players[slot]; if (!p || p.bot || !m) return;
+    const now = Date.now();
+    if (now - (p.chatT || 0) < 1800) return;
+    p.chatW = (p.chatW || []).filter(t => now - t < 20000);
+    if (p.chatW.length >= 6) return;
+    let out;
+    if (m.i != null) { const i = Math.floor(+m.i); if (!(i >= 0 && i < SIM.QUICK_CHAT.length)) return; out = { i }; }
+    else { const t = SIM.cleanSay(m.text); if (!t) return this.send(p, { type: 'chat_ng' }); out = { text: t }; }
+    p.chatT = now; p.chatW.push(now);
+    this.broadcast(Object.assign({ type: 'chat', slot }, out));
+    require('./botchat').onHeard(this, slot, out);   // BOTが返事をすることがある
+  }
   // エモート：持っている物だけ、1.5秒に1回まで。部屋の全員に配る
   emote(slot, id) {
     const p = this.players[slot]; if (!p || p.bot) return;
