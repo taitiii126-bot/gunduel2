@@ -175,8 +175,10 @@ var ITEM_RAR = {
   win: [[7, 0], [8, 0], [9, 1], [10, 1], [11, 1], [12, 2], [13, 2], [14, 3], [15, 3], [16, 4]]   // 勝ちポーズ
 };
 // エモート：0〜3 はみんなが最初から持っている。4〜19 は宝箱から
-var EMOTE_N = 24, EMOTE_FREE = 4;
-var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4, 1, 3, 2, 1];   // 20〜23 はハロウィンの限定
+var EMOTE_N = 25, EMOTE_FREE = 4;
+var EMOTE_FREE_X = [24];   // あとから足した、最初から使えるエモート（24＝バッド👎）
+function emoteFree(n) { return n >= 0 && (n < EMOTE_FREE || EMOTE_FREE_X.indexOf(n) >= 0); }
+var EMOTE_RAR = [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 1, 4, 4, 1, 3, 2, 1, 0];   // 20〜23 はハロウィンの限定、24 はバッド（最初から）
 var PASS_ONLY = { h24: 1, o21: 1 };   // シーズンパスでしか手に入らない（バッジ・ショップには出ない）
 // ---- 期間限定イベント（ハロウィン）----
 // 10月（シーズンの月の区切りで）に開く。限定アイテムはキャンディで交換するだけで、バッジ・ショップ・パスには出ない。
@@ -311,7 +313,7 @@ var ITEMS = [];   // { id:'h6', key:'hat', idx:6, r:1 } / { id:'e6', key:'emote'
 (function () {
   var pre = { hat: 'h', outfit: 'o', neck: 'n', win: 'w' };
   Object.keys(ITEM_RAR).forEach(function (k) { ITEM_RAR[k].forEach(function (a) { var id = pre[k] + a[0], it = { id: id, key: k, idx: a[0], r: a[1] }; if (PASS_ONLY[id]) it.pass = true; ITEMS.push(it); }); });
-  for (var e = EMOTE_FREE; e < EMOTE_N; e++) ITEMS.push({ id: 'e' + e, key: 'emote', idx: e, r: EMOTE_RAR[e] });
+  for (var e = EMOTE_FREE; e < EMOTE_N; e++) if (!emoteFree(e)) ITEMS.push({ id: 'e' + e, key: 'emote', idx: e, r: EMOTE_RAR[e] });
   ITEMS.push({ id: 'bHW', key: 'bg', idx: 'halloween', r: 3 });   // カードの背景「ハロウィンの夜」
   ITEMS.forEach(function (it) { if (EVENT_ITEMS[it.id]) it.ev = EVENT_ITEMS[it.id]; });
 })();
@@ -338,7 +340,7 @@ function cleanEmotes(v, inv) {
   var o = [], def = [0, 1, 2, 3];
   for (var i = 0; i < 4; i++) {
     var n = Array.isArray(v) ? Math.floor(+v[i]) : NaN;
-    var ok = n >= 0 && n < EMOTE_N && (n < EMOTE_FREE || (inv && inv.indexOf('e' + n) >= 0)) && o.indexOf(n) < 0;
+    var ok = n >= 0 && n < EMOTE_N && (emoteFree(n) || (inv && inv.indexOf('e' + n) >= 0)) && o.indexOf(n) < 0;
     o.push(ok ? n : -1);
   }
   for (var j = 0; j < 4; j++) if (o[j] < 0) { for (var d = 0; d < def.length; d++) if (o.indexOf(def[d]) < 0) { o[j] = def[d]; break; } }
@@ -2280,7 +2282,7 @@ var api = {
   PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift, QUICK_CHAT: QUICK_CHAT, CHAT_MAX: CHAT_MAX, normText: normText, badText: badText, cleanSay: cleanSay, SALE: SALE, saleOn: saleOn, salePeak: salePeak, badgePrice: badgePrice,
   SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
-  EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
+  EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, emoteFree: emoteFree, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
   cleanBadges: cleanBadges, cleanBadgeSel: cleanBadgeSel, badgeShown: badgeShown, randomLook: randomLook,

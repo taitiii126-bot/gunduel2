@@ -2727,8 +2727,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=49"></script>
-<script src="lang.js?v=61"></script>
+<script src="sim.js?v=50"></script>
+<script src="lang.js?v=62"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4744,7 +4744,8 @@ var EMOTE_DEF=[
       emoText(g,'ニャ!',24,-30,18,['#FFFFFF','#E0C2FF'],.15);}},   // 黒猫（ハロウィン限定）
   {bg:['#FFB347','#5A1C66'],hat:26,face:{eyes:4,mouth:1,blush:true},bob:function(T){return -Math.abs(Math.sin(T*5))*3;},
     front:function(g,T){g.save();g.translate(24,26);g.rotate(Math.sin(T*3)*.1);flatPumpkin(g,0,0,13,T,0,2.2);g.fillStyle='#3A1404';g.fillRect(-14,-14,28,3);g.strokeStyle='#2A0E06';g.lineWidth=2;g.beginPath();g.arc(0,-6,14,Math.PI*1.1,Math.PI*1.9);g.stroke();g.restore();
-      for(var i=0;i<4;i++){var k=(T*.9+i/4)%1;g.globalAlpha=k<.8?1:(1-k)*5;emoCandy(g,24+Math.sin(i*2.1)*(6+k*18),14-k*44,T*4+i,i);}g.globalAlpha=1;}}   // トリック・オア・トリート（ハロウィン限定）
+      for(var i=0;i<4;i++){var k=(T*.9+i/4)%1;g.globalAlpha=k<.8?1:(1-k)*5;emoCandy(g,24+Math.sin(i*2.1)*(6+k*18),14-k*44,T*4+i,i);}g.globalAlpha=1;}},   // トリック・オア・トリート（ハロウィン限定）
+  {bg:['#8A93A8','#262A38'],face:{eyes:1,mouth:3,brows:1},tilt:function(T){return -.06;},front:function(g,T){var d=Math.abs(Math.sin(T*5))*4;g.save();g.translate(23,24+d);g.rotate(Math.PI);g.scale(.55,.55);emoThumb(g);g.restore();}},   // バッド👎（最初から使える）
 ];
 function emoCandy(g,x,y,rot,i){g.save();g.translate(x,y);g.rotate(rot);var c=['#FF5A8A','#5AD0FF','#FFD84A','#8AF07A'][i%4];g.fillStyle=c;g.strokeStyle=EMO_OL;g.lineWidth=2;
   g.beginPath();g.moveTo(-6,0);g.lineTo(-11,-5);g.lineTo(-11,5);g.closePath();g.fill();g.stroke();g.beginPath();g.moveTo(6,0);g.lineTo(11,-5);g.lineTo(11,5);g.closePath();g.fill();g.stroke();
@@ -5040,11 +5041,11 @@ var emoSlot=0;
 function pickEmoSlot(i){emoSlot=i|0;renderLookEditor();}
 function pickEmote(id){
   id=+id;ensureProfileShape();
-  if(id>=SIM.EMOTE_FREE&&!itemOwned('e'+id)){note(lockText('e'+id));SFX.switchW();return;}
+  if(!SIM.emoteFree(id)&&!itemOwned('e'+id)){note(lockText('e'+id));SFX.switchW();return;}
   var e=profile.emo.slice(),j=e.indexOf(id);
   if(j>=0)e[j]=e[emoSlot];
   e[emoSlot]=id;profile.emo=SIM.cleanEmotes(e,profile.inv);
-  if(id>=SIM.EMOTE_FREE)seenItem('e'+id);
+  if(!SIM.emoteFree(id))seenItem('e'+id);
   emoSlot=(emoSlot+1)%4;SFX.emote(SIM.EMOTE_RAR[id]||0);saveProfile();renderLookEditor();pfSaved();
 }
 function isDevUser(){return !!(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&AUTH.user.dev);}
@@ -5106,12 +5107,12 @@ function renderLookEditor(){
     html+='<p class="look-sub">'+esc(t('look.emoteHint'))+'</p><div class="emo-slots">';
     profile.emo.forEach(function(id,i){html+='<button class="emo-slot'+(i===emoSlot?' sel':'')+'" onclick="pickEmoSlot('+i+')"><canvas data-emo="'+id+'" width="112" height="112"></canvas><small>'+esc(t('look.emoteSlot',{k:kdn(keybinds['e'+(i+1)])||'-'}))+'</small></button>';});
     html+='</div>';
-    var own=0;for(var q=SIM.EMOTE_FREE;q<SIM.EMOTE_N;q++)if(itemOwned('e'+q))own++;
-    html+='<p class="look-sub">'+esc(t('look.owned',{n:own,m:SIM.EMOTE_N-SIM.EMOTE_FREE}))+'</p><div class="opt-grid">';
+    var own=0,tot=0;for(var q=0;q<SIM.EMOTE_N;q++)if(!SIM.emoteFree(q)){tot++;if(itemOwned('e'+q))own++;}
+    html+='<p class="look-sub">'+esc(t('look.owned',{n:own,m:tot}))+'</p><div class="opt-grid">';
     var ids=[];for(var ei=0;ei<SIM.EMOTE_N;ei++)ids.push(ei);
     ids.sort(function(a,b){return(SIM.EMOTE_RAR[a]-SIM.EMOTE_RAR[b])||a-b;});
     ids.forEach(function(id){
-      var free=id<SIM.EMOTE_FREE,have=free||itemOwned('e'+id),r=SIM.EMOTE_RAR[id],inUse=profile.emo.indexOf(id)>=0;
+      var free=SIM.emoteFree(id),have=free||itemOwned('e'+id),r=SIM.EMOTE_RAR[id],inUse=profile.emo.indexOf(id)>=0;
       html+='<button class="opt rar r'+r+(have?'':' locked')+(inUse?' sel':'')+'" title="'+esc(t('emote.'+id))+' · '+esc(rarName(r))+(have?'':' · '+esc(lockText('e'+id)))+'" onclick="pickEmote('+id+')"><canvas data-emo="'+id+'"'+(have?'':' data-lock="1"')+' width="132" height="132"></canvas>'+
         (have?'':'<b class="opt-lock"></b>')+(have&&!free&&isNewItem('e'+id)?'<b class="opt-new">'+esc(t('eco.new'))+'</b>':'')+'</button>';
     });
