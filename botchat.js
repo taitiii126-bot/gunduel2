@@ -1,85 +1,97 @@
 'use strict';
-// BOT のクイックチャット：人がするのと同じくらいの間と回数で、場面に合った言葉を出す
+// BOT のクイックチャット：人がするのと同じくらいの間と回数で、場面に合った短い言葉を出す
 // ・BOTごとに「よくしゃべる／あまりしゃべらない／しゃべらない」の性格がある
-// ・すぐには返さない（0.8〜3秒ほど考えてから）。1試合に出す回数にも上限がある
-// ・決まった言葉（番号）がほとんど。見る人の言葉に合わせて表示される。たまに短い自由な言葉
+// ・すぐには返さない（0.6〜3秒ほどおいてから）。1試合に出す回数にも上限がある
+// ・ていねいな言葉は使わない。短い言葉だけ（名前が日本語のBOTは日本語、ローマ字のBOTはだいたい英語）
+// ・相手をばかにする言葉（ez など）は使わない
 // room は game.js / team.js の部屋（later・broadcast・players を使う）
 const SIM = require('./sim.js');
-const Q = {};
-SIM.QUICK_CHAT.forEach((k, i) => { Q[k] = i; });
 
-// 自由な言葉（名前が日本語のBOTは日本語、ローマ字のBOTは英語）
 const TEXT = {
-  ja: { lose: ['うま', 'つよ', 'えぐ', 'まじか', 'くっそー'], close: ['あぶな', 'ぎりぎり', 'セーフ'], win: ['よし', 'っしゃ'], end: ['ありがとう', 'またね', 'おつかれ'], hello: ['よろしく', 'よろ'] },
-  en: { lose: ['wow', 'nice shot', 'dang'], close: ['close one', 'phew'], win: ['yes!', 'got it'], end: ['ggwp', 'gg!', 'wp'], hello: ['hi', 'gl hf', 'hey'] },
+  ja: {
+    hello: ['よろ', 'ども', 'ノ'],
+    lose: ['うま', 'つよ', 'えぐ', 'は？', 'まじか', 'くっそ', 'ラグ', 'えー'],
+    close: ['あぶねー', 'あぶねーー', 'ギリ', 'セーフ'],
+    win: ['よし', 'っし', 'w'],
+    endWin: ['gg', 'ggwp', 'w', 'gg'],
+    endLose: ['gg', 'つよすぎ', 'gg'],
+    thanks: ['どもw', 'w'],
+    gg: ['gg', 'gg'],
+  },
+  en: {
+    hello: ['yo', 'hi', 'gl'],
+    lose: ['bruh', 'wtf', 'lag', 'nice', 'omg'],
+    close: ['close', 'phew'],
+    win: ['lets go', 'w'],
+    endWin: ['gg', 'ggwp', 'gg wp'],
+    endLose: ['gg', 'ggwp', 'gg wp'],
+    thanks: ['ty', 'w'],
+    gg: ['gg', 'gg'],
+  },
 };
 const pick = a => a[Math.floor(Math.random() * a.length)];
-const MAX_PER_MATCH = 5, GAP_MS = 3500;
+const MAX_PER_MATCH = 4, GAP_MS = 3500;
 
 // BOTの性格を決める（部屋に入れたときに1回）
 function init(p) {
   const r = Math.random();
-  p.chatTalk = r < 0.3 ? 0 : r < 0.75 ? 0.45 : 0.85;   // 3割はしゃべらない
+  p.chatTalk = r < 0.4 ? 0 : r < 0.8 ? 0.45 : 0.85;   // 4割はしゃべらない
   p.chatLang = /[ぁ-んァ-ヶ一-龠]/.test(p.name || '') ? 'ja' : (Math.random() < 0.25 ? 'ja' : 'en');
-  p.chatFree = Math.random() < 0.5;   // 自由な言葉も使う人
   p.chatN = 0; p.chatLast = 0; p.chatSaid = {};
 }
 // 新しい試合：回数をもどす
 function newMatch(p) { p.chatN = 0; p.chatSaid = {}; }
 
-// 実際に出す（少し待ってから。待っている間に試合が終わっていても、終わりのあいさつは出してよい）
-function say(room, slot, kind, preset, textKey, delay) {
+// 実際に出す（少し待ってから）
+function say(room, slot, kind, delay) {
   const p = room.players[slot];
   if (!p || !p.bot || !p.chatTalk) return false;
   const now = Date.now();
   if (p.chatN >= MAX_PER_MATCH || now - p.chatLast < GAP_MS) return false;
   p.chatN++; p.chatLast = now + delay; p.chatSaid[kind] = true;
-  const useText = textKey && p.chatFree && Math.random() < 0.4;
-  const msg = useText ? { text: pick(TEXT[p.chatLang][textKey]) } : { i: Q[preset] };
+  const text = pick(TEXT[p.chatLang][kind]);
   room.later(() => {
-    const q = room.players[slot];
-    if (q === p) room.broadcast(Object.assign({ type: 'chat', slot }, msg));
+    if (room.players[slot] === p) room.broadcast({ type: 'chat', slot, text });
   }, delay);
   return true;
 }
 const chance = (p, base) => p && p.bot && p.chatTalk && Math.random() < base * p.chatTalk;
 const wait = (lo, hi) => lo + Math.floor(Math.random() * (hi - lo));
 
-// 試合の最初のラウンド
+// 試合の最初のラウンド（あいさつはたまにだけ）
 function onStart(room, slot) {
   const p = room.players[slot];
   if (!p || !p.bot) return;
   newMatch(p);
-  if (chance(p, 0.45)) say(room, slot, 'hello', 'hello', 'hello', wait(600, 2600));
+  if (chance(p, 0.25)) say(room, slot, 'hello', wait(600, 2600));
 }
 // ラウンドの終わり。won：このBOT（のチーム）が勝った、hp：残りの体力（倒れていたら0）
 function onRound(room, slot, won, hp) {
   const p = room.players[slot];
   if (!p || !p.bot || !p.chatTalk) return;
-  if (won && hp > 0 && hp <= 25 && chance(p, 0.6)) say(room, slot, 'close', 'close', 'close', wait(700, 2000));
-  else if (won && chance(p, 0.12)) say(room, slot, 'win', 'wow', 'win', wait(800, 2200));
-  else if (!won && chance(p, 0.3)) say(room, slot, 'lose', Math.random() < 0.6 ? 'nice' : 'wow', 'lose', wait(900, 2600));
+  if (won && hp > 0 && hp <= 25 && chance(p, 0.6)) say(room, slot, 'close', wait(700, 2000));
+  else if (won && chance(p, 0.12)) say(room, slot, 'win', wait(800, 2200));
+  else if (!won && chance(p, 0.35)) say(room, slot, 'lose', wait(600, 2400));
 }
 // 試合の終わり
-function onEnd(room, slot, won, canRematch) {
+function onEnd(room, slot, won) {
   const p = room.players[slot];
   if (!p || !p.bot || !p.chatTalk) return;
-  p.chatLast = 0;   // 終わりのあいさつは、さっき何か言っていても出せる
-  if (chance(p, 0.8)) {
-    say(room, slot, 'gg', 'gg', 'end', wait(1200, 3200));
-    if (canRematch && !won && chance(p, 0.35)) { p.chatLast = 0; say(room, slot, 'again', 'again', null, wait(5000, 7000)); }
-  }
+  p.chatLast = 0; p.chatN = Math.min(p.chatN, MAX_PER_MATCH - 1);   // 終わりの gg は、さっき何か言っていても出せる
+  if (chance(p, 0.8)) say(room, slot, won ? 'endWin' : 'endLose', wait(1200, 3200));
 }
-// 人のチャットに返す（あいさつにはあいさつ、ほめられたらお礼など）
-const REPLY = { hello: 'hello', gg: 'gg', nice: 'thanks', thanks: null, sorry: null, wow: null, close: null, again: 'again' };
+// 人のチャットに返す（gg には gg、ほめられたら「どもw」、あいさつには短く）
 function onHeard(room, fromSlot, m) {
-  const key = m && m.i != null ? SIM.QUICK_CHAT[m.i] : (m && m.text && /^(gg|ggwp|ggs)\b/i.test(m.text) ? 'gg' : (m && m.text && /よろ|hello|^hi\b/i.test(m.text) ? 'hello' : null));
-  const back = key && REPLY[key];
+  const k = m && m.i != null ? SIM.QUICK_CHAT[m.i] : '';
+  const t = m && m.text ? String(m.text) : '';
+  const back = k === 'gg' || /^(gg|ggwp|ggs)\b/i.test(t) ? 'gg'
+    : k === 'nice' || /^(ナイス|ないす|nice|うま)/i.test(t) ? 'thanks'
+    : k === 'hello' || /^(よろ|hello|hi\b|yo\b)/i.test(t) ? 'hello' : '';
   if (!back) return;
   for (const s of Object.keys(room.players)) {
     const p = room.players[s];
-    if (!p || !p.bot || !p.chatTalk || s === fromSlot || (p.chatSaid && p.chatSaid[back])) continue;
-    if (chance(p, 0.75)) say(room, s, back, back, back === 'hello' ? 'hello' : back === 'gg' ? 'end' : null, wait(1000, 3000));
+    if (!p || !p.bot || !p.chatTalk || s === fromSlot || (p.chatSaid && (p.chatSaid[back] || (back === 'gg' && (p.chatSaid.endWin || p.chatSaid.endLose))))) continue;
+    if (chance(p, back === 'gg' ? 0.8 : 0.5)) say(room, s, back, wait(1000, 3000));
   }
 }
 
