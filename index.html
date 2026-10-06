@@ -1143,6 +1143,8 @@ body.demo #bg-shade{opacity:1;}
   background:linear-gradient(100deg,#7A0F1A 0%,#C1272D 18%,#F0B23C 38%,#FFF3C9 50%,#F0B23C 62%,#C1272D 82%,#7A0F1A 100%);background-size:250% 100%;
   -webkit-background-clip:text;background-clip:text;color:transparent;-webkit-text-fill-color:transparent;
   filter:drop-shadow(0 0 6px rgba(255,120,60,.5)) drop-shadow(0 1px 0 rgba(0,0,0,.85));animation:gold-sheen 3.4s linear infinite;}
+.cr.cr2{background:linear-gradient(100deg,#0E2A6A 0%,#2F6FD6 18%,#B8C8DC 38%,#FFFFFF 50%,#B8C8DC 62%,#2F6FD6 82%,#0E2A6A 100%);background-size:250% 100%;
+  -webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 0 6px rgba(90,160,255,.55)) drop-shadow(0 1px 0 rgba(0,0,0,.85));}
 .hb-title.cr,.fr-info .cr{font-size:14px;}
 .bg-opt.champ{border-color:rgba(245,196,82,.5);box-shadow:0 0 14px -4px rgba(255,150,60,.6);}
 .bg-opt.dev{border-color:rgba(62,230,255,.5);box-shadow:-6px 0 14px -6px rgba(62,230,255,.8),6px 0 14px -6px rgba(255,194,74,.8);}
@@ -2697,8 +2699,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=47"></script>
-<script src="lang.js?v=59"></script>
+<script src="sim.js?v=48"></script>
+<script src="lang.js?v=60"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3387,14 +3389,14 @@ function isRareTitle(id){var d=titleDef(id);return !!(d&&d.rare);}
 function isMythicTitle(id){var d=titleDef(id);return !!(d&&d.mythic);}
 function isGiftTitle(id){var d=titleDef(id);return !!(d&&d.gift);}
 function isPrismTitle(id){var d=titleDef(id);return !!(d&&d.prism);}
-function isCrownTitle(id){var d=titleDef(id);return !!(d&&d.crown);}
+function isCrownTitle(id){var d=titleDef(id);return d&&d.crown?(d.crown===2?2:1):0;}   // 2＝天双無双（青と銀）
 function isGlitchTitle(id){var d=titleDef(id);return !!(d&&d.glitch);}
 function isHwTitle(id){var d=titleDef(id);return !!(d&&d.hw);}
 // 運営の印（丸に✓）。称号と違って着け替えられないので、本物の証明になる
 var DEV_SVG='<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.4"/><path d="M6.9 12.6l3.4 3.4 6.9-7.5"/></svg>';
 function devBadge(on){return on?'<span class="dev-badge" title="'+esc(t('badge.dev'))+'" aria-label="'+esc(t('badge.dev'))+'">'+DEV_SVG+'</span>':'';}
 // 称号の文字の見せ方（mt＝黒と金／sv＝明朝の白銀＋プリズム／gt＝贈られた称号＝緑のネオン／nt＝レア＝青いネオン）
-function titleCls(id){return isMythicTitle(id)?'mt':isCrownTitle(id)?'cr':isPrismTitle(id)?'sv':isGlitchTitle(id)?'gl':isGiftTitle(id)?'gt':isHwTitle(id)?'hw':isRareTitle(id)?'nt':'';}
+function titleCls(id){return isMythicTitle(id)?'mt':isCrownTitle(id)?(isCrownTitle(id)===2?'cr cr2':'cr'):isPrismTitle(id)?'sv':isGlitchTitle(id)?'gl':isGiftTitle(id)?'gt':isHwTitle(id)?'hw':isRareTitle(id)?'nt':'';}
 // 条件を満たしているか（武器ごとの称号は、その武器でのとどめの回数で決まる）
 function titleRule(d){if(d.kill)return killsWith(d.kill.w)>=d.kill.n;var f=TITLE_RULES[d.id];return !!(f&&f());}
 // 取り方の説明（武器ごとの称号は、ひな形に武器の名前と回数を入れる）
@@ -3402,7 +3404,7 @@ function titleCond(id){var d=titleDef(id);return d&&d.kill?t('tcond.kill',{weapo
 function beaten(d){var p=profile.tierProgress&&profile.tierProgress[d];return !!(p&&p.beat);}
 function totalWL(){var c=cpuTotals();return{w:c.w+(AUTH.user?AUTH.user.wins||0:0),l:c.l+(AUTH.user?AUTH.user.losses||0:0)};}   // CPU戦＋オンライン対戦
 function killsWith(wid){return +(profile.ach.kills[wid]||0);}
-function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,tears:!!AUTH.user.tears,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion,hwking:!!AUTH.user.hwking,snowking:!!AUTH.user.snowking}:null;}
+function myTitleCtx(){return AUTH.user?{w:AUTH.user.wins||0,l:AUTH.user.losses||0,friends:FR.friends.length,pioneer:!!AUTH.user.pioneer,pioneer10:!!AUTH.user.pioneer10,hacker:!!AUTH.user.hacker,tears:!!AUTH.user.tears,dev:!!AUTH.user.dev,champion:!!AUTH.user.champion,champion2:!!AUTH.user.champion2,hwking:!!AUTH.user.hwking,snowking:!!AUTH.user.snowking}:null;}
 function titleUnlocked(id){
   var d=titleDef(id);if(!d)return false;
   if(d.gate)return SIM.titleOk(id,myTitleCtx());
@@ -3467,11 +3469,12 @@ function showGiftFx(id){
     '<p class="gf-title"><span class="'+cls+'">'+esc(titleText(id))+'</span></p>'+
     '<p class="gf-cond">'+esc(titleCond(id))+'</p>'+
     '<p class="gf-tap">'+esc(t('gift.tap'))+'</p>';
-  el.className='on '+(cls==='sv'?'prism':cls==='cr'?'crown':cls==='gl'?'glitch':cls==='hw'?'hw':'gift');
+  var crn=cls.slice(0,2)==='cr';
+  el.className='on '+(cls==='sv'?'prism':crn?'crown':cls==='gl'?'glitch':cls==='hw'?'hw':'gift');
   playTone(523,.14,'triangle',.11);playTone(659,.14,'triangle',.11,.12);playTone(784,.16,'triangle',.11,.24);
   playTone(1046,.5,'triangle',.12,.38);playTone(1568,.6,'sine',.05,.46);
   if(cls==='sv'){playTone(1318,.7,'sine',.06,.52);playTone(2093,.9,'sine',.04,.62);}   // 創造主はもう一段きらびやかに
-  if(cls==='cr'){playTone(392,.5,'sawtooth',.06,.5);playTone(1046,.8,'triangle',.08,.58);}   // 天下無双は重く華やかに
+  if(crn){playTone(392,.5,'sawtooth',.06,.5);playTone(1046,.8,'triangle',.08,.58);}   // 天下無双は重く華やかに
   if(cls==='gl'){playTone(146,.10,'sawtooth',.10,.50);playTone(1975,.06,'square',.07,.56);playTone(110,.14,'sawtooth',.10,.62);playTone(2349,.06,'square',.06,.70);playTone(880,.45,'sawtooth',.06,.78);}   // 運営泣かせは機械が壊れた音
   clearTimeout(giftTimer);giftTimer=setTimeout(closeGiftFx,9500);
 }
@@ -5143,7 +5146,7 @@ function renderTitleChips(){
     if(!titleUnlocked(x.id))return;
     n++;
     var my=isMythicTitle(x.id),cw=isCrownTitle(x.id),pz=isPrismTitle(x.id),gl=isGlitchTitle(x.id),gf=isGiftTitle(x.id),hw=isHwTitle(x.id),tx=esc(titleText(x.id));
-    var body=my?'<span class="mt">'+tx+'</span>':cw?'<span class="cr">'+tx+'</span>':pz?'<span class="sv">'+tx+'</span>':gl?'<span class="gl">'+tx+'</span>':gf?'<span class="gt">'+tx+'</span>':tx;
+    var body=my?'<span class="mt">'+tx+'</span>':cw?'<span class="cr'+(cw===2?' cr2':'')+'">'+tx+'</span>':pz?'<span class="sv">'+tx+'</span>':gl?'<span class="gl">'+tx+'</span>':gf?'<span class="gt">'+tx+'</span>':tx;
     chips+='<button class="title-chip'+(my?' mythic':cw?' crown':pz?' prism':gl?' glitch':gf?' gift':hw?' hwt':x.rare?' rare':'')+(x.id===profile.title?' sel':'')+
       '" onclick="pickTitle(\''+x.id+'\')" onmouseenter="titleHint(\''+x.id+'\')" onmouseleave="titleHint(\'\')" onfocus="titleHint(\''+x.id+'\')" title="'+esc(titleCond(x.id))+'">'+body+'</button>';
   });
@@ -11247,14 +11250,15 @@ function drawDevBadge(g,x,y,r){
   g.restore();
 }
 // 天下無双：深い赤から金へ。金の光が文字の上をゆっくり走る
-function drawCrownTitle(g,text,x,y,size,tm){
+function drawCrownTitle(g,text,x,y,size,tm,twin){   // twin：天双無双（青と銀）
   askNeonFont(text);
   var k=ctxScale(g),tw=g.measureText(text).width;
   g.save();g.lineJoin='round';
   g.lineWidth=Math.max(1.5,size*.18);g.strokeStyle='rgba(0,0,0,.88)';g.strokeText(text,x,y);
   var gr=g.createLinearGradient(x,y-size,x,y+size*.15);
-  gr.addColorStop(0,'#FFE9A8');gr.addColorStop(.4,'#F0B23C');gr.addColorStop(.62,'#C1272D');gr.addColorStop(1,'#7A0F1A');
-  g.shadowColor='rgba(255,90,60,.55)';g.shadowBlur=size*.4*k;
+  if(twin){gr.addColorStop(0,'#F4FAFF');gr.addColorStop(.4,'#B8C8DC');gr.addColorStop(.62,'#2F6FD6');gr.addColorStop(1,'#0E2A6A');}
+  else{gr.addColorStop(0,'#FFE9A8');gr.addColorStop(.4,'#F0B23C');gr.addColorStop(.62,'#C1272D');gr.addColorStop(1,'#7A0F1A');}
+  g.shadowColor=twin?'rgba(90,160,255,.6)':'rgba(255,90,60,.55)';g.shadowBlur=size*.4*k;
   g.fillStyle=gr;g.fillText(text,x,y);g.shadowBlur=0;
   var p=((tm||0)*.36)%2-.5;
   if(p>-.15&&p<1.15&&tw>0){
@@ -11310,7 +11314,7 @@ function drawProfileCard(g,P,x,y,w,h,tm){
   var titleText=P.title||'',ty=top+ch-pad*.95,nameY=ty-w*.065;
   if(P.titleCrown){   // 天下無双：赤と金
     var tsc=fitFont(g,titleText,textMax,Math.round(w*.066),'400',FONT_NEON);
-    drawCrownTitle(g,titleText,x+pad,ty,tsc,tm);
+    drawCrownTitle(g,titleText,x+pad,ty,tsc,tm,P.titleCrown===2);
     nameY=ty-tsc*1.22;
   }else if(P.titlePrism){   // この世界の創造主：明朝の白銀＋プリズム
     var tsp=fitFont(g,titleText,textMax,Math.round(w*.062),'800',FONT_MINCHO);

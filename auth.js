@@ -135,11 +135,26 @@ function seasonTop() {
   }
   return best;
 }
+// 2v2 ランクマッチの1位（シーズンの終わりに「天双無双」を贈る）
+function seasonTop2() {
+  let best = null;
+  for (const u of Object.values(db.users)) {
+    if (BANNED_IDS.has(String(u.id))) continue;
+    const r = rateState2(u);
+    if (r.games < 1) continue;
+    if (!best || r.rate > best.rate || (r.rate === best.rate && r.games > best.games)) best = { u, rate: r.rate, games: r.games };
+  }
+  return best;
+}
 function rollSeason(now) {
   const cur = SIM.seasonNo(now == null ? Date.now() : now);
   if (db.meta.season == null) { db.meta.season = cur; dirty = true; return null; }   // 初回は記録だけ
   if (db.meta.season >= cur) return null;
-  const top = seasonTop(), out = { season: cur, before: db.meta.season, champ: null, players: 0 };
+  const top = seasonTop(), top2 = seasonTop2(), out = { season: cur, before: db.meta.season, champ: null, champ2: null, players: 0 };
+  if (top2) {
+    out.champ2 = { uid: top2.u.id, name: top2.u.name, rate: top2.rate };
+    if (!top2.u.champion2) { top2.u.champion2 = true; top2.u.champ2Season = db.meta.season; out.champ2.first = true; }
+  }
   if (top) {
     out.champ = { uid: top.u.id, name: top.u.name, rate: top.rate };
     if (!top.u.champion) { top.u.champion = true; top.u.champSeason = db.meta.season; out.champ.first = true; }
@@ -157,7 +172,8 @@ function rollSeason(now) {
 function logSeason(r) {
   if (!r) return;
   console.log(new Date().toISOString(), 'シーズン' + r.season + 'が始まりました（' + r.players + '人のレートをやり直し）'
-    + (r.champ ? ' 最終1位: ' + r.champ.name + ' (' + r.champ.rate + ')' + (r.champ.first ? ' → 天下無双' : ' ※すでに持っている') : ''));
+    + (r.champ ? ' 最終1位: ' + r.champ.name + ' (' + r.champ.rate + ')' + (r.champ.first ? ' → 天下無双' : ' ※すでに持っている') : '')
+    + (r.champ2 ? ' 2v2最終1位: ' + r.champ2.name + ' (' + r.champ2.rate + ')' + (r.champ2.first ? ' → 天双無双' : ' ※すでに持っている') : ''));
 }
 logSeason(rollSeason());                             // 起動したときに1回
 setInterval(() => logSeason(rollSeason()), 60 * 1000).unref();   // 月が変わる瞬間に気づくため
@@ -347,7 +363,7 @@ function trackMission(pr, kind, n, w) {
   });
   trackEvMission(pr, kind, n, w);
 }
-const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, hwking: !!u.hwking, snowking: !!u.snowking, badges: u.badges || [] });
+const titleCtx = u => ({ w: u.online.w, l: u.online.l, friends: (u.friends || []).length, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champion2: !!u.champion2, hwking: !!u.hwking, snowking: !!u.snowking, badges: u.badges || [] });
 
 // ---- レート ----
 // ティアはレートの数値だけで決まる。最初は全員1000。レートが動くのはランクマッチだけ（CPU戦では動かない）
@@ -412,7 +428,7 @@ function giveBadge(u) {
 }
 function publicUser(u) {
   const r = rateState(u), r2 = rateState2(u);
-  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0, hwking: !!u.hwking, snowking: !!u.snowking, sale: u.sale || null, badges: SIM.cleanBadges(u.badges),
+  return { name: u.name, wins: u.online.w, losses: u.online.l, since: u.created, fid: u.fid, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, hacker: !!u.hacker, tears: !!u.tears, dev: !!u.dev, champion: !!u.champion, champSeason: u.champSeason || 0, champion2: !!u.champion2, hwking: !!u.hwking, snowking: !!u.snowking, sale: u.sale || null, badges: SIM.cleanBadges(u.badges),
     rate: r.rate, tier: r.tier, rgames: r.games, rstreak: r.streak, rwstreak: r.wstreak, ranked: { w: r.w, l: r.l }, peak: r.peak,
     rate2: r2.rate, tier2: r2.tier, rgames2: r2.games, ranked2: { w: r2.w, l: r2.l }, peak2: r2.peak };
 }
@@ -590,6 +606,8 @@ const auth = {
     const u = db.users[uid];
     if (!u) return null;
     const rt = rateState(u).tier;
+    // 持ち物はサーバーの値で確かめる（ブラウザは持ち物を送らないので、そのままだと着ている宝箱の服・エモート・限定背景が外れてしまう）
+    if (raw && typeof raw === 'object') raw = Object.assign({}, raw, { inv: u.profile && Array.isArray(u.profile.inv) ? u.profile.inv : [] });
     const ctx = titleCtx(u), inc = P.clean(raw, ctx, rt), rev = u.profileRev || 0;
     const merged = !!u.profile && Math.floor(+base) !== rev;
     const old = u.profile ? P.clean(u.profile, ctx, rt) : null;
