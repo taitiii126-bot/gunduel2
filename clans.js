@@ -6,6 +6,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
+const SIM = require('./sim.js');
 
 const DATA_DIR = process.env.DATA_DIR || process.env.STATE_DIRECTORY || __dirname;
 const FILE = path.join(DATA_DIR, 'clans.json');
@@ -53,6 +54,7 @@ function create(uid, name, tag) {
   if (clanOf(uid)) return { error: 'in_clan' };
   const n = cleanName(name), tg = cleanTag(tag);
   if (!n) return { error: 'bad_name' };
+  if (SIM.badText(n) || SIM.badText(tg)) return { error: 'bad_word' };   // 禁止ワード
   if (tg.length < TAG_MIN) return { error: 'bad_tag' };
   if (Object.values(db.clans).some(c => c.tag === tg)) return { error: 'tag_taken' };
   const id = newId();

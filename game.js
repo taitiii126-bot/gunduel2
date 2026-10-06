@@ -98,7 +98,7 @@ function cleanName(v) {
   let n = '';
   for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
   n = n.trim().slice(0, 12);
-  return n || 'プレイヤー';
+  return n && !SIM.badText(n) ? n : 'プレイヤー';   // 禁止ワードの入った名前は使わない
 }
 // 相手のカードに出す項目。自己申告なので、形と長さだけ整えて中身は信用しない
 // 称号：オンライン戦績・フレンド数などが足りないものは使えない（ログインしていない人は、それらの称号は使えない）
@@ -111,7 +111,8 @@ function cleanTitle(v, acc) {
 function cleanBio(v) {
   let n = '';
   for (const ch of String(v == null ? '' : v)) { const c = ch.codePointAt(0); if (c >= 32 && c !== 127) n += ch; }
-  return n.trim().slice(0, 40);
+  n = n.trim().slice(0, 40);
+  return SIM.badText(n) ? '' : n;   // 禁止ワードの入ったひとことは出さない
 }
 // 背景：ログイン中はサーバーに保存してある物（届いたティアの分まで・鬼帝は倒した人だけ）。ゲストは鬼帝と開発者の背景を使えない
 function cleanBg(v, acc) {
@@ -409,6 +410,20 @@ class Room {
     }
   }
 
+  // クイックチャット：決まった言葉（番号）か、自分で決めた言葉（禁止ワードが入っていたら送らず、本人にだけ知らせる）
+  // 1.8秒に1回まで・20秒で6回まで。部屋の全員に配る
+  chat(slot, m) {
+    const p = this.players[slot]; if (!p || p.bot || !m) return;
+    const now = Date.now();
+    if (now - (p.chatT || 0) < 1800) return;
+    p.chatW = (p.chatW || []).filter(t => now - t < 20000);
+    if (p.chatW.length >= 6) return;
+    let out;
+    if (m.i != null) { const i = Math.floor(+m.i); if (!(i >= 0 && i < SIM.QUICK_CHAT.length)) return; out = { i }; }
+    else { const t = SIM.cleanSay(m.text); if (!t) return this.send(p, { type: 'chat_ng' }); out = { text: t }; }
+    p.chatT = now; p.chatW.push(now);
+    this.broadcast(Object.assign({ type: 'chat', slot }, out));
+  }
   // エモート：持っている物だけ、1.5秒に1回まで。部屋の全員に配る
   emote(slot, id) {
     const p = this.players[slot]; if (!p || p.bot) return;

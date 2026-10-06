@@ -338,6 +338,20 @@ class TeamRoom {
   }
 
   // エモート：持っている物だけ、1.5秒に1回まで。部屋の全員に配る
+  // クイックチャット：決まった言葉（番号）か、自分で決めた言葉（禁止ワードが入っていたら送らず、本人にだけ知らせる）
+  // 1.8秒に1回まで・20秒で6回まで。部屋の全員に配る
+  chat(slot, m) {
+    const p = this.players[slot]; if (!p || p.bot || !m) return;
+    const now = Date.now();
+    if (now - (p.chatT || 0) < 1800) return;
+    p.chatW = (p.chatW || []).filter(t => now - t < 20000);
+    if (p.chatW.length >= 6) return;
+    let out;
+    if (m.i != null) { const i = Math.floor(+m.i); if (!(i >= 0 && i < SIM.QUICK_CHAT.length)) return; out = { i }; }
+    else { const t = SIM.cleanSay(m.text); if (!t) return this.send(p, { type: 'chat_ng' }); out = { text: t }; }
+    p.chatT = now; p.chatW.push(now);
+    this.broadcast(Object.assign({ type: 'chat', slot }, out));
+  }
   emote(slot, id) {
     const p = this.players[slot]; if (!p || p.bot) return;
     const n = Math.floor(+id), now = Date.now();

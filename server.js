@@ -862,6 +862,9 @@ function onMessage(ws, raw) {
     case 'input':
       if (ws.room && m.input && typeof m.input === 'object') ws.room.input(ws.slot, m.input);
       break;
+    case 'chat':
+      if (ws.room && ws.room.chat) ws.room.chat(ws.slot, m);
+      break;
     case 'emote':
       if (ws.room && ws.room.emote) ws.room.emote(ws.slot, m.id);
       break;

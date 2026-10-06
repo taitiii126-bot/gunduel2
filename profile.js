@@ -129,8 +129,8 @@ function clean(v, ctx, rtier) {
     : v.bg === 'halloween' ? (SIM.cleanInv(v.inv).indexOf('bHW') >= 0 ? 'halloween' : null)   // ハロウィン限定（持ち物はサーバーの物で確かめ直す）
     : v.bg == null ? null : int(v.bg, 0, best, null);
   return {
-    name: text(v.name, 12) || 'プレイヤー',
-    bio: text(v.bio, 40),
+    name: SIM.badText(text(v.name, 12)) ? 'プレイヤー' : (text(v.name, 12) || 'プレイヤー'),   // 禁止ワードの入った名前・ひとことは使わない
+    bio: SIM.badText(text(v.bio, 40)) ? '' : text(v.bio, 40),
     title: validTitle(v.title, ctx, proofOf),
     look: SIM.lookOwned(SIM.cleanLook(v.look, !!(ctx && ctx.dev)), SIM.cleanInv(v.inv)),   // 持っていない宝箱の物は外す
     // 宝箱・レベル：inv（持ち物）・opened（開けた数）・misCrates（ミッションでもらった宝箱）・pity（天井のカウント）は
