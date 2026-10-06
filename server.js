@@ -54,7 +54,7 @@ const ALLOW_SAME_IP_RECORDS = process.env.ALLOW_SAME_IP_RECORDS === '1';
 const BANNED_IPS = new Set(list(process.env.BANNED_IPS));
 const WEBHOOK_URL = process.env.DISCORD_WEBHOOK_URL || '';          // 昇格を投稿するDiscordのWebhook
 const ADMIN_WEBHOOK_URL = process.env.ADMIN_WEBHOOK_URL || '';      // 怪しいプレイを知らせる、管理者だけのチャンネルのWebhook
-const UPDATE_WEBHOOK_URL = process.env.UPDATE_WEBHOOK_URL || '';    // アップデートのお知らせを投稿するチャンネルのWebhook（Railway の Variables に入れる）
+const UPDATE_WEBHOOK_URL = process.env.UPDATE_WEBHOOK_URL || process.env.DISCORD_WEBHOOK_URL || '';    // アップデートのお知らせを投稿するチャンネルのWebhook（Railway の Variables）。なければ昇格のお知らせと同じチャンネルへ
 const GAME_URL = process.env.GAME_URL || '';                        // 投稿にゲームへのリンクを付ける（任意）
 const MSG_PER_SEC = 120;        // 1接続あたりの受信上限（超えた分は捨てる）
 const MSG_KICK_PER_SEC = 600;   // 明らかな連打・攻撃は切断
@@ -1235,7 +1235,9 @@ function announceUpdates() {
   const posted = new Set(done && Array.isArray(done.ids) ? done.ids : []);
   const fresh = (done ? list.filter(u => u && u.id && !posted.has(u.id)) : list.slice(0, 1)).reverse();   // 古い順に投稿
   if (!fresh.length) return;
-  if (!UPDATE_WEBHOOK_URL) return log('update announcement skipped: UPDATE_WEBHOOK_URL is not set (' + fresh.map(u => u.id).join(', ') + ')');
+  if (!UPDATE_WEBHOOK_URL) return log('update announcement skipped: UPDATE_WEBHOOK_URL / DISCORD_WEBHOOK_URL is not set (' + fresh.map(u => u.id).join(', ') + ')');
+  log('update announcement: posting', fresh.map(u => u.id).join(', '), process.env.UPDATE_WEBHOOK_URL ? '(UPDATE_WEBHOOK_URL)' : '(DISCORD_WEBHOOK_URL)');
+  const retry = () => { log('update announcement: will retry in 10 minutes'); setTimeout(announceUpdates, 10 * 60 * 1000).unref(); };
   const save = () => { try { fs.writeFileSync(mark, JSON.stringify({ ids: [...posted].slice(-200) })); } catch (e) { log('announced.json の保存に失敗:', e.message); } };
   (function next() {
     const u = fresh.shift();
@@ -1246,8 +1248,8 @@ function announceUpdates() {
         title: '📢 アップデート：' + String(u.title || u.id).slice(0, 200), url: GAME_URL || undefined, color: 0xFFC53D,
         description: items + (GAME_URL ? '\n\n▶ [遊ぶ](' + GAME_URL + ')（古い画面のときは再読み込みしてください）' : ''),
         footer: { text: 'GUN DUEL  ·  ' + u.id }, timestamp: new Date().toISOString() }] }) })
-      .then(r => { if (r.ok) { posted.add(u.id); save(); log('update announced', u.id); setTimeout(next, 1500); } else log('update announcement failed', r.status); })
-      .catch(e => log('update announcement error', e.message));
+      .then(r => { if (r.ok) { posted.add(u.id); save(); log('update announced', u.id); setTimeout(next, 1500); } else { log('update announcement failed', r.status); retry(); } })
+      .catch(e => { log('update announcement error', e.message); retry(); });
   })();
 }
 function shutdown(sig) {
