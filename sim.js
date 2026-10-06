@@ -287,11 +287,11 @@ function normText(v) {
 }
 // どこに入っていてもだめな言葉
 var BAD_ANY = ['しね', 'しんで', '死ね', '氏ね', '市ね', 'ころす', 'ころして', '殺す', '殺して', 'きえろ', '消えろ', 'ちんこ', 'ちんぽ', 'ちんちん', 'まんこ', 'おまんこ', 'せっくす', 'れいぷ', 'きちがい', '基地外', 'きちがい', 'がいじ', '害児', 'ちしょう', '池沼', 'かたわ', 'めくら', 'つんぼ', 'ちょうせんじん', 'しなじん', 'にがー', 'くそやろう', 'くそが', '糞',
-  'fuck', 'fuk', 'fck', 'shit', 'bitch', 'cunt', 'dick', 'pussy', 'nigger', 'nigga', 'faggot', 'retard', 'whore', 'slut', 'rape', 'kys', 'killyourself', 'porn', 'penis', 'vagina', 'asshole'];
+  'fuck', 'fuk', 'fck', 'fack', 'phuck', 'shit', 'bitch', 'cunt', 'dick', 'pussy', 'nigger', 'nigga', 'faggot', 'retard', 'whore', 'slut', 'rape', 'kys', 'killyourself', 'porn', 'penis', 'vagina', 'asshole'];
 // 言葉だけのとき（ほかの言葉の一部にはよく入るので、それだけを送ったときにだめにする）
-var BAD_WORD = ['ばか', 'あほ', 'かす', 'くず', 'ごみ', 'ぶす', 'でぶ', 'きもい', 'きしょい', 'うざい', 'ざこ', 'くそ', 'へたくそ', 'のろま', 'ちょん', 'sex', 'fag', 'ass', 'noob', 'idiot', 'stupid', 'loser', 'trash'];
+var BAD_WORD = ['ばか', 'あほ', 'かす', 'くず', 'ごみ', 'ぶす', 'でぶ', 'きもい', 'きしょい', 'うざい', 'ざこ', 'くそ', 'へたくそ', 'のろま', 'ちょん', 'sex', 'fag', 'ass', 'idiot', 'stupid', 'trash'];
 // まちがえて引っかかる、ふつうの言葉（判定の前に取りのぞく）
-var BAD_OK = ['しねま', 'しねる', 'ころすけ', 'ましね', 'あしね', 'すぺしね', 'dickens', 'scunthorpe', 'shitake', 'cocktail'];
+var BAD_OK = ['しねま', 'しねる', 'ころすけ', 'ましね', 'あしね', 'すぺしね', 'dickens', 'scunthorpe', 'shitake', 'cocktail', 'grape', 'scrape', 'drape', 'dickson'];
 var BAD_ANY_N = BAD_ANY.map(normText), BAD_WORD_N = BAD_WORD.map(normText);
 var BAD_OK_N = BAD_OK.map(normText);
 // 禁止ワードが入っているか
