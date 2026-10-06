@@ -2103,6 +2103,7 @@ var TITLES = [
   { id: 'world_author', prism: true, award: true, gate: { dev: true } },       // prism：明朝の白銀にプリズムの光
   // シーズンの最終1位（crown：赤と金）。一度もらったら、また1位になっても増えない
   { id: 'unrivaled', crown: true, award: true, gate: { champion: true } },
+  { id: 'twin_unrivaled', crown: 2, award: true, gate: { champion2: true } },   // 天双無双：2v2 ランクマッチのシーズン最終1位（青と銀）
   // ハロウィンのイベント中に、キャンディを合計 3000 個集める（称号の名前は「トリックオアトリート」。hw：かぼちゃ色のネオン）。イベントが終わったら、もう取れない
   { id: 'pumpkin_king', hw: true, rare: true, award: true, gate: { hwking: true } },
   { id: 'snow_king', rare: true, award: true, gate: { snowking: true } }   // 冬のイベントの限定称号
@@ -2223,6 +2224,7 @@ function titleOk(id, ctx) {
     if (g.snowking && !ctx.snowking) return false;
     if (g.dev && !ctx.dev) return false;
     if (g.champion && !ctx.champion) return false;
+    if (g.champion2 && !ctx.champion2) return false;
     if (g.hwking && !ctx.hwking) return false;
     return true;
   }
