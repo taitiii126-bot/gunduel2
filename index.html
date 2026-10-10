@@ -8334,6 +8334,7 @@ function avLegIK(g,hx,hy,fx,fy,d,col,boot){
   avLimb(g,[hx,hy,L.jx,L.jy,L.ex,L.ey],7,col);avBoot(g,L.ex,L.ey+3,d,boot);
 }
 function avLimb(g,pts,w,col){
+  if(AVON)return avLimb2(g,pts,w,col);
   g.lineCap='round';g.lineJoin='round';
   var path=function(ox,oy){g.beginPath();g.moveTo(pts[0]+ox,pts[1]+oy);for(var i=2;i<pts.length;i+=2)g.lineTo(pts[i]+ox,pts[i+1]+oy);};
   path(0,0);g.strokeStyle=OUTLINE;g.lineWidth=w+3;g.stroke();
@@ -8344,6 +8345,7 @@ function avLimb(g,pts,w,col){
   path(w*.24,-w*.24);g.strokeStyle=shadeHex(col,.3);g.lineWidth=w*.22;g.stroke();
 }
 function avBoot(g,x,y,d,col){
+  if(AVON)return avBoot2(g,x,y,d,col);
   var x0=d>0?x-5:x-7;
   rrPath(g,x0,y-7,12,7,2.5);g.fillStyle=col;g.fill();
   g.fillStyle='rgba(0,0,0,.35)';g.fillRect(x0+1,y-2.2,10,1.6);   // 靴底
@@ -8442,6 +8444,7 @@ function avHand(g,P){
 // ---- 服の形・首もと（色はチームの色。首もとは自分の色）----
 // 胴：0=ジャケット 1=ロングコート（太ももまで。後ろのすそは drawCoatTails）2=ベスト＋弾帯 3=パーカー（フードつき）
 function drawTorso(g,fit,T,topY,hipY,d){
+  if(AVON&&fit===0){drawTorsoV2(g,T,topY,hipY,d);return;}
   if(fit>=5){drawOutfitX(g,fit,T,topY,hipY,d,performance.now()/1000);return;}   // 宝箱の服
   var tw=12.5,bw=10.5,coat=fit===1||fit===4,botY=coat?Math.min(hipY+9,-8):hipY,hw=coat?bw+2:bw;
   function tp(){
@@ -9307,6 +9310,7 @@ function shadedHat(g,draw,hx,hy,r,d){
 }
 // 手：手袋の色（なければ肌）。指の線と、つやを入れたにぎりこぶし
 function avFist(g,x,y,col,d,r){
+  if(AVON)return avFist2(g,x,y,col,d,r);
   r=r||3.3;
   g.beginPath();g.ellipse(x,y,r*1.08,r,0,0,Math.PI*2);g.fillStyle=col;g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
   g.strokeStyle='rgba(0,0,0,.28)';g.lineWidth=.7;g.beginPath();g.moveTo(x+d*r*.25,y-r*.75);g.lineTo(x+d*r*.25,y+r*.75);g.moveTo(x-d*r*.3,y-r*.7);g.lineTo(x-d*r*.3,y+r*.7);g.stroke();
@@ -9320,10 +9324,281 @@ function avBand(g,x1,y1,x2,y2,col,w){
   g.fillStyle=col;g.fill();g.lineWidth=.8;g.strokeStyle=OUTLINE;g.stroke();
   g.fillStyle='rgba(255,255,255,.35)';g.beginPath();g.moveTo(ax+nx*.9,ay+ny*.9);g.lineTo(bx+nx*.9,by+ny*.9);g.lineTo(bx+nx*.4,by+ny*.4);g.lineTo(ax+nx*.4,ay+ny*.4);g.closePath();g.fill();
 }
+// ============================================================
+// 新しい描き方（AV2）：「図形をくっつけた感じ」を減らす。関節の位置と動きは今までと同じ
+//   腕・脚：根元が太く先が細い形（ひじ・ひざ・手首・足首でしぼる）。形に沿ったくっきりした影と、光の当たるふち
+//   手：親指のあるにぎりこぶし　ブーツ：かかと・つま先・はき口　ジャケット：肩の丸み・腰のしぼり・えり・ファスナー・ポケット・しわ
+//   頭：あごのある輪郭・前髪の影・耳　目：まぶたの線と瞳・光　髪：毛束の線と光の輪
+// ============================================================
+var AV2=false,AVON=false,AV_D=1,AV_SKIN='#F2C9A0',AV_BIG=true;   // AV2＝新しい描き方を使うか。AVON＝いま描いているキャラで使うか（軽量モードでは今までの描き方）
+// 光は「顔の向いている側の上」から当たる
+function avLight(){return[AV_D*.62,-.78];}
+// 細かい線は、大きく描くときだけ（試合中の小さいキャラでは線がつぶれて汚く見えるので省く）
+function avBig(g){return AV_BIG;}
+// くっきりした影：形の中を、光の側のふちは明るく、反対側は暗く塗る
+//   path(ox,oy)：形のパスを (ox,oy) ずらして作る関数（beginPath から）。sh＝影の幅、hl＝光のふちの幅
+function celShade(g,path,col,dark,light,sh,hl,lv){
+  var L=lv||avLight();
+  g.save();path(0,0);g.clip();
+  if(light&&hl>0&&AV_BIG){g.fillStyle=light;g.fillRect(-1e3,-1e3,2e3,2e3);path(-L[0]*hl,-L[1]*hl);g.fillStyle=col;g.fill();path(-L[0]*hl,-L[1]*hl);g.clip();}
+  else{g.fillStyle=col;g.fillRect(-1e3,-1e3,2e3,2e3);}
+  if(dark&&sh>0){g.fillStyle=dark;g.fillRect(-1e3,-1e3,2e3,2e3);path(L[0]*sh,L[1]*sh);g.fillStyle=col;g.fill();}
+  g.restore();
+}
+// 太さの変わるカプセル（根元の円と先の円を、外側の接線でつなぐ）を、いまのパスに足す。向きはいつも同じ（重なっても穴があかない）
+function capSub(g,x1,y1,r1,x2,y2,r2){
+  var dx=x2-x1,dy=y2-y1,L=Math.hypot(dx,dy);
+  if(L<1e-3||Math.abs(r1-r2)>=L){var big=r1>=r2,rr=big?r1:r2,cx=big?x1:x2,cy=big?y1:y2;g.moveTo(cx+rr,cy);g.arc(cx,cy,rr,0,Math.PI*2);return;}
+  var a=Math.atan2(dy,dx),th=Math.acos((r1-r2)/L);
+  g.moveTo(x2+Math.cos(a-th)*r2,y2+Math.sin(a-th)*r2);
+  g.arc(x2,y2,r2,a-th,a+th);
+  g.lineTo(x1+Math.cos(a+th)*r1,y1+Math.sin(a+th)*r1);
+  g.arc(x1,y1,r1,a+th,a-th+Math.PI*2);
+  g.closePath();
+}
+// 腕・脚（pts＝根元から先への点。w が 7 以上なら脚）
+function avLimb2(g,pts,w,col){
+  var leg=w>=7,n=pts.length/2,P=[],rad=[],i;
+  for(i=0;i<n;i++)P.push([pts[i*2],pts[i*2+1]]);
+  var R=leg?[1.14,.86,.74]:[1.04,.88,.8];   // 根元・関節・先の太さ（今までの太さに対する割合）
+  for(i=0;i<n;i++)rad.push(w*.5*(n===2?(i?R[2]:R[0]):R[Math.min(i,2)]));
+  var joint=n===3?1:-1;
+  // ふくらはぎ：ひざと足首の間の、ひざの反対側を少しふくらませる
+  if(leg&&n===3){
+    var mx=(P[0][0]+P[2][0])/2,my=(P[0][1]+P[2][1])/2,vx=P[1][0]-mx,vy=P[1][1]-my,vl=Math.hypot(vx,vy);
+    var cx=P[1][0]+(P[2][0]-P[1][0])*.36,cy=P[1][1]+(P[2][1]-P[1][1])*.36;
+    if(vl>.5){cx-=vx/vl*.7;cy-=vy/vl*.7;}
+    P.splice(2,0,[cx,cy]);rad.splice(2,0,w*.5*.9);
+  }
+  var m=P.length;
+  function path(ox,oy,grow){g.beginPath();grow=grow||0;for(var j=0;j<m-1;j++)capSub(g,P[j][0]+ox,P[j][1]+oy,rad[j]+grow,P[j+1][0]+ox,P[j+1][1]+oy,rad[j+1]+grow);}
+  if(leg)path(0,0,1.5);
+  else{g.beginPath();for(var j=0;j<m-1;j++)capSub(g,P[j][0],P[j][1],rad[j]+(j?1.5:.2),P[j+1][0],P[j+1][1],rad[j+1]+1.5);}   // 腕：肩の付け根はふちを描かない（袖が服から出ているように）
+  g.fillStyle=OUTLINE;g.fill();
+  if(typeof col!=='string'||col.charAt(0)!=='#'){path(0,0);g.fillStyle=col;g.fill();return;}
+  celShade(g,path,col,shadeHex(col,-.32),shadeHex(col,.3),w*.34,w*.13);
+  var big=avBig(g);
+  g.save();g.lineCap='round';
+  // ひじ・ひざのしわ（曲がっている内側に2本）
+  if(big&&joint>0){
+    var J=P[1],A=P[0],B=P[2],u1x=A[0]-J[0],u1y=A[1]-J[1],u2x=B[0]-J[0],u2y=B[1]-J[1],l1=Math.hypot(u1x,u1y)||1,l2=Math.hypot(u2x,u2y)||1;
+    var bx=u1x/l1+u2x/l2,by=u1y/l1+u2y/l2,bl=Math.hypot(bx,by);
+    if(bl>.35){bx/=bl;by/=bl;var r0=rad[1];
+      g.strokeStyle=hexA(shadeHex(col,-.5),.75);g.lineWidth=.7;g.beginPath();
+      g.moveTo(J[0]+bx*r0*.95,J[1]+by*r0*.95);g.quadraticCurveTo(J[0]+bx*r0*.3-by*r0*.35,J[1]+by*r0*.3+bx*r0*.35,J[0]-bx*r0*.1,J[1]-by*r0*.1);
+      g.moveTo(J[0]+bx*r0*.8+by*r0*.5,J[1]+by*r0*.8-bx*r0*.5);g.quadraticCurveTo(J[0]+bx*r0*.35+by*r0*.2,J[1]+by*r0*.35-bx*r0*.2,J[0]+by*r0*.15,J[1]-bx*r0*.15);
+      g.stroke();}
+  }
+  // 脚：横の縫い目（明るい細い線）
+  if(big&&leg){g.strokeStyle=hexA(shadeHex(col,.35),.5);g.lineWidth=.6;g.beginPath();g.moveTo(P[0][0],P[0][1]+1);for(var k=1;k<m;k++)g.lineTo(P[k][0],P[k][1]);g.stroke();}
+  g.restore();
+  // 腕：袖口（少し太い帯）
+  if(!leg){
+    var a=P[m-2],b=P[m-1],re=rad[m-1]+.5,t0=Math.max(.5,1-3.6/Math.max(1,Math.hypot(b[0]-a[0],b[1]-a[1]))),t1=.97;
+    var ax=a[0]+(b[0]-a[0])*t0,ay=a[1]+(b[1]-a[1])*t0,ex=a[0]+(b[0]-a[0])*t1,ey=a[1]+(b[1]-a[1])*t1;
+    var cuff=function(ox,oy){g.beginPath();capSub(g,ax+ox,ay+oy,re,ex+ox,ey+oy,re);};
+    cuff(0,0);g.fillStyle=OUTLINE;g.lineWidth=2;g.strokeStyle=OUTLINE;g.stroke();
+    celShade(g,cuff,shadeHex(col,-.14),shadeHex(col,-.4),shadeHex(col,.25),1.1,.5);
+  }
+}
+// ブーツ（x＝足の位置、y＝地面）。かかと・とがったつま先・はき口のある形。右向きで作って、左向きは反転
+function avBoot2(g,x,y,d,col){
+  g.save();g.translate(x,y);g.scale(d,1);
+  var sav=AV_D;AV_D=1;   // 反転したので、光の向きは右向きのときと同じ
+  var shape=function(ox,oy){g.beginPath();
+    g.moveTo(-4.4+ox,-8.2+oy);g.lineTo(-4.1+ox,-3.4+oy);g.quadraticCurveTo(-5.4+ox,-2.6+oy,-5.2+ox,-.9+oy);g.lineTo(-5+ox,0+oy);
+    g.lineTo(5.6+ox,0+oy);g.quadraticCurveTo(7.9+ox,-.2+oy,7.6+ox,-1.9+oy);g.quadraticCurveTo(6.9+ox,-3.6+oy,3.2+ox,-4.4+oy);
+    g.quadraticCurveTo(2.2+ox,-4.8+oy,2.3+ox,-8.2+oy);g.closePath();};
+  shape(0,0);g.lineWidth=3;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+  celShade(g,shape,shadeHex(col,.05),shadeHex(col,-.45),shadeHex(col,.2),1.3,.45);
+  g.save();shape(0,0);g.clip();
+  g.fillStyle='#0B0908';g.fillRect(-6,-1.5,15,1.6);                           // 靴底
+  g.fillStyle='rgba(255,255,255,.12)';g.fillRect(-6,-1.7,15,.45);
+  g.fillStyle='#0B0908';g.fillRect(-6,-3,3.3,3);                               // かかと
+  g.fillStyle='rgba(255,255,255,.22)';g.beginPath();g.ellipse(5.2,-2.8,1.5,.6,-.25,0,Math.PI*2);g.fill();   // つま先の光
+  if(avBig(g)){g.strokeStyle='rgba(255,255,255,.1)';g.lineWidth=.4;g.beginPath();g.moveTo(-3.6,-4.4);g.quadraticCurveTo(0,-3.3,4.4,-3.4);g.stroke();}   // 甲の縫い目
+  g.restore();
+  shape(0,0);g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+  AV_D=sav;g.restore();
+}
+// にぎりこぶし：前に指の節が3つ並び、親指が上からななめに銃をおさえる（手袋の色、なければ肌）
+function avFist2(g,x,y,col,d,r){
+  r=r||3.3;
+  g.save();g.translate(x,y);g.scale(d,1);
+  var sav=AV_D;AV_D=1;
+  var hand=function(ox,oy){g.beginPath();var M=function(a,b){g.moveTo(a*r+ox,b*r+oy);},Q=function(a,b,c,e){g.quadraticCurveTo(a*r+ox,b*r+oy,c*r+ox,e*r+oy);},L=function(a,b){g.lineTo(a*r+ox,b*r+oy);};
+    M(-.95,-.5);Q(-1.0,-1.0,-.3,-1.0);L(.5,-.98);Q(1.08,-.98,1.08,-.56);
+    Q(1.24,-.32,1.06,-.12);Q(1.24,.14,1.04,.32);Q(1.18,.62,.86,.8);
+    Q(.56,1.0,.08,.98);L(-.45,.95);Q(-1.05,.9,-.95,-.5);g.closePath();};
+  hand(0,0);g.lineWidth=2.4;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+  celShade(g,hand,col,shadeHex(col,-.22),shadeHex(col,.3),r*.4,r*.15);
+  // 指の分かれ目
+  g.strokeStyle=hexA(shadeHex(col,-.55),.85);g.lineWidth=Math.max(.45,r*.13);g.lineCap='round';
+  g.beginPath();g.moveTo(r*1.06,-r*.12);g.quadraticCurveTo(r*.86,-r*.08,r*.56,-r*.14);g.moveTo(r*1.04,r*.32);g.quadraticCurveTo(r*.84,r*.38,r*.52,r*.32);g.stroke();
+  // 親指：上の後ろから、前の下へ
+  var th=function(ox,oy){g.beginPath();capSub(g,-r*.42+ox,-r*.72+oy,r*.4,r*.5+ox,-r*.3+oy,r*.3);};
+  th(0,0);g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
+  celShade(g,th,col,shadeHex(col,-.2),shadeHex(col,.38),r*.16,r*.12);
+  g.beginPath();g.ellipse(r*.48,-r*.36,r*.17,r*.11,.45,0,Math.PI*2);g.fillStyle=hexA(shadeHex(col,.5),.8);g.fill();   // 爪
+  g.restore();AV_D=sav;
+}
+// 頭の輪郭（右向き・半径1で作る）：丸い頭の前の下に、ほお・あご
+function headPathV2(g,hx,hy,r,d,ox,oy){
+  ox=ox||0;oy=oy||0;
+  var P=function(x,y){return[hx+d*x*r+ox,hy+y*r+oy];},M=function(x,y){var p=P(x,y);g.moveTo(p[0],p[1]);},C=function(a,b,c,e,x,y){var p1=P(a,b),p2=P(c,e),p=P(x,y);g.bezierCurveTo(p1[0],p1[1],p2[0],p2[1],p[0],p[1]);};
+  g.beginPath();M(.05,-1.04);
+  C(.62,-1.04,1.0,-.7,.99,-.2);
+  C(.99,.18,.95,.5,.76,.76);
+  C(.64,.92,.5,1.0,.32,1.0);
+  C(.06,.99,-.3,.93,-.56,.8);
+  C(-.9,.62,-1.04,.3,-1.02,-.08);
+  C(-1.0,-.62,-.55,-1.04,.05,-1.04);
+  g.closePath();
+}
+function drawHeadV2(g,skin,hx,hy,r,d){
+  headPathV2(g,hx,hy,r,d);g.lineWidth=3.2;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+  celShade(g,function(ox,oy){headPathV2(g,hx,hy,r,d,ox,oy);},skin,shadeHex(skin,-.14),null,r*.13,0,[d*.97,-.24]);
+  // ほおの赤み
+  if(AV_BIG){g.save();headPathV2(g,hx,hy,r,d);g.clip();
+    var cx=hx+d*r*.62,cy=hy+r*.44,cg=g.createRadialGradient(cx,cy,0,cx,cy,r*.26);cg.addColorStop(0,'rgba(255,120,110,.32)');cg.addColorStop(1,'rgba(255,120,110,0)');
+    g.fillStyle=cg;g.fillRect(cx-r*.3,cy-r*.3,r*.6,r*.6);
+    g.restore();}
+  drawEarV2(g,skin,hx,hy,r,d);
+}
+function drawEarV2(g,skin,hx,hy,r,d){
+  var ex=hx-d*r*.62,ey=hy+r*.15;
+  var ear=function(ox,oy){g.beginPath();var P=function(x,y){return[ex+d*x*r+ox,ey+y*r+oy];},p;
+    p=P(.1,-.26);g.moveTo(p[0],p[1]);
+    var a=P(-.2,-.34),b=P(-.3,-.06),q=P(-.22,.12);g.bezierCurveTo(a[0],a[1],b[0],b[1],q[0],q[1]);
+    a=P(-.16,.3);b=P(.02,.32);q=P(.1,.22);g.bezierCurveTo(a[0],a[1],b[0],b[1],q[0],q[1]);
+    q=P(.12,-.1);var c=P(.16,.05);g.quadraticCurveTo(c[0],c[1],q[0],q[1]);g.closePath();};
+  ear(0,0);g.lineWidth=2.6;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+  celShade(g,ear,shadeHex(skin,-.04),shadeHex(skin,-.2),null,r*.08,0);
+  var P=function(x,y){return[ex+d*x*r,ey+y*r];},s=P(.02,-.16),a=P(-.18,-.14),b=P(-.14,.14),e=P(.02,.12);
+  g.beginPath();g.moveTo(s[0],s[1]);g.bezierCurveTo(a[0],a[1],b[0],b[1],e[0],e[1]);g.lineWidth=r*.055;g.lineCap='round';g.strokeStyle=shadeHex(skin,-.34);g.stroke();
+}
+// 首：上が細く下が太い。あごの下は影
+function drawNeckV2(g,skin,topY,d){
+  var nx=d*1;
+  var neck=function(ox,oy){g.beginPath();g.moveTo(nx-2.6+ox,topY-6+oy);g.lineTo(nx+2.8+ox,topY-6+oy);g.quadraticCurveTo(nx+2.8+ox,topY-1.5+oy,nx+3.3+ox,topY+1.6+oy);g.lineTo(nx-3.1+ox,topY+1.6+oy);g.quadraticCurveTo(nx-2.7+ox,topY-1.5+oy,nx-2.6+ox,topY-6+oy);g.closePath();};
+  neck(0,0);g.fillStyle=shadeHex(skin,-.08);g.fill();
+  g.save();neck(0,0);g.clip();g.fillStyle=shadeHex(skin,-.26);g.beginPath();g.moveTo(nx-4,topY-7);g.lineTo(nx+4,topY-7);g.lineTo(nx+4,topY-3.2);g.quadraticCurveTo(nx,topY-1.2,nx-4,topY-3.8);g.closePath();g.fill();g.restore();
+}
+// ジャケット（服 0）：肩の丸み・腰のしぼり・えり・ファスナー・ポケット・しわ・ベルト
+function drawTorsoV2(g,T,topY,hipY,d){
+  var col=T.jacket,dk=T.shade,lt=T.light,big=avBig(g),hem=hipY-2.2;
+  var body=function(ox,oy){ox=ox||0;oy=oy||0;g.beginPath();
+    g.moveTo(-d*5+ox,topY-.6+oy);
+    g.quadraticCurveTo(-d*10.2+ox,topY-.5+oy,-d*12.4+ox,topY+3+oy);
+    g.quadraticCurveTo(-d*13.5+ox,topY+6.6+oy,-d*12.2+ox,topY+11+oy);
+    g.quadraticCurveTo(-d*10.5+ox,hipY-9+oy,-d*10.1+ox,hem-1.5+oy);
+    g.lineTo(-d*10.7+ox,hem+.8+oy);g.quadraticCurveTo(ox,hem+1.8+oy,d*10.7+ox,hem+.8+oy);
+    g.lineTo(d*10.1+ox,hem-1.5+oy);
+    g.quadraticCurveTo(d*11.2+ox,hipY-9+oy,d*12.4+ox,topY+11+oy);
+    g.quadraticCurveTo(d*13.7+ox,topY+6.6+oy,d*12.6+ox,topY+3+oy);
+    g.quadraticCurveTo(d*10.6+ox,topY-.5+oy,d*5.5+ox,topY-.6+oy);
+    g.closePath();};
+  // ベルト（ジャケットのすその下からのぞく）
+  g.save();
+  rrPath(g,-10.4,hipY-2.6,20.8,4.4,1.2);g.fillStyle='#1C1917';g.fill();g.lineWidth=1.2;g.strokeStyle=OUTLINE;g.stroke();
+  g.fillStyle='rgba(255,255,255,.16)';g.fillRect(-9.8,hipY+.4,19.6,.6);
+  if(big){g.fillStyle='#0C0A09';[-d*6.5,-d*1].forEach(function(bx){g.fillRect(bx-.6,hipY-1,1.2,3);});}   // ベルト通し
+  g.restore();
+  body();g.lineWidth=3.2;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();
+  celShade(g,body,col,dk,lt,3.4,1.1);
+  g.save();body();g.clip();
+  // 胸の下と、すその影（やわらかく）
+  if(big){var vg=g.createLinearGradient(0,topY,0,hem+1);vg.addColorStop(0,'rgba(255,255,255,.1)');vg.addColorStop(.3,'rgba(255,255,255,0)');vg.addColorStop(.78,'rgba(0,0,0,0)');vg.addColorStop(1,'rgba(10,6,24,.28)');
+    g.fillStyle=vg;g.fillRect(-15,topY-2,30,hem-topY+5);}
+  // すそのリブ
+  g.fillStyle=hexA(dk,.85);g.fillRect(-12,hem-2.6,24,3.6);
+  if(big){g.strokeStyle=hexA(shadeHex(dk,-.35),.7);g.lineWidth=.5;g.beginPath();for(var k=-10.5;k<=10.5;k+=1.5){g.moveTo(k,hem-2.4);g.lineTo(k,hem+.9);}g.stroke();}
+  g.strokeStyle=hexA(OUTLINE,.6);g.lineWidth=.8;g.beginPath();g.moveTo(-12,hem-2.6);g.lineTo(12,hem-2.6);g.stroke();
+  // ファスナー（えりの下からすそまで）
+  var zx=d*1.6;
+  g.strokeStyle=hexA(shadeHex(dk,-.4),.95);g.lineWidth=1.1;g.beginPath();g.moveTo(zx,topY+8);g.lineTo(zx+d*.3,hem+1);g.stroke();
+  if(big){g.strokeStyle=hexA(lt,.55);g.lineWidth=.45;g.beginPath();for(var y=topY+9;y<hem-3;y+=1.3){g.moveTo(zx-.7,y);g.lineTo(zx+.7,y);}g.stroke();}
+  // ポケット（手前の下、ななめの切れこみ）
+  g.strokeStyle=hexA(shadeHex(dk,-.45),.9);g.lineWidth=1;g.beginPath();g.moveTo(d*4.6,hipY-7.4);g.lineTo(d*8.6,hipY-11.2);g.stroke();
+  g.strokeStyle=hexA(lt,.6);g.lineWidth=.6;g.beginPath();g.moveTo(d*4.7,hipY-6.7);g.lineTo(d*8.7,hipY-10.5);g.stroke();
+  // しわ（脇から腰へ）
+  if(big){g.strokeStyle=hexA(shadeHex(dk,-.3),.6);g.lineWidth=.65;g.lineCap='round';g.beginPath();
+    g.moveTo(-d*10,topY+12.5);g.quadraticCurveTo(-d*8.6,topY+15.5,-d*8.2,topY+18);
+    g.moveTo(d*9.6,topY+15);g.quadraticCurveTo(d*8.2,topY+17.4,d*7.2,topY+18.4);
+    g.moveTo(-d*3.6,hem-4.2);g.lineTo(-d*1.6,hem-6.2);g.stroke();}
+  // 肩の縫い目（手前）
+  if(big){g.strokeStyle=hexA(shadeHex(dk,-.3),.6);g.lineWidth=.6;g.beginPath();g.moveTo(d*6,topY+.2);g.quadraticCurveTo(d*10.6,topY+3.4,d*11.2,topY+10);g.stroke();}
+  g.restore();
+  body();g.lineWidth=1.3;g.strokeStyle=OUTLINE;g.stroke();
+  // 首もと：Tシャツ（えりの白）と、えりの厚み
+  var vneck=function(){g.beginPath();g.moveTo(-d*6,topY-.6);g.quadraticCurveTo(-d*1,topY+3.6,d*1.4,topY+8.4);g.quadraticCurveTo(d*3.6,topY+3.4,d*7,topY-.6);g.closePath();};
+  vneck();g.fillStyle=T.trim;g.fill();
+  g.save();vneck();g.clip();g.fillStyle=hexA(shadeHex(T.trim,-.35),.8);g.beginPath();g.ellipse(d*.8,topY-1,7,3.4,0,0,Math.PI*2);g.fill();g.restore();   // 首の下の影
+  g.lineJoin='round';g.lineCap='round';
+  g.beginPath();g.moveTo(-d*6,topY-.6);g.quadraticCurveTo(-d*1,topY+3.6,d*1.4,topY+8.4);g.quadraticCurveTo(d*3.6,topY+3.4,d*7,topY-.6);
+  g.lineWidth=1.7;g.strokeStyle=OUTLINE;g.stroke();g.lineWidth=.8;g.strokeStyle=shadeHex(col,-.06);g.stroke();
+  g.lineWidth=.35;g.strokeStyle=hexA(lt,.9);g.stroke();
+  // ファスナーの引き手
+  g.save();g.translate(zx,topY+9.4);g.rotate(d*.08);rrPath(g,-.9,-.4,1.8,3.2,.6);g.fillStyle=T.trim;g.fill();g.lineWidth=.6;g.strokeStyle=OUTLINE;g.stroke();g.restore();
+  // ベルトのバックル（金）
+  var bx=d*3-2.7,by=hipY-2.8;
+  rrPath(g,bx,by,5.4,4.9,1.2);g.fillStyle='#E0B84A';g.fill();g.lineWidth=1;g.strokeStyle=OUTLINE;g.stroke();
+  rrPath(g,bx+1.3,by+1.3,2.8,2.3,.6);g.fillStyle='#6B4A12';g.fill();
+  g.fillStyle='rgba(255,246,210,.85)';g.fillRect(bx+.9,by+.6,3.6,.7);
+}
+// 目（まる）：上まぶたの線・瞳のグラデーション・瞳孔・光2つ
+function drawEyeV2(g,ex,ey,w,h,d,eyeC,r){
+  var gr=shadeHex(eyeC,-.5);
+  if(AV_BIG){gr=g.createLinearGradient(0,ey-h,0,ey+h);gr.addColorStop(0,shadeHex(eyeC,-.66));gr.addColorStop(.55,shadeHex(eyeC,-.38));gr.addColorStop(1,shadeHex(eyeC,-.08));}
+  g.beginPath();g.ellipse(ex,ey+h*.04,w*.74,h*.98,0,0,Math.PI*2);g.fillStyle=gr;g.fill();
+  g.beginPath();g.ellipse(ex+d*w*.06,ey+h*.12,w*.36,h*.5,0,0,Math.PI*2);g.fillStyle=shadeHex(eyeC,-.85);g.fill();
+  g.lineCap='round';g.lineJoin='round';
+  g.beginPath();g.moveTo(ex-w*.9,ey-h*.42);g.quadraticCurveTo(ex,ey-h*1.32,ex+w*.92,ey-h*.44);g.lineWidth=r*.062;g.strokeStyle=OUTLINE;g.stroke();
+  g.beginPath();g.arc(ex+d*w*.27,ey-h*.34,h*.25,0,Math.PI*2);g.fillStyle='rgba(255,255,255,.95)';g.fill();
+  g.beginPath();g.arc(ex-d*w*.24,ey+h*.46,h*.11,0,Math.PI*2);g.fillStyle='rgba(255,255,255,.65)';g.fill();
+  g.beginPath();g.moveTo(ex-w*.45,ey+h*1.18);g.quadraticCurveTo(ex,ey+h*1.3,ex+w*.5,ey+h*1.14);g.lineWidth=r*.03;g.strokeStyle='rgba(60,30,30,.35)';g.stroke();   // 下まぶた
+}
+// 髪（ショート）：前髪は先のとがった毛束。顔に落ちる前髪の影・毛束の線・光の輪・アホ毛
+function hair0PathV2(g,H){
+  g.beginPath();H.M(-.98,.34);
+  H.C(-1.16,-.2,-1.06,-.96,-.34,-1.17);H.C(.22,-1.32,.96,-1.06,1.07,-.44);
+  H.Q(1.06,-.37,.99,-.35);H.Q(.92,-.5,.8,-.63);
+  H.Q(.78,-.48,.7,-.36);H.Q(.6,-.5,.47,-.66);
+  H.Q(.45,-.5,.37,-.36);H.Q(.26,-.5,.13,-.67);
+  H.Q(.1,-.5,.03,-.37);H.Q(-.08,-.5,-.2,-.63);
+  H.Q(-.24,-.52,-.31,-.4);H.Q(-.36,-.1,-.44,.22);H.Q(-.5,.05,-.56,-.08);H.Q(-.74,-.2,-.88,0);H.Q(-.95,.2,-.98,.34);
+  g.closePath();
+}
+function drawHair0V2(g,col,hx,hy,r,d){
+  var lite=shadeHex(col,.32),dark=shadeHex(col,-.34),big=avBig(g);
+  // 顔に落ちる前髪の影（頭の形の中だけ）
+  g.save();headPathV2(g,hx,hy,r,d);g.clip();
+  hair0PathV2(g,hairPen(g,hx-d*r*.03,hy+r*.13,r,d));g.fillStyle=hexA(shadeHex(AV_SKIN,-.3),.55);g.fill();
+  g.restore();
+  // アホ毛（頭のてっぺん）
+  var ah=function(ox,oy){var A=hairPen(g,hx+ox,hy+oy,r,d);g.beginPath();A.M(-.06,-1.12);A.Q(.0,-1.46,.3,-1.4);A.Q(.12,-1.34,.16,-1.12);g.closePath();};
+  ah(0,0);g.lineWidth=2.6;g.lineJoin='round';g.strokeStyle=OUTLINE;g.stroke();ah(0,0);g.fillStyle=col;g.fill();
+  hair0PathV2(g,hairPen(g,hx,hy,r,d));g.lineWidth=3;g.strokeStyle=OUTLINE;g.stroke();
+  celShade(g,function(ox,oy){hair0PathV2(g,hairPen(g,hx+ox,hy+oy,r,d));},col,dark,null,r*.13,0);
+  g.save();hair0PathV2(g,hairPen(g,hx,hy,r,d));g.clip();
+  var H=hairPen(g,hx,hy,r,d);
+  g.lineCap='round';
+  if(big){   // 毛束の線（つむじから前髪へ）
+    g.beginPath();H.M(-.3,-1.02);H.Q(.46,-1.04,.8,-.63);H.M(-.36,-.98);H.Q(.18,-.92,.47,-.66);H.M(-.42,-.92);H.Q(-.06,-.82,.13,-.67);H.M(-.5,-.84);H.Q(-.3,-.72,-.2,-.63);
+    H.M(-.6,-.8);H.Q(-.84,-.5,-.86,-.1);
+    g.lineWidth=r*.035;g.strokeStyle=hexA(dark,.85);g.stroke();
+  }
+  // 光の輪（とぎれとぎれ）
+  g.beginPath();H.M(-.62,-.82);H.Q(-.42,-.98,-.16,-1.02);H.M(.02,-1.03);H.Q(.36,-1.02,.58,-.86);H.M(.7,-.78);H.Q(.8,-.7,.86,-.6);
+  g.lineWidth=r*.15;g.strokeStyle=hexA(lite,.32);g.stroke();g.lineWidth=r*.055;g.strokeStyle=hexA(shadeHex(col,.5),.75);g.stroke();
+  g.restore();
+  hair0PathV2(g,hairPen(g,hx,hy,r,d));g.lineWidth=1.3;g.strokeStyle=OUTLINE;g.stroke();
+}
 function drawAvatar(g,o){
   var L=o.look||LOOK_DEFAULT,T=o.team||TEAM.me,d=o.dir<0?-1:1,cr=!!o.crouch,air=!!o.air&&!cr;
   var skin=LOOK_OPTS.skin[L.skin]||LOOK_OPTS.skin[1],hairC=LOOK_OPTS.hairColor[L.hairColor]||LOOK_OPTS.hairColor[1],eyeC=LOOK_OPTS.eyeColor[L.eyeColor]||LOOK_OPTS.eyeColor[0];
   if(o.boss){skin='#8E2B25';hairC='#ECE6D6';eyeC='#FFC53D';}   // 鬼帝：赤い肌・白い髪・金の目
+  AV_D=d;AV_SKIN=skin;AVON=AV2&&!lite();   // 新しい描き方（AV2）で使う：向きと肌の色
   var fit=L.outfit|0,hat=L.hat|0,neck=L.neck|0,acc=LOOK_OPTS.accent[L.accent]||LOOK_OPTS.accent[0];
   var T0=T,band=null;
   if(SKIN_TEAM[fit]&&!o.boss){   // スキン：袖・ズボン・靴・手袋も服の色にそろえる（チームの色は腕章で残す）
@@ -9334,6 +9609,7 @@ function drawAvatar(g,o){
   var tm=o.tm==null?performance.now()/1000:o.tm,wind=o.wind||0;
   var bob=o.bob||0,sw=o.walk==null?0:Math.sin(o.walk)*6;
   g.save();g.translate(o.x,o.y);g.scale(o.s,o.s);
+  AV_BIG=ctxScale(g)>=1.3;   // 大きく描くときだけ細かい線を入れる
   var WP=o.win?winPose(o.win.pose,o.win.t,d):null,wBase=WP&&WP.wfx?g.getTransform():null;
   if(wBase)winFxBack(g,WP,d,tm);   // 宝箱の勝ちポーズ：体の後ろの演出（地面の位置で描く）
   if(WP){g.translate(WP.bx,-WP.hop+WP.sq);if(WP.spin){g.translate(0,-30);g.rotate(WP.spin);g.translate(0,30);}}
@@ -9406,8 +9682,8 @@ function drawAvatar(g,o){
   // 胴（服の形）と首・首もと
   upB();
   drawTorso(g,fit,T,topY,hipY,d);
-  if(!o.boss)torsoShade(g,topY,hipY,d);
-  g.fillStyle=shadeHex(skin,-.18);g.fillRect(-3+d,topY-4,6,5);
+  if(!o.boss&&!(AVON&&fit===0))torsoShade(g,topY,hipY,d);
+  if(AVON)drawNeckV2(g,skin,topY,d);else{g.fillStyle=shadeHex(skin,-.18);g.fillRect(-3+d,topY-4,6,5);}
   if(neck)drawNeckwear(g,neck,acc,topY,d);
   if(P.hand&&!P.front)avHand(g,P);   // リロード中の支える手：体の前を回って、腰のポーチへ（銃より奥）
   // 頭：撃たれたら少しのけぞる（首を中心に回す）
@@ -9417,9 +9693,12 @@ function drawAvatar(g,o){
   // 長い髪の後ろ側（頭より先に描くので、顔にはかからない）
   if(L.hair===2)drawBackHair(g,hairC,headCX,headCY,headR,d,cut);
   // 頭（肌）と耳
-  g.beginPath();g.ellipse(headCX,headCY,headR,headR*1.03,0,0,Math.PI*2);
-  g.fillStyle=skin;g.fill();g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
-  drawEar(g,skin,headCX,headCY,headR,d);
+  if(AVON)drawHeadV2(g,skin,headCX,headCY,headR,d);
+  else{
+    g.beginPath();g.ellipse(headCX,headCY,headR,headR*1.03,0,0,Math.PI*2);
+    g.fillStyle=skin;g.fill();g.lineWidth=1.6;g.strokeStyle=OUTLINE;g.stroke();
+    drawEar(g,skin,headCX,headCY,headR,d);
+  }
   // 顔のパーツ → 髪（髪は顔の部分をよけて描く）→ 帽子。ニット帽の髪型は、帽子をかぶると描かない
   drawFace(g,WP&&WP.face?Object.assign({},L,WP.face):o.face?Object.assign({},L,o.face):MO&&MO.face?Object.assign({},L,MO.face):L,headCX,headCY,headR,d,eyeC,hairC,skin,!!o.blink||fl>.45);   // 勝ちポーズ中は表情も変える
   if(!(cut&&L.hair===5))drawHair(g,L.hair,hairC,headCX,headCY,headR,d,cut);
@@ -9836,6 +10115,7 @@ function drawEye(g,st,ex,ey,w,h,d,eyeC,r){
       g.lineWidth=lw*1.4;g.strokeStyle=shadeHex(eyeC,-.55);g.stroke();
       break;
     default:  // まる：ふつうの黒目
+      if(AVON){drawEyeV2(g,ex,ey,w,h,d,eyeC,r);break;}
       g.beginPath();g.ellipse(ex,ey,w*.7,h*.92,0,0,Math.PI*2);g.fillStyle=iris;g.fill();
       g.beginPath();g.arc(ex+d*w*.24,ey-h*.3,h*.19,0,Math.PI*2);g.fillStyle=hl;g.fill();
   }
@@ -9980,6 +10260,7 @@ function drawHair(g,style,col,hx,hy,r,d,cut){
       g.lineWidth=r*.04;g.strokeStyle=hexA(dark,.6);g.stroke();
       break;
     default:  // ショート（前髪を横に流す）
+      if(AVON&&!cut){drawHair0V2(g,col,hx,hy,r,d);g.restore();return;}   // 新しい描き方（顔の部分はよけたまま）
       g.beginPath();H.M(-.98,.34);
       H.C(-1.16,-.2,-1.06,-.96,-.34,-1.17);H.C(.22,-1.32,.96,-1.06,1.07,-.44);
       H.L(.99,-.4);H.Q(.9,-.5,.8,-.62);H.L(.73,-.41);H.Q(.6,-.47,.46,-.65);H.L(.39,-.41);H.Q(.26,-.47,.12,-.66);H.L(.05,-.41);
