@@ -3585,7 +3585,9 @@ function checkTitles(){
   SIM.TITLES.forEach(function(d){
     if(got[d.id])return;
     var ok=d.gate?SIM.titleOk(d.id,myTitleCtx()):titleRule(d);
-    if(ok){got[d.id]=1;changed=true;if(!titleNoticed(d.id)){if(d.award)GIFT_Q.push(d.id);else if(d.id!=='rookie')TITLE_Q.push(d.id);}}
+    if(ok){got[d.id]=1;changed=true;
+      // ログイン中は、サーバーの記録で確かめられてから知らせる（srvTitles）。gate の称号はサーバーの情報で決まるので、ここで知らせてよい
+      if((d.gate||!AUTH.token)&&!titleNoticed(d.id)){if(d.award)GIFT_Q.push(d.id);else if(d.id!=='rookie')TITLE_Q.push(d.id);}}
   });
   // 記録の裏づけがない称号を着けていたら、初期の称号に戻す（保存領域を書き換えた場合など）
   var td=titleDef(profile.title);
@@ -3598,12 +3600,33 @@ function grantTitle(id,equip,quiet){
   ensureProfileShape();
   if(SIM.EVENT_TITLES.indexOf(id)>=0)profile.ach.evt[id]=(+profile.ach.evt[id]||0)+1;   // あとから確かめられるように回数を残す
   var fresh=!profile.ach.got[id];
-  if(fresh){profile.ach.got[id]=1;if(!quiet)TITLE_Q.push(id);}
+  if(fresh){profile.ach.got[id]=1;
+    if(quiet)titleNoticed(id);   // 別の演出で知らせた（鬼帝を倒した など）：あとでサーバーが確かめても、もう一度は出さない
+    else if((!AUTH.token||JOKE_TITLES.indexOf(id)>=0)&&!titleNoticed(id))TITLE_Q.push(id);}
   if(equip)profile.title=id;
   if(fresh||equip){saveProfile();flushTitleNotes();if(currentScreen==='profile-screen')renderTitleChips();}
 }
 // 獲得のお知らせ（試合の途中は、終わってからまとめて）
 var TITLE_Q=[],GIFT_Q=[],giftTimer=0;
+var JOKE_TITLES=['rule_breaker','no_skill','liar'];   // ブラウザだけで起きる称号（サーバーもブラウザの記録をそのまま使う）
+// ログイン中の称号のお知らせ：サーバーの記録（確かめた試合・オンライン対戦）に新しく入った称号だけを知らせる。
+// 手元の判定だけで知らせると、サーバーで確かめられなかった試合（通信の失敗など）の称号が「取れた」と出たあとで消えてしまうため。
+// この端末で初めて見るアカウントは、今持っている分を「知らせ済み」にするだけ（昔の称号がまとめて出ないように）
+function srvTitles(p){
+  if(!STORE_ACC||!p||!p.ach||!p.ach.got||typeof p.ach.got!=='object')return;
+  var k=storeKey('gunduel_srvt'),seen=null,first=false,add=false;
+  try{seen=JSON.parse(localStorage.getItem(k)||'null');}catch(e){}
+  if(!seen||typeof seen!=='object'){seen={};first=true;}
+  Object.keys(p.ach.got).forEach(function(id){
+    if(!p.ach.got[id]||seen[id])return;
+    seen[id]=1;add=true;
+    var d=titleDef(id);
+    if(first||!d||id==='rookie'||titleNoticed(id))return;
+    if(d.award)GIFT_Q.push(id);else TITLE_Q.push(id);
+  });
+  if(add||first){try{localStorage.setItem(k,JSON.stringify(seen));}catch(e){}}
+  if(TITLE_Q.length||GIFT_Q.length)flushTitleNotes();
+}
 function flushTitleNotes(){
   if(currentScreen==='game-screen'&&!matchOver)return;   // 試合中は、終わってから
   if(TITLE_Q.length){
@@ -5671,6 +5694,7 @@ function adoptProfile(p){
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
   ensureProfileShape();writeProfileLocal();setSyncBase();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
+  srvTitles(p);
 }
 // ログインしたとき・ページを開いたとき：サーバーのプロフィールと手元を合わせる
 // 開いたままの端末も、ときどきサーバーの内容を見に行く（別の端末で遊んだ分・変えた見た目を取り込む）
@@ -7387,6 +7411,7 @@ function handleServerFx(fx){
   fx.forEach(function(e){
     if(e.t==='dead'){list.push(e);return;}                 // 倒れたかどうかはサーバーが決める
     if(e.t==='hit'){                                        // 火花だけ出す（音はHPの変化で鳴らしている）
+      if(achTracks(mySlot))achEvent(e,mySlot);              // 称号の記録（受けたダメージ・残りの体力）。ないと「無傷」と思い込んでしまう
       addSparks(e.x,e.y,e.who===mySlot?'#FF8A96':'#FFD27A',7);
       if(e.who===mySlot)feelHit();
       if(e.dmg>0){   // ダメージの数字と、撃たれたときの揺れ（CPU戦と同じ。ヒットストップはサーバーが時間を進めるので入れない）
@@ -7622,6 +7647,7 @@ function srvAdopt(p,rev){
   // 版の番号は進めない（進めると、別の端末の変更を見ないまま「最新」と思い込み、古い見た目で上書きしてしまう）
   ensureProfileShape();writeProfileLocal();renderHomeEco();
   if(currentScreen==='profile-screen')renderProfileUI();
+  srvTitles(p);
 }
 var aiTamper=false;   // この試合で、外から値を書き換えられたか
 // ---- リプレイ（直前のCPU戦をもう一度見る）----
