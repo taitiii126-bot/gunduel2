@@ -22,7 +22,7 @@
 | Genre | Action |
 | Tags | multiplayer, pvp, shooter, 2d, western, online, browser, fast-paced, cartoon, cowboy |
 | Cover image | `cover.png`（630×500 と同じ比率） |
-| Screenshots | `1_home.png` 〜 `5_stages.png` |
+| Screenshots | `1_home.png` 〜 `6_stages.png`（6枚） |
 | Visibility | 最初は **Draft** で表示を確かめてから **Public** |
 
 ## Description（英語。そのまま貼れます）
