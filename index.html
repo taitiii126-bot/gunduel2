@@ -2728,7 +2728,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=51"></script>
-<script src="lang.js?v=64"></script>
+<script src="lang.js?v=65"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -5561,7 +5561,16 @@ function refreshMe(){
       if(e!==401)meRetry=setTimeout(refreshMe,30000);   // サーバーが起動中・回線が切れているときは30秒後にもう一度
     });
 }
+// ほかのサイト（itch.io など）の中に表示されているか。Discordのログイン画面は枠の中に出せないので、そのときは公式サイトを新しいタブで開く
+var EMBED=(function(){try{return window.top!==window.self;}catch(e){return true;}})();
+function openOfficialTab(){
+  var url=redirectUri(),w=null;
+  try{w=window.open(url,'_blank');}catch(e){}
+  if(w){try{w.opener=null;}catch(e){}note(t('embed.opened'));}
+  else note(t('embed.blocked',{url:url}));   // 新しいタブを開けない（ポップアップが止められている）ときは、アドレスを見せる
+}
 function discordLogin(){
+  if(EMBED){openOfficialTab();return;}
   if(!AUTH.enabled||!AUTH.clientId){alert(t('login.unavailable'));return;}
   var st=Math.random().toString(36).slice(2)+Date.now().toString(36);
   try{localStorage.setItem('gunduel_oauth_state',st);}catch(e){}
@@ -5608,6 +5617,7 @@ function renderLoginUI(){
   if(btn)btn.style.display=on?'none':'';
   if(info)info.style.display=on?'':'none';
   if(note)note.style.display=on?'none':'';
+  if(note&&EMBED){note.setAttribute('data-i18n','embed.note');note.textContent=t('embed.note');}   // ほかのサイトの中：ログインは公式サイトで（言語を変えても、この説明のまま）
   if(on){
     document.getElementById('login-name').textContent=AUTH.user.name;
     document.getElementById('login-record').textContent=t('login.record',{w:AUTH.user.wins,l:AUTH.user.losses});

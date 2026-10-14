@@ -84,6 +84,9 @@ var ja = {
   'login.banned': 'このアカウントは利用停止されています',
   'login.tooMany': '試行が多すぎます。しばらく待ってください',
   'login.noServer': 'サーバーに接続できませんでした',
+  'embed.note': 'このページの中ではログインできません。ボタンを押すと、新しいタブで公式サイトが開きます（ログインして遊ぶのは公式サイトで）',
+  'embed.opened': '新しいタブで公式サイトを開きました。そちらでログインしてください',
+  'embed.blocked': '新しいタブを開けませんでした。公式サイトはこちらです：{url}',
 
   'stage.kicker': 'Stage Select',
   'stage.title': 'ステージ選択',
@@ -933,6 +936,9 @@ var en = {
   'login.banned': 'This account is banned',
   'login.tooMany': 'Too many attempts. Please wait a moment.',
   'login.noServer': 'Could not connect to the server',
+  'embed.note': "You can't log in inside this page. The button opens the official site in a new tab, where you can log in and play.",
+  'embed.opened': 'Opened the official site in a new tab. Please log in there.',
+  'embed.blocked': "Couldn't open a new tab. The official site is: {url}",
 
   'stage.kicker': 'Stage Select',
   'stage.title': 'Stage Select',
