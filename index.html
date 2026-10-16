@@ -2728,7 +2728,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=51"></script>
-<script src="lang.js?v=63"></script>
+<script src="lang.js?v=66"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -2928,14 +2928,34 @@ var WEAPONS=SIM.WEAPONS;
 // サウンド（Web Audio APIでその場で作る。外部ファイル不要）
 // 効果音とBGMは別々の音量つまみを通す：音源 → 効果音/BGM → 全体（ミュート）→ スピーカー
 // ============================================================
-var actx=null,sfxMuted=false,sfxSilent=false,masterBus=null,seBus=null,bgmBus=null;
+var actx=null,sfxMuted=false,sfxSilent=false,masterBus=null,seBus=null,bgmBus=null,compNode=null,revConv=null,revBus=null;
+// 響きのもと（だんだん小さくなる雑音）
+function makeIR(sec){
+  var n=Math.floor(actx.sampleRate*sec),b=actx.createBuffer(2,n,actx.sampleRate);
+  for(var c=0;c<2;c++){var d=b.getChannelData(c);for(var i=0;i<n;i++){var k=i/n;d[i]=(Math.random()*2-1)*Math.pow(1-k,3.2)*(i<actx.sampleRate*.012?.4:1);}}
+  return b;
+}
+// 今鳴らす音の「場所」：pan＝左右、vol＝距離での大きさ、pitch＝毎回少しだけ高さを変える、wet＝響きの量
+var SND={pan:0,vol:1,pitch:1,wet:0};
+function withSnd(o,fn){var keep=SND;SND=o;try{fn();}finally{SND=keep;}}
+function sfxRoute(g){
+  var out=g;
+  if(SND.vol!==1){var v=actx.createGain();v.gain.value=SND.vol;out.connect(v);out=v;}
+  if(SND.pan&&actx.createStereoPanner){var pn=actx.createStereoPanner();pn.pan.value=SND.pan;out.connect(pn);out=pn;}
+  out.connect(seBus);
+  if(revBus&&SND.wet>0){var sd=actx.createGain();sd.gain.value=SND.wet;out.connect(sd);sd.connect(revBus);}
+}
 try{if(localStorage.getItem('gunduel_muted')==='1')sfxMuted=true;}catch(e){}
 function ensureAudio(){
   if(!actx){
     try{
       actx=new(window.AudioContext||window.webkitAudioContext)();
-      masterBus=actx.createGain();masterBus.connect(actx.destination);
+      masterBus=actx.createGain();
+      // 全体の音をまとめる（大きい音が重なっても割れない・小さい音も聞こえる）
+      try{compNode=actx.createDynamicsCompressor();compNode.threshold.value=-16;compNode.knee.value=12;compNode.ratio.value=4;compNode.attack.value=.003;compNode.release.value=.22;masterBus.connect(compNode);compNode.connect(actx.destination);}catch(e){masterBus.connect(actx.destination);}
       seBus=actx.createGain();seBus.connect(masterBus);
+      // 響き（ステージごとに広さが変わる）。効果音から少しずつ送る
+      try{revConv=actx.createConvolver();revConv.buffer=makeIR(1.7);revBus=actx.createGain();revBus.gain.value=1;revBus.connect(revConv);revConv.connect(seBus);}catch(e){revBus=null;}
       bgmBus=actx.createGain();bgmBus.connect(masterBus);
       applyVolumes();
     }catch(e){actx=null;}
@@ -2960,16 +2980,16 @@ function sfxOff(){return sfxMuted||sfxSilent||!actx||SETTINGS.se<=0;}
 function playTone(freq,dur,type,vol,delay){
   if(sfxOff())return;
   var t0=actx.currentTime+(delay||0),osc=actx.createOscillator(),g=actx.createGain();
-  osc.type=type||'sine';osc.frequency.setValueAtTime(freq,t0);
+  osc.type=type||'sine';osc.frequency.setValueAtTime(freq*SND.pitch,t0);
   g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol||.22,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
-  osc.connect(g);g.connect(seBus);osc.start(t0);osc.stop(t0+dur+.03);
+  osc.connect(g);sfxRoute(g);osc.start(t0);osc.stop(t0+dur+.03);
 }
 function playSweep(f1,f2,dur,type,vol,delay){
   if(sfxOff())return;
   var t0=actx.currentTime+(delay||0),osc=actx.createOscillator(),g=actx.createGain();
-  osc.type=type||'square';osc.frequency.setValueAtTime(f1,t0);osc.frequency.exponentialRampToValueAtTime(Math.max(f2,1),t0+dur);
+  osc.type=type||'square';osc.frequency.setValueAtTime(f1*SND.pitch,t0);osc.frequency.exponentialRampToValueAtTime(Math.max(f2*SND.pitch,1),t0+dur);
   g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol||.22,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
-  osc.connect(g);g.connect(seBus);osc.start(t0);osc.stop(t0+dur+.03);
+  osc.connect(g);sfxRoute(g);osc.start(t0);osc.stop(t0+dur+.03);
 }
 var noiseBuf=null;
 function getNoise(){
@@ -2984,17 +3004,17 @@ function playNoiseFilt(dur,vol,delay,ftype,f1,f2,q){
   var t0=actx.currentTime+(delay||0);
   var src=actx.createBufferSource();src.buffer=getNoise();
   var filt=actx.createBiquadFilter();filt.type=ftype||'bandpass';filt.Q.value=q||1;
-  filt.frequency.setValueAtTime(f1,t0);
-  if(f2&&f2!==f1)filt.frequency.exponentialRampToValueAtTime(Math.max(f2,20),t0+dur);
+  filt.frequency.setValueAtTime(f1*SND.pitch,t0);
+  if(f2&&f2!==f1)filt.frequency.exponentialRampToValueAtTime(Math.max(f2*SND.pitch,20),t0+dur);
   var g=actx.createGain();g.gain.setValueAtTime(vol||.3,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
-  src.connect(filt);filt.connect(g);g.connect(seBus);src.start(t0,Math.random()*.5,dur+.05);
+  src.connect(filt);filt.connect(g);sfxRoute(g);src.start(t0,Math.random()*.5,dur+.05);
 }
 function playPunch(f1,f2,dur,vol,delay,type){
   if(sfxOff())return;
   var t0=actx.currentTime+(delay||0),osc=actx.createOscillator(),g=actx.createGain();
-  osc.type=type||'sine';osc.frequency.setValueAtTime(f1,t0);osc.frequency.exponentialRampToValueAtTime(Math.max(f2,20),t0+dur);
+  osc.type=type||'sine';osc.frequency.setValueAtTime(f1*SND.pitch,t0);osc.frequency.exponentialRampToValueAtTime(Math.max(f2*SND.pitch,20),t0+dur);
   g.gain.setValueAtTime(vol||.3,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
-  osc.connect(g);g.connect(seBus);osc.start(t0);osc.stop(t0+dur+.03);
+  osc.connect(g);sfxRoute(g);osc.start(t0);osc.stop(t0+dur+.03);
 }
 var SFX={
   meleeSwing:function(){playNoiseFilt(.12,.24,0,'bandpass',3000,600,1.2);playSweep(900,300,.08,'sawtooth',.14);},
@@ -3084,6 +3104,14 @@ var SFX={
   rollDodge:function(){playSweep(1400,2600,.12,'sine',.09);playTone(2093,.12,'triangle',.06,.05);},
   emote:function(r){playTone(880+r*120,.08,'triangle',.1);playTone(1320+r*160,.14,'triangle',.09,.06);if(r>=3)playTone(1760+r*200,.3,'sine',.07,.12);},
   coin:function(){playTone(1976,.08,'square',.06);playTone(2637,.3,'square',.06,.07);},
+  // 自分の攻撃が当たった手応え（ダメージが大きいほど重く）
+  hitMark:function(d){playTone(2900,.045,'square',.045);playTone(4200,.05,'sine',.05,.012);if(d>=30){playPunch(320,90,.09,.2,0,'triangle');playNoiseFilt(.06,.12,0,'bandpass',1800,700,1.4);}},
+  // 自分が撃たれた（こもった重い音）
+  hurt:function(d){playPunch(150,48,.2,.32+Math.min(.18,(d||10)/200),0,'sine');playNoiseFilt(.14,.2,0,'lowpass',700,120,.8);},
+  // 自分が倒した
+  killConfirm:function(){playPunch(220,55,.32,.34,0,'sine');playTone(1568,.16,'triangle',.13,.02);playTone(2349,.42,'triangle',.12,.1);playTone(3136,.5,'sine',.05,.12);playNoiseFilt(.3,.08,.05,'highpass',5000,9000,.6);},
+  // 体力が少ないときの心臓の音
+  heart:function(){playPunch(72,40,.13,.34,0,'sine');playPunch(64,36,.15,.26,.19,'sine');},
   tierUp:function(){
     playPunch(190,55,.55,.3,0,'sine');playNoiseFilt(.55,.16,0,'highpass',2500,9000,.7);
     playSweep(300,1700,.5,'sawtooth',.09,.28);
@@ -3092,7 +3120,26 @@ var SFX={
   }
 };
 var FIRE_SFX={15:'shootBall',1:'meleeSwing',2:'shootPistol',3:'shootSniper',4:'shootSMG',5:'shootShotgun',6:'shootAR',7:'shootBurst',8:'shootRevolver',9:'shootLMG',10:'shootGL',11:'shootRail'};
-function sfxFire(wid){var f=SFX[FIRE_SFX[wid]];if(f)f();}
+// 撃った音のあとに残る「ドーン」という余韻（重い武器ほど長く大きい）
+var FIRE_TAIL={1:0,2:.45,3:1,4:.3,5:.95,6:.5,7:.35,8:.85,9:.55,10:.6,11:.9,15:.12};
+function sfxFire(wid){
+  var f=SFX[FIRE_SFX[wid]];if(!f)return;f();
+  var k=FIRE_TAIL[wid]||0;if(k<=0||sfxOff())return;
+  playNoiseFilt(.25+.55*k,.07+.09*k,.01,'lowpass',1100,70,.7);
+  playPunch(115,42,.12+.14*k,.08+.14*k,0,'sine');
+  if(k>=.8)playNoiseFilt(.05,.1,0,'highpass',5000,5000,.7);   // 大口径のパシッという鋭さ
+}
+// ステージごとの響きの量
+var STAGE_WET={classic:.16,flat:.1,tower:.24,ruins:.3,glacier:.34,temple:.28,halloween:.3,winter:.26};
+var curStageId='classic';
+// 出来事の場所から、左右・距離・響きを決める（自分の音は真ん中で大きく）
+function sndAt(e,me){
+  var base=STAGE_WET[curStageId]||.18,p=1+(Math.random()-.5)*.07;
+  var x=e.x!=null?e.x:null;if(x==null){var c=charBySide(e.who);if(c)x=c.x+CHAR_W/2;}
+  if(x==null||e.who===me)return{pan:0,vol:1,pitch:p,wet:base*.7};
+  var L=myChar(),lx=L?L.x+CHAR_W/2:camX+VW/2,d=Math.abs(x-lx);
+  return{pan:Math.max(-.75,Math.min(.75,(wx(x)-VW/2)/(VW/2)*.75)),vol:Math.max(.38,1-d/1200),pitch:p,wet:base*(.8+Math.min(1,d/900))};
+}
 // ---- BGM（その場で作る音楽。メニュー用と対戦用の2曲）----
 // 16分音符ごとに少し先の音を予約していく。タブが裏にあるときは止める
 var BGM={track:null,step:0,next:0,timer:null};
@@ -3150,20 +3197,99 @@ var BGM_TRACKS={
     if(Math.floor(step/32)%2===1&&motif[s]>=0)bgmOsc('square',midiHz(ch[motif[s]]+12),t0,sd*1.3,.018,{a:.003,hold:.15,rel:.3,lp:3200});
   }}
 };
+// ---- ステージごとの対戦曲 ----
+// 太鼓・ベース・和音・メロディーを組み合わせる。決着の近い（どちらかがあと1本）ときは、手数が増えて盛り上がる
+function bSnare(t0,v,f){bgmNoise(t0,.16,v,'bandpass',f||1800,.8);bgmNoise(t0,.05,v*.45,'highpass',4000);}
+function bHat(t0,v,open){bgmNoise(t0,open?.12:.025,v,'highpass',open?7000:8500);}
+function bTom(t0,f,v){var o=actx.createOscillator(),gn=actx.createGain();o.type='sine';o.frequency.setValueAtTime(f,t0);o.frequency.exponentialRampToValueAtTime(f*.55,t0+.22);
+  gn.gain.setValueAtTime(v,t0);gn.gain.exponentialRampToValueAtTime(.001,t0+.3);o.connect(gn);gn.connect(bgmBus);o.start(t0);o.stop(t0+.32);}
+function bgmHot(){var a=gameMode==='ai'?lpWins:opWins,b=gameMode==='ai'?laWins:oaWins;return Math.max(a||0,b||0)>=2;}
+// mel：16分音符ごとの音（0 は休み。数字は MIDI の音の高さ）。2小節目と4小節目は mel2 を使う
+function stageTrack(o){
+  return{bpm:o.bpm,play:function(step,t0,sd){
+    var n=o.ch.length,bar=Math.floor(step/16)%n,s=step%16,ch=o.ch[bar],root=o.rt[bar],hot=bgmHot(),phrase=Math.floor(step/(16*n))%2;
+    o.drums(s,t0,sd,hot,bar);
+    if(o.bass)o.bass(s,t0,sd,root,ch,hot);
+    if(s===0&&o.pad)ch.forEach(function(m){bgmOsc(o.pad,midiHz(m),t0,sd*16,o.padV||.008,{a:.25,detune:7,hold:.8,lp:o.padLp||1600});});
+    if(o.arp&&(s%2===0||hot)){var ai=[0,1,2,1,2,1,0,2][(s>>1)%8];bgmOsc(o.arp,midiHz(ch[ai]+12*(o.arpOct||1)),t0,sd*1.6,o.arpV||.016,{a:.003,hold:.1,rel:.35,lp:o.arpLp||3000});}
+    var mel=(bar%2===1&&o.mel2)?o.mel2:o.mel;
+    if(mel&&(phrase===1||hot)){var m=mel[(bar*16+s)%mel.length];if(m)bgmOsc(o.lead,midiHz(m),t0,sd*(o.leadLen||1.8),o.leadV||.02,{a:.004,hold:.25,rel:.3,lp:o.leadLp||3200});
+      if(m&&hot&&o.lead2)bgmOsc(o.lead2,midiHz(m+12),t0,sd*1.4,.008,{a:.003,hold:.2,rel:.3,lp:4200});}
+  }};
+}
+var STAGE_BGM={
+  // 西部劇：ズンチャッのベースと、乾いたギター風の音、口笛のようなメロディー
+  classic:stageTrack({bpm:104,ch:[[57,60,64],[55,59,62],[53,57,60],[52,56,59]],rt:[45,43,41,40],
+    drums:function(s,t,sd,hot){if(s===0||s===8||(hot&&s===14))bgmKick(t,.24);if(s===4||s===12)bSnare(t,.07,2400);if(s%4===0||s%4===3)bHat(t,.03);if(hot&&s%2===1)bHat(t,.02);},
+    bass:function(s,t,sd,r){if(s===0)bgmOsc('triangle',midiHz(r),t,sd*3,.12,{a:.004});if(s===8)bgmOsc('triangle',midiHz(r+7),t,sd*3,.1,{a:.004});},
+    arp:'sawtooth',arpV:.012,arpLp:1900,lead:'sine',leadV:.035,leadLen:3,lead2:'triangle',
+    mel:[69,0,0,72,0,0,76,0,74,0,72,0,71,0,0,0, 67,0,0,71,0,0,74,0,72,0,71,0,69,0,0,0, 65,0,0,69,0,0,72,0,71,0,69,0,67,0,0,0, 64,0,0,68,0,0,71,0,0,0,68,0,64,0,0,0]}),
+  // 嵐：速い8分のベースと、四つ打ち
+  flat:stageTrack({bpm:140,ch:[[62,65,69],[58,62,65],[60,64,67],[57,61,64]],rt:[38,34,36,33],
+    drums:function(s,t,sd,hot){if(s%4===0)bgmKick(t,.28);if(s===4||s===12)bSnare(t,.12);bHat(t,s%4===2?.045:.018);if(hot&&(s===14||s===15))bSnare(t,.06,2600);},
+    bass:function(s,t,sd,r){if(s%2===0)bgmOsc('sawtooth',midiHz(r+(s%8===6?12:0)),t,sd*1.6,.05,{a:.004,hold:.2,rel:.25,lp:950,lpEnd:260,q:3});},
+    pad:'sawtooth',lead:'square',leadV:.018,leadLp:2800,lead2:'sawtooth',
+    mel:[74,0,74,0,77,0,74,0,72,0,70,0,69,0,0,0, 70,0,70,0,74,0,70,0,69,0,67,0,65,0,0,0, 72,0,72,0,76,0,72,0,71,0,69,0,67,0,0,0, 69,0,0,0,73,0,0,0,76,0,0,0,73,0,0,0]}),
+  // 夜の街：シンセの分散和音と、大きなスネア
+  tower:stageTrack({bpm:118,ch:[[65,68,72],[61,65,68],[63,67,70],[60,64,67]],rt:[41,37,39,36],
+    drums:function(s,t,sd,hot){if(s===0||s===8||s===10)bgmKick(t,.26);if(s===4||s===12)bSnare(t,.13,1500);if(s%2===0||hot)bHat(t,s%4===2?.04:.02,s===14);},
+    bass:function(s,t,sd,r){if(s%4===0||s%4===3)bgmOsc('sawtooth',midiHz(r),t,sd*1.4,.045,{a:.004,hold:.3,rel:.2,lp:700,q:2});},
+    pad:'sawtooth',padV:.01,arp:'triangle',arpV:.02,arpOct:1,lead:'square',leadV:.016,leadLp:2400,
+    mel:[77,0,0,0,80,0,79,0,77,0,75,0,0,0,72,0, 73,0,0,0,77,0,75,0,73,0,72,0,0,0,68,0, 75,0,0,0,79,0,77,0,75,0,74,0,0,0,70,0, 72,0,0,0,76,0,0,0,79,0,0,0,76,0,0,0]}),
+  // 遺跡の砂漠：太鼓のリズムと、異国風の音階
+  ruins:stageTrack({bpm:100,ch:[[52,55,59],[53,57,60],[52,55,59],[50,53,57]],rt:[40,41,40,38],
+    drums:function(s,t,sd,hot){if(s===0||s===6||s===10)bTom(t,95,.3);if(s===3||s===12)bTom(t,180,.16);if(s===4||s===12)bgmNoise(t,.05,.06,'bandpass',3200,2);if(s%2===1&&(hot||s%4===3))bHat(t,.02);if(hot&&s===14)bTom(t,140,.2);},
+    bass:function(s,t,sd,r){if(s===0||s===10)bgmOsc('sine',midiHz(r),t,sd*4,.12,{a:.01});},
+    pad:'triangle',padV:.016,lead:'sawtooth',leadV:.016,leadLp:2000,leadLen:2.2,lead2:'triangle',
+    mel:[76,77,76,0,0,0,73,74,73,0,71,0,69,0,0,0, 77,0,76,0,74,0,72,0,71,0,72,0,71,0,0,0, 76,0,0,77,76,0,0,73,74,0,73,0,71,0,0,0, 69,0,71,0,72,0,71,0,69,0,68,0,64,0,0,0]}),
+  // 氷河：鈴のような高い音が響く
+  glacier:stageTrack({bpm:122,ch:[[64,67,71],[60,64,67],[67,71,74],[62,66,69]],rt:[40,36,43,38],
+    drums:function(s,t,sd,hot){if(s===0||s===7||s===10)bgmKick(t,.2);if(s===4||s===12)bSnare(t,.08,3000);bHat(t,s%2===0?.022:.01);if(hot&&s%4===2)bHat(t,.04,true);},
+    bass:function(s,t,sd,r){if(s===0||s===7||s===10)bgmOsc('sine',midiHz(r),t,sd*2.5,.11,{a:.01});},
+    arp:'sine',arpV:.024,arpOct:2,arpLp:6000,pad:'triangle',padV:.014,lead:'sine',leadV:.03,leadLen:3,lead2:'sine',
+    mel:[79,0,0,0,78,0,76,0,0,0,74,0,76,0,0,0, 76,0,0,0,74,0,72,0,0,0,71,0,72,0,0,0, 74,0,0,0,76,0,79,0,0,0,81,0,79,0,0,0, 78,0,0,0,74,0,0,0,73,0,0,0,74,0,0,0]}),
+  // ジャングルの神殿：たくさんの太鼓と、木琴のような音
+  temple:stageTrack({bpm:112,ch:[[57,60,64],[60,64,67],[55,59,62],[57,60,64]],rt:[45,48,43,45],
+    drums:function(s,t,sd,hot){if(s===0||s===8)bgmKick(t,.22);if(s===2||s===5||s===11)bTom(t,150,.18);if(s===6||s===14)bTom(t,110,.22);if(s%4===2)bgmNoise(t,.04,.05,'bandpass',4500,3);if(hot&&s%2===1)bTom(t,220,.08);},
+    bass:function(s,t,sd,r){if(s===0||s===3||s===8)bgmOsc('triangle',midiHz(r),t,sd*2,.1,{a:.004});},
+    arp:'sine',arpV:.03,arpOct:1,arpLp:5000,lead:'triangle',leadV:.026,leadLen:1.3,
+    mel:[69,0,72,0,74,0,76,0,0,74,0,72,69,0,0,0, 72,0,76,0,79,0,76,0,0,74,0,72,74,0,0,0, 67,0,71,0,74,0,71,0,0,69,0,67,69,0,0,0, 69,72,74,76,0,0,79,0,76,0,74,0,72,0,0,0]}),
+  // ハロウィン：オルガンのような不気味な曲
+  halloween:stageTrack({bpm:120,ch:[[62,65,69],[55,58,62],[57,61,64],[62,65,69]],rt:[38,43,45,38],
+    drums:function(s,t,sd,hot){if(s===0||s===8)bgmKick(t,.24);if(s===4||s===12)bSnare(t,.09,1300);if(s%4===2||hot)bHat(t,.02);},
+    bass:function(s,t,sd,r){if(s%4===0)bgmOsc('square',midiHz(r),t,sd*2,.035,{a:.004,lp:700});},
+    pad:'square',padV:.006,padLp:1200,arp:'square',arpV:.01,arpLp:1800,lead:'triangle',leadV:.028,leadLen:2.4,
+    mel:[74,0,73,0,74,0,77,0,76,0,74,0,73,0,0,0, 70,0,69,0,70,0,74,0,72,0,70,0,69,0,0,0, 69,0,73,0,76,0,79,0,77,0,76,0,73,0,0,0, 74,0,0,0,69,0,0,0,62,0,0,0,0,0,0,0]}),
+  // 冬：鈴の音と明るい和音
+  winter:stageTrack({bpm:128,ch:[[60,64,67],[57,60,64],[53,57,60],[55,59,62]],rt:[36,33,41,43],
+    drums:function(s,t,sd,hot){if(s%4===0)bgmKick(t,.2);if(s===4||s===12)bSnare(t,.08,2600);if(s%2===0)bgmNoise(t,.08,.03,'bandpass',9000,4);if(hot&&s%2===1)bHat(t,.02);},
+    bass:function(s,t,sd,r){if(s===0||s===8)bgmOsc('triangle',midiHz(r),t,sd*3,.11,{a:.004});if(s===6||s===14)bgmOsc('triangle',midiHz(r+7),t,sd*1.5,.07,{a:.004});},
+    arp:'sine',arpV:.022,arpOct:2,arpLp:7000,pad:'triangle',padV:.012,lead:'square',leadV:.014,leadLp:3600,lead2:'sine',
+    mel:[76,0,76,0,76,0,0,0,76,0,76,0,76,0,0,0, 76,0,79,0,72,0,74,0,76,0,0,0,0,0,0,0, 77,0,77,0,77,0,77,0,77,0,76,0,76,0,76,0, 76,0,74,0,74,0,76,0,74,0,0,0,79,0,0,0]})
+};
+for(var _bs in STAGE_BGM)BGM_TRACKS['st_'+_bs]=STAGE_BGM[_bs];
 function bgmPlay(name){
   if(BGM.track===name)return;
   BGM.track=name;BGM.step=0;BGM.next=0;
   if(!BGM.timer)BGM.timer=setInterval(bgmTick,30);
 }
-function bgmSync(){bgmPlay(document.body.classList.contains('in-game')?'battle':'menu');}
+function bgmSync(){bgmPlay(document.body.classList.contains('in-game')?(gameMode!=='range'&&STAGE_BGM[curStageId]?'st_'+curStageId:'battle'):'menu');}
 function bgmTick(){
   if(!actx||!BGM.track||actx.state!=='running')return;
   var tr=BGM_TRACKS[BGM.track],sd=60/tr.bpm/4,now=actx.currentTime;
   if(document.hidden||sfxMuted||SETTINGS.bgm<=0){BGM.next=0;return;}
+  if(BGM.track!=='menu'&&document.body.classList.contains('in-game')){var want=gameMode!=='range'&&STAGE_BGM[curStageId]?'st_'+curStageId:'battle';if(want!==BGM.track){bgmPlay(want);tr=BGM_TRACKS[want];sd=60/tr.bpm/4;}}
   if(BGM.next<now)BGM.next=now+.06;   // 止まっていたら今から再開
   while(BGM.next<now+.18){tr.play(BGM.step,BGM.next,sd);BGM.next+=sd;BGM.step++;}
 }
 updateMuteBtn();
+// 体力が少ないとき、心臓の音（少ないほど速く）
+var heartAt=0;
+setInterval(function(){
+  if(!actx||sfxOff()||document.hidden||!document.body.classList.contains('in-game')||matchOver||gameMode==='range')return;
+  var c=typeof myChar==='function'?myChar():null;if(!c||c.dead||c.hp>25||c.hp<=0)return;
+  var now=performance.now(),gap=c.hp<=12?620:820;if(now-heartAt<gap)return;heartAt=now;SFX.heart();
+},90);
 
 // ============================================================
 // 武器・ステージの表示用データ（数値は sim.js）
@@ -3197,7 +3323,7 @@ var stageTheme=STAGE_THEMES.night;
 function enShort(id){return SETTINGS.lang==='en'||!LANGS.en?'':(LANGS.en['w.'+id+'.short']||'');}
 var selectedStage='classic';
 var platforms=SIM.STAGES.classic.platforms,solids=[];
-function useStage(id){var st=SIM.STAGES[id]||SIM.STAGES.classic;platforms=st.platforms;solids=st.solids||[];stageTheme=themeOf(SIM.STAGES[id]?id:'classic');}
+function useStage(id){var st=SIM.STAGES[id]||SIM.STAGES.classic;curStageId=SIM.STAGES[id]?id:'classic';platforms=st.platforms;solids=st.solids||[];stageTheme=themeOf(SIM.STAGES[id]?id:'classic');}
 
 // ============================================================
 // キー設定
@@ -3459,7 +3585,9 @@ function checkTitles(){
   SIM.TITLES.forEach(function(d){
     if(got[d.id])return;
     var ok=d.gate?SIM.titleOk(d.id,myTitleCtx()):titleRule(d);
-    if(ok){got[d.id]=1;changed=true;if(!titleNoticed(d.id)){if(d.award)GIFT_Q.push(d.id);else if(d.id!=='rookie')TITLE_Q.push(d.id);}}
+    if(ok){got[d.id]=1;changed=true;
+      // ログイン中は、サーバーの記録で確かめられてから知らせる（srvTitles）。gate の称号はサーバーの情報で決まるので、ここで知らせてよい
+      if((d.gate||!AUTH.token)&&!titleNoticed(d.id)){if(d.award)GIFT_Q.push(d.id);else if(d.id!=='rookie')TITLE_Q.push(d.id);}}
   });
   // 記録の裏づけがない称号を着けていたら、初期の称号に戻す（保存領域を書き換えた場合など）
   var td=titleDef(profile.title);
@@ -3472,12 +3600,33 @@ function grantTitle(id,equip,quiet){
   ensureProfileShape();
   if(SIM.EVENT_TITLES.indexOf(id)>=0)profile.ach.evt[id]=(+profile.ach.evt[id]||0)+1;   // あとから確かめられるように回数を残す
   var fresh=!profile.ach.got[id];
-  if(fresh){profile.ach.got[id]=1;if(!quiet)TITLE_Q.push(id);}
+  if(fresh){profile.ach.got[id]=1;
+    if(quiet)titleNoticed(id);   // 別の演出で知らせた（鬼帝を倒した など）：あとでサーバーが確かめても、もう一度は出さない
+    else if((!AUTH.token||JOKE_TITLES.indexOf(id)>=0)&&!titleNoticed(id))TITLE_Q.push(id);}
   if(equip)profile.title=id;
   if(fresh||equip){saveProfile();flushTitleNotes();if(currentScreen==='profile-screen')renderTitleChips();}
 }
 // 獲得のお知らせ（試合の途中は、終わってからまとめて）
 var TITLE_Q=[],GIFT_Q=[],giftTimer=0;
+var JOKE_TITLES=['rule_breaker','no_skill','liar'];   // ブラウザだけで起きる称号（サーバーもブラウザの記録をそのまま使う）
+// ログイン中の称号のお知らせ：サーバーの記録（確かめた試合・オンライン対戦）に新しく入った称号だけを知らせる。
+// 手元の判定だけで知らせると、サーバーで確かめられなかった試合（通信の失敗など）の称号が「取れた」と出たあとで消えてしまうため。
+// この端末で初めて見るアカウントは、今持っている分を「知らせ済み」にするだけ（昔の称号がまとめて出ないように）
+function srvTitles(p){
+  if(!STORE_ACC||!p||!p.ach||!p.ach.got||typeof p.ach.got!=='object')return;
+  var k=storeKey('gunduel_srvt'),seen=null,first=false,add=false;
+  try{seen=JSON.parse(localStorage.getItem(k)||'null');}catch(e){}
+  if(!seen||typeof seen!=='object'){seen={};first=true;}
+  Object.keys(p.ach.got).forEach(function(id){
+    if(!p.ach.got[id]||seen[id])return;
+    seen[id]=1;add=true;
+    var d=titleDef(id);
+    if(first||!d||id==='rookie'||titleNoticed(id))return;
+    if(d.award)GIFT_Q.push(id);else TITLE_Q.push(id);
+  });
+  if(add||first){try{localStorage.setItem(k,JSON.stringify(seen));}catch(e){}}
+  if(TITLE_Q.length||GIFT_Q.length)flushTitleNotes();
+}
 function flushTitleNotes(){
   if(currentScreen==='game-screen'&&!matchOver)return;   // 試合中は、終わってから
   if(TITLE_Q.length){
@@ -5412,7 +5561,16 @@ function refreshMe(){
       if(e!==401)meRetry=setTimeout(refreshMe,30000);   // サーバーが起動中・回線が切れているときは30秒後にもう一度
     });
 }
+// ほかのサイト（itch.io など）の中に表示されているか。Discordのログイン画面は枠の中に出せないので、そのときは公式サイトを新しいタブで開く
+var EMBED=(function(){try{return window.top!==window.self;}catch(e){return true;}})();
+function openOfficialTab(){
+  var url=redirectUri(),w=null;
+  try{w=window.open(url,'_blank');}catch(e){}
+  if(w){try{w.opener=null;}catch(e){}note(t('embed.opened'));}
+  else note(t('embed.blocked',{url:url}));   // 新しいタブを開けない（ポップアップが止められている）ときは、アドレスを見せる
+}
 function discordLogin(){
+  if(EMBED){openOfficialTab();return;}
   if(!AUTH.enabled||!AUTH.clientId){alert(t('login.unavailable'));return;}
   var st=Math.random().toString(36).slice(2)+Date.now().toString(36);
   try{localStorage.setItem('gunduel_oauth_state',st);}catch(e){}
@@ -5459,6 +5617,7 @@ function renderLoginUI(){
   if(btn)btn.style.display=on?'none':'';
   if(info)info.style.display=on?'':'none';
   if(note)note.style.display=on?'none':'';
+  if(note&&EMBED){note.setAttribute('data-i18n','embed.note');note.textContent=t('embed.note');}   // ほかのサイトの中：ログインは公式サイトで（言語を変えても、この説明のまま）
   if(on){
     document.getElementById('login-name').textContent=AUTH.user.name;
     document.getElementById('login-record').textContent=t('login.record',{w:AUTH.user.wins,l:AUTH.user.losses});
@@ -5545,6 +5704,7 @@ function adoptProfile(p){
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
   ensureProfileShape();writeProfileLocal();setSyncBase();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
+  srvTitles(p);
 }
 // ログインしたとき・ページを開いたとき：サーバーのプロフィールと手元を合わせる
 // 開いたままの端末も、ときどきサーバーの内容を見に行く（別の端末で遊んだ分・変えた見た目を取り込む）
@@ -6703,6 +6863,20 @@ var rematchMine=false,rematchOpp=false,rematchOff=false;
 var myPing=-1,oppPing=-1,pingTimer=null;
 var oppInfo={name:'',tier:'',loadout:[2,3,1],look:null};    // オンラインの相手
 var matchShots=0,matchHits=0,hitSids={};              // リザルト表示用の命中率
+// リザルト用の記録：与えた・受けたダメージ、倒した数、回避、回復、いちばん遠くから当てた距離、武器ごとのダメージ
+var MST=newMst();
+function newMst(){return{dmg:0,taken:0,kills:0,dodges:0,heals:0,far:0,wd:{},sidW:{},sidX:{}};}
+var PX_PER_M=25;   // キャラの背が約1.8m
+function mstHit(e,me){
+  if(!me||me==='-')return;
+  if(e.by===me&&e.who!==me){
+    var c=myChar(),wid=MST.sidW[e.sid];if(wid==null&&c)wid=c.load?c.load[c.slot]:null;
+    var sx=MST.sidX[e.sid];if(sx==null&&c)sx=c.x+CHAR_W/2;
+    MST.dmg+=e.dmg||0;if(wid!=null)MST.wd[wid]=(MST.wd[wid]||0)+(e.dmg||0);
+    if(sx!=null&&e.x!=null)MST.far=Math.max(MST.far,Math.abs(e.x-sx));
+    SFX.hitMark(e.dmg||0);
+  }else if(e.who===me){MST.taken+=e.dmg||0;SFX.hurt(e.dmg);}
+}
 
 function clearPending(){pend.jump=false;pend.shoot=false;pend.heal=false;pend.reload=false;pend.roll=false;}
 function playerInput(){
@@ -6887,8 +7061,12 @@ function handleEvents(ev,me,styleOf){
   for(var i=0;i<ev.length;i++){
     var e=ev[i],mine=e.who===me;
     if(trk)achEvent(e,me);
+    withSnd(sndAt(e,me),function(){evSound(e,me,mine,trk,styleOf);});
+  }
+}
+function evSound(e,me,mine,trk,styleOf){
     switch(e.t){
-      case'pull':if(mine)matchShots++;break;
+      case'pull':if(mine){matchShots++;MST.sidW[e.sid]=e.wid;var pc=charBySide(e.who);if(pc)MST.sidX[e.sid]=pc.x+CHAR_W/2;}break;
       case'fire':
         sfxFire(e.wid);
         if(mine&&GP.used&&AV_KICK[e.wid]&&AV_KICK[e.wid][1]>=.18)padRumble(.25,.5,70);   // 重い武器を撃ったら軽く揺らす
@@ -6909,6 +7087,7 @@ function handleEvents(ev,me,styleOf){
         SFX.hit();addSparks(e.x,e.y,e.who===me?'#FF8A96':'#FFD27A',7);
         if(e.who===me)feelHit();
         if(e.by===me&&e.sid&&!hitSids[e.sid]){hitSids[e.sid]=1;matchHits++;}
+        mstHit(e,me);
         if(me!=='-'){
           addDmgNum(e.x,e.y,e.dmg,e.who===me);
           if(e.dmg>=30)hitStop(e.dmg>=40?5:3);                 // 重い一撃は一瞬止める
@@ -6916,11 +7095,11 @@ function handleEvents(ev,me,styleOf){
         }
         break;
       case'vhit':addSparks(e.x,e.y,'#FFD27A',4);break;
-      case'dead':koFall(e,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);feelKO(e.who===me);}break;
-      case'heal':SFX.heal();FX.heal.push({x:e.x,y:e.y,life:30});break;
+      case'dead':koFall(e,styleOf?styleOf(e.who):null);if(me!=='-'){hitStop(8);addShake(7);feelKO(e.who===me);if(e.by===me&&e.who!==me){MST.kills++;SFX.killConfirm();}}break;
+      case'heal':SFX.heal();FX.heal.push({x:e.x,y:e.y,life:30});if(mine)MST.heals++;break;
       case'jump':if(mine)SFX.jump();break;
       case'roll':SFX.roll();rollDust(e.who);if(trk&&mine)ecoTrack('roll');break;
-      case'rolldodge':if(!FX.rd)FX.rd=[];var rcw=charBySide(e.who);if(rcw&&!(FX.rdLast&&FX.rdLast[e.who]>performance.now()-250)){(FX.rdLast||(FX.rdLast={}))[e.who]=performance.now();FX.rd.push({x:rcw.x+CHAR_W/2,y:rcw.y-34,life:40});SFX.rollDodge();}
+      case'rolldodge':if(mine)MST.dodges++;if(!FX.rd)FX.rd=[];var rcw=charBySide(e.who);if(rcw&&!(FX.rdLast&&FX.rdLast[e.who]>performance.now()-250)){(FX.rdLast||(FX.rdLast={}))[e.who]=performance.now();FX.rd.push({x:rcw.x+CHAR_W/2,y:rcw.y-34,life:40});SFX.rollDodge();}
         if(trk&&mine)ecoTrack('rolldodge');break;
       case'boom':SFX.explode();FX.boom.push({x:e.x,y:e.y,r:e.r||60,life:26});addSparks(e.x,e.y,'#FFB36B',12);if(me!=='-')addShake(Math.max(2,6-Math.abs(wx(e.x)-VW/2)/120));break;
       case'spark':addSparks(e.x,e.y,'#FFE9A8',4);addMark(e.x,e.y);break;
@@ -6928,7 +7107,6 @@ function handleEvents(ev,me,styleOf){
       case'reload':if(mine&&e.mag>1)SFX.reload();break;
       case'dry':if(mine){dryFlash=24;SFX.dry();}break;   // 弾切れで撃とうとした
     }
-  }
 }
 
 // ============================================================
@@ -7237,18 +7415,33 @@ function dropConfirmedShot(e){
   }
   if(best>=0)olW.shots.splice(best,1);
 }
+// 2v2 のリザルト用：全員の倒した数・倒された数・敵に与えたダメージ。サーバーから届いた出来事で数える（4人とも同じ出来事を受け取る）
+var TST={};
+function tstOf(s){return TST[s]||(TST[s]={k:0,d:0,dmg:0});}
+function tstFx(e){
+  if(!TEAM2||!e||!e.who)return;
+  if(e.t==='hit'){if(e.by&&e.dmg>0&&SIM.teamOf(e.by)!==SIM.teamOf(e.who))tstOf(e.by).dmg+=e.dmg;}
+  else if(e.t==='dead'){
+    tstOf(e.who).d++;
+    var fell=e.fell||e.y>SIM.VH+40;   // 落ちて倒れたときは、だれも倒していない（とどめの人の欄に関係のない人が入っているため）
+    if(!fell&&e.by&&e.by!==e.who&&SIM.teamOf(e.by)!==SIM.teamOf(e.who))tstOf(e.by).k++;
+  }
+}
 function handleServerFx(fx){
   if(!fx||!fx.length)return;
+  fx.forEach(tstFx);
   var list=[];
   fx.forEach(function(e){
     if(e.t==='dead'){list.push(e);return;}                 // 倒れたかどうかはサーバーが決める
     if(e.t==='hit'){                                        // 火花だけ出す（音はHPの変化で鳴らしている）
+      if(achTracks(mySlot))achEvent(e,mySlot);              // 称号の記録（受けたダメージ・残りの体力）。ないと「無傷」と思い込んでしまう
       addSparks(e.x,e.y,e.who===mySlot?'#FF8A96':'#FFD27A',7);
       if(e.who===mySlot)feelHit();
       if(e.dmg>0){   // ダメージの数字と、撃たれたときの揺れ（CPU戦と同じ。ヒットストップはサーバーが時間を進めるので入れない）
         addDmgNum(e.x,e.y,e.dmg,e.who===mySlot);
         if(e.who===mySlot)addShake(1.5+e.dmg/9);else if(e.dmg>=30)addShake(1.8);
       }
+      mstHit(e,mySlot);
       if(e.by===mySlot){
         if(e.sid&&!hitSids[e.sid]){hitSids[e.sid]=1;matchHits++;}
         dropConfirmedShot(e);                               // 当たった弾を消す（先読みでは通り抜けさせている）
@@ -7320,7 +7513,8 @@ function handleOnlineMsg(msg){
     },300);
   }
   else if(mt==='round_start'){
-    if(msg.state&&msg.state.wins&&(msg.state.wins.a||msg.state.wins.b))achRoundStart();else achMatchStart();   // 0-0 なら新しい試合（再戦も）
+    var w0=msg.state&&msg.state.wins,cont=!!w0&&(Array.isArray(w0)?!!(w0[0]||w0[1]):!!(w0.a||w0.b));   // 2v2 の勝ち数は [0,0] の形
+    if(cont)achRoundStart();else{achMatchStart();TST={};}   // 0-0 なら新しい試合（再戦も）
     lobbyPhase=false;olRoundOver=false;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;killCam=null;endWaitUI();
     tierUp=null;rematchFx=null;stageFx=null;   // 前の試合の演出が残っていたら消す
     olState=msg.state;olStateAt=performance.now();clearFx();clearPending();
@@ -7477,6 +7671,7 @@ function srvAdopt(p,rev){
   // 版の番号は進めない（進めると、別の端末の変更を見ないまま「最新」と思い込み、古い見た目で上書きしてしまう）
   ensureProfileShape();writeProfileLocal();renderHomeEco();
   if(currentScreen==='profile-screen')renderProfileUI();
+  srvTitles(p);
 }
 var aiTamper=false;   // この試合で、外から値を書き換えられたか
 // ---- リプレイ（直前のCPU戦をもう一度見る）----
@@ -7511,7 +7706,7 @@ function startReplay(){
   var keepDiff=RP?RP.keepDiff:difficulty;
   RP={R:R,round:0,f:0,speed:1,keepDiff:keepDiff};
   difficulty=R.diff;cpuLook=R.cpuLook||SIM.randomLook();
-  gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};keys={};
+  gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};MST=newMst();keys={};
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;lobbyPhase=false;flashMsg='';flashTimer=0;
   CONF.length=0;showGameScreen('ai');rpRound();startLoop();
 }
@@ -7564,7 +7759,7 @@ function renderReplayBtn(){
 function startAI(){
   rpStop();clearGameTimers();aiTamper=false;
   useStage(selectedStage);
-  gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};keys={};
+  gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};MST=newMst();keys={};
   var boss=difficulty===EMP;
   cpuLoad=boss?SIM.emperorLoadout():SIM.cpuLoadout();cpuLook=boss?EMPEROR_LOOK:SIM.randomLook();
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;
@@ -7639,7 +7834,7 @@ function joinRoom(id){
   useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
   connectWS(function(){ws.send(JSON.stringify({type:'join_room',v:SIM.PROTO,roomId:roomId,name:profile.name,tier:myTierKey(),loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
 }
-function startOnlineLoop(){flashMsg='';flashTimer=0;olRoundOver=false;matchOver=false;rateFx=null;olState=null;olW=null;olMe=null;olOpp=null;matchShots=0;matchHits=0;hitSids={};startLoop();}
+function startOnlineLoop(){flashMsg='';flashTimer=0;olRoundOver=false;matchOver=false;rateFx=null;olState=null;olW=null;olMe=null;olOpp=null;matchShots=0;matchHits=0;hitSids={};MST=newMst();startLoop();}
 
 // ============================================================
 // 入力ハンドラ
@@ -12651,11 +12846,124 @@ function drawFlash(){
   ctx.restore();
   flashTimer--;
 }
+// ---- 2v2 のリザルト：左に自分のチーム、右に相手のチーム ----
+// 全員の見た目（勝った側は勝ちポーズ、負けた側はしょんぼり）と、倒した数・倒された数・与えたダメージ。MVP と与ダメージ1位に印
+function trIcon(kind,x,y,col){
+  ctx.save();ctx.translate(x,y);ctx.lineCap='round';ctx.lineJoin='round';
+  if(kind==='k'){   // 倒した数：照準
+    ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,0,4.6,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(0,-2.4);ctx.moveTo(0,7);ctx.lineTo(0,2.4);ctx.moveTo(-7,0);ctx.lineTo(-2.4,0);ctx.moveTo(7,0);ctx.lineTo(2.4,0);ctx.stroke();
+  }else if(kind==='d'){   // 倒された数：ドクロ
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(0,-1,5.2,Math.PI*.82,Math.PI*2.18);ctx.lineTo(2.6,4.6);ctx.lineTo(-2.6,4.6);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(10,8,16,.95)';ctx.beginPath();ctx.arc(-1.9,-.8,1.35,0,Math.PI*2);ctx.arc(1.9,-.8,1.35,0,Math.PI*2);ctx.fill();
+  }else{   // 与えたダメージ：はじける光
+    ctx.fillStyle=col;ctx.beginPath();for(var i=0;i<16;i++){var r=i%2?2.6:6.2,an=i/16*Math.PI*2-Math.PI/2;ctx.lineTo(Math.cos(an)*r,Math.sin(an)*r);}ctx.closePath();ctx.fill();
+  }
+  ctx.restore();
+}
+function trCard(s,x,y,w,h,st,cnt,isMvp,isTop,age){
+  var role=slotRole(s),col=TEAM_COL[role],P=TM.players[s]||{},me=s===mySlot;
+  var e=Math.min(1,age/12),ee=1-Math.pow(1-e,3);
+  ctx.save();ctx.globalAlpha*=ee;ctx.translate(0,(1-ee)*10);
+  ctx.fillStyle='rgba(8,10,20,.82)';rrect(x,y,w,h,8);ctx.fill();
+  ctx.strokeStyle=me?col:rgba(col,.45);ctx.lineWidth=me?2:1;rrect(x,y,w,h,8);ctx.stroke();
+  ctx.fillStyle=col;ctx.fillRect(x+10,y,w-20,2.5);
+  // 名前（クランのタグつき）。自分は「YOU」
+  var name=P.name||(me?profile.name:'')||'?',tag=P.clan?'['+P.clan+'] ':'';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='700 11.5px '+FONT_UI;ctx.fillStyle=col;
+  var nm=tag+name;while(nm.length>3&&ctx.measureText(nm).width>w-14)nm=nm.slice(0,-1);
+  ctx.fillText(nm,x+w/2,y+15);
+  if(me){ctx.font='700 7.5px '+FONT_UI;setLS(2);var yw=ctx.measureText('YOU').width+10;ctx.fillStyle=col;rrect(x+w/2-yw/2,y-7,yw,11,5);ctx.fill();ctx.fillStyle='#0B0A12';ctx.fillText('YOU',x+w/2+1,y-1.4);setLS(0);}
+  // 倒した数・倒された数・与えたダメージ（数え上がる）
+  var vals=[['k',st.k,'#FFC53D'],['d',st.d,'#E8E4DC'],['g',st.dmg,'#FF9F43']],cw=(w-12)/3;
+  vals.forEach(function(v,i){
+    var cx=x+6+cw*i+cw/2,n=Math.round(v[1]*cnt);
+    trIcon(v[0],cx-(v[0]==='g'?14:10),y+38,v[2]);
+    ctx.textAlign='left';ctx.font='700 '+(v[0]==='g'&&n>=1000?11:12.5)+'px '+FONT_UI;ctx.fillStyle='#F2F0EA';ctx.fillText(String(n),cx-(v[0]==='g'?6:2),y+38.5);
+  });
+  ctx.restore();
+  // MVP（カードの上）・与ダメージ1位（カードの下）
+  if(isMvp&&age>16){
+    var p2=Math.min(1,(age-16)/10),pop=1+.5*Math.max(0,1-p2*2);
+    ctx.save();ctx.translate(x+w-12,y-2);ctx.scale(pop,pop);ctx.rotate(-.12);
+    ctx.font='italic 700 11px '+FONT_UI;var mw=ctx.measureText('MVP').width+14;
+    var mg=ctx.createLinearGradient(0,-8,0,8);mg.addColorStop(0,'#FFE58A');mg.addColorStop(1,'#E0A21E');
+    ctx.fillStyle=mg;rrect(-mw/2,-8,mw,16,4);ctx.fill();ctx.strokeStyle='#5A3A06';ctx.lineWidth=1.2;rrect(-mw/2,-8,mw,16,4);ctx.stroke();
+    ctx.fillStyle='#3A2304';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('MVP',0,.5);ctx.restore();
+  }
+  if(isTop&&age>22){
+    ctx.save();ctx.globalAlpha*=Math.min(1,(age-22)/10);ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='700 9.5px '+FONT_UI;ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.65)';ctx.strokeText(t('res.topdmg'),x+w/2,y+h+9);
+    ctx.fillStyle='#FFC53D';ctx.fillText(t('res.topdmg'),x+w/2,y+h+9);ctx.restore();
+  }
+}
+function drawTeamResult(lines){
+  var raw=lines.join(' '),win=/WIN|VICTORY/.test(raw),T=flashAge/60,a=Math.min(1,(flashAge+1)/18),tm=performance.now()/1000;
+  var mine=myTeamNo(),mySide=[],foeSide=[];
+  SIM.TEAM_SLOTS.forEach(function(s){if(!TM.players[s]&&s!==mySlot)return;(SIM.teamOf(s)===mine?mySide:foeSide).push(s);});
+  mySide.sort(function(x,y){return(y===mySlot)-(x===mySlot);});   // 自分を左に
+  var all=mySide.concat(foeSide),st=function(s){return TST[s]||{k:0,d:0,dmg:0};};
+  // MVP：勝ったチームで「倒した数×100＋与えたダメージ」がいちばん多い人。与ダメージ1位：全員の中でいちばん多い人
+  var mvp=null,mv=-1,top=null,tv=0;
+  (win?mySide:foeSide).forEach(function(s){var v=st(s).k*100+st(s).dmg;if(v>mv){mv=v;mvp=s;}});
+  all.forEach(function(s){if(st(s).dmg>tv){tv=st(s).dmg;top=s;}});
+  ctx.save();ctx.globalAlpha=a;
+  // 背景：左は自分のチームの色、右は相手の色。ななめに分ける
+  var sp=VW*.535,sp2=VW*.465;
+  var lg=ctx.createLinearGradient(0,0,sp,VH);lg.addColorStop(0,'#3E2280');lg.addColorStop(1,'#0C122C');
+  ctx.fillStyle=lg;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(sp,0);ctx.lineTo(sp2,VH);ctx.lineTo(0,VH);ctx.closePath();ctx.fill();
+  var rg=ctx.createLinearGradient(VW,0,sp2,VH);rg.addColorStop(0,'#801626');rg.addColorStop(1,'#240810');
+  ctx.fillStyle=rg;ctx.beginPath();ctx.moveTo(sp,0);ctx.lineTo(VW,0);ctx.lineTo(VW,VH);ctx.lineTo(sp2,VH);ctx.closePath();ctx.fill();
+  // 勝った側：ゆっくり回る光
+  var wx0=win?VW*.24:VW*.76,wcol=win?'#FFC53D':'#FF6B7A';
+  ctx.save();ctx.beginPath();if(win){ctx.moveTo(0,0);ctx.lineTo(sp,0);ctx.lineTo(sp2,VH);ctx.lineTo(0,VH);}else{ctx.moveTo(sp,0);ctx.lineTo(VW,0);ctx.lineTo(VW,VH);ctx.lineTo(sp2,VH);}ctx.closePath();ctx.clip();
+  ctx.translate(wx0,VH*.48);ctx.globalAlpha=a*.1;ctx.fillStyle=wcol;
+  for(var i=0;i<14;i++){var an=T*.18+i*(Math.PI*2/14);ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,420,an-.05,an+.05);ctx.closePath();ctx.fill();}
+  ctx.restore();ctx.globalAlpha=a;
+  ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sp,0);ctx.lineTo(sp2,VH);ctx.stroke();
+  // 勝ったときは紙吹雪（自分の側）
+  if(win){for(var k=0;k<30;k++){var ft=T-(k%10)*.07;if(ft<=0)continue;var px=((k*97)%100)/100*sp,py=((ft*(55+(k%6)*24))%(VH+70))-35;
+    ctx.save();ctx.globalAlpha=a*.7;ctx.translate(px,py);ctx.rotate(ft*3.5+k);ctx.fillStyle=(k%3===0)?'#FFFFFF':'#FFC53D';ctx.fillRect(-2,-4,4,8);ctx.restore();}ctx.globalAlpha=a;}
+  // タイトル（左上）と、取ったラウンド（上の真ん中）
+  var tcol=win?'#FFC53D':'#FF4D5E',pop=1+.28*Math.pow(Math.max(0,1-flashAge/16),2),title=win?'VICTORY':'DEFEAT';
+  ctx.save();ctx.translate(26,52);ctx.rotate(-.04);ctx.scale(pop,pop);ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.font='italic 700 42px '+FONT_UI;setLS(2);ctx.lineWidth=7;ctx.strokeStyle='rgba(0,0,0,.55)';ctx.strokeText(title,0,0);
+  ctx.shadowColor=tcol;ctx.shadowBlur=20;ctx.fillStyle=tcol;ctx.fillText(title,0,0);ctx.shadowBlur=0;setLS(0);ctx.restore();
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='700 24px '+FONT_UI;
+  ctx.fillStyle=TEAM_COL.me;ctx.fillText(String(opWins),VW/2-24,28);ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillText('-',VW/2,28);ctx.fillStyle=TEAM_COL.foe;ctx.fillText(String(oaWins),VW/2+24,28);
+  ctx.font='700 8px '+FONT_UI;setLS(3);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(RANKED?'RANKED 2v2':'2v2',VW/2,46);setLS(0);
+  // 4人とカード
+  var cw=128,ch=58,gy=190,cnt=Math.min(1,Math.max(0,flashAge-30)/40);cnt=1-Math.pow(1-cnt,3);
+  var XS={};mySide.forEach(function(s,i){XS[s]=[VW*.135+i*VW*.2,1];});foeSide.forEach(function(s,i){XS[s]=[VW*.665+i*VW*.2,-1];});
+  all.forEach(function(s,i){
+    var P=XS[s],sty=teamStyle(s),won=(SIM.teamOf(s)===mine)===win,age=flashAge-6-i*5;if(age<=0)return;
+    var e=Math.min(1,age/14),ee=1-Math.pow(1-e,3),sc=won?1.3:1.08,L=sty.look||LOOK_DEFAULT,TP=TM.players[s]||{};
+    var wid=won?((s===mySlot?(matchLoadout||loadout)[0]:(TP.loadout&&TP.loadout[0]))||2):0,wt=(T+i*.41)%3.6-.3;
+    ctx.save();ctx.globalAlpha=a*ee*(won?1:.9);
+    var sh=ctx.createRadialGradient(P[0],gy,1,P[0],gy,44*sc);sh.addColorStop(0,'rgba(0,0,0,.5)');sh.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(P[0],gy,46*sc,9,0,0,Math.PI*2);ctx.fill();
+    drawAvatar(ctx,{x:P[0],y:gy+(1-ee)*14,s:sc,dir:P[1],look:L,team:sty.team,wid:wid,tm:tm+i*.7,win:won&&wt>0?{pose:L.win|0,t:wt}:null,face:won?null:{eyes:2,brows:2,mouth:3},blink:false});
+    ctx.restore();
+    trCard(s,P[0]-cw/2,gy+12,cw,ch,st(s),cnt,s===mvp,s===top,age-10);
+  });
+  // 下：再戦の状況とキーの案内
+  var by=VH-34;
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  if(rateFx)drawRateFx(VW/2,VH-64,a);   // レートの増減（ランクマッチ）：下の真ん中
+  else if(rematchOff){ctx.font='700 10.5px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillText(t('c.rematchOff'),VW/2,by);}
+  else if(rematchMine||rematchOpp){ctx.font='700 10.5px '+FONT_UI;ctx.fillStyle=rematchMine&&rematchOpp?'#34D399':'#FFC53D';ctx.fillText(rematchMine&&rematchOpp?t('c.rematchSoon'):(rematchMine?t('c.rematchWait'):t('c.rematchAsk')),VW/2,by);}
+  if(rematchOff)drawKeyHints([['ESC',t('c.toMenu')]],VW/2,VH-12);
+  else if(isTouch)drawKeyHints([['TAP',t('c.again')]],VW/2,VH-12);
+  else drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')]],VW/2,VH-12);
+  ctx.restore();
+}
 function drawMatchResult(lines){
+  if(TEAM2&&gameMode==='online'){drawTeamResult(lines);return;}
   var raw=lines.join(' '),win=/WIN|VICTORY/.test(raw),col=win?'#FFC53D':'#FF4D5E';
   var sub=lines.length>1?lines[0]:(win?'MATCH WON':'MATCH LOST');
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins;
-  var T=flashAge/60,a=Math.min(1,(flashAge+1)/18),pop=1+.28*Math.pow(Math.max(0,1-flashAge/16),2),cx=VW/2,cy=VH/2;
+  var tiles=!(gameMode==='online'&&(rematchMine||rematchOpp))&&(matchShots>0||MST.dmg>0||MST.taken>0);
+  var T=flashAge/60,a=Math.min(1,(flashAge+1)/18),pop=1+.28*Math.pow(Math.max(0,1-flashAge/16),2),cx=VW/2,cy=VH/2-(tiles?(rateFx?36:22):0);
   ctx.save();ctx.globalAlpha=a;
   ctx.fillStyle='rgba(4,5,10,.8)';ctx.fillRect(0,0,VW,VH);
   // 背後でゆっくり回る光条
@@ -12684,10 +12992,7 @@ function drawMatchResult(lines){
   ctx.textAlign='center';
   var ry=cy+52;
   if(rateFx){drawRateFx(cx,cy+62,a);ry=cy+102;}   // レートの増減（ランクマッチのみ）
-  if(matchShots>0&&!(gameMode==='online'&&(rematchMine||rematchOpp))){
-    ctx.font='600 11px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.5)';
-    ctx.fillText(t('c.accuracy',{p:Math.min(100,Math.round(matchHits/matchShots*100)),n:matchShots}),cx,ry);
-  }
+  if(tiles){drawStatTiles(cx,ry+(rateFx?8:-8),a);ry+=rateFx?58:46;}
   // 再戦の状況（オンライン）
   if(gameMode==='online'&&rematchOff){
     ctx.font='700 11px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.55)';
@@ -12700,6 +13005,38 @@ function drawMatchResult(lines){
   else if(isTouch)drawKeyHints([['TAP',t('c.again')]],cx,ry+32);
   else if(gameMode==='ai'&&!RP&&rpHas())drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')],['V',t('rp.short')]],cx,ry+32);
   else drawKeyHints([['ESC',t('c.toMenu')],['R',RP?t('rp.again'):t('c.again')]],cx,ry+32);
+  ctx.restore();
+}
+// リザルトの記録：カードが1枚ずつ出てきて、数字が数え上がる
+function drawStatTiles(cx,y,a){
+  var acc=matchShots>0?Math.min(100,Math.round(matchHits/matchShots*100)):-1,best=-1,bd=0;
+  for(var k in MST.wd)if(MST.wd[k]>bd){bd=MST.wd[k];best=+k;}
+  var L=[
+    {k:'res.dmg',v:MST.dmg,col:'#FFC53D'},
+    {k:'res.taken',v:MST.taken,col:'#FF6B6B'},
+    {k:'res.acc',v:acc,suf:'%',col:'#7CF0FF',none:acc<0},
+    {k:'res.far',v:Math.round(MST.far/PX_PER_M),suf:'m',col:'#C4B5FD',none:MST.far<=0},
+    TEAM2&&gameMode==='online'?{k:'res.kills',v:MST.kills,col:'#34D399'}:{k:'res.dodge',v:MST.dodges,col:'#34D399'},
+    {k:'res.main',w:best,col:best>=0?WEAPONS[best].color:'#888',none:best<0}
+  ];
+  var tw=100,gap=8,x0=cx-(L.length*tw+(L.length-1)*gap)/2,h=40,t0=Math.max(0,flashAge-34);
+  ctx.save();ctx.textBaseline='middle';
+  L.forEach(function(it,i){
+    var age=t0-i*5;if(age<=0)return;
+    var p=Math.min(1,age/10),e=1-Math.pow(1-p,3),cnt=Math.min(1,age/40),x=x0+i*(tw+gap),yy=y+(1-e)*10;
+    if(age===1)playTone(1100+i*130,.05,'triangle',.05);   // カードが出る音
+    ctx.globalAlpha=a*e;
+    ctx.fillStyle='rgba(10,12,22,.78)';rrect(x,yy,tw,h,7);ctx.fill();
+    ctx.strokeStyle=rgba(it.col,.55);ctx.lineWidth=1;rrect(x,yy,tw,h,7);ctx.stroke();
+    ctx.fillStyle=it.col;ctx.fillRect(x+8,yy+h-3,tw-16,1.5);
+    ctx.textAlign='center';ctx.font='700 9px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillText(t(it.k),x+tw/2,yy+11);
+    var txt;
+    if(it.none)txt='-';
+    else if(it.w!=null)txt=wShort(it.w);
+    else txt=Math.round(it.v*(1-Math.pow(1-cnt,3)))+(it.suf||'');
+    ctx.font=(it.w!=null?'700 12px ':'700 16px ')+FONT_UI;ctx.fillStyle=it.none?'rgba(255,255,255,.35)':'#F2F0EA';
+    ctx.fillText(txt,x+tw/2,yy+26);
+  });
   ctx.restore();
 }
 // リザルトのレート表示：数字が動いて増減し、ティアの中のどこにいるかが棒で分かる
