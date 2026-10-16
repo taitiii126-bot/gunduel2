@@ -2728,7 +2728,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=51"></script>
-<script src="lang.js?v=65"></script>
+<script src="lang.js?v=66"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -7415,8 +7415,21 @@ function dropConfirmedShot(e){
   }
   if(best>=0)olW.shots.splice(best,1);
 }
+// 2v2 のリザルト用：全員の倒した数・倒された数・敵に与えたダメージ。サーバーから届いた出来事で数える（4人とも同じ出来事を受け取る）
+var TST={};
+function tstOf(s){return TST[s]||(TST[s]={k:0,d:0,dmg:0});}
+function tstFx(e){
+  if(!TEAM2||!e||!e.who)return;
+  if(e.t==='hit'){if(e.by&&e.dmg>0&&SIM.teamOf(e.by)!==SIM.teamOf(e.who))tstOf(e.by).dmg+=e.dmg;}
+  else if(e.t==='dead'){
+    tstOf(e.who).d++;
+    var fell=e.fell||e.y>SIM.VH+40;   // 落ちて倒れたときは、だれも倒していない（とどめの人の欄に関係のない人が入っているため）
+    if(!fell&&e.by&&e.by!==e.who&&SIM.teamOf(e.by)!==SIM.teamOf(e.who))tstOf(e.by).k++;
+  }
+}
 function handleServerFx(fx){
   if(!fx||!fx.length)return;
+  fx.forEach(tstFx);
   var list=[];
   fx.forEach(function(e){
     if(e.t==='dead'){list.push(e);return;}                 // 倒れたかどうかはサーバーが決める
@@ -7500,7 +7513,8 @@ function handleOnlineMsg(msg){
     },300);
   }
   else if(mt==='round_start'){
-    if(msg.state&&msg.state.wins&&(msg.state.wins.a||msg.state.wins.b))achRoundStart();else achMatchStart();   // 0-0 なら新しい試合（再戦も）
+    var w0=msg.state&&msg.state.wins,cont=!!w0&&(Array.isArray(w0)?!!(w0[0]||w0[1]):!!(w0.a||w0.b));   // 2v2 の勝ち数は [0,0] の形
+    if(cont)achRoundStart();else{achMatchStart();TST={};}   // 0-0 なら新しい試合（再戦も）
     lobbyPhase=false;olRoundOver=false;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;killCam=null;endWaitUI();
     tierUp=null;rematchFx=null;stageFx=null;   // 前の試合の演出が残っていたら消す
     olState=msg.state;olStateAt=performance.now();clearFx();clearPending();
@@ -12832,7 +12846,119 @@ function drawFlash(){
   ctx.restore();
   flashTimer--;
 }
+// ---- 2v2 のリザルト：左に自分のチーム、右に相手のチーム ----
+// 全員の見た目（勝った側は勝ちポーズ、負けた側はしょんぼり）と、倒した数・倒された数・与えたダメージ。MVP と与ダメージ1位に印
+function trIcon(kind,x,y,col){
+  ctx.save();ctx.translate(x,y);ctx.lineCap='round';ctx.lineJoin='round';
+  if(kind==='k'){   // 倒した数：照準
+    ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.beginPath();ctx.arc(0,0,4.6,0,Math.PI*2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(0,-7);ctx.lineTo(0,-2.4);ctx.moveTo(0,7);ctx.lineTo(0,2.4);ctx.moveTo(-7,0);ctx.lineTo(-2.4,0);ctx.moveTo(7,0);ctx.lineTo(2.4,0);ctx.stroke();
+  }else if(kind==='d'){   // 倒された数：ドクロ
+    ctx.fillStyle=col;ctx.beginPath();ctx.arc(0,-1,5.2,Math.PI*.82,Math.PI*2.18);ctx.lineTo(2.6,4.6);ctx.lineTo(-2.6,4.6);ctx.closePath();ctx.fill();
+    ctx.fillStyle='rgba(10,8,16,.95)';ctx.beginPath();ctx.arc(-1.9,-.8,1.35,0,Math.PI*2);ctx.arc(1.9,-.8,1.35,0,Math.PI*2);ctx.fill();
+  }else{   // 与えたダメージ：はじける光
+    ctx.fillStyle=col;ctx.beginPath();for(var i=0;i<16;i++){var r=i%2?2.6:6.2,an=i/16*Math.PI*2-Math.PI/2;ctx.lineTo(Math.cos(an)*r,Math.sin(an)*r);}ctx.closePath();ctx.fill();
+  }
+  ctx.restore();
+}
+function trCard(s,x,y,w,h,st,cnt,isMvp,isTop,age){
+  var role=slotRole(s),col=TEAM_COL[role],P=TM.players[s]||{},me=s===mySlot;
+  var e=Math.min(1,age/12),ee=1-Math.pow(1-e,3);
+  ctx.save();ctx.globalAlpha*=ee;ctx.translate(0,(1-ee)*10);
+  ctx.fillStyle='rgba(8,10,20,.82)';rrect(x,y,w,h,8);ctx.fill();
+  ctx.strokeStyle=me?col:rgba(col,.45);ctx.lineWidth=me?2:1;rrect(x,y,w,h,8);ctx.stroke();
+  ctx.fillStyle=col;ctx.fillRect(x+10,y,w-20,2.5);
+  // 名前（クランのタグつき）。自分は「YOU」
+  var name=P.name||(me?profile.name:'')||'?',tag=P.clan?'['+P.clan+'] ':'';
+  ctx.textAlign='center';ctx.textBaseline='middle';
+  ctx.font='700 11.5px '+FONT_UI;ctx.fillStyle=col;
+  var nm=tag+name;while(nm.length>3&&ctx.measureText(nm).width>w-14)nm=nm.slice(0,-1);
+  ctx.fillText(nm,x+w/2,y+15);
+  if(me){ctx.font='700 7.5px '+FONT_UI;setLS(2);var yw=ctx.measureText('YOU').width+10;ctx.fillStyle=col;rrect(x+w/2-yw/2,y-7,yw,11,5);ctx.fill();ctx.fillStyle='#0B0A12';ctx.fillText('YOU',x+w/2+1,y-1.4);setLS(0);}
+  // 倒した数・倒された数・与えたダメージ（数え上がる）
+  var vals=[['k',st.k,'#FFC53D'],['d',st.d,'#E8E4DC'],['g',st.dmg,'#FF9F43']],cw=(w-12)/3;
+  vals.forEach(function(v,i){
+    var cx=x+6+cw*i+cw/2,n=Math.round(v[1]*cnt);
+    trIcon(v[0],cx-(v[0]==='g'?14:10),y+38,v[2]);
+    ctx.textAlign='left';ctx.font='700 '+(v[0]==='g'&&n>=1000?11:12.5)+'px '+FONT_UI;ctx.fillStyle='#F2F0EA';ctx.fillText(String(n),cx-(v[0]==='g'?6:2),y+38.5);
+  });
+  ctx.restore();
+  // MVP（カードの上）・与ダメージ1位（カードの下）
+  if(isMvp&&age>16){
+    var p2=Math.min(1,(age-16)/10),pop=1+.5*Math.max(0,1-p2*2);
+    ctx.save();ctx.translate(x+w-12,y-2);ctx.scale(pop,pop);ctx.rotate(-.12);
+    ctx.font='italic 700 11px '+FONT_UI;var mw=ctx.measureText('MVP').width+14;
+    var mg=ctx.createLinearGradient(0,-8,0,8);mg.addColorStop(0,'#FFE58A');mg.addColorStop(1,'#E0A21E');
+    ctx.fillStyle=mg;rrect(-mw/2,-8,mw,16,4);ctx.fill();ctx.strokeStyle='#5A3A06';ctx.lineWidth=1.2;rrect(-mw/2,-8,mw,16,4);ctx.stroke();
+    ctx.fillStyle='#3A2304';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText('MVP',0,.5);ctx.restore();
+  }
+  if(isTop&&age>22){
+    ctx.save();ctx.globalAlpha*=Math.min(1,(age-22)/10);ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.font='700 9.5px '+FONT_UI;ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.65)';ctx.strokeText(t('res.topdmg'),x+w/2,y+h+9);
+    ctx.fillStyle='#FFC53D';ctx.fillText(t('res.topdmg'),x+w/2,y+h+9);ctx.restore();
+  }
+}
+function drawTeamResult(lines){
+  var raw=lines.join(' '),win=/WIN|VICTORY/.test(raw),T=flashAge/60,a=Math.min(1,(flashAge+1)/18),tm=performance.now()/1000;
+  var mine=myTeamNo(),mySide=[],foeSide=[];
+  SIM.TEAM_SLOTS.forEach(function(s){if(!TM.players[s]&&s!==mySlot)return;(SIM.teamOf(s)===mine?mySide:foeSide).push(s);});
+  mySide.sort(function(x,y){return(y===mySlot)-(x===mySlot);});   // 自分を左に
+  var all=mySide.concat(foeSide),st=function(s){return TST[s]||{k:0,d:0,dmg:0};};
+  // MVP：勝ったチームで「倒した数×100＋与えたダメージ」がいちばん多い人。与ダメージ1位：全員の中でいちばん多い人
+  var mvp=null,mv=-1,top=null,tv=0;
+  (win?mySide:foeSide).forEach(function(s){var v=st(s).k*100+st(s).dmg;if(v>mv){mv=v;mvp=s;}});
+  all.forEach(function(s){if(st(s).dmg>tv){tv=st(s).dmg;top=s;}});
+  ctx.save();ctx.globalAlpha=a;
+  // 背景：左は自分のチームの色、右は相手の色。ななめに分ける
+  var sp=VW*.535,sp2=VW*.465;
+  var lg=ctx.createLinearGradient(0,0,sp,VH);lg.addColorStop(0,'#3E2280');lg.addColorStop(1,'#0C122C');
+  ctx.fillStyle=lg;ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(sp,0);ctx.lineTo(sp2,VH);ctx.lineTo(0,VH);ctx.closePath();ctx.fill();
+  var rg=ctx.createLinearGradient(VW,0,sp2,VH);rg.addColorStop(0,'#801626');rg.addColorStop(1,'#240810');
+  ctx.fillStyle=rg;ctx.beginPath();ctx.moveTo(sp,0);ctx.lineTo(VW,0);ctx.lineTo(VW,VH);ctx.lineTo(sp2,VH);ctx.closePath();ctx.fill();
+  // 勝った側：ゆっくり回る光
+  var wx0=win?VW*.24:VW*.76,wcol=win?'#FFC53D':'#FF6B7A';
+  ctx.save();ctx.beginPath();if(win){ctx.moveTo(0,0);ctx.lineTo(sp,0);ctx.lineTo(sp2,VH);ctx.lineTo(0,VH);}else{ctx.moveTo(sp,0);ctx.lineTo(VW,0);ctx.lineTo(VW,VH);ctx.lineTo(sp2,VH);}ctx.closePath();ctx.clip();
+  ctx.translate(wx0,VH*.48);ctx.globalAlpha=a*.1;ctx.fillStyle=wcol;
+  for(var i=0;i<14;i++){var an=T*.18+i*(Math.PI*2/14);ctx.beginPath();ctx.moveTo(0,0);ctx.arc(0,0,420,an-.05,an+.05);ctx.closePath();ctx.fill();}
+  ctx.restore();ctx.globalAlpha=a;
+  ctx.strokeStyle='rgba(255,255,255,.22)';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(sp,0);ctx.lineTo(sp2,VH);ctx.stroke();
+  // 勝ったときは紙吹雪（自分の側）
+  if(win){for(var k=0;k<30;k++){var ft=T-(k%10)*.07;if(ft<=0)continue;var px=((k*97)%100)/100*sp,py=((ft*(55+(k%6)*24))%(VH+70))-35;
+    ctx.save();ctx.globalAlpha=a*.7;ctx.translate(px,py);ctx.rotate(ft*3.5+k);ctx.fillStyle=(k%3===0)?'#FFFFFF':'#FFC53D';ctx.fillRect(-2,-4,4,8);ctx.restore();}ctx.globalAlpha=a;}
+  // タイトル（左上）と、取ったラウンド（上の真ん中）
+  var tcol=win?'#FFC53D':'#FF4D5E',pop=1+.28*Math.pow(Math.max(0,1-flashAge/16),2),title=win?'VICTORY':'DEFEAT';
+  ctx.save();ctx.translate(26,52);ctx.rotate(-.04);ctx.scale(pop,pop);ctx.textAlign='left';ctx.textBaseline='alphabetic';
+  ctx.font='italic 700 42px '+FONT_UI;setLS(2);ctx.lineWidth=7;ctx.strokeStyle='rgba(0,0,0,.55)';ctx.strokeText(title,0,0);
+  ctx.shadowColor=tcol;ctx.shadowBlur=20;ctx.fillStyle=tcol;ctx.fillText(title,0,0);ctx.shadowBlur=0;setLS(0);ctx.restore();
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.font='700 24px '+FONT_UI;
+  ctx.fillStyle=TEAM_COL.me;ctx.fillText(String(opWins),VW/2-24,28);ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillText('-',VW/2,28);ctx.fillStyle=TEAM_COL.foe;ctx.fillText(String(oaWins),VW/2+24,28);
+  ctx.font='700 8px '+FONT_UI;setLS(3);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(RANKED?'RANKED 2v2':'2v2',VW/2,46);setLS(0);
+  // 4人とカード
+  var cw=128,ch=58,gy=190,cnt=Math.min(1,Math.max(0,flashAge-30)/40);cnt=1-Math.pow(1-cnt,3);
+  var XS={};mySide.forEach(function(s,i){XS[s]=[VW*.135+i*VW*.2,1];});foeSide.forEach(function(s,i){XS[s]=[VW*.665+i*VW*.2,-1];});
+  all.forEach(function(s,i){
+    var P=XS[s],sty=teamStyle(s),won=(SIM.teamOf(s)===mine)===win,age=flashAge-6-i*5;if(age<=0)return;
+    var e=Math.min(1,age/14),ee=1-Math.pow(1-e,3),sc=won?1.3:1.08,L=sty.look||LOOK_DEFAULT,TP=TM.players[s]||{};
+    var wid=won?((s===mySlot?(matchLoadout||loadout)[0]:(TP.loadout&&TP.loadout[0]))||2):0,wt=(T+i*.41)%3.6-.3;
+    ctx.save();ctx.globalAlpha=a*ee*(won?1:.9);
+    var sh=ctx.createRadialGradient(P[0],gy,1,P[0],gy,44*sc);sh.addColorStop(0,'rgba(0,0,0,.5)');sh.addColorStop(1,'rgba(0,0,0,0)');ctx.fillStyle=sh;ctx.beginPath();ctx.ellipse(P[0],gy,46*sc,9,0,0,Math.PI*2);ctx.fill();
+    drawAvatar(ctx,{x:P[0],y:gy+(1-ee)*14,s:sc,dir:P[1],look:L,team:sty.team,wid:wid,tm:tm+i*.7,win:won&&wt>0?{pose:L.win|0,t:wt}:null,face:won?null:{eyes:2,brows:2,mouth:3},blink:false});
+    ctx.restore();
+    trCard(s,P[0]-cw/2,gy+12,cw,ch,st(s),cnt,s===mvp,s===top,age-10);
+  });
+  // 下：再戦の状況とキーの案内
+  var by=VH-34;
+  ctx.textAlign='center';ctx.textBaseline='alphabetic';
+  if(rateFx)drawRateFx(VW/2,VH-64,a);   // レートの増減（ランクマッチ）：下の真ん中
+  else if(rematchOff){ctx.font='700 10.5px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.55)';ctx.fillText(t('c.rematchOff'),VW/2,by);}
+  else if(rematchMine||rematchOpp){ctx.font='700 10.5px '+FONT_UI;ctx.fillStyle=rematchMine&&rematchOpp?'#34D399':'#FFC53D';ctx.fillText(rematchMine&&rematchOpp?t('c.rematchSoon'):(rematchMine?t('c.rematchWait'):t('c.rematchAsk')),VW/2,by);}
+  if(rematchOff)drawKeyHints([['ESC',t('c.toMenu')]],VW/2,VH-12);
+  else if(isTouch)drawKeyHints([['TAP',t('c.again')]],VW/2,VH-12);
+  else drawKeyHints([['ESC',t('c.toMenu')],['R',t('c.again')]],VW/2,VH-12);
+  ctx.restore();
+}
 function drawMatchResult(lines){
+  if(TEAM2&&gameMode==='online'){drawTeamResult(lines);return;}
   var raw=lines.join(' '),win=/WIN|VICTORY/.test(raw),col=win?'#FFC53D':'#FF4D5E';
   var sub=lines.length>1?lines[0]:(win?'MATCH WON':'MATCH LOST');
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins;
