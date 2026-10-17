@@ -2928,19 +2928,25 @@ var WEAPONS=SIM.WEAPONS;
 // サウンド（Web Audio APIでその場で作る。外部ファイル不要）
 // 効果音とBGMは別々の音量つまみを通す：音源 → 効果音/BGM → 全体（ミュート）→ スピーカー
 // ============================================================
-var actx=null,sfxMuted=false,sfxSilent=false,masterBus=null,seBus=null,bgmBus=null,compNode=null,revConv=null,revBus=null;
-// 響きのもと（だんだん小さくなる雑音）
-function makeIR(sec){
-  var n=Math.floor(actx.sampleRate*sec),b=actx.createBuffer(2,n,actx.sampleRate);
-  for(var c=0;c<2;c++){var d=b.getChannelData(c);for(var i=0;i<n;i++){var k=i/n;d[i]=(Math.random()*2-1)*Math.pow(1-k,3.2)*(i<actx.sampleRate*.012?.4:1);}}
-  return b;
+var actx=null,sfxMuted=false,sfxSilent=false,masterBus=null,seBus=null,bgmBus=null,compNode=null,revBus=null;
+// 響き：少しずつずらした短いやまびこを3つ重ねて、場所の広さを出す。
+// 畳み込みの響き（ConvolverNode）は音の処理が約3倍に重くなる（非力な端末ではカクつきの元になる）ので使わない
+function makeRoom(){
+  var inp=actx.createGain(),lp=actx.createBiquadFilter();
+  inp.gain.value=.4;lp.type='lowpass';lp.frequency.value=2400;lp.Q.value=.5;inp.connect(lp);
+  [[.047,.32],[.071,.3],[.109,.26]].forEach(function(d){
+    var dl=actx.createDelay(.3),fb=actx.createGain();dl.delayTime.value=d[0];fb.gain.value=d[1];
+    lp.connect(dl);dl.connect(fb);fb.connect(dl);dl.connect(seBus);
+  });
+  return inp;
 }
 // 今鳴らす音の「場所」：pan＝左右、vol＝距離での大きさ、pitch＝毎回少しだけ高さを変える、wet＝響きの量
 var SND={pan:0,vol:1,pitch:1,wet:0};
 function withSnd(o,fn){var keep=SND;SND=o;try{fn();}finally{SND=keep;}}
+// 距離での大きさ（SND.vol）は、それぞれの音の大きさにかけておく（部品を増やさない）。軽量モードでは左右と響きも省く
 function sfxRoute(g){
   var out=g;
-  if(SND.vol!==1){var v=actx.createGain();v.gain.value=SND.vol;out.connect(v);out=v;}
+  if(lite()){out.connect(seBus);return;}
   if(SND.pan&&actx.createStereoPanner){var pn=actx.createStereoPanner();pn.pan.value=SND.pan;out.connect(pn);out=pn;}
   out.connect(seBus);
   if(revBus&&SND.wet>0){var sd=actx.createGain();sd.gain.value=SND.wet;out.connect(sd);sd.connect(revBus);}
@@ -2955,7 +2961,7 @@ function ensureAudio(){
       try{compNode=actx.createDynamicsCompressor();compNode.threshold.value=-16;compNode.knee.value=12;compNode.ratio.value=4;compNode.attack.value=.003;compNode.release.value=.22;masterBus.connect(compNode);compNode.connect(actx.destination);}catch(e){masterBus.connect(actx.destination);}
       seBus=actx.createGain();seBus.connect(masterBus);
       // 響き（ステージごとに広さが変わる）。効果音から少しずつ送る
-      try{revConv=actx.createConvolver();revConv.buffer=makeIR(1.7);revBus=actx.createGain();revBus.gain.value=1;revBus.connect(revConv);revConv.connect(seBus);}catch(e){revBus=null;}
+      try{revBus=makeRoom();}catch(e){revBus=null;}
       bgmBus=actx.createGain();bgmBus.connect(masterBus);
       applyVolumes();
     }catch(e){actx=null;}
@@ -2981,14 +2987,14 @@ function playTone(freq,dur,type,vol,delay){
   if(sfxOff())return;
   var t0=actx.currentTime+(delay||0),osc=actx.createOscillator(),g=actx.createGain();
   osc.type=type||'sine';osc.frequency.setValueAtTime(freq*SND.pitch,t0);
-  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol||.22,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime((vol||.22)*SND.vol,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
   osc.connect(g);sfxRoute(g);osc.start(t0);osc.stop(t0+dur+.03);
 }
 function playSweep(f1,f2,dur,type,vol,delay){
   if(sfxOff())return;
   var t0=actx.currentTime+(delay||0),osc=actx.createOscillator(),g=actx.createGain();
   osc.type=type||'square';osc.frequency.setValueAtTime(f1*SND.pitch,t0);osc.frequency.exponentialRampToValueAtTime(Math.max(f2*SND.pitch,1),t0+dur);
-  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime(vol||.22,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  g.gain.setValueAtTime(0,t0);g.gain.linearRampToValueAtTime((vol||.22)*SND.vol,t0+.01);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
   osc.connect(g);sfxRoute(g);osc.start(t0);osc.stop(t0+dur+.03);
 }
 var noiseBuf=null;
@@ -3006,14 +3012,14 @@ function playNoiseFilt(dur,vol,delay,ftype,f1,f2,q){
   var filt=actx.createBiquadFilter();filt.type=ftype||'bandpass';filt.Q.value=q||1;
   filt.frequency.setValueAtTime(f1*SND.pitch,t0);
   if(f2&&f2!==f1)filt.frequency.exponentialRampToValueAtTime(Math.max(f2*SND.pitch,20),t0+dur);
-  var g=actx.createGain();g.gain.setValueAtTime(vol||.3,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  var g=actx.createGain();g.gain.setValueAtTime((vol||.3)*SND.vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
   src.connect(filt);filt.connect(g);sfxRoute(g);src.start(t0,Math.random()*.5,dur+.05);
 }
 function playPunch(f1,f2,dur,vol,delay,type){
   if(sfxOff())return;
   var t0=actx.currentTime+(delay||0),osc=actx.createOscillator(),g=actx.createGain();
   osc.type=type||'sine';osc.frequency.setValueAtTime(f1*SND.pitch,t0);osc.frequency.exponentialRampToValueAtTime(Math.max(f2*SND.pitch,20),t0+dur);
-  g.gain.setValueAtTime(vol||.3,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
+  g.gain.setValueAtTime((vol||.3)*SND.vol,t0);g.gain.exponentialRampToValueAtTime(.001,t0+dur);
   osc.connect(g);sfxRoute(g);osc.start(t0);osc.stop(t0+dur+.03);
 }
 var SFX={
@@ -3124,7 +3130,7 @@ var FIRE_SFX={15:'shootBall',1:'meleeSwing',2:'shootPistol',3:'shootSniper',4:'s
 var FIRE_TAIL={1:0,2:.45,3:1,4:.3,5:.95,6:.5,7:.35,8:.85,9:.55,10:.6,11:.9,15:.12};
 function sfxFire(wid){
   var f=SFX[FIRE_SFX[wid]];if(!f)return;f();
-  var k=FIRE_TAIL[wid]||0;if(k<=0||sfxOff())return;
+  var k=FIRE_TAIL[wid]||0;if(k<=0||sfxOff()||lite())return;   // 軽量モードでは余韻を鳴らさない（音の数を減らす）
   playNoiseFilt(.25+.55*k,.07+.09*k,.01,'lowpass',1100,70,.7);
   playPunch(115,42,.12+.14*k,.08+.14*k,0,'sine');
   if(k>=.8)playNoiseFilt(.05,.1,0,'highpass',5000,5000,.7);   // 大口径のパシッという鋭さ
