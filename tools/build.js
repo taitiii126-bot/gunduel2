@@ -32,4 +32,6 @@ html = html.replace(/<script>([\s\S]*?)<\/script>/g, (m, code) => '<script>' + o
 html = html.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');   // HTML のコメントも消す
 fs.writeFileSync(path.join(out, 'index.html'), html);
 for (const f of fs.readdirSync(root)) if (/\.(png|jpg|jpeg|gif|svg|ico|webp|mp3|ogg|wav|woff2?|json|txt|webmanifest)$/i.test(f) && f !== 'users.json' && f !== 'package.json') fs.copyFileSync(path.join(root, f), path.join(out, f));
+// 攻略ガイド（dist/guide/）。読みにくくはしない（ゲームの数字は sim.js から作り直すので、いつも今のゲームと同じ）
+require('./guide.js').build(out);
 console.log('dist/ を作りました（' + seed + '）：', fs.readdirSync(out).join(', '));

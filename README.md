@@ -117,6 +117,14 @@ Discordで `/info ユーザー名` と打つと、そのプレイヤーのティ
 
 GitHubのWebでファイルを差し替えるだけです。Railwayが自動で再デプロイし、GitHub Pagesにも自動で反映されます。
 
+## 攻略ガイド（`/guide/`）
+
+公式サイトの `guide/`（ホームの「攻略」ボタン）に、攻略ガイドのページがあります。GitHub Pages に出すときに `tools/build.js` が `tools/guide.js` を呼んで、`dist/guide/` に作ります。
+
+- 数字（武器の性能・届く距離・倒すまでの時間・ティア・報酬など）は、毎回 `sim.js` と `lang.js` から作り直します。「届く距離」と「倒すまでの時間」は、`sim.js` で実際に撃って測った値です。ゲームの調整を変えると、ガイドの数字も次の公開で自動で変わります
+- 文章（コツやステージの説明）は `guide/text.js`、見た目は `guide/style.css`、絵は `guide/img/` にあります
+- 手元で見るときは `node tools/guide.js 出力先` で、`出力先/guide/index.html` ができます
+
 ---
 
 ## チート対策
