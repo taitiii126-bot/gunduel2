@@ -96,13 +96,44 @@ let dirty = false;
 const touch = () => { dirty = true; };
 for (const u of Object.values(db.users)) giveFid(u);   // 前からいる人にも配る
 for (const u of Object.values(db.users)) { if (setGift(u)) dirty = true; if (setTears(u)) dirty = true; if (setDev(u)) dirty = true; }   // 配った称号（環境変数のとおりに付け外し）
-const pardoned = [];   // UNBAN_IDS で BAN を解いた人（server.js が管理者のチャンネルに知らせる）
+const pardoned = [];   // 起動したときに BAN を解いた人（UNBAN_IDS・頭脳の検知の見直し）。server.js が管理者のチャンネルに知らせる
 for (const u of Object.values(db.users)) {
   if (!isUnban(u) || !tempBanned(u)) continue;
-  pardoned.push({ uid: u.id, fid: u.fid || '', name: u.profile && u.profile.name ? String(u.profile.name) : '', discord: String(u.name || ''), reason: u.banReason || '', manual: BANNED_IDS.has(String(u.id)) });
+  pardoned.push({ uid: u.id, fid: u.fid || '', name: u.profile && u.profile.name ? String(u.profile.name) : '', discord: String(u.name || ''), reason: u.banReason || '', manual: BANNED_IDS.has(String(u.id)), by: 'list' });
   u.banUntil = 0; u.bans = Math.max(0, (u.bans || 0) - 1); delete u.banReason;
   if (Array.isArray(u.flagLog)) u.flagLog.forEach(f => { f.p = 0; });   // 記録は残し、点数だけ0に
   dirty = true;
+}
+// 「CPUの頭脳と同じ操作」の検知は、BANに使わなくした（誤BANが疑われたため）。1回だけ、次のように見直す：
+//   ・その検知の点数を0にする（記録は残す）
+//   ・その検知は1回で即BANだったので、その数だけBANの回数から引く（次のBANが重くならないように）
+//   ・今のBANが、その検知の点数がなければ起きていなかった（きっかけの時点で点数が足りない）なら解く
+//   ・残すBANは、減った回数の長さに縮める（のばさない）
+if (!db.meta.mimicFix) {
+  const isMimic = f => String((f && f.r) || '').indexOf('CPUの頭脳と同じ操作') === 0, scored = f => f.p == null || f.p > 0;
+  const banDays = n => (n >= 3 ? 0 : n === 2 ? BAN2_DAYS : AUTO_BAN_DAYS);   // 0＝永久
+  for (const u of Object.values(db.users)) {
+    const log = Array.isArray(u.flagLog) ? u.flagLog : [];
+    const mimicBans = log.filter(f => isMimic(f) && scored(f)).length;
+    if (!mimicBans) continue;
+    const trig = log.filter(scored).slice(-1)[0];   // 今のBANのきっかけの検知（いちばん新しい、点数の付いたもの）
+    log.forEach(f => { if (isMimic(f)) f.p = 0; });
+    const banned = tempBanned(u) && !!trig;
+    const pts = banned ? log.filter(f => f.at <= trig.at && trig.at - f.at < FLAG_DAYS * 86400000).reduce((a, f) => a + (f.p == null ? 1 : f.p), 0) : 0;
+    const lift = banned && pts < AUTO_BAN_FLAGS;
+    u.bans = Math.max(0, (u.bans || 0) - mimicBans - (lift && !isMimic(trig) ? 1 : 0));
+    let lifted = lift;
+    if (banned && !lift) {
+      const d = banDays(Math.max(1, u.bans));
+      if (d) u.banUntil = Math.min(u.banUntil, trig.at + d * 86400000);
+      if (!tempBanned(u)) lifted = true;   // 縮めたら、もう終わっていた
+    }
+    if (lifted) {
+      pardoned.push({ uid: u.id, fid: u.fid || '', name: u.profile && u.profile.name ? String(u.profile.name) : '', discord: String(u.name || ''), reason: u.banReason || '', manual: BANNED_IDS.has(String(u.id)), by: 'mimic' });
+      u.banUntil = 0; delete u.banReason;
+    }
+  }
+  db.meta.mimicFix = 1; dirty = true;
 }
 // レートのやり直し（1回だけ）。全員を初期のレート（＝ティア LT5）に戻す。1v1 と 2v2 の両方。
 // オンラインの通算戦績・称号・見た目は消さない（ランクマッチの勝敗数だけ0に戻る）
@@ -598,7 +629,7 @@ const auth = {
     return { recent, action, until: u.banUntil || 0, total: u.flags, bans: u.bans || 0 };
   },
   banInfo(uid) { const u = db.users[uid]; return u && tempBanned(u) ? { until: u.banUntil, perma: u.banUntil >= PERMA_BAN, reason: u.banReason || '' } : null; },
-  pardoned() { return pardoned.slice(); },   // この起動で UNBAN_IDS により BAN を解いた人
+  pardoned() { return pardoned.slice(); },   // この起動で BAN を解いた人（by：'list'＝UNBAN_IDS、'mimic'＝頭脳の検知の見直し）
   // ランクマッチで、怪しい人どうしでしか組ませないか
   profileOf(uid) { const u = db.users[uid]; return u ? serverProfile(u) : null; },
   inSuspectPool(uid) { const u = db.users[uid]; return !!u && recentFlags(u) >= SUSPECT_POOL_FLAGS; },

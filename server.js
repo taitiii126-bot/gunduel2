@@ -314,10 +314,11 @@ function cpuEnd(u, m, ip) {
     return { ok: false, why: 'time' };
   }
   // 計算し直した試合で見張りが引っかかった（ブラウザが報告を止めていても分かる）
+  // 「CPUの頭脳と同じ操作」は、チートを使っていない人の誤BANが疑われたので、記録だけ（点数なし・BANしない）。試合はそのまま数える
   if (R.watch) {
-    const label = (G.WATCH_LABEL[R.watch.code] || R.watch.code).replace('（', '（CPU戦・');
-    onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, label + '：' + R.watch.detail + '（サーバーで計算し直して確認）', { cpu: diff }, R.watch.code === 'mimic' ? auth.AUTO_BAN_FLAGS : 1);   // 頭脳と同じ操作は確かな証拠なので即BAN
-    return { ok: false, why: 'suspect' };
+    const label = (G.WATCH_LABEL[R.watch.code] || R.watch.code).replace('（', '（CPU戦・'), mimic = R.watch.code === 'mimic';
+    onSuspect({ uid: u.id, name: u.name, discord: u.name, ip }, label + '：' + R.watch.detail + '（サーバーで計算し直して確認）', { cpu: diff }, mimic ? 0 : 1);
+    if (!mimic) return { ok: false, why: 'suspect' };
   }
   const r = auth.applyMatch(u.id, { mode: 'cpu', diff, stage, win: R.win, straight: R.straight, tally: R.tally, emotes: m.emotes });
   log('cpu verified', 'discord=' + u.id, diff, stage, R.win ? 'win' : 'lose', R.wins.join('-'), R.frames + 'f', cost + 'ms');
@@ -1223,16 +1224,16 @@ server.listen(PORT, HOST, () => {
     (ALLOWED_ORIGINS.length ? ` (origins: ${ALLOWED_ORIGINS.join(', ')})` : '') +
     (REQUIRE_LOGIN ? ' (login required)' : ''));
   if (interactions.enabled()) interactions.register(log);   // Discord に /info を登録
-  for (const b of auth.pardoned()) {   // UNBAN_IDS で BAN を解いた人
-    log('UNBAN', 'discord=' + b.uid, 'name=' + b.name, 'reason=' + b.reason);
+  for (const b of auth.pardoned()) {   // 起動したときに BAN を解いた人（UNBAN_IDS・頭脳の検知の見直し）
+    log('UNBAN', 'by=' + b.by, 'discord=' + b.uid, 'name=' + b.name, 'reason=' + b.reason);
     postAdmin({
       title: 'BANを解除しました', color: 0x34D399,
       description: 'BANの理由だった検知：' + (mdEscape(b.reason) || '-'),
       fields: [
         { name: 'プレイヤー', value: (mdEscape(b.name) || '-') + `\n<@${b.uid}>（${mdEscape(b.discord)}）\nID: ${b.uid}` + (b.fid ? `\nフレンドコード: ${b.fid}` : ''), inline: true },
-        { name: '対応', value: '検知の点数を0に・BANの回数を1つ戻した' + (b.manual ? '\n※ BANNED_DISCORD_IDS にも入っているので、まだログインできません' : ''), inline: true },
+        { name: '対応', value: (b.by === 'mimic' ? '「CPUの頭脳と同じ操作」の検知をBANに使わなくしたので解除。その検知の点数を0に・BANの回数を1つ戻した' : '検知の点数を0に・BANの回数を1つ戻した') + (b.manual ? '\n※ BANNED_DISCORD_IDS にも入っているので、まだログインできません' : ''), inline: true },
       ],
-      footer: { text: '解除できたら Variables の UNBAN_IDS から消してください' },
+      footer: { text: b.by === 'mimic' ? '自動で1回だけ行いました' : '解除できたら Variables の UNBAN_IDS から消してください' },
       timestamp: new Date().toISOString(),
     });
   }
