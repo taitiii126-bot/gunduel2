@@ -880,7 +880,7 @@ const auth = {
     const p = u.profile || null, rs = rateState(u), tier = rs.tier, r2 = rateState2(u);
     return {
       fid: u.fid, name: p ? p.name : u.name, discord: u.name, dev: !!u.dev, badge: SIM.badgeShown(u.badges, p ? p.badge : null),
-      title: p ? P.validTitle(p.title, titleCtx(u), p) : 'rookie', bio: p ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
+      title: p ? P.validTitle(p.title, titleCtx(u), p) : 'rookie', bio: p && !SIM.badText(p.bio) ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
       tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },
       rate2: r2.rate, tier2: r2.tier, ranked2: { w: r2.w, l: r2.l },
