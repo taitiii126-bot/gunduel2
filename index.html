@@ -1417,7 +1417,10 @@ body.demo #bg-shade{opacity:1;}
 #emote-menu button.qc{width:auto;height:auto;padding:6px 11px;border-radius:99px;background:rgba(255,255,255,.1);border:1px solid var(--line-2);color:#fff;font-size:12px;font-weight:800;white-space:nowrap;}
 #emote-menu button.qc.mine{border-color:rgba(255,197,61,.6);color:#FFE7A0;}
 #emote-menu button.qc:hover{background:rgba(255,255,255,.2);}
-.qc-ins{display:flex;gap:6px;flex:1;max-width:340px;}.qc-ins input{min-width:0;flex:1;}
+/* 自分の言葉：入力欄は説明の下に、1つずつ横いっぱいに（説明の横だと欄がつぶれて、文字が見えず入力もおかしくなる。20文字が入りきる幅） */
+.kb-row.qc-edit{flex-wrap:wrap;}
+.qc-ins{display:flex;flex-direction:column;gap:8px;flex:1 1 100%;}
+.qc-ins input{min-width:0;padding:9px 12px;font-family:var(--f-jp);font-size:14px;letter-spacing:.02em;}
 #emote-menu button{position:relative;width:60px;height:60px;padding:0;border-radius:50%;background:none;}
 #emote-menu canvas{width:60px;height:60px;}
 #emote-menu kbd{position:absolute;right:-2px;bottom:-2px;padding:0 4px;border-radius:4px;background:#000;font-size:10px;color:var(--tx-2);}
@@ -2546,7 +2549,8 @@ body.mland .home-hero{height:72vh;}
             </div>
             <div class="settings-section">
               <h3><span data-i18n="pf.bio"></span><span>BIO</span></h3>
-              <input class="pf-input" id="profile-bio-input" maxlength="40" data-i18n-ph="pf.bioPh" oninput="editProfileText('bio',this.value)">
+              <input class="pf-input" id="profile-bio-input" maxlength="40" data-i18n-ph="pf.bioPh" onfocus="bioFocus()" oninput="editProfileText('bio',this.value)" onchange="bioDone(this)">
+              <p class="fr-msg" id="profile-bio-msg"></p>
             </div>
           </div>
           <div class="settings-section">
@@ -2728,8 +2732,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=51"></script>
-<script src="lang.js?v=67"></script>
+<script src="sim.js?v=52"></script>
+<script src="lang.js?v=68"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3872,7 +3876,7 @@ try{var _pp=localStorage.getItem(storeKey('gunduel_profile'));if(_pp)profile=JSO
 function ensureProfileShape(){
   if(!profile||typeof profile!=='object')profile={};
   if(typeof profile.name!=='string'||!profile.name.trim())profile.name=t('pf.defaultName');
-  if(typeof profile.bio!=='string')profile.bio='';
+  if(typeof profile.bio!=='string'||SIM.badText(profile.bio))profile.bio='';   // 禁止ワードの入ったひとことは使わない
   if(!TITLES.some(function(x){return x.id===profile.title;}))profile.title='rookie';
   if(!profile.ach||typeof profile.ach!=='object')profile.ach={};
   ['got','kills','stages','evt'].forEach(function(k){if(!profile.ach[k]||typeof profile.ach[k]!=='object')profile.ach[k]={};});
@@ -5050,10 +5054,12 @@ function drawChats(list){
     var k=(now-e.t0)/CHAT_MS;if(k>=1){delete CHAT.on[s.side];return;}
     var tx=chatText(e.c),x=wx(s.x)+CHAR_W/2,y=(s.dead?s.y+CHAR_H-20:s.y)-(s.ducking?30:66)-(EMO.on[s.side]?48:0);
     ctx.save();ctx.globalAlpha=k<.06?k/.06:k>.85?1-(k-.85)/.15:1;
-    ctx.font='700 11px '+FONT_JP;var w=Math.min(170,ctx.measureText(tx).width+16),h=20;
-    ctx.fillStyle='rgba(255,255,255,.96)';rrect(x-w/2,y-h,w,h,8);ctx.fill();
-    ctx.beginPath();ctx.moveTo(x-5,y-1);ctx.lineTo(x,y+6);ctx.lineTo(x+5,y-1);ctx.fill();
-    ctx.fillStyle='#161A26';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(tx,x,y-h/2+.5,w-10);
+    ctx.font='700 11px '+FONT_JP;var w=Math.min(240,ctx.measureText(tx).width+16),h=20;   // 20文字が縮まずに入る幅
+    // 画面の端にいるときは、吹き出しを見えている範囲の内側にずらす（ズーム中はその範囲）。しっぽはキャラの上のまま
+    var zl=CAMZ.z>1.001?CAMZ.x:0,zr=zl+VW/Math.max(1,CAMZ.z),bx=Math.max(zl+4,Math.min(zr-4-w,x-w/2)),px=Math.max(bx+10,Math.min(bx+w-10,x));
+    ctx.fillStyle='rgba(255,255,255,.96)';rrect(bx,y-h,w,h,8);ctx.fill();
+    ctx.beginPath();ctx.moveTo(px-5,y-1);ctx.lineTo(px,y+6);ctx.lineTo(px+5,y-1);ctx.fill();
+    ctx.fillStyle='#161A26';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(tx,bx+w/2,y-h/2+.5,w-10);
     ctx.restore();
   });
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
@@ -5147,8 +5153,22 @@ function myCardData(){
 }
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
-  else if(field==='bio')profile.bio=String(v).slice(0,40);
+  else if(field==='bio'){
+    // ひとこと：禁止ワードが入っているあいだは保存しない（入力欄の下に知らせる）
+    var b=String(v).slice(0,40),ng=SIM.badText(b),m=document.getElementById('profile-bio-msg');
+    if(m){m.textContent=ng?t('pf.bioNg'):'';m.className='fr-msg'+(ng?' err':'');}
+    if(ng)return;
+    profile.bio=b;
+  }
   saveProfileSoon();pfSaved();
+}
+// 入力をやめたとき（欄を離れた・Enter）に禁止ワードが入っていたら、さわる前のひとことに戻す（途中まで打った分も残さない）
+var bioBefore=null;
+function bioFocus(){bioBefore=profile.bio;}
+function bioDone(el){
+  if(!SIM.badText(el.value))return;
+  if(bioBefore!=null&&profile.bio!==bioBefore){profile.bio=bioBefore;saveProfileSoon();}
+  el.value=profile.bio;
 }
 function pickTitle(id){
   if(!titleDef(id)||!titleUnlocked(id))return;   // 未獲得の称号は選べない（一覧にも出さない）
@@ -7911,7 +7931,8 @@ function onGameScreen(){return document.getElementById('game-screen').style.disp
 document.addEventListener('keydown',function(e){
   if(listeningFor||!acTrusted(e))return;
   var k=e.key.toLowerCase();
-  if(e.key==='Escape'&&onGameScreen()){leaveMatch();e.preventDefault();return;}   // 対戦中でもESCでメニューへ（途中なら一度確認）
+  // ESC でメニューへ。オンライン対戦は、試合が終わるまで ESC では抜けない（まちがえて押したときや、全画面を戻すときに抜けないように）。抜けるときは「メニューへ」のボタンから（一度確認あり）
+  if(e.key==='Escape'&&onGameScreen()){e.preventDefault();if(gameMode==='online'&&!matchOver)return;leaveMatch();return;}
   if(matchOver&&k==='r'&&onGameScreen()){doRematch();e.preventDefault();return;}
   if(matchOver&&k==='v'&&gameMode==='ai'&&!RP&&onGameScreen()){startReplay();e.preventDefault();return;}   // 終わった試合のリプレイ
   if(RP&&onGameScreen()&&!matchOver){if(k==='f'||e.key==='ArrowRight'){rpSpeed();}e.preventDefault();return;}   // リプレイ中は操作しない（F・→で速さ）
@@ -11645,8 +11666,8 @@ function drawProfileCard(g,P,x,y,w,h,tm){
     g.fillStyle=ig;g.fill();g.lineWidth=Math.max(1,w*.004);g.strokeStyle=hexA(col,.9);g.stroke();
     drawGunIcon(g,P.loadout[i],ix+iconW*.06,iy+iconW*.08,iconW*.82,iconW*.54);
   }
-  // 右上：ひとこと（吹き出し）
-  if(P.bio){
+  // 右上：ひとこと（吹き出し）。禁止ワードの入ったものは出さない
+  if(P.bio&&!SIM.badText(P.bio)){
     g.font='700 '+Math.round(w*.036)+'px '+FONT_JP;
     var lines=wrapLines(g,P.bio,w*.34,2),lh=w*.048,bw=0;
     lines.forEach(function(l){bw=Math.max(bw,g.measureText(l).width);});
@@ -14004,7 +14025,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
