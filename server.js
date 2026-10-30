@@ -1223,6 +1223,19 @@ server.listen(PORT, HOST, () => {
     (ALLOWED_ORIGINS.length ? ` (origins: ${ALLOWED_ORIGINS.join(', ')})` : '') +
     (REQUIRE_LOGIN ? ' (login required)' : ''));
   if (interactions.enabled()) interactions.register(log);   // Discord に /info を登録
+  for (const b of auth.pardoned()) {   // UNBAN_IDS で BAN を解いた人
+    log('UNBAN', 'discord=' + b.uid, 'name=' + b.name, 'reason=' + b.reason);
+    postAdmin({
+      title: 'BANを解除しました', color: 0x34D399,
+      description: 'BANの理由だった検知：' + (mdEscape(b.reason) || '-'),
+      fields: [
+        { name: 'プレイヤー', value: (mdEscape(b.name) || '-') + `\n<@${b.uid}>（${mdEscape(b.discord)}）\nID: ${b.uid}` + (b.fid ? `\nフレンドコード: ${b.fid}` : ''), inline: true },
+        { name: '対応', value: '検知の点数を0に・BANの回数を1つ戻した' + (b.manual ? '\n※ BANNED_DISCORD_IDS にも入っているので、まだログインできません' : ''), inline: true },
+      ],
+      footer: { text: '解除できたら Variables の UNBAN_IDS から消してください' },
+      timestamp: new Date().toISOString(),
+    });
+  }
   setTimeout(announceUpdates, 8000);   // 起動が落ち着いてから、まだ知らせていないアップデートを投稿
 });
 // ---- アップデートのお知らせ：updates.json に書いた新しい更新を、Discord に1回だけ投稿する ----
