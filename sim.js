@@ -201,7 +201,7 @@ var EVENTS = {
       { id: 'franken', items: ['h29', 'o27'], off: 25, look: { hat: 29, outfit: 27, neck: 0 } },
       { id: 'scarecrow', items: ['h31', 'o26', 'n22'], off: 25, look: { hat: 31, outfit: 26, neck: 22 } }
     ],
-    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 400 },
+    candy: { match: 10, win: 15, kill: 5, killMax: 5, firstWin: 30, dayMax: 1000 },
     // 毎日のハロウィンミッション（その日の3つは全員同じ）：k=数えるもの n=目標 w=武器 c=キャンディ。3つ全部で bonus
     // hwwin＝ハロウィンのステージで勝つ。キャンディの1日の上限（dayMax）とは別に数える
     missions: [
