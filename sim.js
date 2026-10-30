@@ -840,8 +840,8 @@ function logDecode(s) {
 }
 // CPU戦を計算し直す。spec = { seed, diff, stage, loads: [ラウンドごとの自分の武器], logs: [ラウンドごとの操作の記録] }
 // 返り値：{ ok, why, win, straight, wins:[自分,CPU], frames, tally, watch: 自動操作の見張りの結果 }
-// 頭脳の操作との一致率がこれ以上なら、頭脳に操作させている（人の操作は、ほぼ 0% になる）
-var MIMIC = { ratio: 0.3, minFrames: 600 };   // 見張りのほかの検知より確かな証拠なので、こちらを優先する
+// 頭脳の操作との一致率がこれ以上なら記録する（BANには使わない）
+var MIMIC = { ratio: 0.3, minFrames: 600 };   // チートを使っていない人の誤BANが疑われたので、記録だけ（BANしない）。ほかの検知があるときは、そちらを出す
 function replayCpu(spec) {
   var diff = spec && spec.diff, stage = spec && spec.stage;
   if (!AI_LEVELS[diff] || !STAGES[stage] || !Array.isArray(spec.logs) || !spec.logs.length || spec.logs.length > 5) return { ok: false, why: 'bad' };
@@ -877,7 +877,7 @@ function replayCpu(spec) {
   if (wa < 3 && wb < 3) return { ok: false, why: 'unfinished' };
   var mimic = { lv: '', ratio: 0, n: act };
   for (k = 0; k < lvs.length; k++) { var q = act ? same[lvs[k]] / act : 0; if (q > mimic.ratio) { mimic.ratio = q; mimic.lv = lvs[k]; } }
-  if (act >= MIMIC.minFrames && mimic.ratio >= MIMIC.ratio) { V.hit = 'mimic'; V.detail = mimic.lv + ' ' + Math.round(mimic.ratio * 100) + '%'; }
+  if (!V.hit && act >= MIMIC.minFrames && mimic.ratio >= MIMIC.ratio) { V.hit = 'mimic'; V.detail = mimic.lv + ' ' + Math.round(mimic.ratio * 100) + '%'; }
   return { ok: true, win: wa >= 3, straight: wa >= 3 && wb === 0, wins: [wa, wb], frames: frames, tally: T, watch: V.hit ? { code: V.hit, detail: V.detail } : null, cpuLoad: cpuLoad, mimic: mimic };
 }
 
