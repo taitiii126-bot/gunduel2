@@ -76,6 +76,7 @@ module.exports = {
   add, remove, setStatus, statusOf, changed,
   count: () => socks.size,
   sockets: uid => socks.get(uid) || new Set(),
+  everyone: () => { const out = []; for (const s of socks.values()) for (const w of s) out.push(w); return out; },   // ログインしてつないでいる全員の接続
   configure(o) {
     if (o.roomOf) roomOf = o.roomOf;
     if (o.onOffline) onOffline = o.onOffline;

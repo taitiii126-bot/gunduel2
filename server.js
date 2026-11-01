@@ -1082,7 +1082,15 @@ function handleHttp(req, res) {
     if (!u) return json(res, 401, { error: '未ログイン' });
     if (!crateHits.hit(u.id)) return json(res, 429, { error: '操作が多すぎます。少し待ってください' });
     return readJson(req, m => {
-      const r = m && m.op === 'claim' ? auth.missionClaim(u.id, m.i) : m && m.op === 'sclaim' ? auth.seasonClaim(u.id, m.i) : m && (m.op === 'gift' || m.op === 'buy' || m.op === 'badge') ? auth.shop(u.id, m) : m && m.op === 'login' ? auth.loginBonus(u.id) : m && m.op === 'evbuy' ? auth.eventBuy(u.id, String(m.id || '')) : m && m.op === 'open' ? auth.crateOpen(u.id, m.kind === 'chaos' ? 'chaos' : 'lucky') : { error: 'bad' };
+      const r = m && m.op === 'claim' ? auth.missionClaim(u.id, m.i) : m && m.op === 'sclaim' ? auth.seasonClaim(u.id, m.i) : m && (m.op === 'gift' || m.op === 'buy' || m.op === 'badge') ? auth.shop(u.id, m) : m && m.op === 'login' ? auth.loginBonus(u.id) : m && m.op === 'evbuy' ? auth.eventBuy(u.id, String(m.id || '')) : m && m.op === 'open' ? auth.crateOpen(u.id, m.kind === 'chaos' ? 'chaos' : 'lucky')
+        : m && m.op === 'inbox' ? auth.giftInbox(u.id) : m && m.op === 'gclaim' ? auth.giftClaim(u.id, String(m.id || ''))
+        : m && m.op === 'gsend' ? auth.giftSend(u.id, m) : m && m.op === 'gadmin' ? auth.giftAdmin(u.id) : m && m.op === 'gstop' ? auth.giftStop(u.id, m.id) : { error: 'bad' };
+      if (m && m.op === 'gsend' && r.ok) {   // 運営からの配布：つないでいる人に「プレゼントが届いた」と知らせる（宛先がある時はその人だけ）
+        const msg = JSON.stringify({ type: 'gift' });
+        for (const w of r.targets ? r.targets.flatMap(id => [...presence.sockets(id)]) : presence.everyone()) { try { w.send(msg); } catch (e) { /* 切れた接続 */ } }
+        log('GIFT sent', r.gift.id, 'by', u.id, r.targets ? 'to ' + r.targets.length : 'to all', JSON.stringify(r.gift.rw));
+        delete r.targets;
+      }
       json(res, r.error ? 400 : 200, r);
     });
   }

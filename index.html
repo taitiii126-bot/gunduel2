@@ -1325,6 +1325,55 @@ body.demo #bg-shade{opacity:1;}
 .mq-week.lock .mq-wh b{color:var(--tx-2);}
 .mq-week.lock .i{width:15px;height:15px;stroke:var(--tx-3);}
 .mq-new{padding:1px 7px;border-radius:99px;background:#FF5C4A;color:#fff;font-style:normal;font-size:10px;font-weight:900;}
+/* ---- 運営からのプレゼント ---- */
+.gf-body{display:flex;flex-direction:column;gap:10px;}
+.gf-empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:28px 12px;text-align:center;color:var(--tx-2);}
+.gf-empty .i{width:42px;height:42px;stroke:var(--tx-3);}
+.gf-empty b{font-size:15px;font-weight:900;color:var(--tx);}
+.gf-empty small{font-size:12.5px;color:var(--tx-3);}
+.gf-card{display:flex;flex-direction:column;gap:9px;padding:12px 14px;border-radius:14px;border:1px solid rgba(255,197,61,.45);background:linear-gradient(180deg,#1B1A22,#121219);box-shadow:0 0 20px -12px rgba(255,197,61,.8);}
+.gf-card.off{opacity:.55;border-color:var(--line);box-shadow:none;}
+.gf-top{display:flex;align-items:center;gap:10px;}
+.gf-ic{flex:none;width:40px;height:40px;display:grid;place-items:center;border-radius:12px;background:rgba(255,197,61,.14);border:1px solid rgba(255,197,61,.5);}
+.gf-ic .i{width:22px;height:22px;stroke:var(--gold);}
+.gf-tt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+.gf-tt b{font-size:14.5px;font-weight:900;color:var(--tx);overflow-wrap:anywhere;}
+.gf-tt small{font-family:var(--f-ui);font-size:11.5px;font-weight:700;color:var(--tx-3);}
+.gf-top .mq-claim{flex:none;min-width:84px;}
+.gf-msg{margin:0;padding:9px 11px;border-radius:10px;background:rgba(255,255,255,.04);font-size:13px;line-height:1.6;color:var(--tx-2);white-space:pre-wrap;overflow-wrap:anywhere;}
+.gf-rw{display:flex;flex-wrap:wrap;gap:6px;}
+.gf-chip{display:inline-flex;align-items:center;gap:5px;min-height:0;padding:4px 10px 4px 6px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.06);box-shadow:none;font-size:12px;font-weight:900;color:var(--tx);}
+.gf-chip .pi{width:18px;height:18px;}
+.gf-chip.xp{padding-left:10px;color:#8EF0AE;}
+.gf-chip.it{padding-left:4px;}
+.gf-chip.it b{padding:1px 7px;border-radius:99px;font-size:10px;color:#0B0A12;background:var(--rc,#AEB6C4);}
+.gf-chip.r1{--rc:#3FA0FF;}.gf-chip.r2{--rc:#B45CFF;}.gf-chip.r3{--rc:#FFB020;}.gf-chip.r4{--rc:#FF5CD6;}
+.gf-chip.r2 b{color:#fff;}.gf-chip.r4 b{background:linear-gradient(90deg,#FF5C5C,#FFD84A,#5CFF8A,#4AB8FF,#C05CFF);}
+.gf-chip.del{cursor:pointer;}.gf-chip.del:hover{border-color:#FF8A7A;}
+.gf-form{display:flex;flex-direction:column;gap:11px;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02);}
+.gf-note{margin:0;font-size:12px;line-height:1.55;color:var(--tx-3);}
+.gf-l{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:900;color:var(--tx-2);}
+.gf-l>span{display:inline-flex;align-items:center;gap:5px;}
+.gf-l .pi{width:16px;height:16px;}
+.gf-form input:not([type=radio]),.gf-form textarea,.gf-form select{width:100%;min-width:0;padding:9px 11px;border-radius:10px;border:1px solid var(--line-2);background:#0B0D16;color:var(--tx);font:inherit;font-size:14px;font-weight:700;}
+.gf-form textarea{resize:vertical;min-height:70px;line-height:1.5;}
+.gf-form input:focus,.gf-form textarea:focus,.gf-form select:focus{outline:2px solid rgba(255,197,61,.6);outline-offset:0;}
+.gf-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
+.gf-pick{display:flex;gap:8px;}
+.gf-pick select{flex:1;}
+.gf-to{display:flex;gap:16px;flex-wrap:wrap;font-size:13px;font-weight:800;color:var(--tx);}
+.gf-to label{display:inline-flex;align-items:center;gap:6px;cursor:pointer;}
+.gf-to input{accent-color:var(--gold);width:16px;height:16px;}
+.gf-days input{max-width:120px;}
+.gf-go{display:inline-flex;align-items:center;justify-content:center;gap:8px;align-self:stretch;}
+.gf-go .i{width:18px;height:18px;stroke:currentColor;}
+.gf-ask{display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:12px;border:1px solid rgba(255,197,61,.6);background:rgba(255,197,61,.08);}
+.gf-ask b{font-size:13.5px;color:var(--tx);}
+.gf-ask div{display:flex;gap:8px;flex-wrap:wrap;}
+.gf-logh{margin-top:6px;}
+.gf-log{display:flex;flex-direction:column;gap:8px;}
+.gf-log .gf-card{border-color:var(--line-2);box-shadow:none;}
+@media (max-width:560px){.gf-nums{grid-template-columns:repeat(2,minmax(0,1fr));}}
 @media (max-width:560px){
   .mq{grid-template-columns:36px minmax(0,1fr) 42px 64px;gap:8px;padding:9px 10px;}
   .mq-ic{width:36px;height:36px;border-radius:10px;}
@@ -2418,6 +2467,7 @@ body.mland .home-hero{height:72vh;}
       <div class="home-side">
         <button class="side-btn ev-btn" id="he-evbtn" onclick="showEventScreen()" style="display:none"><span class="sb-ic ev-ic"><canvas id="he-ev-cv" width="96" height="96"></canvas><span class="mb-badge" id="he-ev-n" style="display:none">!</span></span><span class="ev-tx"><span data-i18n="ev.home"></span><small id="he-ev-c"></small></span></button>
         <button class="side-btn lb-btn" id="he-lbbtn" onclick="openLoginBonus()"><span class="sb-ic lb-ic" id="he-lb-ic"><svg class="flame" viewBox="0 0 24 24"><path class="f1" d="M12 1.5c1.2 3.8 5.6 5.8 5.6 11.6a5.6 5.6 0 0 1-11.2 0c0-2.8 1.3-4.5 2.8-6.1.2 2 1.1 3.1 2.2 3.6C10.9 7.6 11.1 4.6 12 1.5z"/><path class="f2" d="M12 11.2c.7 1.6 2.5 2.5 2.5 4.7a2.5 2.5 0 0 1-5 0c0-1.1.6-1.9 1.2-2.6.1.9.6 1.4 1 1.6-.2-1.5 0-2.6.3-3.7z"/></svg><span class="mb-badge" id="he-lb-n" style="display:none;">!</span></span><span id="he-lb-t"></span></button>
+        <button class="side-btn" id="he-giftbtn" onclick="openGifts()" style="display:none"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M3 7.5h18V11H3zM12 7.5V20M12 7.5C10.8 4.6 7.5 3.8 7.2 5.8 7 7.3 9.6 7.5 12 7.5zm0 0c1.2-2.9 4.5-3.7 4.8-1.7.2 1.5-2.4 1.7-4.8 1.7z"/></svg><span class="mb-badge" id="he-gift-n" style="display:none"></span></span><span data-i18n="menu.gifts"></span></button>
         <button class="side-btn" id="he-passbtn" onclick="showPassScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 5h16v4a2 2 0 0 0 0 4v4H4v-4a2 2 0 0 0 0-4z"/><path d="M14 5v12" stroke-dasharray="2 2"/></svg><span class="mb-badge" id="he-pass-n" style="display:none;"></span></span><span data-i18n="menu.pass"></span></button>
         <button class="side-btn" id="he-misbtn" onclick="openMissions()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10l1.5 1.5 3-3M8.5 16l1.5 1.5 3-3M15 11h1.5M15 17h1.5"/></svg><span class="mb-badge" id="he-mis-n" style="display:none;"></span></span><span data-i18n="menu.missions"></span></button>
         <button class="side-btn" id="he-shopbtn" onclick="showShopScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h16l-1.2 10.5a1.5 1.5 0 0 1-1.5 1.5H6.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2"/></svg><span class="mb-badge" id="he-shop-n" style="display:none;">!</span></span><span data-i18n="menu.shop"></span></button>
@@ -2889,6 +2939,13 @@ body.mland .home-hero{height:72vh;}
     <button class="v2-btn big" id="lb-claim" onclick="claimLoginBonus()"></button>
   </div>
 </div>
+<div id="gift-modal" class="fr-modal" onclick="if(event.target===this)closeGifts()">
+  <div class="mis-sheet gf-sheet" role="dialog" aria-modal="true" aria-labelledby="gf-title">
+    <div class="mq-head"><b id="gf-title" data-i18n="gift.title"></b><div class="mq-tabs" id="gf-tabs" role="tablist"></div></div>
+    <div class="mq-scroll"><div class="gf-body" id="gf-body"></div></div>
+    <div class="mis-btns" id="gf-btns"></div>
+  </div>
+</div>
 <div id="mis-modal" class="fr-modal" onclick="if(event.target===this)closeMissions()">
   <div class="mis-sheet" role="dialog" aria-modal="true" aria-labelledby="mq-title">
     <div class="mq-head"><b id="mq-title" data-i18n="menu.missions"></b><div class="mq-tabs" id="mq-tabs" role="tablist"></div></div>
@@ -2941,7 +2998,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=54"></script>
-<script src="lang.js?v=70"></script>
+<script src="lang.js?v=71"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4684,6 +4741,126 @@ function claimLoginBonus(){
 }
 // ホームに来たとき、まだ受け取っていなければ自動で開く（起動画面のあと・1回だけ）
 function maybeLoginBonus(){if(LB.shown||!loginReady()||currentScreen!=='mode-screen')return;LB.shown=true;setTimeout(function(){if(currentScreen==='mode-screen'&&loginReady())openLoginBonus();},SPLASH.on?2700:400);}
+// ---- 運営からのプレゼント（ログイン中だけ）。運営（DEV_IDS の人）は、ここから配布もできる ----
+var GIFT_SVG='<svg class="i" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M3 7.5h18V11H3zM12 7.5V20M12 7.5C10.8 4.6 7.5 3.8 7.2 5.8 7 7.3 9.6 7.5 12 7.5zm0 0c1.2-2.9 4.5-3.7 4.8-1.7.2 1.5-2.4 1.7-4.8 1.7z"/></svg>';
+var GIFT={list:[],at:0,busy:false,tab:'inbox',sent:null,ask:false,form:{title:'',msg:'',coins:'',lucky:'',chaos:'',xp:'',items:[],toAll:true,to:'',days:7}};
+function giftOn(){return !!(AUTH.user&&AUTH.token&&STORE_ACC);}
+// 届いているプレゼントを読む（force でなければ1分に1回まで）。tell＝新しく届いたら知らせる
+function giftsLoad(force,tell){
+  if(!giftOn()){GIFT.list=[];return giftsUi();}
+  if(GIFT.busy||(!force&&Date.now()-GIFT.at<60000))return;
+  GIFT.busy=true;
+  ecoApi({op:'inbox'},function(r){GIFT.busy=false;GIFT.at=Date.now();if(!r||!Array.isArray(r.gifts))return;
+    var old=GIFT.list.map(function(g){return g.id;}),fresh=r.gifts.filter(function(g){return old.indexOf(g.id)<0;});
+    GIFT.list=r.gifts;if(tell&&fresh.length){note(t('gift.arrived'));SFX.coin();}giftsUi();});
+}
+function giftsUi(){
+  var on=giftOn(),n=on?GIFT.list.length:0,b=document.getElementById('he-giftbtn');
+  if(b){b.style.display=on&&(n||isDevUser())?'':'none';b.classList.toggle('has',n>0);var c=document.getElementById('he-gift-n');c.style.display=n?'':'none';c.textContent=n;}
+  var m=document.getElementById('gift-modal');if(m&&m.classList.contains('show'))renderGifts();
+}
+function openGifts(){GIFT.tab='inbox';GIFT.ask=false;renderGifts();document.getElementById('gift-modal').classList.add('show');giftsLoad(true);}
+function closeGifts(){document.getElementById('gift-modal').classList.remove('show');}
+function giftTab(k){GIFT.tab=k==='send'&&isDevUser()?'send':'inbox';GIFT.ask=false;renderGifts();if(GIFT.tab==='send')giftAdminLoad();var sc=document.querySelector('#gift-modal .mq-scroll');if(sc)sc.scrollTop=0;}
+// 報酬の小さな札（コイン・バッジ・経験値・アイテム）
+function giftRwHtml(rw){
+  var h='';
+  if(rw.coins)h+='<span class="gf-chip"><i class="pi coin"></i>'+esc(t('pass.coins',{n:rw.coins}))+'</span>';
+  if(rw.lucky)h+='<span class="gf-chip"><i class="pi lucky"></i>'+esc(t('eco.lucky'))+' ×'+rw.lucky+'</span>';
+  if(rw.chaos)h+='<span class="gf-chip"><i class="pi chaos"></i>'+esc(t('eco.chaos'))+' ×'+rw.chaos+'</span>';
+  if(rw.xp)h+='<span class="gf-chip xp">'+esc(t('gift.xp',{n:rw.xp}))+'</span>';
+  (rw.items||[]).forEach(function(id){var it=SIM.ITEM_BY_ID[id];h+='<span class="gf-chip it'+(it?' r'+it.r:'')+'"><b>'+esc(it?rarName(it.r):'')+'</b>'+esc(itemName(id))+'</span>';});
+  return h;
+}
+function giftDate(ms){var d=new Date(ms);return (d.getMonth()+1)+'/'+d.getDate();}
+function renderGifts(){
+  var body=document.getElementById('gf-body'),tb=document.getElementById('gf-tabs'),bt=document.getElementById('gf-btns');if(!body)return;
+  var dev=isDevUser()&&giftOn();if(!dev)GIFT.tab='inbox';
+  tb.innerHTML=dev?[['inbox','gift.inbox',GIFT.list.length],['send','gift.send',0]].map(function(q){var on=GIFT.tab===q[0];return'<button role="tab" class="'+(on?'sel':'')+'" aria-selected="'+on+'" onclick="giftTab(\''+q[0]+'\')">'+esc(t(q[1]))+(q[2]?'<i class="mq-n">'+q[2]+'</i>':'')+'</button>';}).join(''):'';
+  tb.style.display=dev?'':'none';
+  var close='<button class="cr-b ghost" onclick="closeGifts()">'+esc(t('eco.close'))+'</button>';
+  if(GIFT.tab==='send'){body.innerHTML=giftFormHtml();bt.innerHTML=close;return;}
+  var h='';
+  if(!giftOn())h='<div class="gf-empty">'+GIFT_SVG+'<b>'+esc(t('gift.login'))+'</b></div>';
+  else if(!GIFT.list.length)h='<div class="gf-empty">'+GIFT_SVG+'<b>'+esc(t('gift.none'))+'</b><small>'+esc(t('gift.noneSub'))+'</small></div>';
+  else GIFT.list.forEach(function(g){
+    h+='<div class="gf-card"><div class="gf-top"><span class="gf-ic">'+GIFT_SVG+'</span><div class="gf-tt"><b>'+esc(g.title)+'</b><small>'+esc(giftDate(g.at))+' · '+esc(t('gift.left',{t:leftText(g.until-Date.now())}))+'</small></div>'+
+      '<button class="mq-claim" onclick="giftClaim(\''+esc(g.id)+'\')">'+esc(t('eco.claim'))+'</button></div>'+
+      (g.msg?'<p class="gf-msg">'+esc(g.msg)+'</p>':'')+'<div class="gf-rw">'+giftRwHtml(g.rw)+'</div></div>';
+  });
+  body.innerHTML=h;
+  bt.innerHTML=(GIFT.list.length>1?'<button class="cr-b main" onclick="giftClaim(\'*\')">'+esc(t('gift.claimAll'))+'</button>':'')+close;
+}
+function giftGotText(g){
+  var a=[];if(g.coins)a.push(t('pass.coins',{n:g.coins}));if(g.lucky)a.push(t('eco.lucky')+' ×'+g.lucky);if(g.chaos)a.push(t('eco.chaos')+' ×'+g.chaos);if(g.xp)a.push(t('gift.xp',{n:g.xp}));
+  (g.items||[]).forEach(function(id){a.push(itemName(id));});
+  return a.join('・')+(g.dup&&g.dup.length?t('gift.dup'):'');
+}
+function giftClaim(id){
+  if(GIFT.busy||!giftOn())return;GIFT.busy=true;
+  ecoApi({op:'gclaim',id:String(id)},function(r){GIFT.busy=false;
+    if(!r||r.error||!r.got){note(t('gift.err'));GIFT.at=0;giftsLoad(true);return;}
+    var lv0=ecoLevel().lv;ecoAdopt(r);
+    GIFT.list=GIFT.list.filter(function(g){return(r.claimed||[]).indexOf(g.id)<0;});
+    (r.got.items||[]).forEach(ecoMarkNew);SFX.coin();
+    if(ecoLevel().lv>lv0){SFX.levelUp();showLevelUp(ecoLevel().lv);}
+    note(t('gift.got',{r:giftGotText(r.got)}));renderHomeEco();giftsUi();
+    var first=(r.got.items||[])[0],it=first&&SIM.ITEM_BY_ID[first];   // アイテムをもらったら、バッジと同じ演出で見せる
+    if(it&&!GIFT.list.length){closeGifts();setTimeout(function(){if(CR.on)return;openCrateScreen('lucky');CR.res={kind:'lucky',r:it.r,n:1,items:[{item:first,dup:false}]};CR.tier=it.r;crateBurst();},400);}
+  });
+}
+// ---- 運営：配布のフォームと、配布の記録 ----
+var GIFT_KINDS=['hat','outfit','neck','win','emote','bg'];
+function giftF(k,v){GIFT.form[k]=v;if(k==='toAll'){GIFT.ask=false;renderGifts();}}
+function giftAddItem(){var sel=document.getElementById('gf-f-item');if(!sel||!sel.value)return;if(GIFT.form.items.indexOf(sel.value)<0&&GIFT.form.items.length<10)GIFT.form.items.push(sel.value);GIFT.ask=false;renderGifts();}
+function giftDelItem(i){GIFT.form.items.splice(i,1);GIFT.ask=false;renderGifts();}
+function giftFormHtml(){
+  var F=GIFT.form,h='<div class="gf-form">';
+  h+='<p class="gf-note">'+esc(t('gift.formNote'))+'</p>';
+  h+='<label class="gf-l"><span>'+esc(t('gift.fTitle'))+'</span><input id="gf-f-title" maxlength="40" value="'+esc(F.title)+'" oninput="giftF(\'title\',this.value)"></label>';
+  h+='<label class="gf-l"><span>'+esc(t('gift.fMsg'))+'</span><textarea id="gf-f-msg" maxlength="400" rows="3" oninput="giftF(\'msg\',this.value)">'+esc(F.msg)+'</textarea></label>';
+  h+='<div class="gf-nums">'+[['coins','gift.fCoins',100000,'coin'],['lucky','eco.lucky',50,'lucky'],['chaos','eco.chaos',50,'chaos'],['xp','gift.fXp',100000,'']].map(function(q){
+    return'<label class="gf-l"><span>'+(q[3]?'<i class="pi '+q[3]+'"></i>':'')+esc(t(q[1]))+'</span><input type="number" min="0" max="'+q[2]+'" inputmode="numeric" placeholder="0" value="'+esc(String(F[q[0]]))+'" oninput="giftF(\''+q[0]+'\',this.value)"></label>';}).join('')+'</div>';
+  var opts='<option value="">'+esc(t('gift.pick'))+'</option>';
+  GIFT_KINDS.forEach(function(k){
+    var list=SIM.ITEMS.filter(function(it){return it.key===k;}).sort(function(a,b){return b.r-a.r||a.idx-b.idx;});if(!list.length)return;
+    opts+='<optgroup label="'+esc(t('look.'+k))+'">'+list.map(function(it){return'<option value="'+esc(it.id)+'">'+esc(itemName(it.id))+'（'+esc(rarName(it.r))+'）</option>';}).join('')+'</optgroup>';
+  });
+  h+='<div class="gf-l"><span>'+esc(t('gift.fItems'))+'</span><div class="gf-pick"><select id="gf-f-item">'+opts+'</select><button class="mq-link" onclick="giftAddItem()">'+esc(t('gift.add'))+'</button></div>'+
+    (F.items.length?'<div class="gf-rw">'+F.items.map(function(id,i){var it=SIM.ITEM_BY_ID[id];return'<button class="gf-chip it del'+(it?' r'+it.r:'')+'" onclick="giftDelItem('+i+')" title="'+esc(t('gift.remove'))+'"><b>'+esc(it?rarName(it.r):'')+'</b>'+esc(itemName(id))+' ×</button>';}).join('')+'</div>':'')+'</div>';
+  h+='<div class="gf-l"><span>'+esc(t('gift.fTo'))+'</span><div class="gf-to"><label><input type="radio" name="gf-to"'+(F.toAll?' checked':'')+' onchange="giftF(\'toAll\',true)">'+esc(t('gift.toAll'))+'</label>'+
+    '<label><input type="radio" name="gf-to"'+(F.toAll?'':' checked')+' onchange="giftF(\'toAll\',false)">'+esc(t('gift.toCodes'))+'</label></div>'+
+    (F.toAll?'':'<input id="gf-f-to" placeholder="'+esc(t('gift.codesPh'))+'" value="'+esc(F.to)+'" oninput="giftF(\'to\',this.value)">')+'</div>';
+  h+='<label class="gf-l gf-days"><span>'+esc(t('gift.fDays'))+'</span><input type="number" min="1" max="90" value="'+esc(String(F.days))+'" oninput="giftF(\'days\',this.value)"></label>';
+  h+=GIFT.ask?'<div class="gf-ask"><b>'+esc(F.toAll?t('gift.askAll'):t('gift.askTo'))+'</b><div><button class="cr-b main" onclick="giftSend()">'+esc(t('gift.doSend'))+'</button><button class="cr-b ghost" onclick="giftAskCancel()">'+esc(t('gift.no'))+'</button></div></div>'
+    :'<button class="cr-b main gf-go" onclick="giftAsk()">'+GIFT_SVG+esc(t('gift.doSend'))+'</button>';
+  h+='</div><div class="mq-wh gf-logh"><b>'+esc(t('gift.log'))+'</b></div><div class="gf-log">';
+  if(!GIFT.sent)h+='<p class="gf-note">…</p>';
+  else if(!GIFT.sent.length)h+='<p class="gf-note">'+esc(t('gift.logNone'))+'</p>';
+  else GIFT.sent.forEach(function(g){
+    h+='<div class="gf-card'+(g.active?'':' off')+'"><div class="gf-top"><div class="gf-tt"><b>'+esc(g.title)+'</b><small>'+esc(giftDate(g.at))+' · '+esc(g.to?t('gift.toN',{n:g.to.length}):t('gift.toAll'))+' · '+
+      esc(g.active?t('gift.left',{t:leftText(g.until-Date.now())}):t('gift.ended'))+' · '+esc(t('gift.gotN',{n:g.got}))+'</small></div>'+
+      (g.active?'<button class="mq-link" onclick="giftStop(\''+esc(g.id)+'\')">'+esc(t('gift.stop'))+'</button>':'')+'</div><div class="gf-rw">'+giftRwHtml(g.rw)+'</div></div>';
+  });
+  return h+'</div>';
+}
+function giftAskCancel(){GIFT.ask=false;renderGifts();}
+function giftAsk(){
+  var F=GIFT.form;
+  if(!String(F.title).trim())return note(t('gift.e.no_title'));
+  if(!(+F.coins>0||+F.lucky>0||+F.chaos>0||+F.xp>0||F.items.length))return note(t('gift.e.empty'));
+  if(!F.toAll&&!String(F.to).trim())return note(t('gift.e.bad_to',{c:''}));
+  GIFT.ask=true;renderGifts();
+}
+function giftSend(){
+  if(GIFT.busy)return;var F=GIFT.form;GIFT.busy=true;
+  ecoApi({op:'gsend',title:F.title,msg:F.msg,coins:+F.coins||0,lucky:+F.lucky||0,chaos:+F.chaos||0,xp:+F.xp||0,items:F.items.slice(),to:F.toAll?'':F.to,days:+F.days||7},function(r){GIFT.busy=false;GIFT.ask=false;
+    if(r&&r.ok){note(t('gift.sent'));GIFT.form={title:'',msg:'',coins:'',lucky:'',chaos:'',xp:'',items:[],toAll:true,to:'',days:7};GIFT.sent=null;renderGifts();giftAdminLoad();giftsLoad(true);return;}
+    var e=r&&r.error||'net',k='gift.e.'+e;note(t(k)!==k?t(k,{c:(r&&r.codes||[]).join(', ')}):t('gift.e.other',{e:e}));renderGifts();
+  });
+}
+function giftAdminLoad(){if(!isDevUser())return;ecoApi({op:'gadmin'},function(r){if(r&&Array.isArray(r.gifts)){GIFT.sent=r.gifts;if(GIFT.tab==='send')renderGifts();}});}
+function giftStop(id){ecoApi({op:'gstop',id:id},function(r){if(r&&r.ok){note(t('gift.stopped'));giftAdminLoad();}else note(t('gift.e.other',{e:r&&r.error||'net'}));});}
 function openMissions(){renderHomeEco();document.getElementById('mis-modal').classList.add('show');var sc=document.querySelector('#mis-modal .mq-scroll');if(sc)sc.scrollTop=0;}
 // ---- ミッション画面：デイリー（毎日5つ）とシーズン（週ごとに6つずつ出る）をタブで切りかえ ----
 var MQ={tab:'daily'};
@@ -6100,7 +6277,7 @@ function presenceStop(){
   var sock=PRES.ws;PRES.ws=null;PRES.wait=2000;
   if(sock){try{sock.close();}catch(e){}}
   setPresState('off');
-  if(!AUTH.user)resetFriends();   // ログアウトしたらフレンドの表示と招待を片付ける
+  if(!AUTH.user){resetFriends();GIFT.list=[];giftsUi();}   // ログアウトしたらフレンドの表示と招待・プレゼントを片付ける
 }
 // いまCPU対戦中か（フレンドの一覧に出る。オンライン対戦中はサーバーが自分で分かる）
 function presenceStatus(st){
@@ -6109,8 +6286,9 @@ function presenceStatus(st){
   if(PRES.ws&&PRES.ws.readyState===1)PRES.ws.send(JSON.stringify({type:'status',s:st}));
 }
 function handlePresenceMsg(m){
-  if(m.type==='hello_ok'){PRES.wait=2000;setPresState('on');if(m.user&&AUTH.user){AUTH.user=m.user;renderLoginUI();}loadFriends();loadClan();try{PRES.ws.send(JSON.stringify({type:'party_get'}));}catch(e){}}
+  if(m.type==='hello_ok'){PRES.wait=2000;setPresState('on');if(m.user&&AUTH.user){AUTH.user=m.user;renderLoginUI();}loadFriends();loadClan();giftsLoad(true);try{PRES.ws.send(JSON.stringify({type:'party_get'}));}catch(e){}}
   else if(m.type==='friend_status')onFriendStatus(m);
+  else if(m.type==='gift')giftsLoad(true,true);   // 運営からプレゼントが届いた
   else if(m.type==='friend_event')onFriendEvent(m);
   else if(m.type==='invite')onInvite(m);
   else if(m.type==='invite_cancel')onInviteCancel(String(m.id||''));
@@ -6551,7 +6729,7 @@ function drawHomeHero(tm){
   if(WN_ON){g.fillStyle='rgba(255,255,255,.75)';for(var sf=0;sf<26;sf++){var fy=((tm*(18+sf%5*6)*s+sf*97)%H),fx=(sf*61%100)/100*W+Math.sin(tm+sf)*6*s;g.beginPath();g.arc(fx,fy,(1+sf%3*.6)*s,0,Math.PI*2);g.fill();}}
   if(HW_ON){g.fillStyle='rgba(20,6,31,.85)';for(var hb=0;hb<3;hb++){var k=(tm*.08+hb*.33)%1;flatBat(g,W*(1.1-k*1.2),H*(.12+hb*.07)+Math.sin(tm*2+hb)*H*.02,s*(.9+hb*.2),tm*11+hb);}}
 }
-function showModeScreen(){disconnectWS();showScreen('mode-screen');}
+function showModeScreen(){disconnectWS();showScreen('mode-screen');giftsLoad();}
 // ホーム上のプロフィールのバー（顔・名前・称号・ティア）
 function renderHomeBar(){
   var nm=document.getElementById('hb-name');if(!nm)return;
@@ -14869,7 +15047,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,claimSea,misTab,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
