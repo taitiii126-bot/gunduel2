@@ -393,7 +393,7 @@ function levelOf(xp) {
 function cratesEarned(xp, misCrates) {
   return levelOf(xp).lv + Math.max(0, Math.floor(+misCrates) || 0);
 }
-// ---- デイリーミッション：日付から、その日の3つを決める（みんな同じ日は同じミッション） ----
+// ---- デイリーミッション：日付から、その日の5つを決める（みんな同じ日は同じミッション） ----
 // k=数えるもの n=目標の数 w=武器（キルのとき）
 var MISSIONS = [
   { k: 'win', n: 2 }, { k: 'win', n: 3 }, { k: 'rounds', n: 5 }, { k: 'rounds', n: 8 }, { k: 'play', n: 3 },
@@ -402,14 +402,22 @@ var MISSIONS = [
   { k: 'nodmg', n: 1 }, { k: 'roll', n: 15 }, { k: 'rolldodge', n: 3 }, { k: 'emote', n: 3 }, { k: 'online', n: 2 }, { k: 'hard', n: 1 }
 ];
 var MISSION_XP = 120;
-// ---- シーズンミッション（1か月＝1シーズン）：15個。最初は3つ。1つ終えるごとに、次の日にもう1つ増える ----
+var MIS_PER_DAY = 5;   // 1日のデイリーミッションの数（全部終えるとカオスバッジ）
+// ---- シーズンミッション（1か月＝1シーズン）：週ごとに6つずつ、まとめて出る（4週で24個）。出た物はシーズンの終わりまで残る ----
 // 終えるとパスXP。パスXPでシーズンパスの段が上がり、段ごとに報酬（最初の段は安く、だんだん高く）
+var SEASON_WEEKS = 4, SEASON_PER_WEEK = 6;
 var SEASON_MISSIONS = [
-  { k: 'win', n: 15 }, { k: 'kill', n: 60 }, { k: 'rounds', n: 40 }, { k: 'rolldodge', n: 30 }, { k: 'killw', n: 15, w: 3 },
-  { k: 'online', n: 10 }, { k: 'nodmg', n: 8 }, { k: 'hard', n: 5 }, { k: 'killw', n: 20, w: 5 }, { k: 'play', n: 40 },
-  { k: 'killw', n: 10, w: 1 }, { k: 'emote', n: 30 }, { k: 'win', n: 40 }, { k: 'roll', n: 200 }, { k: 'killw', n: 10, w: 11 }
+  // 1週目
+  { k: 'play', n: 5 }, { k: 'win', n: 4 }, { k: 'kill', n: 15 }, { k: 'rounds', n: 10 }, { k: 'roll', n: 40 }, { k: 'emote', n: 5 },
+  // 2週目
+  { k: 'win', n: 6 }, { k: 'killw', n: 5, w: 2 }, { k: 'rolldodge', n: 6 }, { k: 'online', n: 3 }, { k: 'nodmg', n: 2 }, { k: 'play', n: 8 },
+  // 3週目
+  { k: 'kill', n: 25 }, { k: 'killw', n: 5, w: 3 }, { k: 'hard', n: 2 }, { k: 'rounds', n: 15 }, { k: 'killw', n: 4, w: 1 }, { k: 'emote', n: 10 },
+  // 4週目
+  { k: 'win', n: 8 }, { k: 'online', n: 5 }, { k: 'killw', n: 5, w: 5 }, { k: 'rolldodge', n: 10 }, { k: 'roll', n: 80 }, { k: 'nodmg', n: 3 }
 ];
-var SEASON_FIRST = 3, SEASON_MIS_PXP = 400, DAILY_PXP = 100;   // 最初に出ている数・シーズンミッション1つのパスXP・デイリー1つのパスXP
+var SEA_VER = 2;   // シーズンミッションの並びを変えたら上げる（違う版の進み具合は白紙に）
+var SEASON_MIS_PXP = 250, DAILY_PXP = 80;   // シーズンミッション1つのパスXP・デイリー1つのパスXP
 var PASS_TIERS = 30;
 // ---- ログインボーナス（7日で1周）と連続記録 ----
 var LOGIN_REWARDS = [{ xp: 100 }, { lucky: 1 }, { coins: 150 }, { lucky: 1 }, { xp: 200 }, { lucky: 2 }, { chaos: 1 }];
@@ -472,11 +480,19 @@ function passReward(tier) {
   if (tier % 5 === 0) return { chaos: 1 };
   return tier % 2 ? { lucky: 1 } : { coins: 150 };
 }
-// 出ているシーズンミッションの数：最初の3つ＋前の日までに終えた数（最大15）
-function seasonUnlocked(got, today) {
-  var n = SEASON_FIRST;
-  (got || []).forEach(function (d) { if (d && d < today) n++; });
-  return Math.min(SEASON_MISSIONS.length, n);
+// シーズンの何週目まで出ているか（1〜4）：シーズンの始まりから7日ごとに次の週が出る（4週目は月末まで）
+function seasonWeek(ms) {
+  var t = typeof ms === 'number' && isFinite(ms) ? ms : Date.now();
+  return Math.max(1, Math.min(SEASON_WEEKS, Math.floor((t - seasonStart(t)) / (7 * 864e5)) + 1));
+}
+// 次の週のミッションが出る時刻（ms）。もう全部出ていれば 0
+function seasonNextWeekAt(ms) {
+  var t = typeof ms === 'number' && isFinite(ms) ? ms : Date.now(), w = seasonWeek(t);
+  return w >= SEASON_WEEKS ? 0 : seasonStart(t) + w * 7 * 864e5;
+}
+// 出ているシーズンミッションの数（週ごとに6つずつ）
+function seasonUnlocked(ms) {
+  return Math.min(SEASON_MISSIONS.length, seasonWeek(ms) * SEASON_PER_WEEK);
 }
 // 1日の始まり：シンガポール時間（UTC+8）の朝7時＝世界標準時の23時。日付はその時刻で切り替わる
 var DAY_SHIFT_MS = 60 * 60000;
@@ -484,8 +500,13 @@ function dayEnd(day) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(day || ''); retu
 function dayKey(t) { var d = new Date((t == null ? Date.now() : t) + DAY_SHIFT_MS); return d.getUTCFullYear() + '-' + ('0' + (d.getUTCMonth() + 1)).slice(-2) + '-' + ('0' + d.getUTCDate()).slice(-2); }
 function dailyMissions(day) {
   var h = 2166136261; for (var i = 0; i < day.length; i++) { h ^= day.charCodeAt(i); h = Math.imul(h, 16777619) >>> 0; }
-  var pick = [], used = {};
-  while (pick.length < 3) { h = Math.imul(h ^ (h >>> 13), 2246822507) >>> 0; var j = h % MISSIONS.length, key = MISSIONS[j].k + (MISSIONS[j].w || ''); if (!used[key]) { used[key] = 1; pick.push(j); } }
+  var pick = [], used = {}, wp = 0;
+  // 最初の3つは前と同じ決め方（入れかえた日に、進み具合がずれないように）。4つ目からは、武器のミッションは合わせて2つまで
+  while (pick.length < MIS_PER_DAY) {
+    h = Math.imul(h ^ (h >>> 13), 2246822507) >>> 0; var j = h % MISSIONS.length, key = MISSIONS[j].k + (MISSIONS[j].w || '');
+    if (used[key] || (pick.length >= 3 && MISSIONS[j].k === 'killw' && wp >= 2)) continue;
+    used[key] = 1; pick.push(j); if (MISSIONS[j].k === 'killw') wp++;
+  }
   return pick;
 }
 // ---- シーズンバッジ：シーズンごとに、その間にログインした全員へ1つ配る記念のアイコン ----
@@ -2285,7 +2306,7 @@ var api = {
   EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, eventMissions: eventMissions, candyOf: candyOf, eventSetPrice: eventSetPrice,
   PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift, QUICK_CHAT: QUICK_CHAT, CHAT_MAX: CHAT_MAX, normText: normText, badText: badText, cleanSay: cleanSay, SALE: SALE, saleOn: saleOn, salePeak: salePeak, badgePrice: badgePrice,
-  SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_FIRST: SEASON_FIRST, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
+  SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_WEEKS: SEASON_WEEKS, SEASON_PER_WEEK: SEASON_PER_WEEK, SEA_VER: SEA_VER, seasonWeek: seasonWeek, seasonNextWeekAt: seasonNextWeekAt, MIS_PER_DAY: MIS_PER_DAY, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, emoteFree: emoteFree, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
