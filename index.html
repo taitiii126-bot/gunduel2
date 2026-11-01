@@ -431,6 +431,146 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .cl-rk{font-family:var(--f-ui);font-weight:800;color:var(--gold);text-align:center;}
 .cl-r small{font-size:10px;color:var(--tx-3);}
 .cl-rp{font-family:var(--f-ui);font-weight:800;text-align:right;}
+/* ---- クランの画面（作り直し）：上に切りかえ、左に情報、右にメンバー ---- */
+body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
+#clan-screen.wide{max-width:min(1140px,100%);}
+.cl-nav{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.cl-nav button{display:inline-flex;align-items:center;gap:7px;min-height:0;padding:9px 14px;border-radius:12px;border:1px solid var(--line-2);background:rgba(10,12,20,.75);box-shadow:none;color:var(--tx-2);font-size:13.5px;font-weight:900;}
+.cl-nav button .i{width:17px;height:17px;}
+.cl-nav button:hover{color:var(--tx);border-color:rgba(255,255,255,.3);}
+.cl-nav button.sel{background:#F4F1EA;color:#141220;border-color:#F4F1EA;}
+.cl-nav .cl-tag.sm{font-size:10px;}
+.cl-wrap{display:grid;grid-template-columns:330px minmax(0,1fr);gap:14px;align-items:start;}
+.cl-info{display:flex;flex-direction:column;gap:10px;position:sticky;top:12px;}
+.cl-acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.cl-acts button{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:0;padding:10px 8px;border-radius:12px;border:1px solid rgba(91,156,255,.55);background:linear-gradient(180deg,#2A63D8,#1C45A6);box-shadow:0 3px 0 #10306F;color:#fff;font-size:13px;font-weight:900;}
+.cl-acts button .i{width:16px;height:16px;}
+.cl-card{display:flex;flex-direction:column;align-items:center;gap:10px;padding:16px;border-radius:16px;border:1px solid rgba(91,156,255,.4);background:linear-gradient(180deg,#14306E,#0E1B3E 55%,#0B1228);box-shadow:inset 0 1px 0 rgba(255,255,255,.08);}
+.cl-emb{width:96px;height:auto;filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));}
+.cl-cn{margin:0;font-size:22px;font-weight:900;text-align:center;overflow-wrap:anywhere;color:#fff;}
+.cl-score{display:flex;align-items:center;gap:6px;}
+.cl-score .i{width:22px;height:22px;stroke:var(--gold);}
+.cl-score b{font-family:var(--f-ui);font-size:24px;font-weight:800;color:#fff;}
+.cl-score small{margin-left:4px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.08);font-size:11.5px;font-weight:800;color:var(--tx-2);}
+.cl-desc{margin:0;align-self:stretch;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.25);font-size:12.5px;line-height:1.6;color:#DCE6FF;white-space:pre-wrap;overflow-wrap:anywhere;}
+.cl-desc.none{color:var(--tx-3);text-align:center;}
+.cl-facts{align-self:stretch;display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.cl-facts>div{display:flex;flex-direction:column;gap:3px;padding:8px 10px;border-radius:10px;background:rgba(10,20,50,.6);border:1px solid rgba(91,156,255,.28);min-width:0;}
+.cl-facts small{font-size:10.5px;font-weight:800;color:#8FB4FF;}
+.cl-facts b{display:flex;align-items:center;gap:5px;font-size:13.5px;font-weight:900;color:#fff;min-width:0;overflow-wrap:anywhere;}
+.cl-facts b em{font-style:normal;margin-left:4px;padding:1px 6px;border-radius:6px;background:linear-gradient(180deg,#FFD46B,#E2A325);color:#1A1204;font-size:10px;}
+.cl-tri{width:22px;height:22px;flex:none;}
+.cl-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;align-self:stretch;min-height:0;padding:11px 14px;border-radius:12px;border:1px solid var(--line-2);background:rgba(255,255,255,.07);box-shadow:none;color:var(--tx);font-size:14px;font-weight:900;}
+.cl-btn .i{width:16px;height:16px;}
+.cl-btn.main{border-color:transparent;background:linear-gradient(180deg,#FFD66B,#E0A21E);color:#1a1300;box-shadow:0 3px 0 #9A6A0C;}
+.cl-btn.bad{border-color:#B4232F;background:linear-gradient(180deg,#E5484D,#B4232F);color:#fff;box-shadow:0 3px 0 #7A1219;}
+.cl-btn.sm{align-self:auto;padding:8px 12px;font-size:13px;}
+.cl-why{margin:0;align-self:stretch;padding:9px 11px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12.5px;line-height:1.5;color:var(--tx-2);text-align:center;}
+.cl-why.ok{background:rgba(52,211,153,.12);color:#8EF0C2;}
+.cl-mems{display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(8,10,20,.65);}
+.cl-mh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
+.cl-mh>b{display:inline-flex;align-items:baseline;gap:8px;font-size:16px;font-weight:900;}
+.cl-mh>b span{font-family:var(--f-ui);font-size:13px;color:var(--tx-3);}
+.cl-seg{display:flex;gap:3px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);}
+.cl-seg button{min-height:0;padding:6px 14px;border-radius:9px;border:0;background:transparent;box-shadow:none;color:var(--tx-3);font-size:12.5px;font-weight:900;}
+.cl-seg button.sel{background:#F4F1EA;color:#141220;}
+.cl-seg.wide{margin-bottom:10px;}
+.cl-seg.wide button{flex:1;}
+.cl-mrow{display:grid;grid-template-columns:30px minmax(0,1.6fr) minmax(0,1.1fr) 92px 86px 52px;align-items:center;gap:10px;padding:8px 10px;border-radius:12px;background:linear-gradient(180deg,#232838,#1A1E2B);border:1px solid rgba(255,255,255,.06);}
+.cl-mrow.me{border-color:var(--gold);box-shadow:0 0 0 1px rgba(255,197,61,.3);}
+.cl-mhead{background:none;border:0;padding:0 10px;font-size:11px;font-weight:800;color:var(--tx-3);}
+.cl-list{display:flex;flex-direction:column;gap:6px;}
+.cl-no{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.08);font-family:var(--f-ui);font-size:14px;font-weight:800;color:var(--tx-2);}
+.cl-who{display:flex;align-items:center;gap:9px;min-width:0;}
+.cl-who>span{display:flex;flex-direction:column;min-width:0;}
+.cl-who b{font-size:14px;font-weight:900;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-who small{font-size:11px;font-weight:800;color:var(--tx-3);}
+.cl-who small.lead{color:var(--gold);}
+.cl-av{flex:none;width:40px;height:40px;border-radius:10px;}
+.cl-st{display:flex;flex-direction:column;font-size:12px;font-weight:700;color:var(--tx-2);min-width:0;}
+.cl-st small{display:none;}
+.cl-st b.on{color:#34D399;font-weight:900;}.cl-st b.cpu,.cl-st b.match{color:#FBBF24;}
+.cl-tr{display:flex;align-items:center;gap:4px;font-family:var(--f-ui);font-size:12px;font-weight:800;color:var(--tx-2);}
+.cl-tr canvas{width:28px;height:28px;flex:none;}
+.cl-pt{display:inline-flex;align-items:center;justify-content:flex-end;gap:4px;font-family:var(--f-ui);font-size:15px;font-weight:800;color:#fff;}
+.cl-pt .i{width:16px;height:16px;stroke:var(--gold);}
+.cl-pt.big{font-size:17px;}
+.cl-kick{min-height:0;padding:5px 6px;border-radius:8px;border:1px solid rgba(255,77,94,.5);background:none;box-shadow:none;color:#FF8A96;font-size:11px;font-weight:800;}
+.cl-reqs{display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:12px;border:1px solid rgba(255,197,61,.5);background:rgba(255,197,61,.07);}
+.cl-reqs h4{margin:0 0 2px;font-size:13px;font-weight:900;color:var(--gold);}
+.cl-mrow.req{grid-template-columns:minmax(0,1fr) 92px auto;}
+.cl-rq{display:flex;gap:6px;}
+.cl-rq button{min-height:0;padding:7px 12px;border-radius:9px;border:0;box-shadow:none;font-size:12.5px;font-weight:900;}
+.cl-ok{background:linear-gradient(180deg,#5FE39A,#1E8F57);color:#04210F;}
+.cl-ng{background:rgba(255,255,255,.08);color:var(--tx-2);}
+.cl-backlink{display:inline-flex;align-items:center;gap:4px;min-height:0;margin-bottom:10px;padding:4px 8px 4px 2px;border:0;background:none;box-shadow:none;color:var(--tx-2);font-size:13px;font-weight:800;}
+.cl-backlink .i{width:16px;height:16px;}
+/* 探す */
+.cl-search{display:flex;flex-direction:column;gap:12px;}
+.cl-sbar{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(8,10,20,.65);}
+.cl-sbar .fr-input{min-width:0;width:100%;}
+.cl-chk{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:800;color:var(--tx-2);white-space:nowrap;cursor:pointer;}
+.cl-chk input{width:16px;height:16px;accent-color:var(--gold);}
+.cl-sh{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.cl-sh b{font-size:15px;font-weight:900;}
+.cl-results,.cl-rank2{display:flex;flex-direction:column;gap:8px;}
+.cl-res,.cl-rr{display:grid;grid-template-columns:52px minmax(0,1fr) auto auto;align-items:center;gap:12px;width:100%;min-height:0;padding:10px 14px;border-radius:14px;border:1px solid rgba(91,156,255,.3);background:linear-gradient(180deg,#1B2747,#121A30);box-shadow:none;color:var(--tx);text-align:left;font-weight:400;}
+.cl-res:hover,.cl-rr:hover{border-color:rgba(91,156,255,.7);transform:translateY(-1px);}
+.cl-res canvas,.cl-rr canvas{width:48px;height:auto;}
+.cl-rn{display:flex;flex-direction:column;gap:2px;min-width:0;}
+.cl-rn b{font-size:15px;font-weight:900;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-rn small{font-size:11.5px;font-weight:700;color:var(--tx-3);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-rd{font-size:12px;color:var(--tx-2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.cl-rm{display:flex;flex-direction:column;align-items:flex-end;gap:3px;}
+.cl-rm small{font-size:11px;font-weight:700;color:var(--tx-3);white-space:nowrap;}
+.cl-type{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:900;white-space:nowrap;}
+.cl-type.open{background:rgba(52,211,153,.18);color:#6EF0B6;}
+.cl-type.approval{background:rgba(255,197,61,.18);color:#FFD66B;}
+.cl-type.closed{background:rgba(255,77,94,.16);color:#FF9AA4;}
+.cl-type.req{background:rgba(91,156,255,.2);color:#9CC2FF;}
+.cl-rr{grid-template-columns:32px 52px minmax(0,1fr) auto;}
+.cl-rr.top1 .cl-no{background:linear-gradient(180deg,#FFE27A,#E0A21E);color:#1a1300;}
+.cl-rr.top2 .cl-no{background:linear-gradient(180deg,#E6EDF5,#9AA6B4);color:#111;}
+.cl-rr.top3 .cl-no{background:linear-gradient(180deg,#F0B27A,#B0662A);color:#1a0d00;}
+.cl-rr.me{border-color:var(--gold);}
+/* 作る・設定 */
+.cl-formw{display:flex;flex-direction:column;gap:14px;max-width:860px;}
+.cl-fl{display:flex;flex-direction:column;gap:6px;font-size:12.5px;font-weight:900;color:var(--tx-2);}
+.cl-fl small{font-size:11px;font-weight:700;color:var(--tx-3);}
+.cl-fl textarea{resize:vertical;min-height:84px;line-height:1.5;}
+.cl-fixed{font-size:16px;color:var(--tx);}
+.cl-fixed em{font-style:normal;margin-left:6px;padding:1px 7px;border-radius:6px;background:linear-gradient(180deg,#FFD46B,#E2A325);color:#1A1204;font-size:11px;}
+.cl-types{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;}
+.cl-tp{display:flex;flex-direction:column;gap:4px;padding:11px 12px;border-radius:12px;border:1.5px solid var(--line-2);background:rgba(255,255,255,.03);cursor:pointer;}
+.cl-tp input{position:absolute;opacity:0;pointer-events:none;}
+.cl-tp b{font-size:14px;font-weight:900;color:var(--tx);}
+.cl-tp small{font-size:11.5px;font-weight:700;line-height:1.45;color:var(--tx-3);}
+.cl-tp.sel{border-color:var(--gold);background:rgba(255,197,61,.1);}
+.cl-f2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.cl-fbtns{display:flex;gap:10px;}
+.cl-fbtns .cl-btn{flex:1;}
+@media (max-width:860px){
+  .cl-wrap{grid-template-columns:minmax(0,1fr);}
+  .cl-info{position:static;}
+  .cl-mrow{grid-template-columns:26px minmax(0,1fr) 74px 62px;gap:8px;}
+  .cl-mrow>.cl-st{grid-column:2 / 3;grid-row:2;margin-top:-4px;padding-left:49px;font-size:11px;}
+  .cl-mrow>.cl-kick,.cl-mrow>span:last-child:empty{grid-column:3 / 5;grid-row:2;justify-self:end;}
+  .cl-mhead .cl-hst{display:none;}
+  .cl-mhead{display:none;}
+  .cl-mrow.req{grid-template-columns:minmax(0,1fr) auto;}
+  .cl-mrow.req .cl-tr{display:none;}
+  .cl-sbar{grid-template-columns:1fr 1fr;}
+  .cl-sbar>.fr-input:first-child,.cl-sbar>.cl-btn{grid-column:1 / -1;}
+  .cl-nav button{padding:8px 11px;font-size:12.5px;}
+  .cl-nav{gap:6px;}
+  .cl-types{grid-template-columns:minmax(0,1fr);}
+  .cl-f2{grid-template-columns:minmax(0,1fr);}
+  .cl-res{grid-template-columns:44px minmax(0,1fr) auto;}
+  .cl-res .cl-pt{grid-column:3;grid-row:1;}
+  .cl-res .cl-rm{grid-column:2 / 4;grid-row:2;flex-direction:row;flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:6px;}
+  .cl-res canvas{width:42px;grid-row:1 / 3;}
+  .cl-rd{display:none;}
+}
 .sale-ban{margin:0 0 14px;padding:14px 16px;clip-path:var(--cut-s);background:linear-gradient(120deg,#3A0A1E,#1A0F2E 55%,#0F1A2E);box-shadow:inset 0 0 0 1px rgba(255,77,120,.55);}
 .sale-ban.peak{background:linear-gradient(120deg,#6A0A2A,#3A0A40 55%,#1A0F3A);box-shadow:inset 0 0 0 2px rgba(255,197,61,.8),0 0 28px -10px rgba(255,90,140,.9);}
 .sale-top{display:flex;align-items:center;gap:14px;}
@@ -2606,7 +2746,7 @@ body.mland .home-hero{height:72vh;}
       <p class="pill" id="rank-note"></p>
     </div>
     <p class="rk-season" id="rk-season"></p>
-    <div class="rk-tabs" id="rk-tabs"><button class="sel" onclick="rankKind('1v1')">1v1</button><button onclick="rankKind('2v2')">2v2</button></div>
+    <div class="rk-tabs" id="rk-tabs"><button class="sel" data-k="1v1" onclick="rankKind('1v1')">1v1</button><button data-k="2v2" onclick="rankKind('2v2')">2v2</button><button data-k="clan" onclick="rankKind('clan')" data-i18n="cl.title"></button></div>
     <div id="rank-head" class="rk-row rk-head"><span class="rk-no">#</span><span class="rk-who" data-i18n="rank.player"></span><span class="rk-tier" data-i18n="rank.tier"></span><span class="rk-rate" data-i18n="rank.rate"></span><span class="rk-wr" data-i18n="rank.winrate"></span></div>
     <div id="rank-list"></div>
     <div id="rank-me"></div>
@@ -2652,7 +2792,7 @@ body.mland .home-hero{height:72vh;}
     <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
-  <div id="clan-screen" class="screen menu" style="display:none;">
+  <div id="clan-screen" class="screen menu wide" style="display:none;">
     <div class="scr-head">
       <span class="kicker" data-i18n="cl.kicker"></span>
       <h2 class="scr-title" data-i18n="cl.title"></h2>
@@ -2997,8 +3137,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=54"></script>
-<script src="lang.js?v=71"></script>
+<script src="sim.js?v=55"></script>
+<script src="lang.js?v=72"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -6289,6 +6429,8 @@ function handlePresenceMsg(m){
   if(m.type==='hello_ok'){PRES.wait=2000;setPresState('on');if(m.user&&AUTH.user){AUTH.user=m.user;renderLoginUI();}loadFriends();loadClan();giftsLoad(true);try{PRES.ws.send(JSON.stringify({type:'party_get'}));}catch(e){}}
   else if(m.type==='friend_status')onFriendStatus(m);
   else if(m.type==='gift')giftsLoad(true,true);   // 運営からプレゼントが届いた
+  else if(m.type==='clan_req'){note(t('cl.reqIn'));loadClan();}   // 自分のクランに参加の申請が来た
+  else if(m.type==='clan_in'){note(t('cl.joined',{name:String(m.name||'')}));SFX.coin();CLAN.myReq=[];CLAN.msg='';if(CLAN.view==='clan'||CLAN.view==='search'){CLAN.view='home';CLAN.cur=null;}loadClan();}   // 申請が受けられた
   else if(m.type==='friend_event')onFriendEvent(m);
   else if(m.type==='invite')onInvite(m);
   else if(m.type==='invite_cancel')onInviteCancel(String(m.id||''));
@@ -6405,7 +6547,8 @@ function setFrMsg(m,k){
 }
 // ---- ランキング（レート順。サーバーが集計したものをそのまま出す）----
 var RANK={at:0,data:null,busy:false,err:''};
-function showRankScreen(){showScreen('rank-screen');renderRanking();loadRanking();}
+function showRankScreen(k){if(k==='clan'||k==='1v1'||k==='2v2')RANK.kind=k;showScreen('rank-screen');rankTabs();renderRanking();loadRanking();}
+function rankTabs(){var k=RANK.kind||'1v1';document.querySelectorAll('#rk-tabs button').forEach(function(b){b.classList.toggle('sel',b.getAttribute('data-k')===k);});}
 function renderSeason(){
   var el=document.getElementById('rk-season');
   if(el)el.innerHTML='<b>'+esc(seasonText())+'</b><small>'+esc(t('season.note'))+'</small>';
@@ -6413,11 +6556,12 @@ function renderSeason(){
   if(hb)hb.textContent=seasonText();
 }
 function rankKind(k){
-  RANK.kind=k==='2v2'?'2v2':'1v1';RANK.data=null;RANK.busy=false;
-  document.querySelectorAll('#rk-tabs button').forEach(function(b){b.classList.toggle('sel',b.textContent===RANK.kind);});
+  RANK.kind=k==='2v2'||k==='clan'?k:'1v1';RANK.data=null;RANK.busy=false;
+  rankTabs();
   renderRanking();loadRanking();renderSeason();
 }
 function loadRanking(){
+  if(RANK.kind==='clan')return loadClan();   // クランのランキング（今週・合計）
   if(RANK.busy)return;
   RANK.busy=true;
   var h={};if(AUTH.token)h.Authorization='Bearer '+AUTH.token;
@@ -6445,6 +6589,8 @@ function rankRowHtml(p,me){
 function renderRanking(failed){
   var list=document.getElementById('rank-list'),meEl=document.getElementById('rank-me'),note=document.getElementById('rank-note');
   if(!list)return;
+  var head=document.getElementById('rank-head');if(head)head.style.display=RANK.kind==='clan'?'none':'';
+  if(RANK.kind==='clan'){list.innerHTML=failed?'<div class="rk-empty">'+esc(t('cl.err.net'))+'</div>':clanRankHtml();meEl.innerHTML='';note.textContent=t('cl.rankNote',{w:(CLAN.pts||{win:3}).win,p:(CLAN.pts||{play:1}).play});clanDrawAll(list);return;}
   var d=RANK.data;
   if(!d){
     var msg=!failed?t('rank.loading'):RANK.err==='net'?t('rank.errNet',{url:httpBase()}):RANK.err==='old'?t('rank.errOld'):t('rank.failed');
@@ -6458,70 +6604,239 @@ function renderRanking(failed){
   note.textContent=t('rank.note',{n:d.total,min:Math.max(1,Math.round((d.ttl||300000)/60000))});
 }
 // ---- クラン：仲間で集まって、オンライン対戦のポイント（勝ち3・負け1）を合計で競う ----
-var CLAN={mine:null,top:[],by:'week',loaded:false,busy:false,msg:'',err:false,leaveAt:0,kickAt:{}};
+// 画面：自分のクラン（左に情報、右にメンバー）／クランを探す／ほかのクランを見る／作る・設定を変える
+var CLAN={mine:null,top:[],by:'week',loaded:false,busy:false,msg:'',err:false,leaveAt:0,kickAt:{},view:'home',cur:null,results:null,q:'',region:'',joinable:false,myReq:[],tier:0,mby:'week',form:null};
+var CL_TYPES=['open','approval','closed'];
+var TROPHY_SVG='<svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 5H4v2a3 3 0 0 0 3.5 3M17 5h3v2a3 3 0 0 1-3.5 3M12 13v4M8 20h8"/></svg>';
+var SEARCH_SVG='<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
 function clanTag(){return CLAN.mine?CLAN.mine.tag:'';}
 function cleanTagC(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);}
-function showClanScreen(){CLAN.msg='';showScreen('clan-screen');renderClan();loadClan();}
-function clanApi(method,body){
+// id があれば、そのクランを開く（ランキングから）
+function showClanScreen(id){
+  CLAN.msg='';CLAN.form=null;CLAN.view=id?'clan':'home';CLAN.cur=null;
+  showScreen('clan-screen');renderClan();loadClan();if(id)clanOpen(id);
+}
+function clanApi(method,body,qs){
   var h={};if(AUTH.token)h.Authorization='Bearer '+AUTH.token;if(body)h['Content-Type']='application/json';
-  return fetch(httpBase()+'/api/clan?by='+CLAN.by,{method:method,headers:h,body:body?JSON.stringify(body):undefined})
+  return fetch(httpBase()+'/api/clan?by='+CLAN.by+(qs||''),{method:method,headers:h,body:body?JSON.stringify(body):undefined})
     .then(function(r){return r.json().catch(function(){return{};}).then(function(d){return{status:r.status,d:d||{}};});});
 }
-function clanAdopt(d){if(!d)return;if('mine' in d)CLAN.mine=d.mine||null;if(d.top)CLAN.top=d.top;CLAN.loaded=true;if(d.pts)CLAN.pts=d.pts;}
-function loadClan(){
-  clanApi('GET').then(function(r){clanAdopt(r.d);if(currentScreen==='clan-screen')renderClan();}).catch(function(){CLAN.msg=t('cl.err.net');CLAN.err=true;if(currentScreen==='clan-screen')renderClan();});
+function clanAdopt(d){
+  if(!d)return;if('mine' in d)CLAN.mine=d.mine||null;if(d.top)CLAN.top=d.top;if(Array.isArray(d.myReq))CLAN.myReq=d.myReq;if(d.tier!=null)CLAN.tier=+d.tier||0;
+  if(d.clan&&CLAN.cur&&d.clan.id===CLAN.cur.id)CLAN.cur=d.clan;
+  CLAN.loaded=true;if(d.pts)CLAN.pts=d.pts;
 }
-function clanOp(op,extra){
+function loadClan(){
+  clanApi('GET').then(function(r){clanAdopt(r.d);
+    if(!CLAN.mine&&CLAN.view==='home'&&!CLAN.results)clanSearch(true);
+    if(currentScreen==='clan-screen')renderClan();if(currentScreen==='rank-screen'&&RANK.kind==='clan')renderRanking();
+  }).catch(function(){CLAN.msg=t('cl.err.net');CLAN.err=true;if(currentScreen==='clan-screen')renderClan();if(currentScreen==='rank-screen'&&RANK.kind==='clan')renderRanking(true);});
+}
+function clanOp(op,extra,after){
   if(!AUTH.user||CLAN.busy)return;
   CLAN.busy=true;
   clanApi('POST',Object.assign({op:op},extra||{})).then(function(r){
     CLAN.busy=false;clanAdopt(r.d);
     var e=r.status===429?'too_many':r.d.error;
-    CLAN.msg=e?t('cl.err.'+e):t('cl.ok.'+op);CLAN.err=!!e;
-    if(!e&&op!=='kick')SFX.coin();
+    CLAN.msg=e?t('cl.err.'+e):t(op==='join'&&r.d.requested?'cl.ok.request':'cl.ok.'+op);CLAN.err=!!e;
+    if(!e&&op!=='kick'&&op!=='decline')SFX.coin();
+    if(!e&&after)after(r.d);
     renderClan();
   }).catch(function(){CLAN.busy=false;CLAN.msg=t('cl.err.net');CLAN.err=true;renderClan();});
 }
-function clanCreate(){var n=document.getElementById('cl-name').value,tg=document.getElementById('cl-tag').value;clanOp('create',{name:n,tag:tg});}
-function clanJoin(){clanOp('join',{id:document.getElementById('cl-id').value});}
-function clanLeave(){if(Date.now()-CLAN.leaveAt>4000){CLAN.leaveAt=Date.now();CLAN.msg=t('cl.leaveSure');CLAN.err=true;renderClan();return;}CLAN.leaveAt=0;clanOp('leave');}
+// 画面の切りかえ
+function clanGo(v){CLAN.msg='';CLAN.form=null;CLAN.view=v;if(v==='search'&&!CLAN.results)clanSearch(true);renderClan();window.scrollTo(0,0);}
+function clanOpen(id){
+  CLAN.msg='';CLAN.view='clan';
+  if(!CLAN.cur||CLAN.cur.id!==id)CLAN.cur={id:id,loading:true};
+  renderClan();
+  clanApi('GET',null,'&view='+encodeURIComponent(id)).then(function(r){
+    if(r.d&&r.d.clan){CLAN.cur=r.d.clan;if(Array.isArray(r.d.myReq))CLAN.myReq=r.d.myReq;}else{CLAN.cur=null;CLAN.view='search';CLAN.msg=t('cl.err.'+(r.d.error||'not_found'));CLAN.err=true;}
+    renderClan();
+  }).catch(function(){CLAN.msg=t('cl.err.net');CLAN.err=true;renderClan();});
+}
+function clanSearch(quiet){
+  var q=document.getElementById('cl-q'),rg=document.getElementById('cl-region'),jn=document.getElementById('cl-joinable');
+  if(q)CLAN.q=q.value;if(rg)CLAN.region=rg.value;if(jn)CLAN.joinable=jn.checked;
+  if(!quiet){CLAN.results=null;renderClan();}
+  clanApi('GET',null,'&q='+encodeURIComponent(CLAN.q.trim())+'&region='+encodeURIComponent(CLAN.region)+(CLAN.joinable?'&joinable=1':'')).then(function(r){
+    CLAN.results=Array.isArray(r.d.results)?r.d.results:[];if(Array.isArray(r.d.myReq))CLAN.myReq=r.d.myReq;
+    if(r.status===429){CLAN.msg=t('cl.err.too_many');CLAN.err=true;}
+    if(currentScreen==='clan-screen')renderClan();
+  }).catch(function(){CLAN.results=[];CLAN.msg=t('cl.err.net');CLAN.err=true;renderClan();});
+}
+function clanJoin(id){clanOp('join',{id:id},function(d){if(!d.requested){CLAN.view='home';CLAN.cur=null;}});}
+function clanUnrequest(id){clanOp('unrequest',{id:id});}
+function clanAccept(fid){clanOp('accept',{fid:fid});}
+function clanDecline(fid){clanOp('decline',{fid:fid});}
+function clanLeave(){if(Date.now()-CLAN.leaveAt>4000){CLAN.leaveAt=Date.now();CLAN.msg=t('cl.leaveSure');CLAN.err=true;renderClan();return;}CLAN.leaveAt=0;clanOp('leave',null,function(){CLAN.view='home';CLAN.results=null;clanSearch(true);});}
 function clanKick(fid){if(Date.now()-(CLAN.kickAt[fid]||0)>4000){CLAN.kickAt[fid]=Date.now();CLAN.msg=t('cl.kickSure');CLAN.err=true;renderClan();return;}CLAN.kickAt[fid]=0;clanOp('kick',{fid:fid});}
-function clanBy(b){CLAN.by=b;loadClan();renderClan();}
-function clanCopy(btn){var id=CLAN.mine&&CLAN.mine.id;if(!id)return;try{navigator.clipboard.writeText(id);}catch(e){}btn.textContent=t('pf.copied');setTimeout(function(){btn.textContent=t('pf.copy');},1500);}
+function clanBy(b){CLAN.by=b==='total'?'total':'week';loadClan();if(currentScreen==='rank-screen')renderRanking();}
+function clanMby(b){CLAN.mby=b==='total'?'total':'week';renderClan();}
+function clanCopy(btn){var C=CLAN.mine;if(!C)return;var tx=t('cl.inviteText',{name:C.name,id:C.id});try{navigator.clipboard.writeText(tx);}catch(e){}btn.querySelector('span').textContent=t('pf.copied');setTimeout(function(){var s=btn.querySelector('span');if(s)s.textContent=t('cl.invite');},1500);}
+// ---- 作る・設定のフォーム ----
+function clanForm(mode){
+  var C=CLAN.mine;
+  CLAN.form=mode==='edit'&&C?{mode:'edit',desc:C.desc||'',type:C.type||'open',minTier:C.minTier||0,region:C.region||''}:{mode:'create',name:'',tag:'',desc:'',type:'open',minTier:0,region:''};
+  CLAN.view='form';CLAN.msg='';renderClan();window.scrollTo(0,0);
+}
+function clanF(k,v){if(!CLAN.form)return;CLAN.form[k]=k==='minTier'?+v||0:v;if(k==='type')renderClan();}
+function clanSubmit(){
+  var F=CLAN.form;if(!F)return;
+  var set={desc:F.desc,type:F.type,minTier:F.minTier,region:F.region};
+  if(F.mode==='create')clanOp('create',Object.assign({name:F.name,tag:F.tag},set),function(){CLAN.form=null;CLAN.view='home';});
+  else clanOp('update',set,function(){CLAN.form=null;CLAN.view='home';});
+}
+// ---- 表示の部品 ----
+var REGION_DN=null;
+function regionName(c){
+  if(!c)return t('cl.global');
+  try{var l=SETTINGS.lang==='en'?'en':'ja';if(!REGION_DN||REGION_DN.l!==l){REGION_DN={l:l,dn:new Intl.DisplayNames([l],{type:'region'})};}return REGION_DN.dn.of(c)||c;}catch(e){return c;}
+}
+function regionFlag(c){if(!c||c.length!==2)return'';try{return String.fromCodePoint(127462+c.charCodeAt(0)-65,127462+c.charCodeAt(1)-65);}catch(e){return'';}}
+function regionLabel(c){return c?regionFlag(c)+' '+regionName(c):t('cl.global');}
+function regionOptions(sel,anyKey){
+  var l=SETTINGS.lang==='en'?'en':'ja',list=SIM.REGIONS.slice().sort(function(a,b){return regionName(a).localeCompare(regionName(b),l);});
+  list=['JP'].concat(list.filter(function(c){return c!=='JP';}));   // 日本はいちばん上
+  return'<option value="">'+esc(t(anyKey||'cl.global'))+'</option>'+list.map(function(c){return'<option value="'+c+'"'+(c===sel?' selected':'')+'>'+esc(regionFlag(c)+' '+regionName(c))+'</option>';}).join('');
+}
+function tierReqText(n){return n>0?tierName(n):t('cl.noReq');}
+function clanTypeChip(tp){return'<span class="cl-type '+esc(tp||'open')+'">'+esc(t('cl.type.'+(tp||'open')))+'</span>';}
+// クランの紋章：盾にタグ。色はタグから決まる
+var CL_EMB_COLS=[['#FF6B6B','#B4232F'],['#FFB547','#C2701A'],['#FFE066','#BF9A12'],['#5FE39A','#1E8F57'],['#4FD1E8','#16809A'],['#5B9CFF','#2549B8'],['#A57BFF','#5B2BB8'],['#FF7AD1','#B1287F']];
+function drawClanEmblem(cv){
+  var g=cv.getContext('2d'),W=cv.width,H=cv.height,tag=cv.getAttribute('data-emb')||'',h=0;
+  for(var i=0;i<tag.length;i++)h=(h*31+tag.charCodeAt(i))>>>0;
+  var col=CL_EMB_COLS[h%CL_EMB_COLS.length];
+  g.clearRect(0,0,W,H);
+  var shield=function(m){var x0=W*m,x1=W*(1-m),y0=H*m*.9,y1=H*(1-m*.5);g.beginPath();g.moveTo(W/2,y0);g.lineTo(x1,y0+H*.12);g.lineTo(x1,H*.5);
+    g.bezierCurveTo(x1,H*.74,W*.68,y1-H*.06,W/2,y1);g.bezierCurveTo(W*.32,y1-H*.06,x0,H*.74,x0,H*.5);g.lineTo(x0,y0+H*.12);g.closePath();};
+  shield(.04);g.fillStyle='#0B0D16';g.fill();
+  shield(.1);var gr=g.createLinearGradient(0,0,0,H);gr.addColorStop(0,col[0]);gr.addColorStop(1,col[1]);g.fillStyle=gr;g.fill();
+  g.save();shield(.1);g.clip();g.fillStyle='rgba(255,255,255,.18)';g.beginPath();g.moveTo(0,0);g.lineTo(W,0);g.lineTo(W,H*.32);g.lineTo(0,H*.5);g.closePath();g.fill();g.restore();
+  shield(.1);g.lineWidth=Math.max(1.5,W*.035);g.strokeStyle='rgba(255,255,255,.55)';g.stroke();
+  g.fillStyle='#fff';g.textAlign='center';g.textBaseline='middle';g.font='900 '+Math.round(W*(tag.length>3?.22:.27))+'px '+UI_FONT;
+  g.shadowColor='rgba(0,0,0,.45)';g.shadowBlur=W*.04;g.shadowOffsetY=W*.02;g.fillText(tag,W/2,H*.5);
+}
+function clanDrawAll(root){
+  root.querySelectorAll('canvas[data-emb]').forEach(drawClanEmblem);
+  root.querySelectorAll('canvas[data-tr]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);drawTierIcon(g,+cv.getAttribute('data-tr'),cv.width/2,cv.height/2,cv.width-2,cv.height-2,0);});
+  root.querySelectorAll('canvas[data-av]').forEach(function(cv){var i=+cv.getAttribute('data-av'),p=(CLAN.avs||[])[i];if(p)drawMiniAvatar(cv,p);});
+}
+function clanAv(p){CLAN.avs.push({tier:+p.tier||0,look:p.look});return'<canvas class="cl-av" data-av="'+(CLAN.avs.length-1)+'" width="72" height="72"></canvas>';}
+function clanStatus(m){var st=m.status||'offline';return st!=='offline'?'<b class="on '+esc(st)+'">'+esc(t('fst.'+st))+'</b>':m.lastSeen?esc(t('cl.lastSeen',{ago:agoText(m.lastSeen)})):esc(t('fst.offline'));}
+// クランの中身：左に情報、右にメンバー（own＝自分のクラン）
+function clanDetailHtml(C,own){
+  var me=AUTH.user&&AUTH.user.fid,leader=own&&C.members.some(function(m){return m.owner&&m.fid===me;}),h='<div class="cl-wrap">';
+  h+='<aside class="cl-info">';
+  if(own)h+='<div class="cl-acts"><button onclick="clanGo(\'search\')">'+SEARCH_SVG+'<span>'+esc(t('cl.search'))+'</span></button><button onclick="clanCopy(this)"><svg class="i" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span>'+esc(t('cl.invite'))+'</span></button></div>';
+  h+='<div class="cl-card"><canvas class="cl-emb" data-emb="'+esc(C.tag)+'" width="150" height="160"></canvas><h3 class="cl-cn">'+esc(C.name)+'</h3>'+
+    '<div class="cl-score">'+TROPHY_SVG+'<b>'+C.pts+'</b><small>'+esc(t('cl.weekShort',{n:C.week}))+'</small></div>'+
+    '<p class="cl-desc'+(C.desc?'':' none')+'">'+esc(C.desc||t('cl.noDesc'))+'</p>'+
+    '<div class="cl-facts"><div><small>'+esc(t('cl.tagLbl'))+'</small><b>#'+esc(C.id)+'<em>'+esc(C.tag)+'</em></b></div>'+
+    '<div><small>'+esc(t('cl.typeLbl'))+'</small><b>'+esc(t('cl.type.'+C.type))+'</b></div>'+
+    '<div><small>'+esc(t('cl.minTier'))+'</small><b>'+(C.minTier>0?'<canvas class="cl-tri" data-tr="'+C.minTier+'" width="44" height="44"></canvas>':'')+esc(tierReqText(C.minTier))+'</b></div>'+
+    '<div><small>'+esc(t('cl.region'))+'</small><b>'+esc(regionLabel(C.region))+'</b></div></div>';
+  if(own){
+    if(leader)h+='<button class="cl-btn" onclick="clanForm(\'edit\')">'+esc(t('cl.edit'))+'</button>';
+    h+='<button class="cl-btn bad" onclick="clanLeave()">'+esc(t('cl.leave'))+'</button>';
+  }else if(!AUTH.user)h+='<button class="cl-btn main" onclick="discordLogin()">'+esc(t('login.discord'))+'</button>';
+  else if(CLAN.mine)h+='<p class="cl-why">'+esc(t('cl.why.inClan'))+'</p>';
+  else if(CLAN.myReq.indexOf(C.id)>=0)h+='<p class="cl-why ok">'+esc(t('cl.requested'))+'</p><button class="cl-btn" onclick="clanUnrequest(\''+esc(C.id)+'\')">'+esc(t('cl.unrequest'))+'</button>';
+  else if(C.type==='closed')h+='<p class="cl-why">'+esc(t('cl.why.closed'))+'</p>';
+  else if(C.n>=C.max)h+='<p class="cl-why">'+esc(t('cl.why.full'))+'</p>';
+  else if((CLAN.tier||0)<(C.minTier||0))h+='<p class="cl-why">'+esc(t('cl.why.tier',{t:tierName(C.minTier)}))+'</p>';
+  else h+='<button class="cl-btn main" onclick="clanJoin(\''+esc(C.id)+'\')">'+esc(t(C.type==='approval'?'cl.requestBtn':'cl.joinBtn'))+'</button>';
+  h+='</div></aside>';
+  // メンバー
+  var k=CLAN.mby,ms=C.members.slice().sort(function(a,b){return b[k]-a[k]||(k==='week'?b.pts-a.pts:b.week-a.week);});
+  h+='<section class="cl-mems"><div class="cl-mh"><b>'+esc(t('cl.members'))+'<span>'+C.members.length+'/'+C.max+'</span></b>'+
+    '<div class="cl-seg">'+['week','total'].map(function(b){return'<button class="'+(k===b?'sel':'')+'" onclick="clanMby(\''+b+'\')">'+esc(t('cl.'+b))+'</button>';}).join('')+'</div></div>';
+  if(leader&&C.req&&C.req.length){
+    h+='<div class="cl-reqs"><h4>'+esc(t('cl.reqs',{n:C.req.length}))+'</h4>'+C.req.map(function(q){
+      return'<div class="cl-mrow req"><span class="cl-who">'+clanAv(q)+'<span><b>'+esc(q.name)+'</b><small>'+esc(agoText(q.at))+'</small></span></span>'+
+        '<span class="cl-tr"><canvas data-tr="'+(+q.tier||0)+'" width="40" height="40"></canvas>'+esc(tierName(+q.tier||0))+'</span>'+
+        '<span class="cl-rq"><button class="cl-ok" onclick="clanAccept(\''+safeFid(q.fid)+'\')">'+esc(t('cl.accept'))+'</button><button class="cl-ng" onclick="clanDecline(\''+safeFid(q.fid)+'\')">'+esc(t('cl.decline'))+'</button></span></div>';}).join('')+'</div>';
+  }
+  h+='<div class="cl-mrow cl-mhead"><span>#</span><span>'+esc(t('cl.colName'))+'</span><span class="cl-hst">'+esc(t('cl.colStatus'))+'</span><span>'+esc(t('cl.colTier'))+'</span><span>'+esc(t(k==='week'?'cl.week':'cl.total'))+'</span><span></span></div><div class="cl-list">';
+  ms.forEach(function(m,i){
+    h+='<div class="cl-mrow'+(m.fid===me?' me':'')+'"><span class="cl-no">'+(i+1)+'</span><span class="cl-who">'+clanAv(m)+'<span><b>'+esc(m.name)+'</b><small class="'+(m.owner?'lead':'')+'">'+esc(t(m.owner?'cl.leader':'cl.member'))+'</small></span></span>'+
+      '<span class="cl-st"><small>'+esc(t('cl.colStatus'))+'</small>'+clanStatus(m)+'</span>'+
+      '<span class="cl-tr"><canvas data-tr="'+(+m.tier||0)+'" width="40" height="40"></canvas>'+esc(tierName(+m.tier||0))+'</span>'+
+      '<span class="cl-pt">'+TROPHY_SVG+m[k]+'</span>'+
+      (leader&&m.fid!==me?'<button class="cl-kick" onclick="clanKick(\''+safeFid(m.fid)+'\')">'+esc(t('cl.kick'))+'</button>':'<span></span>')+'</div>';
+  });
+  return h+'</div></section></div>';
+}
+// 探す画面
+function clanResultHtml(c){
+  var req=CLAN.myReq.indexOf(c.id)>=0;
+  return'<button class="cl-res" onclick="clanOpen(\''+esc(c.id)+'\')"><canvas data-emb="'+esc(c.tag)+'" width="88" height="94"></canvas>'+
+    '<span class="cl-rn"><b>'+esc(c.name)+'</b><small>#'+esc(c.id)+' · '+esc(regionLabel(c.region))+'</small><span class="cl-rd">'+esc(c.desc||'')+'</span></span>'+
+    '<span class="cl-rm">'+clanTypeChip(c.type)+(req?'<span class="cl-type req">'+esc(t('cl.requestedShort'))+'</span>':'')+'<small>'+esc(t('cl.membersN',{n:c.n,m:c.max}))+'</small>'+
+    '<small>'+esc(t('cl.minTier'))+'：'+esc(tierReqText(c.minTier))+'</small></span>'+
+    '<span class="cl-pt big">'+TROPHY_SVG+c.pts+'</span></button>';
+}
+function clanSearchHtml(){
+  var h='<div class="cl-search"><div class="cl-sbar"><input id="cl-q" class="fr-input" maxlength="20" placeholder="'+esc(t('cl.searchPh'))+'" value="'+esc(CLAN.q)+'" onkeydown="if(event.key===\'Enter\')clanSearch()">'+
+    '<select id="cl-region" class="fr-input" onchange="clanSearch()">'+regionOptions(CLAN.region,'cl.anyRegion')+'</select>'+
+    '<label class="cl-chk"><input type="checkbox" id="cl-joinable"'+(CLAN.joinable?' checked':'')+' onchange="clanSearch()"><span>'+esc(t('cl.joinable'))+'</span></label>'+
+    '<button class="cl-btn main" onclick="clanSearch()">'+SEARCH_SVG+'<span>'+esc(t('cl.searchBtn'))+'</span></button></div>';
+  h+='<div class="cl-sh"><b>'+esc(t(CLAN.q.trim()||CLAN.region||CLAN.joinable?'cl.results':'cl.recommend'))+'</b>'+(AUTH.user&&!CLAN.mine?'<button class="cl-btn main sm" onclick="clanForm(\'create\')">＋ '+esc(t('cl.create'))+'</button>':'')+'</div>';
+  if(!CLAN.results)h+='<div class="rk-empty">'+esc(t('rank.loading'))+'</div>';
+  else if(!CLAN.results.length)h+='<div class="rk-empty">'+esc(t('cl.noResult'))+'</div>';
+  else h+='<div class="cl-results">'+CLAN.results.map(clanResultHtml).join('')+'</div>';
+  return h+'</div>';
+}
+// 作る・設定を変えるフォーム
+function clanFormHtml(){
+  var F=CLAN.form,C=CLAN.mine,cr=F.mode==='create',h='<div class="cl-formw settings-section"><h3><span>'+esc(t(cr?'cl.create':'cl.edit'))+'</span><span>'+(cr?'CREATE':'SETTINGS')+'</span></h3>';
+  if(cr)h+='<label class="cl-fl"><span>'+esc(t('cl.name'))+'</span><input class="fr-input" maxlength="16" placeholder="'+esc(t('cl.namePh'))+'" value="'+esc(F.name)+'" oninput="clanF(\'name\',this.value)" autocomplete="off"><small>'+esc(t('cl.nameNote'))+'</small></label>'+
+    '<label class="cl-fl"><span>'+esc(t('cl.tag'))+'</span><input class="fr-input" maxlength="4" placeholder="ABC" value="'+esc(F.tag)+'" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\');clanF(\'tag\',this.value)"><small>'+esc(t('cl.tagNote'))+'</small></label>';
+  else h+='<div class="cl-fl"><span>'+esc(t('cl.name'))+'</span><b class="cl-fixed">'+esc(C.name)+' <em>'+esc(C.tag)+'</em></b><small>'+esc(t('cl.nameFixed'))+'</small></div>';
+  h+='<label class="cl-fl"><span>'+esc(t('cl.desc'))+'</span><textarea class="fr-input" maxlength="200" rows="4" placeholder="'+esc(t('cl.descPh'))+'" oninput="clanF(\'desc\',this.value)">'+esc(F.desc)+'</textarea></label>';
+  h+='<div class="cl-fl"><span>'+esc(t('cl.typeLbl'))+'</span><div class="cl-types">'+CL_TYPES.map(function(tp){
+    return'<label class="cl-tp'+(F.type===tp?' sel':'')+'"><input type="radio" name="cl-type" value="'+tp+'"'+(F.type===tp?' checked':'')+' onchange="clanF(\'type\',this.value)"><b>'+esc(t('cl.type.'+tp))+'</b><small>'+esc(t('cl.typeNote.'+tp))+'</small></label>';}).join('')+'</div></div>';
+  var tops='';for(var i=0;i<=10;i++)tops+='<option value="'+i+'"'+(F.minTier===i?' selected':'')+'>'+esc(i?tierName(i):t('cl.noReq'))+'</option>';
+  h+='<div class="cl-f2"><label class="cl-fl"><span>'+esc(t('cl.minTier'))+'</span><select class="fr-input" onchange="clanF(\'minTier\',this.value)">'+tops+'</select><small>'+esc(t('cl.minTierNote'))+'</small></label>'+
+    '<label class="cl-fl"><span>'+esc(t('cl.region'))+'</span><select class="fr-input" onchange="clanF(\'region\',this.value)">'+regionOptions(F.region)+'</select></label></div>';
+  h+='<div class="cl-fbtns"><button class="cl-btn main" onclick="clanSubmit()">'+esc(t(cr?'cl.createBtn':'cl.save'))+'</button><button class="cl-btn" onclick="clanGo(\'home\')">'+esc(t('cl.cancel'))+'</button></div>';
+  return h+'</div>';
+}
 function renderClan(){
   var el=document.getElementById('cl-body');if(!el)return;
   var P=CLAN.pts||{win:3,play:1};
   document.getElementById('cl-sub').textContent=t('cl.sub',{w:P.win,p:P.play});
-  var h='';
-  if(!AUTH.user)h+='<div class="settings-section fr-login"><p>'+esc(t('cl.needLogin'))+'</p><button class="login-btn" onclick="discordLogin()"><span>'+esc(t('login.discord'))+'</span></button></div>';
-  else if(!CLAN.loaded)h+='<div class="rk-empty">'+esc(t('rank.loading'))+'</div>';
-  else if(!CLAN.mine){
-    h+='<div class="settings-section cl-form"><h3><span>'+esc(t('cl.create'))+'</span><span>CREATE</span></h3>'+
-      '<label><span>'+esc(t('cl.name'))+'</span><input id="cl-name" class="fr-input" maxlength="16" placeholder="'+esc(t('cl.namePh'))+'" autocomplete="off"></label>'+
-      '<label><span>'+esc(t('cl.tag'))+'</span><input id="cl-tag" class="fr-input" maxlength="4" placeholder="ABC" autocomplete="off" spellcheck="false" oninput="this.value=this.value.toUpperCase().replace(/[^A-Z0-9]/g,\'\')"></label>'+
-      '<p class="cl-note">'+esc(t('cl.tagNote'))+'</p><button class="fr-send" onclick="clanCreate()">'+esc(t('cl.createBtn'))+'</button></div>'+
-      '<div class="settings-section cl-form"><h3><span>'+esc(t('cl.join'))+'</span><span>JOIN</span></h3>'+
-      '<div class="fr-add"><input id="cl-id" class="fr-input" maxlength="6" inputmode="numeric" placeholder="'+esc(t('cl.idPh'))+'" oninput="this.value=this.value.replace(/\\D/g,\'\')" onkeydown="if(event.key===\'Enter\')clanJoin()"><button class="fr-send" onclick="clanJoin()">'+esc(t('cl.joinBtn'))+'</button></div></div>';
-  }else{
-    var C=CLAN.mine,me=AUTH.user&&AUTH.user.fid,owner=C.members.some(function(m){return m.owner&&m.fid===me;});
-    h+='<div class="settings-section cl-head"><div class="cl-hrow"><span class="cl-tag">'+esc(C.tag)+'</span><b class="cl-nm">'+esc(C.name)+'</b></div>'+
-      '<div class="cl-stats"><span><small>'+esc(t('cl.week'))+'</small><b>'+C.week+'</b></span><span><small>'+esc(t('cl.total'))+'</small><b>'+C.pts+'</b></span><span><small>'+esc(t('cl.members'))+'</small><b>'+C.members.length+'/'+C.max+'</b></span></div>'+
-      '<div class="fr-me"><span>'+esc(t('cl.id'))+'</span><b>'+esc(C.id)+'</b><button class="acc-copy" onclick="clanCopy(this)">'+esc(t('pf.copy'))+'</button></div>'+
-      '<p class="cl-note">'+esc(t('cl.idNote'))+'</p></div>';
-    var ms=C.members.slice().sort(function(a,b){return b.week-a.week||b.pts-a.pts;});
-    h+='<div class="settings-section"><h3><span>'+esc(t('cl.members'))+'</span><span>MEMBERS</span></h3><div class="cl-mem">'+ms.map(function(m){
-      return'<div class="cl-m'+(m.fid===me?' me':'')+'"><span class="cl-dot '+esc(m.status||'offline')+'"></span><b>'+esc(m.name)+(m.owner?'<em>'+esc(t('cl.leader'))+'</em>':'')+'</b>'+
-        '<span class="cl-p"><small>'+esc(t('cl.week'))+'</small>'+m.week+'</span><span class="cl-p"><small>'+esc(t('cl.total'))+'</small>'+m.pts+'</span>'+
-        (owner&&m.fid!==me?'<button class="cl-kick" onclick="clanKick(\''+safeFid(m.fid)+'\')">'+esc(t('cl.kick'))+'</button>':'<span></span>')+'</div>';}).join('')+'</div>'+
-      '<button class="cl-leave" onclick="clanLeave()">'+esc(t('cl.leave'))+'</button></div>';
+  CLAN.avs=[];
+  var h='',v=CLAN.view;
+  if(v==='form'&&(!CLAN.form||!AUTH.user))v=CLAN.view='home';
+  if(v==='home'&&CLAN.mine&&CLAN.cur&&CLAN.cur.id===CLAN.mine.id)CLAN.cur=null;
+  // 上の切りかえ
+  h+='<div class="cl-nav">'+(CLAN.mine?'<button class="'+(v==='home'?'sel':'')+'" onclick="clanGo(\'home\')"><span class="cl-tag sm">'+esc(CLAN.mine.tag)+'</span>'+esc(t('cl.myClan'))+'</button>':'')+
+    '<button class="'+(v==='search'||(v==='home'&&!CLAN.mine)?'sel':'')+'" onclick="clanGo(\'search\')">'+SEARCH_SVG+esc(t('cl.search'))+'</button>'+
+    '<button onclick="showRankScreen(\'clan\')"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg>'+esc(t('cl.rank'))+'</button></div>';
+  if(CLAN.msg)h+='<p class="fr-msg '+(CLAN.err?'err':'ok')+'">'+esc(CLAN.msg)+'</p>';
+  if(!AUTH.user&&v!=='clan'&&v!=='search')h+='<div class="settings-section fr-login"><p>'+esc(t('cl.needLogin'))+'</p><button class="login-btn" onclick="discordLogin()"><span>'+esc(t('login.discord'))+'</span></button></div>';
+  if(v==='form')h+=clanFormHtml();
+  else if(v==='clan'){
+    var C=CLAN.cur;
+    if(!C||C.loading)h+='<div class="rk-empty">'+esc(t('rank.loading'))+'</div>';
+    else h+='<button class="cl-backlink" onclick="clanGo(\''+(CLAN.mine?'home':'search')+'\')"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg>'+esc(t(CLAN.mine?'cl.myClan':'cl.search'))+'</button>'+clanDetailHtml(C,!!(CLAN.mine&&CLAN.mine.id===C.id));
   }
-  if(CLAN.msg)h='<p class="fr-msg '+(CLAN.err?'err':'ok')+'">'+esc(CLAN.msg)+'</p>'+h;
-  // ランキング
-  h+='<div class="settings-section"><h3><span>'+esc(t('cl.rank'))+'</span><span>RANKING</span></h3><div class="cl-tabs">'+
-    ['week','total'].map(function(b){return'<button class="'+(CLAN.by===b?'on':'')+'" onclick="clanBy(\''+b+'\')">'+esc(t('cl.'+b))+'</button>';}).join('')+'</div><div class="cl-rank">';
-  h+=CLAN.top.length?CLAN.top.map(function(c){var mine=CLAN.mine&&CLAN.mine.id===c.id;return'<div class="cl-r'+(mine?' me':'')+'"><span class="cl-rk">'+c.rank+'</span><span class="cl-tag sm">'+esc(c.tag)+'</span><b>'+esc(c.name)+'</b><small>'+esc(t('cl.nMem',{n:c.n}))+'</small><span class="cl-rp">'+c.pts+'</span></div>';}).join(''):'<div class="rk-empty">'+esc(t('cl.noRank'))+'</div>';
-  h+='</div></div>';
+  else if(v==='home'&&CLAN.mine)h+=clanDetailHtml(CLAN.mine,true);
+  else if(v==='home'&&AUTH.user&&!CLAN.loaded)h+='<div class="rk-empty">'+esc(t('rank.loading'))+'</div>';
+  else h+=clanSearchHtml();
   el.innerHTML=h;
+  clanDrawAll(el);
+}
+// ランキングの画面の「クラン」：今週・合計
+function clanRankHtml(){
+  var h='<div class="cl-seg wide">'+['week','total'].map(function(b){return'<button class="'+(CLAN.by===b?'sel':'')+'" onclick="clanBy(\''+b+'\')">'+esc(t('cl.'+b))+'</button>';}).join('')+'</div>';
+  if(!CLAN.loaded)return h+'<div class="rk-empty">'+esc(t('rank.loading'))+'</div>';
+  if(!CLAN.top.length)return h+'<div class="rk-empty">'+esc(t('cl.noRank'))+'</div>';
+  return h+'<div class="cl-rank2">'+CLAN.top.map(function(c){var mine=CLAN.mine&&CLAN.mine.id===c.id;
+    return'<button class="cl-rr'+(c.rank<=3?' top'+c.rank:'')+(mine?' me':'')+'" onclick="showClanScreen(\''+esc(c.id)+'\')"><span class="cl-no">'+c.rank+'</span><canvas data-emb="'+esc(c.tag)+'" width="64" height="68"></canvas>'+
+      '<span class="cl-rn"><b>'+esc(c.name)+'</b><small>'+esc(t('cl.membersN',{n:c.n,m:c.max||20}))+' · '+esc(regionLabel(c.region))+'</small></span><span class="cl-pt big">'+TROPHY_SVG+c.pts+'</span></button>';}).join('')+'</div>';
 }
 function showFriendsScreen(){setFrMsg('','');showScreen('friends-screen');renderFriends();loadFriends();}
 function sendFriendRequest(){
@@ -15047,13 +15362,13 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,doChat,setQc,showClanScreen,clanCreate,clanJoin,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,doChat,setQc,showClanScreen,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得

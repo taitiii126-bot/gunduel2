@@ -1152,26 +1152,49 @@ function handleHttp(req, res) {
     const t = auth.byFid(q.get('id'));
     return t ? json(res, 200, { player: auth.card(t, presence.statusOf(t.id)) }) : json(res, 404, { error: 'not_found' });
   }
-  // クラン：自分のクランとランキング（GET）、作る・入る・抜ける・外す（POST { op, ... }）
+  // クラン：自分のクランとランキング（GET）、ほかのクランを見る（GET ?view=ID）、探す（GET ?q=&region=&joinable=1）
+  // 作る・設定を変える・入る（承認制なら申請）・申請を取り消す・申請を受ける／断る・抜ける・外す（POST { op, ... }）
   if (url === '/api/clan') {
     const u = auth.verify(bearer(req));
     const q = new URLSearchParams((req.url || '').split('?')[1] || '');
     const by = q.get('by') === 'total' ? 'total' : 'week';
-    const mine = () => { const c = u && clans.clanOf(u.id); return c ? clans.view(c, id => { const k = cardOf(id); return k ? { fid: k.fid, name: k.name, status: k.status } : null; }) : null; };
-    if (req.method === 'GET') return json(res, 200, { mine: mine(), top: clans.top(by, 20), by, pts: { win: clans.PTS_WIN, play: clans.PTS_PLAY } });
+    const memCard = id => { const k = cardOf(id); return k ? { fid: k.fid, name: k.name, status: k.status, lastSeen: k.lastSeen, tier: k.tier, rate: k.rate, look: k.look, title: k.title } : null; };
+    const mine = () => { const c = u && clans.clanOf(u.id); return c ? clans.view(c, memCard, c.owner === u.id) : null; };
+    const myReq = () => (u ? clans.reqsOf(u.id) : []);
+    if (req.method === 'GET') {
+      if (q.has('view')) {   // ほかのクランの中身（メンバーなど）
+        if (!lookups.hit(ip)) return json(res, 429, { error: 'too_many' });
+        const c = clans.byId(q.get('view'));
+        if (!c) return json(res, 404, { error: 'not_found' });
+        return json(res, 200, { clan: clans.view(c, memCard, !!u && c.owner === u.id), myReq: myReq() });
+      }
+      if (q.has('q')) {   // 探す
+        if (!lookups.hit(ip)) return json(res, 429, { error: 'too_many' });
+        return json(res, 200, { results: clans.search(q.get('q'), { region: q.get('region') || '', joinable: q.get('joinable') === '1', tier: u ? auth.peakTier(u.id) : 0 }), myReq: myReq() });
+      }
+      return json(res, 200, { mine: mine(), top: clans.top(by, 50), by, myReq: myReq(), tier: u ? auth.peakTier(u.id) : 0, pts: { win: clans.PTS_WIN, play: clans.PTS_PLAY } });
+    }
     if (req.method !== 'POST') return json(res, 405, { error: 'method' });
     if (!u) return json(res, 401, { error: '未ログイン' });
     if (!friendOps.hit(u.id)) return json(res, 429, { error: 'too_many' });
     return readJson(req, m => {
-      const op = m && m.op;
+      const op = m && m.op, set = m ? { desc: m.desc, type: m.type, minTier: m.minTier, region: m.region } : {};
+      const who = () => { const t = auth.byFid(m.fid); return t ? t.id : ''; };
       let r;
-      if (op === 'create') r = clans.create(u.id, m.name, m.tag);
-      else if (op === 'join') r = clans.join(u.id, m.id);
+      if (op === 'create') r = clans.create(u.id, m.name, m.tag, set);
+      else if (op === 'update') r = clans.update(u.id, set);
+      else if (op === 'join') r = clans.join(u.id, m.id, auth.peakTier(u.id));
+      else if (op === 'unrequest') r = clans.unrequest(u.id, m.id);
+      else if (op === 'accept') { const t = who(); r = t ? clans.accept(u.id, t) : { error: 'no_req' }; if (r.ok) pushTo(t, { type: 'clan_in', name: r.clan.name, tag: r.clan.tag }); }
+      else if (op === 'decline') { const t = who(); r = t ? clans.decline(u.id, t) : { error: 'no_req' }; }
       else if (op === 'leave') r = clans.leave(u.id);
       else if (op === 'kick') { const t = auth.byFid(m.fid); r = t ? clans.kick(u.id, t.id) : { error: 'not_member' }; }
       else return json(res, 400, { error: 'bad' });
+      if (op === 'join' && r.requested) pushTo(r.clan.owner, { type: 'clan_req' });   // リーダーに「参加の申請が来た」と知らせる
       if (r.ok) log('clan', op, 'discord=' + u.id, r.clan ? r.clan.id + ' [' + r.clan.tag + ']' : '');
-      json(res, r.ok ? 200 : 400, { ok: !!r.ok, error: r.error || null, mine: mine(), top: clans.top(by, 20), by });
+      const c = r.clan && op !== 'leave' ? r.clan : null;
+      json(res, r.ok ? 200 : 400, { ok: !!r.ok, error: r.error || null, requested: !!r.requested, mine: mine(), myReq: myReq(), top: clans.top(by, 50), by,
+        clan: c ? clans.view(c, memCard, c.owner === u.id) : null });
     });
   }
   if (url === '/api/logout' && req.method === 'POST') { auth.logout(bearer(req)); return json(res, 200, { ok: true }); }

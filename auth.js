@@ -670,6 +670,7 @@ const auth = {
   isBanned(uid) { const u = db.users[uid]; return BANNED_IDS.has(String(uid)) || (!!u && tempBanned(u)); },
   // Discordに報告済みの最高ティア（0=未ランク、1=LT5 … 10=HT1）
   bestTier(uid) { const u = db.users[uid]; return u ? (u.tierBest || 0) : 0; },
+  peakTier(uid) { const u = db.users[uid]; return u ? bestTierOf(u) : 0; },   // これまでに届いた一番上のティア（クランの参加条件に使う）
   setBestTier(uid, idx) {
     const u = db.users[uid];
     if (!u) return;

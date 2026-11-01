@@ -480,6 +480,12 @@ function passReward(tier) {
   if (tier % 5 === 0) return { chaos: 1 };
   return tier % 2 ? { lucky: 1 } : { coins: 150 };
 }
+// クランの地域：国と地域のコード（ISO 3166-1）。'' は「指定なし（世界）」
+var REGIONS = ('AD AE AF AG AI AL AM AO AQ AR AS AT AU AW AX AZ BA BB BD BE BF BG BH BI BJ BL BM BN BO BQ BR BS BT BV BW BY BZ CA CC CD CF CG CH CI CK CL CM CN CO CR CU CV CW CX CY CZ ' +
+  'DE DJ DK DM DO DZ EC EE EG EH ER ES ET FI FJ FK FM FO FR GA GB GD GE GF GG GH GI GL GM GN GP GQ GR GS GT GU GW GY HK HM HN HR HT HU ID IE IL IM IN IO IQ IR IS IT JE JM JO JP ' +
+  'KE KG KH KI KM KN KP KR KW KY KZ LA LB LC LI LK LR LS LT LU LV LY MA MC MD ME MF MG MH MK ML MM MN MO MP MQ MR MS MT MU MV MW MX MY MZ NA NC NE NF NG NI NL NO NP NR NU NZ ' +
+  'OM PA PE PF PG PH PK PL PM PN PR PS PT PW PY QA RE RO RS RU RW SA SB SC SD SE SG SH SI SJ SK SL SM SN SO SR SS ST SV SX SY SZ TC TD TF TG TH TJ TK TL TM TN TO TR TT TV TW TZ ' +
+  'UA UG UM US UY UZ VA VC VE VG VI VN VU WF WS YE YT ZA ZM ZW').split(' ');
 // シーズンの何週目まで出ているか（1〜4）：シーズンの始まりから7日ごとに次の週が出る（4週目は月末まで）
 function seasonWeek(ms) {
   var t = typeof ms === 'number' && isFinite(ms) ? ms : Date.now();
@@ -2306,7 +2312,7 @@ var api = {
   EVENTS: deepFreeze(EVENTS), EVENT_ITEMS: deepFreeze(EVENT_ITEMS), eventNow: eventNow, eventEnd: eventEnd, eventMissions: eventMissions, candyOf: candyOf, eventSetPrice: eventSetPrice,
   PASS_ITEMS: deepFreeze(PASS_ITEMS), PASS_ITEM_COINS: PASS_ITEM_COINS, PASS_ONLY: deepFreeze(PASS_ONLY),
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift, QUICK_CHAT: QUICK_CHAT, CHAT_MAX: CHAT_MAX, normText: normText, badText: badText, cleanSay: cleanSay, SALE: SALE, saleOn: saleOn, salePeak: salePeak, badgePrice: badgePrice,
-  SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_WEEKS: SEASON_WEEKS, SEASON_PER_WEEK: SEASON_PER_WEEK, SEA_VER: SEA_VER, seasonWeek: seasonWeek, seasonNextWeekAt: seasonNextWeekAt, MIS_PER_DAY: MIS_PER_DAY, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
+  REGIONS: deepFreeze(REGIONS), SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_WEEKS: SEASON_WEEKS, SEASON_PER_WEEK: SEASON_PER_WEEK, SEA_VER: SEA_VER, seasonWeek: seasonWeek, seasonNextWeekAt: seasonNextWeekAt, MIS_PER_DAY: MIS_PER_DAY, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, emoteFree: emoteFree, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
   rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
