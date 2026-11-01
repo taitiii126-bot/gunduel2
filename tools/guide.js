@@ -343,8 +343,8 @@ function secRewards() {
 <div class="card"><h3>経験値とレベル</h3><p>1試合で ${xpBase} XP、勝つと +${xpWin}、取ったラウンド1つにつき +${xpRound}。オンライン対戦は${xpOnline}倍。</p>
 <table class="tbl mini"><tbody>${ex.map(e => `<tr><th scope="row">${esc(e[0])}</th><td>${e[1]} XP</td></tr>`).join('')}</tbody></table>
 <p>次のレベルまでに要る経験値は、Lv.1 で ${lv(1)}、そこから1レベルごとに +${lv(2) - lv(1)}（最大 Lv.${SIM.LEVEL_MAX}）。レベルが上がるたびに${esc(t('eco.lucky'))}が1つ、5の倍数のレベルでは${esc(t('eco.chaos'))}ももらえる。</p></div>
-<div class="card"><h3>ミッション</h3><p><b>${esc(t('eco.missions'))}</b>：毎日3つ（全員同じ）。日本時間の朝${reset}時に入れかわる。1つ終えるごとに${esc(t('eco.lucky'))}・${SIM.MISSION_XP} XP・コイン${SIM.MIS_COINS}・パスXP ${SIM.DAILY_PXP}。3つ全部で${esc(t('eco.chaos'))}も。</p>
-<p><b>${esc(t('pass.missions'))}</b>：全${SIM.SEASON_MISSIONS.length}個。最初は${SIM.SEASON_FIRST}つで、1つ終えるごとに次の日からもう1つ増える。1つでパスXP ${SIM.SEASON_MIS_PXP}・コイン${SIM.SEA_COINS}。</p></div>
+<div class="card"><h3>ミッション</h3><p><b>${esc(t('eco.missions'))}</b>：毎日${SIM.MIS_PER_DAY}つ（全員同じ）。日本時間の朝${reset}時に入れかわる。1つ終えるごとに${esc(t('eco.lucky'))}・${SIM.MISSION_XP} XP・コイン${SIM.MIS_COINS}・パスXP ${SIM.DAILY_PXP}。${SIM.MIS_PER_DAY}つ全部で${esc(t('eco.chaos'))}も。</p>
+<p><b>${esc(t('pass.missions'))}</b>：全${SIM.SEASON_MISSIONS.length}個。シーズンの始まりから1週間ごとに${SIM.SEASON_PER_WEEK}つずつまとめて出て（${SIM.SEASON_WEEKS}週目まで）、出た物はシーズンの終わりまで残る。1つでパスXP ${SIM.SEASON_MIS_PXP}・コイン${SIM.SEA_COINS}。</p></div>
 <div class="card"><h3>シーズンパス</h3><p>全${SIM.PASS_TIERS}段。パスXPで段が上がる（1段目は${SIM.passCost(0)}、1段ごとに +${SIM.passCost(1) - SIM.passCost(0)}。最後まで合計 ${passTotal}）。</p>
 <ul class="dots"><li>スキン：${skinTiers.join('・')}段目（${skinTiers[skinTiers.length - 1]}段目は${esc(t('eco.chaos'))}×${SIM.passReward(SIM.PASS_TIERS).chaos}つき）</li><li>${esc(t('eco.chaos'))}：${chaosTiers.join('・')}段目</li><li>ほかの段：奇数は${esc(t('eco.lucky'))}、偶数はコイン${SIM.passReward(2).coins}</li></ul></div>
 <div class="card"><h3>ログインボーナス</h3><p>7日で1周。</p><ul class="days">${login}</ul><p>連続ログインの記念：</p><ul class="days">${streak}</ul><p class="note">保安官の盾：7日連続ごとに1枚（最大${SIM.SHIELD_MAX}枚）。休んだ日に自動で使って、連続記録を守る。</p></div>

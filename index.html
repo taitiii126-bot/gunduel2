@@ -1271,6 +1271,69 @@ body.demo #bg-shade{opacity:1;}
 .mis-sheet .he-mh{font-size:15px;}
 .mis-sheet .he-m{font-size:14px;min-height:30px;}
 .mis-btns{display:flex;gap:10px;justify-content:center;margin-top:16px;flex-wrap:wrap;}
+/* ---- ミッション画面（デイリー／シーズンのタブ・カード） ---- */
+.mis-sheet{display:flex;flex-direction:column;width:min(580px,100%);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);}
+.mq-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px;}
+.mq-head>b{font-family:var(--f-jp);font-weight:900;font-size:19px;color:var(--tx);}
+.mq-tabs{display:flex;gap:3px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);}
+.mq-tabs button{display:inline-flex;align-items:center;gap:6px;min-height:0;padding:7px 15px;border-radius:9px;border:0;background:transparent;box-shadow:none;color:var(--tx-3);font-size:13px;font-weight:900;}
+.mq-tabs button:hover{color:var(--tx);}
+.mq-tabs button.sel{background:#F4F1EA;color:#141220;}
+.mq-n{display:grid;place-items:center;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#FF5C4A;color:#fff;font-style:normal;font-size:11px;font-weight:900;line-height:1;}
+.mq-scroll{flex:1;min-height:0;overflow-y:auto;margin:0 -8px;padding:0 8px 2px;scrollbar-width:thin;}
+.mis-sheet .he-mis{gap:12px;}
+.mq-top{display:flex;align-items:center;justify-content:space-between;gap:6px 10px;flex-wrap:wrap;font-size:12px;font-weight:700;color:var(--tx-3);}
+.mq-top>span{display:inline-flex;align-items:center;gap:5px;}
+.mq-top .i{width:14px;height:14px;}
+.mq-each{color:var(--gold);}
+.mq-link{min-height:0;padding:6px 11px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.05);box-shadow:none;color:var(--tx-2);font-size:12px;font-weight:900;}
+.mq-link:hover{color:var(--tx);background:rgba(255,255,255,.1);}
+.mq-bonus{display:grid;grid-template-columns:1fr auto;align-items:center;gap:7px 10px;padding:10px 12px;border-radius:12px;border:1px solid rgba(180,92,255,.4);background:linear-gradient(90deg,rgba(180,92,255,.18),rgba(180,92,255,.04));font-size:12.5px;font-weight:900;color:#DDBDFF;}
+.mq-bonus b{font-family:var(--f-ui);font-size:13px;color:#fff;}
+.mq-pips{grid-column:1/-1;display:flex;gap:4px;}
+.mq-pips i{flex:1;height:5px;border-radius:3px;background:rgba(255,255,255,.1);}
+.mq-pips i.on{background:linear-gradient(90deg,#B45CFF,#E8B4FF);}
+.mq-bonus.got{border-color:rgba(107,227,143,.55);color:#8EF0AE;background:linear-gradient(90deg,rgba(63,207,110,.18),rgba(63,207,110,.04));}
+.mq-bonus.got .mq-pips i.on{background:linear-gradient(90deg,#3FCF6E,#9BFF9F);}
+.mq-list{display:flex;flex-direction:column;gap:8px;}
+.mq{display:grid;grid-template-columns:44px minmax(0,1fr) 52px 84px;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(180deg,#171B29,#10131C);}
+.mq-ic{width:44px;height:44px;display:grid;place-items:center;border-radius:12px;border:1px solid rgba(63,160,255,.38);background:rgba(63,160,255,.12);}
+.mq-ic .i{width:22px;height:22px;stroke:#8CC8FF;}
+.mq-body{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.mq-body b{font-size:13.5px;font-weight:900;line-height:1.3;color:var(--tx);}
+.mq-bar{position:relative;height:16px;border-radius:8px;overflow:hidden;background:rgba(255,255,255,.08);}
+.mq-bar i{position:absolute;inset:0 auto 0 0;border-radius:8px;background:linear-gradient(90deg,#3FA0FF,#7CD3FF);transition:width .4s var(--ease);}
+.mq-bar em{position:absolute;inset:0;display:grid;place-items:center;font-style:normal;font-family:var(--f-ui);font-size:11px;font-weight:800;color:#fff;text-shadow:0 1px 2px #000;}
+.mq-rw{display:flex;flex-direction:column;align-items:center;line-height:1.1;}
+.mq-rw b{font-family:var(--f-ui);font-size:16px;font-weight:800;color:var(--gold);}
+.mq-rw small{font-size:9.5px;font-weight:700;white-space:nowrap;color:var(--tx-3);}
+.mq-claim{min-height:36px;padding:0 6px;border-radius:10px;border:0;background:linear-gradient(180deg,#FFD66B,#E0A21E);box-shadow:none;color:#1a1300;font-size:13px;font-weight:900;animation:crPulse 1.2s ease-in-out infinite;}
+.mq-st{justify-self:center;width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#3FCF6E;}
+.mq-st .i{width:16px;height:16px;stroke:#062B12;stroke-width:3.4;}
+.mq-st.off{background:rgba(255,255,255,.04);border:1px solid var(--line-2);}
+.mq.done{border-color:rgba(255,197,61,.65);box-shadow:0 0 18px -8px rgba(255,197,61,.75);}
+.mq.done .mq-bar i,.mq.got .mq-bar i{background:linear-gradient(90deg,#3FCF6E,#9BFF9F);}
+.mq.done .mq-ic{border-color:rgba(255,197,61,.55);background:rgba(255,197,61,.12);}
+.mq.done .mq-ic .i{stroke:var(--gold);}
+.mq.got{opacity:.5;}
+.mq-week{display:flex;flex-direction:column;gap:8px;}
+.mq-week+.mq-week{margin-top:4px;}
+.mq-wh{display:flex;align-items:center;justify-content:space-between;gap:8px;}
+.mq-wh b{display:inline-flex;align-items:center;gap:7px;font-size:14px;font-weight:900;color:var(--tx);}
+.mq-wh small{font-family:var(--f-ui);font-size:12px;font-weight:700;color:var(--tx-3);}
+.mq-week.lock .mq-wh{padding:12px 14px;border-radius:14px;border:1px dashed var(--line-2);background:rgba(255,255,255,.02);}
+.mq-week.lock .mq-wh b{color:var(--tx-2);}
+.mq-week.lock .i{width:15px;height:15px;stroke:var(--tx-3);}
+.mq-new{padding:1px 7px;border-radius:99px;background:#FF5C4A;color:#fff;font-style:normal;font-size:10px;font-weight:900;}
+@media (max-width:560px){
+  .mq{grid-template-columns:36px minmax(0,1fr) 42px 64px;gap:8px;padding:9px 10px;}
+  .mq-ic{width:36px;height:36px;border-radius:10px;}
+  .mq-ic .i{width:19px;height:19px;}
+  .mq-body b{font-size:12.5px;}
+  .mq-rw b{font-size:14px;}
+  .mq-claim{font-size:12px;min-height:34px;}
+  .mq-tabs button{padding:7px 12px;}
+}
 .he-mis{text-align:left;padding:8px 12px;border-radius:14px;display:flex;flex-direction:column;gap:6px;}
 .he-mh{display:flex;justify-content:space-between;align-items:baseline;margin:0;font-size:12px;color:var(--tx-2);}
 .he-mh small{font-size:11px;color:var(--tx-3);}
@@ -2015,7 +2078,9 @@ body[data-scr="pass-screen"] #bs-bg,body[data-scr="shop-screen"] #bs-bg{display:
 .pt-node i{font-family:var(--f-ui);font-style:normal;font-weight:700;font-size:14px;color:var(--tx-2);}
 .pt.got .pt-node{background:var(--gold-grad);}.pt.got .pt-node i{color:var(--gold-ink);}
 .pt.cur .pt-node{background:#fff;}.pt.cur .pt-node i{color:var(--gold-ink);}
-.ps-mis{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;}
+.ps-mis{display:flex;flex-direction:column;gap:16px;}
+.ps-mis .mq-list{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;}
+@media (max-width:760px){.ps-mis .mq-list{grid-template-columns:minmax(0,1fr);}}
 .psm{display:flex;align-items:center;gap:12px;padding:12px 14px;clip-path:var(--cut-s);background:linear-gradient(180deg,#151926,#0F121B);box-shadow:inset 0 0 0 1px var(--line);}
 .psm-ic{flex:none;width:42px;height:42px;display:grid;place-items:center;clip-path:var(--cut-s);background:rgba(255,197,61,.08);box-shadow:inset 0 0 0 1px rgba(255,197,61,.3);}
 .psm-ic .i{width:20px;height:20px;stroke:var(--gold);}
@@ -2825,8 +2890,9 @@ body.mland .home-hero{height:72vh;}
   </div>
 </div>
 <div id="mis-modal" class="fr-modal" onclick="if(event.target===this)closeMissions()">
-  <div class="mis-sheet" role="dialog" aria-modal="true">
-    <div class="he-mis" id="he-mis"></div>
+  <div class="mis-sheet" role="dialog" aria-modal="true" aria-labelledby="mq-title">
+    <div class="mq-head"><b id="mq-title" data-i18n="menu.missions"></b><div class="mq-tabs" id="mq-tabs" role="tablist"></div></div>
+    <div class="mq-scroll"><div class="he-mis" id="he-mis"></div></div>
     <div class="mis-btns"><button class="cr-b main" id="mis-crate" onclick="closeMissions();openCrateScreen()"></button><button class="cr-b ghost" onclick="closeMissions()" data-i18n="eco.close"></button></div>
   </div>
 </div>
@@ -2874,7 +2940,7 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=53"></script>
+<script src="sim.js?v=54"></script>
 <script src="lang.js?v=70"></script>
 <script>
 /*
@@ -4077,8 +4143,10 @@ function ecoAddXp(n){
 function ecoMis(){
   ensureProfileShape();
   var day=SIM.dayKey(),m=profile.mis;
-  if(m.day!==day){profile.mis={day:day,p:[0,0,0],c:[false,false,false]};}
-  return{day:day,ids:SIM.dailyMissions(day),p:profile.mis.p,c:profile.mis.c};
+  if(m.day!==day)profile.mis=m={day:day,p:[],c:[]};
+  if(!Array.isArray(m.p))m.p=[];if(!Array.isArray(m.c))m.c=[];
+  for(var i=0;i<SIM.MIS_PER_DAY;i++){m.p[i]=Math.max(0,m.p[i]|0);m.c[i]=!!m.c[i];}   // 前の版（3つ）の記録は、足りない分を足す
+  return{day:day,ids:SIM.dailyMissions(day),p:m.p,c:m.c};
 }
 // ミッションを進める：kind=数えるもの、n=数、w=武器（キルのとき）
 function ecoTrack(kind,n,w){
@@ -4088,7 +4156,7 @@ function ecoTrack(kind,n,w){
     M.p[i]=Math.min(d.n,M.p[i]+(n||1));hit=true;
     if(M.p[i]>=d.n){note(t('eco.misDone',{m:missionText(id)}));SFX.misDone();}
   });
-  var Z=ecoSea(),day=SIM.dayKey(),un=SIM.seasonUnlocked(Z.got,day);   // シーズンミッション（出ている物だけ数える）
+  var Z=ecoSea(),un=SIM.seasonUnlocked();   // シーズンミッション（今の週までに出ている物だけ数える）
   SIM.SEASON_MISSIONS.forEach(function(d,i){
     if(i>=un||Z.got[i]||d.k!==kind||(d.w&&d.w!==w)||Z.p[i]>=d.n)return;
     Z.p[i]=Math.min(d.n,Z.p[i]+(n||1));hit=true;
@@ -4100,7 +4168,7 @@ function ecoTrack(kind,n,w){
 function ecoSea(){
   ensureProfileShape();var s=SIM.seasonNo(),N=SIM.SEASON_MISSIONS.length;
   if(profile.pass.s!==s)profile.pass={s:s,xp:0};
-  if(profile.sea.s!==s)profile.sea={s:s,p:[],got:[]};
+  if(profile.sea.s!==s||profile.sea.v!==SIM.SEA_VER)profile.sea={s:s,v:SIM.SEA_VER,p:[],got:[]};   // シーズンかミッションの並びが変わったら白紙
   for(var i=0;i<N;i++){profile.sea.p[i]=profile.sea.p[i]|0;profile.sea.got[i]=profile.sea.got[i]||'';}
   return profile.sea;
 }
@@ -4123,7 +4191,7 @@ function rewardText(rw){if(rw.item)return itemName(rw.item)+(rw.chaos?' + '+t('e
 // シーズンミッションを終える
 function ecoSeaClaim(i,cb){
   var Z=ecoSea(),d=SIM.SEASON_MISSIONS[i],day=SIM.dayKey();
-  if(!d||Z.got[i]||Z.p[i]<d.n||i>=SIM.seasonUnlocked(Z.got,day)||ECO.busy)return;
+  if(!d||Z.got[i]||Z.p[i]<d.n||i>=SIM.seasonUnlocked()||ECO.busy)return;
   if(AUTH.user&&AUTH.token&&STORE_ACC){
     ECO.busy=true;
     ecoApi({op:'sclaim',i:i},function(r){ECO.busy=false;if(r&&!r.error){ecoAdopt(r);SFX.coin();passTierFx(r.tiers);renderPass();renderHomeEco();cb&&cb(true);}else{note(t('eco.err'));cb&&cb(false);}});
@@ -4142,7 +4210,7 @@ function ecoClaim(i,cb){
       else{if(r&&r.error==='claimed'){M.c[i]=true;saveProfile();renderHomeEco();}cb&&cb(false);}});
     return;
   }
-  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();profile.coins+=SIM.MIS_COINS;passTierFx(passAddLocal(SIM.DAILY_PXP));   // 3つ全部終えたら、カオスバッジ
+  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();profile.coins+=SIM.MIS_COINS;passTierFx(passAddLocal(SIM.DAILY_PXP));   // 全部終えたら、カオスバッジ
 ecoAddXp(SIM.MISSION_XP);saveProfile();renderHomeEco();cb&&cb(true);
 }
 // 宝箱を開ける → cb({item,r,dup})
@@ -4192,20 +4260,11 @@ function renderHomeEco(){
   var cb=document.getElementById('he-crate'),cn=document.getElementById('he-crate-n');
   cb.classList.toggle('has',n>0);cn.style.display=n>0?'':'none';cn.textContent=n;
   drawCrateIcon();
-  var M=ecoMis(),left=Math.max(1,Math.ceil((SIM.dayEnd(M.day)-Date.now())/36e5)),ready=0;
-  var h='<p class="he-mh"><b>'+esc(t('eco.missions'))+' <em>'+esc(t('eco.reward',{xp:SIM.MISSION_XP}))+'</em></b><small>'+esc(t('eco.misReset',{h:left}))+'</small></p>'+
-    '<p class="he-bonus'+(M.c.every(Boolean)?' got':'')+'">'+esc(t('eco.allBonus'))+'</p>';
-  M.ids.forEach(function(id,i){
-    var d=SIM.MISSIONS[id],p=Math.min(d.n,M.p[i]),done=p>=d.n,got=M.c[i];
-    if(done&&!got)ready++;
-    h+='<div class="he-m'+(got?' got':done?' done':'')+'"><span class="he-mt">'+esc(missionText(id))+
-      '</span><span class="he-mp"><i style="width:'+Math.round(p/d.n*100)+'%"></i><em>'+p+'/'+d.n+'</em></span>'+
-      (got?'<span class="he-mc">✓</span>':done?'<button class="he-claim" onclick="claimMission('+i+')">'+esc(t('eco.claim'))+'</button>':'<span></span>')+'</div>';
-  });
-  document.getElementById('he-mis').innerHTML=h;
-  var mn=document.getElementById('he-mis-n');mn.style.display=ready?'':'none';mn.textContent=ready;
-  document.getElementById('he-misbtn').classList.toggle('has',ready>0);
-  var Z=ecoSea(),un=SIM.seasonUnlocked(Z.got,SIM.dayKey()),sr=0;SIM.SEASON_MISSIONS.forEach(function(d,i){if(i<un&&!Z.got[i]&&Z.p[i]>=d.n)sr++;});
+  var M=ecoMis(),ready=0,sr=seaReady();
+  M.ids.forEach(function(id,i){if(M.p[i]>=SIM.MISSIONS[id].n&&!M.c[i])ready++;});
+  renderMissions();
+  var mn=document.getElementById('he-mis-n');mn.style.display=ready+sr?'':'none';mn.textContent=ready+sr;
+  document.getElementById('he-misbtn').classList.toggle('has',ready+sr>0);
   var lr=loginReady(),stk=streakNow(),lbn=document.getElementById('he-lb-n');
   if(lbn){lbn.style.display=lr?'':'none';document.getElementById('he-lbbtn').classList.toggle('has',lr);document.getElementById('he-lb-t').textContent=t('login.side',{n:stk});document.getElementById('he-lb-ic').className='sb-ic lb-ic '+flameCls(stk);}
   var hs=document.getElementById('hb-streak');if(hs){hs.style.display=stk>0?'':'none';hs.className='hb-streak '+flameCls(stk);hs.querySelector('b').textContent=stk;}
@@ -4499,7 +4558,7 @@ function passKind(rw){return rw.item?'skin':rw.chaos?'chaos':rw.lucky?'lucky':rw
 function passScroll(d){var el=document.getElementById('pass-track');if(el)el.scrollBy({left:d*el.clientWidth*.8,behavior:'smooth'});}
 function renderPass(){
   var el=document.getElementById('pass-track');if(!el)return;
-  var Z=ecoSea(),P=SIM.passTierOf(profile.pass.xp),day=SIM.dayKey(),un=SIM.seasonUnlocked(Z.got,day),left=Math.max(1,Math.ceil(SIM.seasonLeftMs()/864e5));
+  var P=SIM.passTierOf(profile.pass.xp),left=Math.max(1,Math.ceil(SIM.seasonLeftMs()/864e5));
   var max=P.tier>=SIM.PASS_TIERS,pct=max?100:Math.round(P.cur/P.need*100);
   document.getElementById('pass-title').textContent=t('pass.title',{n:SIM.seasonNo()});
   document.getElementById('pass-left').innerHTML=CLOCK_SVG+esc(t('pass.left',{d:left}));
@@ -4517,16 +4576,7 @@ function renderPass(){
       '<div class="pt-node"><i>'+k+'</i></div></div>';
   }
   el.innerHTML=h;drawRewardCanvases(el,0);
-  var m='';
-  SIM.SEASON_MISSIONS.forEach(function(d,i){
-    if(i>=un)return;var p=Math.min(d.n,Z.p[i]),done=p>=d.n,got=!!Z.got[i];
-    m+='<div class="psm'+(got?' got':done?' done':'')+'"><span class="psm-ic">'+misIcon(d.k)+'</span>'+
-      '<div class="psm-body"><b>'+esc(seaText(i))+'</b><div class="v2-bar sm"><i style="width:'+Math.round(p/d.n*100)+'%"></i></div><small>'+p+' / '+d.n+'</small></div>'+
-      '<div class="psm-rw"><b>+'+SIM.SEASON_MIS_PXP+'</b><small>'+esc(t('pass.pxp'))+'</small></div>'+
-      (got?'<span class="psm-st">'+CHECK_SVG+'</span>':done?'<button class="v2-btn gold" onclick="ecoSeaClaim('+i+')">'+esc(t('eco.claim'))+'</button>':'<span class="psm-st off"></span>')+'</div>';});
-  var rest=SIM.SEASON_MISSIONS.length-un;
-  if(rest>0)m+='<div class="psm lock"><span class="psm-ic">'+LOCK_SVG+'</span><div class="psm-body"><b>'+esc(t('pass.more',{n:rest}))+'</b></div></div>';
-  document.getElementById('pass-mis').innerHTML=m;
+  document.getElementById('pass-mis').innerHTML=seaWeeksHtml();
   document.getElementById('pass-note').textContent='';
 }
 // シーズンパスの上の絵：パス限定のスキン（保安官の帽子とコート）を着た自分が、光の中に立つ
@@ -4634,7 +4684,54 @@ function claimLoginBonus(){
 }
 // ホームに来たとき、まだ受け取っていなければ自動で開く（起動画面のあと・1回だけ）
 function maybeLoginBonus(){if(LB.shown||!loginReady()||currentScreen!=='mode-screen')return;LB.shown=true;setTimeout(function(){if(currentScreen==='mode-screen'&&loginReady())openLoginBonus();},SPLASH.on?2700:400);}
-function openMissions(){renderHomeEco();document.getElementById('mis-modal').classList.add('show');}
+function openMissions(){renderHomeEco();document.getElementById('mis-modal').classList.add('show');var sc=document.querySelector('#mis-modal .mq-scroll');if(sc)sc.scrollTop=0;}
+// ---- ミッション画面：デイリー（毎日5つ）とシーズン（週ごとに6つずつ出る）をタブで切りかえ ----
+var MQ={tab:'daily'};
+function seaReady(){var Z=ecoSea(),un=SIM.seasonUnlocked(),n=0;SIM.SEASON_MISSIONS.forEach(function(d,i){if(i<un&&!Z.got[i]&&Z.p[i]>=d.n)n++;});return n;}
+function misTab(k){MQ.tab=k==='season'?'season':'daily';renderMissions();var sc=document.querySelector('#mis-modal .mq-scroll');if(sc)sc.scrollTop=0;}
+function leftText(ms){ms=Math.max(0,ms);return ms<864e5?t('mq.inH',{h:Math.max(1,Math.ceil(ms/36e5))}):t('mq.inD',{d:Math.ceil(ms/864e5)});}
+// ミッション1つのカード：アイコン・内容・進み具合・報酬（パスXP）・受け取る
+function mqCard(o){
+  var p=Math.min(o.n,o.p),done=p>=o.n;
+  return'<div class="mq'+(o.got?' got':done?' done':'')+'"><span class="mq-ic">'+misIcon(o.k)+'</span>'+
+    '<div class="mq-body"><b>'+esc(o.text)+'</b><div class="mq-bar"><i style="width:'+Math.round(p/o.n*100)+'%"></i><em>'+p+' / '+o.n+'</em></div></div>'+
+    '<div class="mq-rw"><b>+'+o.pxp+'</b><small>'+esc(t('pass.pxp'))+'</small></div>'+
+    (o.got?'<span class="mq-st">'+CHECK_SVG+'</span>':done?'<button class="mq-claim" onclick="'+o.claim+'">'+esc(t('eco.claim'))+'</button>':'<span class="mq-st off"></span>')+'</div>';
+}
+// 並べる順：受け取れる物 → 進めている物 → 受け取った物
+function mqRank(p,n,got){return got?2:p>=n?0:1;}
+// シーズンミッションを週ごとに：出ている週はカード、まだの週は「あと○日で解放」
+function seaWeeksHtml(){
+  var Z=ecoSea(),wk=SIM.seasonWeek(),st=SIM.seasonStart(),now=Date.now(),per=SIM.SEASON_PER_WEEK,h='';
+  for(var w=1;w<=SIM.SEASON_WEEKS;w++){
+    var at=st+(w-1)*7*864e5,from=(w-1)*per,list=SIM.SEASON_MISSIONS.slice(from,from+per);
+    if(w>wk){h+='<div class="mq-week lock"><div class="mq-wh"><b>'+LOCK_SVG+esc(t('mq.week',{n:w}))+'</b><small>'+esc(t('mq.unlockIn',{t:leftText(at-now),n:list.length}))+'</small></div></div>';continue;}
+    var got=0,idx=[];list.forEach(function(d,j){if(Z.got[from+j])got++;idx.push(from+j);});
+    idx.sort(function(a,b){var A=SIM.SEASON_MISSIONS[a],B=SIM.SEASON_MISSIONS[b];return mqRank(Z.p[a],A.n,Z.got[a])-mqRank(Z.p[b],B.n,Z.got[b])||a-b;});
+    h+='<div class="mq-week"><div class="mq-wh"><b>'+esc(t('mq.week',{n:w}))+(now-at<2*864e5?'<em class="mq-new">'+esc(t('eco.new'))+'</em>':'')+'</b><small>'+got+' / '+list.length+'</small></div><div class="mq-list">';
+    idx.forEach(function(i){var d=SIM.SEASON_MISSIONS[i];h+=mqCard({k:d.k,text:seaText(i),p:Z.p[i]|0,n:d.n,got:!!Z.got[i],pxp:SIM.SEASON_MIS_PXP,claim:'claimSea('+i+')'});});
+    h+='</div></div>';
+  }
+  return h;
+}
+function renderMissions(){
+  var el=document.getElementById('he-mis'),tb=document.getElementById('mq-tabs');if(!el)return;
+  var M=ecoMis(),dr=0,sr=seaReady(),h='';
+  M.ids.forEach(function(id,i){if(M.p[i]>=SIM.MISSIONS[id].n&&!M.c[i])dr++;});
+  if(tb)tb.innerHTML=[['daily','mq.daily',dr],['season','mq.season',sr]].map(function(q){var on=MQ.tab===q[0];return'<button role="tab" class="'+(on?'sel':'')+'" aria-selected="'+on+'" onclick="misTab(\''+q[0]+'\')">'+esc(t(q[1]))+(q[2]?'<i class="mq-n">'+q[2]+'</i>':'')+'</button>';}).join('');
+  if(MQ.tab==='season'){
+    h+='<div class="mq-top"><span>'+CLOCK_SVG+esc(t('mq.seasonLeft',{t:leftText(SIM.seasonLeftMs())}))+'</span><button class="mq-link" onclick="closeMissions();showPassScreen()">'+esc(t('mq.toPass'))+'</button></div>'+seaWeeksHtml();
+  }else{
+    var all=M.c.filter(Boolean).length,N=M.ids.length;
+    h+='<div class="mq-top"><span>'+CLOCK_SVG+esc(t('mq.newIn',{t:leftText(SIM.dayEnd(M.day)-Date.now())}))+'</span><span class="mq-each">'+esc(t('mq.each',{xp:SIM.MISSION_XP}))+'</span></div>'+
+      '<div class="mq-bonus'+(all>=N?' got':'')+'"><span>'+esc(t('mq.allBonus',{n:N}))+'</span><b>'+all+' / '+N+'</b><div class="mq-pips">'+M.ids.map(function(_,i){return'<i class="'+(M.c[i]?'on':'')+'"></i>';}).join('')+'</div></div><div class="mq-list">';
+    var order=M.ids.map(function(_,i){return i;}).sort(function(a,b){return mqRank(M.p[a],SIM.MISSIONS[M.ids[a]].n,M.c[a])-mqRank(M.p[b],SIM.MISSIONS[M.ids[b]].n,M.c[b])||a-b;});
+    order.forEach(function(i){var id=M.ids[i],d=SIM.MISSIONS[id];h+=mqCard({k:d.k,text:missionText(id),p:M.p[i],n:d.n,got:M.c[i],pxp:SIM.DAILY_PXP,claim:'claimMission('+i+')'});});
+    h+='</div>';
+  }
+  el.innerHTML=h;
+}
+function claimSea(i){ecoSeaClaim(i,function(ok){if(ok)note(t('eco.claimed'));});}
 function closeMissions(){document.getElementById('mis-modal').classList.remove('show');}
 function claimMission(i){
   ecoClaim(i,function(ok){if(ok){note(t('eco.claimed'));renderHomeEco();var b=document.getElementById('mis-crate');if(b){b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop');}}});
@@ -14772,7 +14869,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,claimSea,misTab,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,

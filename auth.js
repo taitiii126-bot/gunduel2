@@ -240,11 +240,11 @@ function keepServerOwned(next, old, u) {
   if (old) {
     next.stats = old.stats; next.tierProgress = old.tierProgress; next.emperor = Object.assign({}, old.emperor, { seen: !!(next.emperor && next.emperor.seen) || old.emperor.seen });
     next.ach = JSON.parse(JSON.stringify(old.ach)); next.xp = old.xp || 0;
-    next.mis = old.mis; if (next.sea && old.sea && old.sea.s === next.sea.s) next.sea.p = old.sea.p.slice(); else if (next.sea) next.sea.p = next.sea.p.map(() => 0);
+    next.mis = old.mis; if (next.sea && old.sea && old.sea.s === next.sea.s) { next.sea.p = old.sea.p.slice(); next.sea.v = old.sea.v; } else if (next.sea) { next.sea.p = next.sea.p.map(() => 0); next.sea.v = SIM.SEA_VER; }
   } else {
     const blank = P.clean({}, null, 0);
     next.stats = blank.stats; next.tierProgress = blank.tierProgress; next.emperor = blank.emperor; next.ach = blank.ach; next.xp = 0;
-    next.mis = blank.mis; if (next.sea) next.sea.p = next.sea.p.map(() => 0);
+    next.mis = blank.mis; if (next.sea) { next.sea.p = next.sea.p.map(() => 0); next.sea.v = SIM.SEA_VER; }
   }
   for (const id of JOKE_TITLES) if (inc && inc.evt && inc.evt[id] > 0 && !(next.ach.evt[id] > 0)) { next.ach.evt[id] = 1; next.ach.got[id] = 1; }
   // サーバーの記録（とオンライン戦績）で取れている称号は、全部「獲得済み」にしておく。
@@ -352,7 +352,8 @@ function trackSale(u, pr, win, kills) {
 function seasonFresh(pr) {
   const s = SIM.seasonNo();
   if (!pr.pass || pr.pass.s !== s) pr.pass = { s, xp: 0 };
-  if (!pr.sea || pr.sea.s !== s) pr.sea = { s, p: SIM.SEASON_MISSIONS.map(() => 0), got: SIM.SEASON_MISSIONS.map(() => '') };
+  // シーズンが変わった・ミッションの並びが変わった（版がちがう）ときは白紙から
+  if (!pr.sea || pr.sea.s !== s || pr.sea.v !== SIM.SEA_VER) pr.sea = { s, v: SIM.SEA_VER, p: SIM.SEASON_MISSIONS.map(() => 0), got: SIM.SEASON_MISSIONS.map(() => '') };
 }
 // パスXPを足して、上がった段の報酬を渡す（ラッキー＝misCrates、カオス＝misChaos、コイン）
 function addPassXp(pr, add) {
@@ -393,14 +394,14 @@ function bestTierOf(u) {
 function trackMission(pr, kind, n, w) {
   if (!(n > 0)) return;
   const day = SIM.dayKey();
-  if (!pr.mis || pr.mis.day !== day) pr.mis = { day, p: [0, 0, 0], c: [false, false, false] };
+  if (!pr.mis || pr.mis.day !== day) pr.mis = { day, p: SIM.dailyMissions(day).map(() => 0), c: SIM.dailyMissions(day).map(() => false) };
   SIM.dailyMissions(day).forEach((id, i) => {
     const d = SIM.MISSIONS[id];
     if (d.k !== kind || (d.w && d.w !== w) || pr.mis.c[i]) return;
     pr.mis.p[i] = Math.min(d.n, (pr.mis.p[i] || 0) + n);
   });
   seasonFresh(pr);
-  const un = SIM.seasonUnlocked(pr.sea.got, day);
+  const un = SIM.seasonUnlocked();   // 今の週までに出ている物だけ数える
   SIM.SEASON_MISSIONS.forEach((d, i) => {
     if (i >= un || pr.sea.got[i] || d.k !== kind || (d.w && d.w !== w)) return;
     pr.sea.p[i] = Math.min(d.n, (pr.sea.p[i] || 0) + n);
@@ -671,12 +672,12 @@ const auth = {
     return { rev: u.profileRev, merged, profile: u.profile, forged };
   },
   // ---- 宝箱とミッション（中身を決めるのはサーバー） ----
-  // ミッションの報酬を受け取る（その日の i 番目。1日3つまで）→ 宝箱1つ＋経験値
+  // ミッションの報酬を受け取る（その日の i 番目。1日 MIS_PER_DAY 個まで）→ 宝箱1つ＋経験値
   missionClaim(uid, i) {
     const u = db.users[uid];
     if (!u) return { error: 'not_found' };
     i = Math.floor(+i);
-    if (!(i >= 0 && i < 3)) return { error: 'bad' };
+    if (!(i >= 0 && i < SIM.MIS_PER_DAY)) return { error: 'bad' };
     const day = SIM.dayKey();
     if (u.misDay !== day) { u.misDay = day; u.misGot = []; }
     if (u.misGot.indexOf(i) >= 0) return { error: 'claimed' };
@@ -684,7 +685,7 @@ const auth = {
     if (!pr.mis || pr.mis.day !== day || !(pr.mis.p[i] >= need)) return { error: 'not_done' };   // 終えていないミッションの報酬は渡さない
     u.misGot.push(i);
     pr.misCrates = (pr.misCrates || 0) + 1;
-    if (u.misGot.length === 3) pr.misChaos = (pr.misChaos || 0) + 1;   // その日の3つを全部終えた → カオスバッジ
+    if (u.misGot.length === SIM.MIS_PER_DAY) pr.misChaos = (pr.misChaos || 0) + 1;   // その日のミッションを全部終えた → カオスバッジ
     pr.xp = (pr.xp || 0) + SIM.MISSION_XP;
     if (pr.mis && pr.mis.day === day) pr.mis.c[i] = true;
     pr.coins = (pr.coins || 0) + SIM.MIS_COINS;
@@ -700,7 +701,7 @@ const auth = {
     const pr = serverProfile(u), day = SIM.dayKey();
     seasonFresh(pr);
     if (pr.sea.got[i]) return { error: 'claimed' };
-    if (i >= SIM.seasonUnlocked(pr.sea.got, day)) return { error: 'locked' };
+    if (i >= SIM.seasonUnlocked()) return { error: 'locked' };   // まだ出ていない週の物
     if (!(pr.sea.p[i] >= SIM.SEASON_MISSIONS[i].n)) return { error: 'not_done' };
     pr.sea.got[i] = day;
     pr.coins = (pr.coins || 0) + SIM.SEA_COINS;

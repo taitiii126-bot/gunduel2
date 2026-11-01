@@ -71,19 +71,20 @@ function cleanEmperor(e) {
   return { w: int(e.w, 0, 999999, 0), l: int(e.l, 0, 999999, 0), beat: e.beat === true, seen: e.seen === true };
 }
 
-// デイリーミッションの進み具合（数えるのはブラウザ。宝箱と経験値を渡すのはサーバーで、1日3つまで）
+// デイリーミッションの進み具合（数えるのはブラウザ。宝箱と経験値を渡すのはサーバーで、1日 MIS_PER_DAY 個まで）
 function cleanMis(m) {
   m = m && typeof m === 'object' ? m : {};
   const day = typeof m.day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(m.day) ? m.day : '';
-  const p = [0, 1, 2].map(i => int(Array.isArray(m.p) ? m.p[i] : 0, 0, 9999, 0));
-  const c = [0, 1, 2].map(i => !!(Array.isArray(m.c) && m.c[i]));
+  const N = SIM.MIS_PER_DAY;
+  const p = Array.from({ length: N }, (_, i) => int(Array.isArray(m.p) ? m.p[i] : 0, 0, 9999, 0));
+  const c = Array.from({ length: N }, (_, i) => !!(Array.isArray(m.c) && m.c[i]));
   return { day, p, c };
 }
-// シーズンミッション（15個）：s＝シーズン番号、p＝進み具合（ブラウザが数える）、got＝終えた日（サーバーが決める）
+// シーズンミッション（24個・週ごとに6つ）：s＝シーズン番号、v＝ミッションの並びの版、p＝進み具合（ブラウザが数える）、got＝終えた日（サーバーが決める）
 function cleanSea(m) {
   m = m && typeof m === 'object' ? m : {};
   const N = SIM.SEASON_MISSIONS.length, day = x => typeof x === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(x) ? x : '';
-  return { s: int(m.s, 0, 99999, 0), p: Array.from({ length: N }, (_, i) => int(Array.isArray(m.p) ? m.p[i] : 0, 0, 99999, 0)),
+  return { s: int(m.s, 0, 99999, 0), v: int(m.v, 0, 999, 0), p: Array.from({ length: N }, (_, i) => int(Array.isArray(m.p) ? m.p[i] : 0, 0, 99999, 0)),
     got: Array.from({ length: N }, (_, i) => day(Array.isArray(m.got) ? m.got[i] : '')) };
 }
 // ログインボーナスと連続記録（サーバーが決める）
@@ -140,7 +141,7 @@ function clean(v, ctx, rtier) {
     opened: int(v.opened, 0, 999999, 0),
     misCrates: int(v.misCrates, 0, 999999, 0),
     chaosOpened: int(v.chaosOpened, 0, 999999, 0),   // 開けたカオスバッジの数
-    misChaos: int(v.misChaos, 0, 999999, 0),         // ミッションを3つ全部終えてもらったカオスバッジの数
+    misChaos: int(v.misChaos, 0, 999999, 0),         // デイリーミッションを全部終えてもらったカオスバッジの数
     pity: int(v.pity, 0, 999, 0),
     emo: SIM.cleanEmotes(v.emo, SIM.cleanInv(v.inv)),
     mis: cleanMis(v.mis),
@@ -177,7 +178,7 @@ function merge(old, inc) {
   out.emperor = { w: Math.max(oe.w, ie.w), l: Math.max(oe.l, ie.l), beat: oe.beat || ie.beat, seen: oe.seen || ie.seen };
   out.epoch = Math.max(+old.epoch || 0, +inc.epoch || 0);
   out.xp = Math.max(old.xp || 0, inc.xp || 0);
-  if (old.sea && inc.sea && old.sea.s === inc.sea.s) out.sea = Object.assign({}, inc.sea, { p: inc.sea.p.map((x, i) => Math.max(x, old.sea.p[i] || 0)) });
+  if (old.sea && inc.sea && old.sea.s === inc.sea.s && old.sea.v === inc.sea.v) out.sea = Object.assign({}, inc.sea, { p: inc.sea.p.map((x, i) => Math.max(x, old.sea.p[i] || 0)) });
   return out;
 }
 
