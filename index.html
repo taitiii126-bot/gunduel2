@@ -1737,96 +1737,137 @@ body:has(#profile-screen:not([style*="none"])) #wrap{max-width:1120px;}
   #profile-screen #tier-ladder{grid-template-columns:1fr;}
   .pf-tab{font-size:14px;gap:6px;}
 }
-/* ---- 見た目の画面（作り直し）：見本は大きく、アイテムは名前・レアリティ・持っているかが一目で分かるカードに ---- */
+/* ---- 見た目の画面：左に種類のアイコン、真ん中にアイテムの大きなカード、右に大きな見本 ---- */
+body.lk-wide:has(#profile-screen:not([style*="none"])) #wrap{max-width:1500px;}
+#profile-screen[data-pf="look"]{max-width:min(1480px,100%);}
 #profile-screen[data-pf="look"] .pf-layout{grid-template-columns:minmax(0,1fr);}
 #profile-screen[data-pf="look"] .pf-layout>.pf-card{display:none;}
-#profile-screen .look-sec{padding:18px;}
-#profile-screen .look-wrap{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:22px;align-items:start;}
-.look-stage{position:sticky;top:12px;display:flex;flex-direction:column;gap:10px;z-index:4;}
-#profile-screen .look-prev{max-width:none;width:100%;aspect-ratio:1/1;margin:0;border-radius:18px;}
-.look-info{padding:12px 14px;border-radius:14px;background:rgba(0,0,0,.3);border:1px solid var(--line);min-height:66px;}
+.lk-shell{display:grid;grid-template-columns:78px minmax(0,1fr) minmax(300px,380px);gap:14px;height:clamp(560px,calc(100vh - 210px),920px);height:clamp(560px,calc(100dvh - 210px),920px);}
+/* 左：アイコン */
+.lk-rail{display:flex;flex-direction:column;gap:7px;padding:8px 7px;border-radius:18px;background:rgba(8,10,20,.62);border:1px solid var(--line);overflow-y:auto;scrollbar-width:none;}
+.lk-rail::-webkit-scrollbar{display:none;}
+.lk-rg{display:flex;flex-direction:column;gap:3px;}
+.lk-rg+.lk-rg{padding-top:7px;border-top:1px solid var(--line);}
+#profile-screen .lk-ic{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px;width:100%;min-height:0;padding:5px 2px 4px;border-radius:13px;border:0;background:transparent;box-shadow:none;color:var(--tx-3);transition:background .15s,color .15s;}
+.lk-ic svg.i{width:20px;height:20px;}
+.lk-ic span{font-size:10px;font-weight:800;line-height:1.1;white-space:nowrap;}
+#profile-screen .lk-ic:hover{color:var(--tx);background:rgba(255,255,255,.07);}
+#profile-screen .lk-ic.sel{background:#F4F1EA;color:#141220;box-shadow:0 4px 16px -6px rgba(255,255,255,.5);}
+.lk-dot{position:absolute;right:8px;top:6px;width:9px;height:9px;border-radius:50%;background:#FF5C4A;box-shadow:0 0 0 2px #10121E;}
+/* 真ん中：見出しと並べかえ、カード */
+.lk-main{display:flex;flex-direction:column;min-width:0;min-height:0;padding:14px 4px 0 16px;border-radius:18px;background:rgba(8,10,20,.62);border:1px solid var(--line);}
+.lk-head{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:0 12px 12px 0;}
+.lk-title{display:flex;align-items:baseline;gap:10px;min-width:0;}
+.lk-title b{font-size:18px;font-weight:900;color:var(--tx);white-space:nowrap;}
+.lk-title small{font-size:12px;font-weight:700;color:var(--tx-3);white-space:nowrap;}
+.lk-sorts{display:flex;align-items:center;gap:3px;padding:3px;border-radius:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);}
+#profile-screen .lk-sorts button{display:inline-flex;align-items:center;gap:4px;min-height:0;padding:6px 11px;border:0;border-radius:9px;background:transparent;box-shadow:none;font-size:12px;font-weight:900;color:var(--tx-3);white-space:nowrap;}
+#profile-screen .lk-sorts button:hover{color:var(--tx);}
+#profile-screen .lk-sorts button.sel{background:#F4F1EA;color:#141220;}
+.lk-sorts svg.i{width:14px;height:14px;}
+#profile-screen .lk-sorts .lk-only{margin-left:4px;}
+.lk-only svg.i{opacity:.3;}.lk-only.sel svg.i{opacity:1;}
+.lk-scroll{flex:1;min-height:0;overflow-y:auto;padding:2px 12px 18px 0;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.18) transparent;}
+.lk-sub{margin:0 0 10px;font-size:12.5px;line-height:1.6;color:var(--tx-3);}
+.lk-sec{margin:16px 0 8px;font-size:12.5px;font-weight:900;color:var(--tx-2);}
+.lk-sec:first-child{margin-top:0;}
+.lkc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px;}
+.lkc-grid.face{grid-template-columns:repeat(auto-fill,minmax(112px,1fr));}
+#look-opts .opt.lkc{--rc:#AEB6C4;position:relative;display:block;width:auto;height:auto;padding:0;border-radius:16px;overflow:hidden;border:1.5px solid rgba(255,255,255,.07);background:linear-gradient(180deg,#151830,#0B0C18);transition:transform .15s var(--ease),border-color .15s,box-shadow .15s;}
+#look-opts .opt.lkc.rar{border-color:color-mix(in srgb,var(--rc) 40%,transparent);background:radial-gradient(ellipse at 50% 125%,color-mix(in srgb,var(--rc) 30%,transparent),transparent 62%),linear-gradient(180deg,#151830,#0B0C18);}
+#look-opts .opt.lkc.rar::after{display:none;}
+#look-opts .lkc.r1{--rc:#3FA0FF;}#look-opts .lkc.r2{--rc:#B45CFF;}#look-opts .lkc.r3{--rc:#FFB020;}#look-opts .lkc.r4{--rc:#FF5CD6;}
+#look-opts .lkc:hover{transform:translateY(-2px);border-color:rgba(255,255,255,.3);}
+#look-opts .lkc.sel{border-color:#F4F1EA;box-shadow:0 0 0 1.5px #F4F1EA,0 0 24px -6px rgba(255,255,255,.55);}
+#look-opts .lkc canvas{display:block;width:100%;height:auto;aspect-ratio:3/2;border-radius:0;}
+#look-opts .lkc-grid.face .lkc canvas{aspect-ratio:1/1;}
+.lkc-rar{position:absolute;top:0;right:0;padding:3px 10px 4px 12px;border-radius:0 0 0 12px;background:var(--rc);color:#0B0A12;font-size:10.5px;font-weight:900;letter-spacing:.02em;}
+.lkc.r2 .lkc-rar{color:#fff;}
+.lkc.r4 .lkc-rar{background:linear-gradient(90deg,#FF5C5C,#FFD84A,#5CFF8A,#4AB8FF,#C05CFF);}
+#look-opts .lkc .opt-new{left:8px;top:8px;}
+#look-opts .lkc .opt-dev{left:8px;top:8px;right:auto;bottom:auto;}
+.lkc-nm{position:absolute;left:50%;bottom:10px;transform:translateX(-50%);display:inline-flex;align-items:center;gap:5px;max-width:calc(100% - 20px);padding:4px 11px;border-radius:9px;background:rgba(10,12,22,.84);border:1px solid rgba(255,255,255,.16);color:var(--tx);font-size:12px;font-weight:800;white-space:nowrap;pointer-events:none;}
+.lkc-nm em{font-style:normal;overflow:hidden;text-overflow:ellipsis;}
+.lkc-grid.face .lkc-nm{display:none;}
+.lkc.locked .lkc-nm{color:var(--tx-2);}
+.lkc.sel .lkc-nm{background:#F4F1EA;color:#141220;border-color:#F4F1EA;}
+.lkc-lock,.lkc-ok{flex:none;width:12px;height:12px;background-position:center;background-repeat:no-repeat;background-size:12px;}
+.lkc-lock{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D6DAE4' stroke-width='2.8' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");}
+.lkc-ok{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23141220' stroke-width='3.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");}
+#look-opts .lkc.locked canvas{filter:grayscale(.7) brightness(.72);}
+#look-opts .lkc.locked:hover canvas{filter:none;}
+.lk-swatches{display:flex;flex-wrap:wrap;gap:10px;}
+#look-opts .opt.swatch{width:50px;height:50px;}
+#look-opts .opt.swatch i{width:36px;height:36px;}
+.lk-empty{margin-top:14px;padding:24px 16px;border-radius:14px;border:1px dashed var(--line-2);color:var(--tx-3);font-size:13px;text-align:center;}
+/* 右：見本 */
+.lk-stage{display:flex;flex-direction:column;gap:10px;min-height:0;}
+.lk-view{position:relative;flex:1;min-height:0;border-radius:18px;overflow:hidden;border:1px solid var(--line-2);background:#0B0D16;}
+.lk-view canvas{display:block;width:100%;height:100%;}
+.lk-who{position:absolute;left:16px;top:12px;max-width:70%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:16px;font-weight:900;color:#fff;text-shadow:0 1px 8px rgba(0,0,0,.85);}
+.lk-acts{position:absolute;right:10px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;}
+#profile-screen .lk-acts button{display:grid;place-items:center;width:42px;height:42px;min-height:0;padding:0;border-radius:12px;border:1px solid rgba(255,255,255,.2);background:rgba(10,12,22,.62);box-shadow:none;color:#fff;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+#profile-screen .lk-acts button:hover{background:rgba(255,255,255,.18);}
+.lk-acts svg.i{width:20px;height:20px;}
+#profile-screen .lk-acts .lk-act-reset{display:none;}
+.look-info{padding:12px 14px;border-radius:14px;background:rgba(8,10,20,.72);border:1px solid var(--line);min-height:66px;}
 .li-top{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
-.li-name{font-size:17px;font-weight:900;color:var(--tx);letter-spacing:.02em;}
+.li-name{font-size:17px;font-weight:900;color:var(--tx);}
 .li-rar{--rc:#AEB6C4;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:900;color:#0B0A12;background:var(--rc);box-shadow:0 0 12px -2px var(--rc);}
 .li-rar.r1{--rc:#3FA0FF;}.li-rar.r2{--rc:#B45CFF;color:#fff;}.li-rar.r3{--rc:#FFB020;}.li-rar.r4{--rc:#FF5CD6;background:linear-gradient(90deg,#FF5C5C,#FFD84A,#5CFF8A,#4AB8FF,#C05CFF);}
 .li-st{margin-top:5px;font-size:13px;line-height:1.5;color:var(--tx-2);}
 .li-st .ok{color:#34D399;font-weight:900;}
 .li-st .ng{color:#FFC2C2;}
-/* 種類のタブ：顔・アイテム・演出に分けて、アイコンと数 */
-#look-tabs{display:grid;gap:8px;margin-bottom:12px;}
-.lk-grp{display:flex;align-items:center;gap:10px;}
-.lk-gl{flex:none;width:64px;font-size:11px;font-weight:900;letter-spacing:.14em;color:var(--tx-3);}
-.lk-row{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0;}
-#profile-screen .look-tab{position:relative;display:inline-flex;align-items:center;gap:6px;min-height:40px;padding:7px 12px;border-radius:12px;border:1px solid var(--line);background:rgba(0,0,0,.24);color:var(--tx-2);font-size:13.5px;font-weight:900;white-space:nowrap;}
-.look-tab svg.i{width:17px;height:17px;flex:none;}
-.look-tab small{padding:1px 7px;border-radius:99px;background:rgba(255,255,255,.08);font-family:var(--f-ui);font-size:10.5px;font-weight:800;color:var(--tx-3);}
-#profile-screen .look-tab.sel{background:var(--gold);border-color:var(--gold);color:#1A1300;}
-.look-tab.sel small{background:rgba(0,0,0,.14);color:#3A2A00;}
-.lk-dot{position:absolute;right:-3px;top:-3px;width:9px;height:9px;border-radius:50%;background:#FF5C4A;box-shadow:0 0 0 2px var(--bg);}
-/* 絞りこみとランダム */
-.look-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 4px;padding-top:12px;border-top:1px solid var(--line);}
-.lk-seg{display:inline-flex;padding:3px;border-radius:12px;background:rgba(0,0,0,.3);border:1px solid var(--line);}
-#profile-screen .lk-seg button{min-height:0;padding:6px 14px;border:0;border-radius:9px;background:transparent;box-shadow:none;font-size:12.5px;font-weight:900;color:var(--tx-3);}
-#profile-screen .lk-seg button.sel{background:var(--tx);color:var(--bg);}
-.lk-hint{font-size:12px;font-weight:800;color:var(--tx-3);}
-#profile-screen .lk-rand{display:inline-flex;align-items:center;gap:6px;min-height:0;padding:7px 12px;border-radius:12px;border:1px dashed var(--line-2);background:transparent;box-shadow:none;color:var(--tx-2);font-size:12.5px;font-weight:900;}
-.lk-rand svg.i{width:15px;height:15px;}
-#profile-screen .lk-rand:hover,#profile-screen .lk-seg button:not(.sel):hover{color:var(--tx);background:rgba(255,255,255,.06);}
-/* 見出し（レアリティの色の印と、持っている数） */
-.lk-sec{--rc:#AEB6C4;display:flex;align-items:center;gap:8px;margin:16px 0 8px;font-size:12.5px;font-weight:900;color:var(--tx-2);}
-.lk-sec i{width:10px;height:10px;border-radius:3px;background:var(--rc);box-shadow:0 0 8px var(--rc);}
-.lk-sec.r1{--rc:#3FA0FF;}.lk-sec.r2{--rc:#B45CFF;}.lk-sec.r3{--rc:#FFB020;}.lk-sec.r4{--rc:#FF5CD6;}
-.lk-sec.rar span{color:var(--rc);}
-.lk-sec small{margin-left:auto;font-family:var(--f-ui);font-size:11.5px;font-weight:800;color:var(--tx-3);}
-.lk-sub{margin:12px 0 6px;font-size:12.5px;line-height:1.6;color:var(--tx-3);}
-/* カード */
-.lk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(98px,1fr));gap:10px;}
-.lk-grid.face{grid-template-columns:repeat(auto-fill,minmax(78px,1fr));}
-#look-opts .opt.lk-card{width:auto;height:auto;display:flex;flex-direction:column;align-items:stretch;gap:5px;padding:7px 7px 9px;border-radius:14px;}
-.lk-card .lk-th{display:block;width:100%;aspect-ratio:1/1;}
-.lk-grid.tall .lk-th{aspect-ratio:3/4;}
-#look-opts .lk-card canvas{display:block;width:100%;height:100%;border-radius:10px;}
-.lk-nm{font-size:11.5px;font-weight:800;line-height:1.3;color:var(--tx-2);text-align:center;min-height:2.6em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
-.lk-card.sel .lk-nm{color:var(--gold);}
-.lk-card.locked canvas{filter:grayscale(.75) brightness(.7);}
-.lk-card.locked .lk-nm{color:var(--tx-3);}
-.lk-card.locked:hover canvas{filter:none;}
-.lk-lock,.lk-check{position:absolute;right:6px;top:6px;width:22px;height:22px;border-radius:8px;pointer-events:none;background-position:center;background-repeat:no-repeat;background-size:13px;}
-.lk-lock{background-color:rgba(10,12,22,.88);border:1px solid rgba(255,255,255,.18);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D6DAE4' stroke-width='2.6' stroke-linecap='round'%3E%3Crect x='5' y='11' width='14' height='10' rx='2'/%3E%3Cpath d='M8 11V8a4 4 0 0 1 8 0v3'/%3E%3C/svg%3E");}
-.lk-check{border-radius:50%;background-color:var(--gold);box-shadow:0 0 10px -2px var(--gold);background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231A1300' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m5 12.5 4.5 4.5L19 7.5'/%3E%3C/svg%3E");}
-#look-opts .lk-card .opt-dev{right:auto;left:6px;bottom:auto;top:6px;}
-.lk-swatches{display:flex;flex-wrap:wrap;gap:10px;}
-#look-opts .opt.swatch{width:48px;height:48px;}
-#look-opts .opt.swatch i{width:34px;height:34px;}
-.lk-empty{margin-top:14px;padding:22px 16px;border-radius:14px;border:1px dashed var(--line-2);color:var(--tx-3);font-size:13px;text-align:center;}
-/* スマホ・タブレット：見本は上に横長で固定（全身と顔を並べる）。タブは横にスクロール */
+#profile-screen .lk-cta{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;min-height:50px;padding:0 14px;border-radius:12px;border:0;background:#F4F1EA;box-shadow:0 8px 22px -10px rgba(255,255,255,.6);color:#141220;font-size:15px;font-weight:900;}
+#profile-screen .lk-cta:hover{background:#FFFFFF;}
+.lk-cta svg.i{width:20px;height:20px;}
+#profile-screen .lk-reset{display:inline-flex;align-items:center;gap:6px;align-self:center;min-height:0;padding:2px 8px;border:0;background:transparent;box-shadow:none;color:var(--tx-2);font-size:13px;font-weight:900;text-decoration:underline;text-underline-offset:3px;}
+#profile-screen .lk-reset:hover{color:var(--tx);}
+.lk-reset svg.i{width:15px;height:15px;}
+/* スマホ縦：見本を上に固定（横に操作）、アイコンは横に並べてスクロール */
 @media (max-width:900px){
-  #profile-screen .look-sec{padding:12px;}
-  #profile-screen .look-wrap{grid-template-columns:minmax(0,1fr);gap:10px;}
-  .look-stage{position:sticky;top:0;gap:6px;margin:0 -12px;padding:6px 12px 10px;background:#10131F;box-shadow:0 10px 14px -10px rgba(0,0,0,.75);}
-  .look-info{background:#0B0D17;}
-  #profile-screen .look-prev{max-width:none;aspect-ratio:auto;height:min(30vh,230px);}
-  .look-info{min-height:0;padding:8px 12px;}
+  .lk-shell{grid-template-columns:minmax(0,1fr);height:auto;gap:10px;}
+  .lk-stage{order:-1;position:sticky;top:0;z-index:6;gap:6px;padding:6px 0 8px;background:#10131F;box-shadow:0 10px 14px -10px rgba(0,0,0,.8);}
+  .lk-view{flex:none;height:min(32vh,250px);}
+  .look-info{min-height:0;padding:8px 12px;background:#0B0D17;}
   .li-name{font-size:15px;}
   .li-st{font-size:12px;margin-top:2px;}
-  .lk-grp{flex-direction:column;align-items:stretch;gap:4px;}
-  .lk-gl{width:auto;}
-  .lk-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;}
-  #profile-screen .look-tab{justify-content:center;min-height:38px;padding:6px 4px;gap:4px;font-size:12.5px;}
-  .look-tab svg.i{width:15px;height:15px;}
-  .look-tab small{padding:1px 5px;font-size:10px;}
-  .lk-row.n2{grid-template-columns:repeat(2,minmax(0,1fr));}
-  .lk-grid{grid-template-columns:repeat(auto-fill,minmax(88px,1fr));gap:8px;}
-  .lk-grid.face{grid-template-columns:repeat(auto-fill,minmax(70px,1fr));}
+  #profile-screen .lk-cta,#profile-screen .lk-reset{display:none;}
+  #profile-screen .lk-acts .lk-act-reset{display:grid;}
+  #profile-screen .lk-acts button{width:38px;height:38px;}
+  .lk-rail{flex-direction:row;gap:8px;padding:6px;overflow-x:auto;overflow-y:hidden;}
+  .lk-rg{flex-direction:row;gap:3px;}
+  .lk-rg+.lk-rg{padding:0 0 0 8px;border-top:0;border-left:1px solid var(--line);}
+  #profile-screen .lk-ic{flex:none;width:60px;}
+  .lk-main{padding:12px 2px 0 12px;}
+  .lk-scroll{overflow:visible;padding-right:10px;}
+  .lk-title b{font-size:16px;}
+  .lk-head{padding-right:10px;}
+  .lk-sorts{width:100%;overflow-x:auto;scrollbar-width:none;}
+  .lk-sorts::-webkit-scrollbar{display:none;}
+  #profile-screen .lk-sorts button{flex:1 0 auto;justify-content:center;gap:3px;padding:6px 5px;font-size:11px;letter-spacing:0;}
+  .lk-sorts svg.i{width:12px;height:12px;}
+  #profile-screen .lk-sorts .lk-only{margin-left:2px;}
+  .lkc-grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;}
+  .lkc-grid.face{grid-template-columns:repeat(auto-fill,minmax(84px,1fr));}
+  .lkc-nm{bottom:6px;padding:3px 8px;font-size:11px;}
+  .lkc-rar{padding:2px 8px 3px 10px;font-size:9.5px;}
 }
-/* スマホ横持ち：見本を左に固定 */
-body.mland #profile-screen .look-wrap{grid-template-columns:minmax(0,230px) minmax(0,1fr);}
-body.mland .look-stage{position:sticky;top:0;background:none;padding:0;}
-body.mland #profile-screen .look-prev{aspect-ratio:1/1;height:auto;}
-body.mland .lk-grp{flex-direction:row;align-items:center;gap:8px;}
-body.mland .lk-gl{width:52px;}
-body.mland .lk-row,body.mland .lk-row.n2{display:flex;flex-wrap:wrap;gap:5px;}
-body.mland #profile-screen .look-tab{min-height:32px;padding:4px 9px;}
+@media (max-width:380px){
+  #profile-screen .lk-sorts button{padding:6px 3px;}
+  #profile-screen .lk-sorts .lk-only:not(.sel) svg{display:none;}
+}
+/* スマホ横持ち：3列のまま小さく */
+body.mland .lk-shell{grid-template-columns:62px minmax(0,1fr) minmax(0,200px);height:calc(100vh - 118px);height:calc(100dvh - 118px);gap:8px;}
+body.mland .lk-stage{order:0;position:static;padding:0;background:none;box-shadow:none;}
+body.mland .lk-view{flex:1;height:auto;}
+body.mland .lk-rail{flex-direction:column;overflow-y:auto;overflow-x:hidden;padding:6px 4px;}
+body.mland .lk-rg{flex-direction:column;}
+body.mland .lk-rg+.lk-rg{padding:8px 0 0;border-left:0;border-top:1px solid var(--line);}
+body.mland #profile-screen .lk-ic{width:100%;padding:6px 0 5px;}
+body.mland .lk-scroll{overflow-y:auto;}
+body.mland .lkc-grid{grid-template-columns:repeat(auto-fill,minmax(130px,1fr));}
+body.mland .look-info{padding:6px 10px;}
 /* スマホ横持ち：カードを小さく左に固定 */
 body.mland .pf-layout{grid-template-columns:minmax(0,210px) minmax(0,1fr);gap:12px;}
 body.mland .pf-layout>.pf-card{position:sticky;top:8px;display:block;max-width:none;}
@@ -2660,17 +2701,25 @@ body.mland .home-hero{height:72vh;}
         </div>
 
         <div class="pf-panel" data-panel="look" role="tabpanel">
-          <div class="settings-section look-sec">
-            <div class="look-wrap">
-              <div class="look-stage">
-                <div class="look-prev"><canvas id="look-prev" width="600" height="600"></canvas></div>
-                <div class="look-info" id="look-info" aria-live="polite"></div>
+          <div class="lk-shell">
+            <nav class="lk-rail" id="look-tabs"></nav>
+            <div class="lk-main">
+              <div class="lk-head" id="look-bar"></div>
+              <div class="lk-scroll" id="look-opts"></div>
+            </div>
+            <div class="lk-stage">
+              <div class="lk-view">
+                <canvas id="look-prev" width="600" height="800"></canvas>
+                <b class="lk-who" id="look-who"></b>
+                <div class="lk-acts">
+                  <button onclick="randomizeLook()" data-i18n-title="look.random"><svg class="i" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8" cy="8" r="1.3"/><circle cx="16" cy="16" r="1.3"/><circle cx="16" cy="8" r="1.3"/><circle cx="8" cy="16" r="1.3"/><circle cx="12" cy="12" r="1.3"/></svg></button>
+                  <button onclick="lookZoomToggle()" data-i18n-title="look.zoom"><svg class="i" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m15.5 15.5 5 5M8 10.5h5M10.5 8v5"/></svg></button>
+                  <button class="lk-act-reset" onclick="lookReset()" data-i18n-title="look.reset"><svg class="i" viewBox="0 0 24 24"><path d="M4 4v6h6"/><path d="M5 15a8 8 0 1 0 2-8.5L4 10"/></svg></button>
+                </div>
               </div>
-              <div class="look-side">
-                <div id="look-tabs"></div>
-                <div class="look-bar" id="look-bar"></div>
-                <div id="look-opts"></div>
-              </div>
+              <div class="look-info" id="look-info" aria-live="polite"></div>
+              <button class="lk-cta" onclick="openCrateScreen()"><svg class="i" viewBox="0 0 24 24"><path d="M12 3 4 7v6c0 4.2 3.4 7.4 8 8 4.6-.6 8-3.8 8-8V7z"/><path d="m9 12 2 2 4-4"/></svg><span data-i18n="look.getMore"></span></button>
+              <button class="lk-reset" onclick="lookReset()"><svg class="i" viewBox="0 0 24 24"><path d="M4 4v6h6"/><path d="M5 15a8 8 0 1 0 2-8.5L4 10"/></svg><span data-i18n="look.reset"></span></button>
             </div>
           </div>
         </div>
@@ -2826,7 +2875,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=53"></script>
-<script src="lang.js?v=69"></script>
+<script src="lang.js?v=70"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -5290,7 +5339,7 @@ var LOOK_TABS=[
 ];
 var LOOK_FOCUS={eyes:[.24,-.02,6.2],brows:[.24,-.1,6.2],nose:[.36,.32,8.6],mouth:[.3,.56,8.6],hat:[0,-.7,2.75],neck:[-.1,1.35,3.4]};
 var lookTab='skin',lookHover=null;   // lookHover：マウスをのせている選択肢（プレビューで試着）
-function pickLookTab(k){lookTab=k;lookHover=null;renderLookEditor();}
+function pickLookTab(k){lookTab=k;lookHover=null;lookZoom=null;renderLookEditor();var sc=document.getElementById('look-opts');if(sc)sc.scrollTop=0;}
 // 持っていないアイテムの手に入れ方（限定イベント・シーズンパス・バッジ）
 function lockText(id){var it=SIM.ITEM_BY_ID[id];return t(it&&it.ev?(it.ev==='halloween'?'look.lockedEv':'look.lockedEv.'+it.ev):it&&it.pass?'look.lockedPass':'look.locked');}
 function pickLook(k,i){
@@ -5327,7 +5376,7 @@ function previewLook(){var L=Object.assign({},profile.look);if(lookHover)L[lookH
 function drawLookHead(g,look,cx,cy,s,o){
   drawAvatar(g,Object.assign({x:cx-s,y:cy+73*s,s:s,dir:1,look:look,team:TEAM.me},o||{}));
 }
-// ---- 見た目の画面：上（スマホ）・左（PC）に大きな見本と、選んでいるアイテムの名前・レアリティ・持っているか。右に種類とアイテム ----
+// ---- 見た目の画面：左に種類のアイコン、真ん中にアイテムの大きなカード（並べかえ・絞りこみ）、右に大きな見本と操作 ----
 var LOOK_GROUPS=[['grpFace',['skin','eyes','brows','hair','nose','mouth']],['grpGear',['hat','outfit','neck']],['grpFx',['win','emote']]];
 var LOOK_ICONS={
   skin:'<path d="M12 3c3 4 6 7 6 11a6 6 0 0 1-12 0c0-4 3-7 6-11z"/>',
@@ -5343,12 +5392,23 @@ var LOOK_ICONS={
   emote:'<path d="M4 5h16v11H9.5L5 20v-4H4z"/><path d="M9 9.5h.01M15 9.5h.01M9 12.5c2 1.5 4 1.5 6 0"/>'
 };
 var LOOK_PREFIX={hat:'h',outfit:'o',neck:'n',win:'w',emote:'e'};
-var lookOwnedOnly=false;
-function lookFilter(v){lookOwnedOnly=!!+v;renderLookEditor();}
+var lookOwnedOnly=false,lookSortBy='rar',lookSortAsc=false,lookZoom=null,lookStart=null;
+function lookFilter(v){lookOwnedOnly=v==null?!lookOwnedOnly:!!+v;renderLookEditor();}
+function lookSort(m){if(m==='dir')lookSortAsc=!lookSortAsc;else lookSortBy=m;renderLookEditor();}
 function lookCount(k){var L=SIM.ITEMS.filter(function(x){return x.key===k;}),own=0;L.forEach(function(x){if(itemOwned(x.id))own++;});return{own:own,tot:L.length};}
 function lookHasNew(k){var p=LOOK_PREFIX[k];return !!p&&(profile.newItems||[]).some(function(id){return id.charAt(0)===p&&SIM.ITEM_BY_ID[id]&&SIM.ITEM_BY_ID[id].key===k;});}
 // 最初から持っている物の名前（なし・カウボーイハットなど）
 function lookBaseName(k,i){var key='lb.'+(LOOK_PREFIX[k]||k)+i,v=t(key);return v===key?'':v;}
+// 見本の写し方：顔のパーツと帽子は顔のアップ、ほかは全身（右の虫めがねで切りかえ）
+function lookViewMode(){if(lookTab==='win'||lookTab==='emote')return'body';if(lookZoom)return lookZoom;return['skin','eyes','brows','hair','nose','mouth','hat'].indexOf(lookTab)>=0?'face':'body';}
+function lookZoomToggle(){lookZoom=lookViewMode()==='face'?'body':'face';SFX.switchW();renderLookPreview();}
+// 画面を開いたときの見た目に戻す
+function lookSnap(){ensureProfileShape();lookStart={look:Object.assign({},profile.look),emo:profile.emo.slice()};}
+function lookReset(){
+  if(!lookStart)return;ensureProfileShape();
+  profile.look=SIM.lookOwned(Object.assign({},lookStart.look),profile.inv);profile.emo=SIM.cleanEmotes(lookStart.emo.slice(),profile.inv);
+  lookHover=null;saveProfile();renderLookEditor();pfSaved();SFX.switchW();
+}
 // いま見本に出しているもの（のせている物、なければ今のタブで選んでいる物）
 function lookFocusItem(){
   if(lookHover)return{k:lookHover.k,i:lookHover.i};
@@ -5359,6 +5419,7 @@ function lookFocusItem(){
 function renderLookInfo(){
   var el=document.getElementById('look-info');if(!el)return;
   ensureProfileShape();
+  var who=document.getElementById('look-who');if(who)who.textContent=profile.name||'';
   var f=lookFocusItem(),k=f.k,i=f.i,it=k==='emote'?SIM.ITEM_BY_ID['e'+i]:SIM.itemOf(k,i),name='',rar=null,st;
   if(k==='emote'){name=t('emote.'+i);if(it)rar=it.r;}
   else if(it){name=itemName(it.id);rar=it.r;}
@@ -5370,151 +5431,134 @@ function renderLookInfo(){
   else st='<span class="ng">'+esc(lockText(it?it.id:'e'+i))+'</span>';
   el.innerHTML='<div class="li-top">'+(rar!=null?'<span class="li-rar r'+rar+'">'+esc(rarName(rar))+'</span>':'')+'<b class="li-name">'+esc(name)+'</b></div><div class="li-st">'+st+'</div>';
 }
-// 大きな見本。PC は正方形、スマホは横長（全身と顔を並べる）
+// 大きな見本：カードの背景の上に、全身（または顔のアップ）。縦長でも横長でも、大きさに合わせて描く
 function renderLookPreview(tm){
   var cv=document.getElementById('look-prev');if(!cv||!cv.offsetParent)return;
   var r=cv.getBoundingClientRect(),dpr=Math.min(2,window.devicePixelRatio||1),W=Math.round(r.width*dpr),H=Math.round(r.height*dpr);
   if(!W||!H)return;
   if(cv.width!==W||cv.height!==H){cv.width=W;cv.height=H;}
   if(tm==null)tm=performance.now()/1000;
-  var g=cv.getContext('2d'),L=previewLook(),blink=(tm%4.2)<.13,bob=Math.sin(tm*2.1)*.7,LW=300,LH=300*H/W,wide=LH<240,wid=(loadout&&loadout[0])||2;
+  var g=cv.getContext('2d'),L=previewLook(),blink=(tm%4.2)<.13,bob=Math.sin(tm*2.1)*.7,LW=300,LH=300*H/W,wid=(loadout&&loadout[0])||2,mode=lookViewMode();
   g.setTransform(W/300,0,0,W/300,0,0);g.clearRect(0,0,LW,LH);
-  var bg=g.createRadialGradient(150,LH*.4,10,150,LH*.45,Math.max(LH,220));bg.addColorStop(0,'#2B3252');bg.addColorStop(1,'#0A0C15');
-  g.fillStyle=bg;g.fillRect(0,0,LW,LH);
-  function floorShadow(x,y,w){var sh=g.createRadialGradient(x,y,0,x,y,w);sh.addColorStop(0,'rgba(0,0,0,.55)');sh.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=sh;g.beginPath();g.ellipse(x,y,w,w*.17,0,0,Math.PI*2);g.fill();}
-  function body(x,y,s,o){floorShadow(x,y,s*30);drawAvatar(g,Object.assign({x:x,y:y,s:s,dir:1,look:L,team:TEAM.me,wid:wid,bob:bob*.5,blink:blink,tm:tm},o||{}));}
-  var hs;
-  if(lookTab==='win'){   // 勝ちポーズ：全身を大きく。3.2秒ごとにくり返す（最初は少し立ったまま）
-    var pt=(tm%3.2)-.35,ws=Math.min(1.95,(LH-40)/118);
-    body(wide?150:148,LH-24,ws,{bob:0,win:pt>0?{pose:L.win|0,t:pt}:null});
+  drawTierBg(g,bgIndex(),0,0,LW,LH,tm);
+  var dk=g.createLinearGradient(0,0,0,LH);dk.addColorStop(0,'rgba(8,8,20,.25)');dk.addColorStop(.55,'rgba(8,8,20,.12)');dk.addColorStop(1,'rgba(8,8,20,.62)');g.fillStyle=dk;g.fillRect(0,0,LW,LH);
+  function shadow(x,y,w){var sh=g.createRadialGradient(x,y,0,x,y,w);sh.addColorStop(0,'rgba(0,0,0,.6)');sh.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=sh;g.beginPath();g.ellipse(x,y,w,w*.16,0,0,Math.PI*2);g.fill();}
+  var fy=LH-Math.max(18,LH*.06),bs=Math.min(3.1,(fy-26)/112,(LW-30)/70);   // 全身：足の位置と大きさ
+  if(lookTab==='win'){   // 勝ちポーズ：3.2秒ごとにくり返す（最初は少し立ったまま）
+    var pt=(tm%3.2)-.35;shadow(150,fy,bs*30);
+    drawAvatar(g,{x:148,y:fy,s:bs*.92,dir:1,look:L,team:TEAM.me,wid:wid,blink:blink,win:pt>0?{pose:L.win|0,t:pt}:null,tm:tm});
     liveThumbs('data-pose').forEach(function(pc){drawPoseThumb(pc,pt,tm);});   // 動かすのは、指している物と選んでいる物だけ（全部を毎回描くと重い）
     return;
   }
   if(lookTab==='emote'){
-    var eid=profile.emo[emoSlot],es=Math.min(1.55,(LH-120)/100);
-    if(wide){body(92,LH-16,Math.min(1.3,(LH-28)/108));var k2=(tm%2.6)/2.6,sc2=k2<.08?.3+k2/.08*.9:k2<.14?1.2-(k2-.08)/.06*.2:1;drawEmote(g,eid,210,LH*.48,Math.min(110,LH*.62)*sc2,tm);}
-    else{body(146,LH-28,es);var k=(tm%2.6)/2.6,sc=k<.08?.3+k/.08*.9:k<.14?1.2-(k-.08)/.06*.2:1;
-      g.fillStyle='#fff';g.beginPath();g.moveTo(143,LH-28-es*100);g.lineTo(150,LH-28-es*92);g.lineTo(157,LH-28-es*100);g.fill();drawEmote(g,eid,150,LH-28-es*100-48,96*sc,tm);}
+    var eid=profile.emo[emoSlot],es=Math.min(bs,(fy-130)/100);shadow(146,fy,es*30);
+    drawAvatar(g,{x:146,y:fy,s:es,dir:1,look:L,team:TEAM.me,wid:wid,bob:bob*.5,blink:blink,tm:tm});
+    var k=(tm%2.6)/2.6,sc=k<.08?.3+k/.08*.9:k<.14?1.2-(k-.08)/.06*.2:1,ey=fy-es*98;
+    g.fillStyle='#fff';g.beginPath();g.moveTo(143,ey);g.lineTo(150,ey+12);g.lineTo(157,ey);g.fill();drawEmote(g,eid,150,ey-50,100*sc,tm);
     liveThumbs('data-emo').forEach(function(c){drawEmoteThumb(c,tm);});
     return;
   }
-  var gear=lookTab==='outfit'||lookTab==='neck';
-  if(wide){   // スマホ：左に全身、右に顔を大きく
-    body(78,LH-14,Math.min(1.5,(LH-26)/110));
-    hs=Math.min(lookTab==='hat'?3.6:4.6,LH/(lookTab==='hat'?62:50));drawLookHead(g,L,200,LH*(lookTab==='hat'?.6:.52),hs,{bob:bob,blink:blink});
-    return;
-  }
-  if(gear){body(150,LH-22,Math.min(2.45,(LH-40)/106));return;}   // 服・首もと：全身を大きく
-  hs=lookTab==='hat'?4.3:5.5;drawLookHead(g,L,152,lookTab==='hat'?158:142,hs,{bob:bob,blink:blink});
-  g.save();rrPath(g,10,LH-104,74,94,12);g.fillStyle='rgba(6,8,14,.72)';g.fill();g.lineWidth=1;g.strokeStyle='rgba(255,255,255,.14)';g.stroke();g.clip();
-  floorShadow(47,LH-19,24);drawAvatar(g,{x:45,y:LH-19,s:.86,dir:1,look:L,team:TEAM.me,wid:wid,bob:bob*.5,blink:blink});
+  if(mode==='body'){shadow(150,fy,bs*30);drawAvatar(g,{x:150,y:fy,s:bs,dir:1,look:L,team:TEAM.me,wid:wid,bob:bob*.5,blink:blink,tm:tm});return;}
+  var hs=Math.min(lookTab==='hat'?4.6:5.8,LH/(lookTab==='hat'?64:52),LW/(lookTab==='hat'?44:36));
+  drawLookHead(g,L,152,LH*(lookTab==='hat'?.58:.5),hs,{bob:bob,blink:blink});
+  g.save();rrPath(g,10,LH-104,74,94,12);g.fillStyle='rgba(6,8,14,.72)';g.fill();g.lineWidth=1;g.strokeStyle='rgba(255,255,255,.16)';g.stroke();g.clip();
+  shadow(47,LH-19,24);drawAvatar(g,{x:45,y:LH-19,s:.86,dir:1,look:L,team:TEAM.me,wid:wid,bob:bob*.5,blink:blink});
   g.restore();
+}
+// そのタブのアイテム（最初からの物＋バッジの物）。r=-1 は最初からの物
+function lookEntries(k){
+  var out=[],i;
+  if(k==='emote'){for(i=0;i<SIM.EMOTE_N;i++)if(SIM.emoteFree(i))out.push({k:k,i:i,r:-1,own:true,name:t('emote.'+i)});}
+  else{var base=SIM.LOOK_BASE[k];for(i=0;i<base;i++){var dev=SIM.LOOK_DEV[k]===i;if(dev&&!isDevUser())continue;out.push({k:k,i:i,r:-1,own:true,dev:dev,name:k==='win'?t('pose.'+i):lookBaseName(k,i)});}}
+  SIM.ITEMS.filter(function(x){return x.key===k;}).forEach(function(x){var own=itemOwned(x.id);out.push({k:k,i:x.idx,r:x.r,own:own,isNew:own&&isNewItem(x.id),name:k==='emote'?t('emote.'+x.idx):itemName(x.id)});});
+  if(lookOwnedOnly)out=out.filter(function(e){return e.own;});
+  var s=lookSortAsc?-1:1;
+  return out.sort(function(a,b){
+    var d=lookSortBy==='new'?((b.r>=0)-(a.r>=0))||(b.i-a.i):lookSortBy==='own'?((b.own-a.own)||(b.r-a.r)||(a.i-b.i)):((b.r-a.r)||(b.own-a.own)||(a.i-b.i));
+    return d*s;
+  });
 }
 function renderLookEditor(){
   var tabs=document.getElementById('look-tabs'),opts=document.getElementById('look-opts'),bar=document.getElementById('look-bar');if(!tabs||!opts)return;
-  ensureProfileShape();
+  ensureProfileShape();if(!lookStart)lookSnap();
+  // 左：種類のアイコン（顔・アイテム・演出の間はすきま）
   tabs.innerHTML=LOOK_GROUPS.map(function(G){
-    return'<div class="lk-grp"><span class="lk-gl">'+esc(t('look.'+G[0]))+'</span><div class="lk-row n'+G[1].length+'">'+G[1].map(function(k){
-      var c=LOOK_PREFIX[k]?lookCount(k):null;
-      return'<button class="look-tab'+(k===lookTab?' sel':'')+'" onclick="pickLookTab(\''+k+'\')"><svg class="i" viewBox="0 0 24 24">'+LOOK_ICONS[k]+'</svg><span>'+esc(t('look.'+k))+'</span>'+
-        (c?'<small>'+c.own+'/'+c.tot+'</small>':'')+(lookHasNew(k)?'<i class="lk-dot"></i>':'')+'</button>';
-    }).join('')+'</div></div>';
+    return'<div class="lk-rg">'+G[1].map(function(k){
+      return'<button class="lk-ic'+(k===lookTab?' sel':'')+'" onclick="pickLookTab(\''+k+'\')" title="'+esc(t('look.'+k))+'" aria-label="'+esc(t('look.'+k))+'"><svg class="i" viewBox="0 0 24 24">'+LOOK_ICONS[k]+'</svg><span>'+esc(t('look.'+k))+'</span>'+(lookHasNew(k)?'<i class="lk-dot"></i>':'')+'</button>';
+    }).join('')+'</div>';
   }).join('');
-  var tab=LOOK_TABS.filter(function(tb){return tb.key===lookTab;})[0]||LOOK_TABS[0],gearTab=!!(tab.pose||tab.emote||SIM.LOOK_BASE[tab.shape]);
-  if(bar)bar.innerHTML=(gearTab?'<div class="lk-seg" role="group"><button class="'+(lookOwnedOnly?'':'sel')+'" onclick="lookFilter(0)">'+esc(t('look.all'))+'</button><button class="'+(lookOwnedOnly?'sel':'')+'" onclick="lookFilter(1)">'+esc(t('look.mine'))+'</button></div>'
-      :'<span></span>')+
-    '<button class="lk-rand" onclick="randomizeLook()"><svg class="i" viewBox="0 0 24 24"><path d="M16 3h5v5M4 20 21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg>'+esc(t('look.random'))+'</button>';
-  var html='';
-  function sec(label,rar,n,m){return'<p class="lk-sec'+(rar!=null?' rar r'+rar:'')+'">'+(rar!=null?'<i></i>':'')+'<span>'+esc(label)+'</span>'+(m!=null?'<small>'+n+' / '+m+'</small>':'')+'</p>';}
-  // アイテムのカード（絵＋名前）。持っていない物は色を落として鍵。選んでいる物にはチェック
-  function card(k,i,cv,o){
-    var a='\''+k+'\','+i,sel=!o.emote&&profile.look[k]===i||o.on;
-    return'<button class="opt lk-card'+(o.rar!=null?' rar r'+o.rar:'')+(o.locked?' locked':'')+(sel?' sel':'')+(o.cls||'')+'" title="'+esc(o.name||'')+'" onclick="'+(o.emote?'pickEmote('+i+')':'pickLook('+a+')')+'"'+
-      (o.emote?'':' onmouseenter="hoverLook('+a+')" onmouseleave="hoverLook(null)"')+'><span class="lk-th">'+cv+'</span>'+(o.name?'<span class="lk-nm">'+esc(o.name)+'</span>':'')+
-      (o.locked?'<b class="lk-lock"></b>':sel?'<b class="lk-check"></b>':'')+(o.isNew?'<b class="opt-new">'+esc(t('eco.new'))+'</b>':'')+(o.dev?'<b class="opt-dev">DEV</b>':'')+'</button>';
-  }
-  // レアリティごとに分けて並べる（ミシックが上）。「持っている」だけにもできる
-  function rarSections(list,cvOf,k,emote){
-    var any=false;
-    for(var rr=4;rr>=0;rr--){
-      var L=list.filter(function(x){return x.r===rr;});if(!L.length)continue;
-      var own=L.filter(function(x){return itemOwned(x.id);});
-      var show=lookOwnedOnly?own:L;if(!show.length)continue;any=true;
-      html+=sec(rarName(rr),rr,own.length,L.length)+'<div class="lk-grid'+(k==='outfit'?' tall':'')+'">';
-      show.forEach(function(x){var have=itemOwned(x.id);
-        html+=card(k,x.idx,cvOf(x,have),{rar:rr,locked:!have,isNew:have&&isNewItem(x.id),name:emote?t('emote.'+x.idx):itemName(x.id),emote:emote,on:emote&&profile.emo.indexOf(x.idx)>=0});});
-      html+='</div>';
-    }
-    if(!any)html+='<p class="lk-empty">'+esc(t('look.locked'))+'</p>';
+  var tab=LOOK_TABS.filter(function(tb){return tb.key===lookTab;})[0]||LOOK_TABS[0],gk=tab.pose?'win':tab.emote?'emote':SIM.LOOK_BASE[tab.shape]?tab.shape:null;
+  var list=gk?lookEntries(gk):null,html='',c=gk?lookCount(gk):null;
+  // 上：種類の名前と数、並べかえ
+  var title='<div class="lk-title"><b>'+esc(t('look.'+lookTab))+'</b><small>'+(c?esc(t('look.items',{n:c.tot+(list?list.filter(function(e){return e.r<0;}).length:0)}))+' · '+esc(t('look.ownN',{n:c.own,m:c.tot})):'')+'</small></div>';
+  var sorts=gk?'<div class="lk-sorts"><button class="lk-dir" onclick="lookSort(\'dir\')" title="'+esc(t('look.sortDir'))+'"><svg class="i" viewBox="0 0 24 24">'+(lookSortAsc?'<path d="M12 19V5M6 11l6-6 6 6"/>':'<path d="M12 5v14M6 13l6 6 6-6"/>')+'</svg></button>'+
+    [['new','look.sortNew'],['own','look.sortOwn'],['rar','look.sortRar']].map(function(q){return'<button class="'+(lookSortBy===q[0]?'sel':'')+'" onclick="lookSort(\''+q[0]+'\')">'+esc(t(q[1]))+'</button>';}).join('')+
+    '<button class="lk-only'+(lookOwnedOnly?' sel':'')+'" onclick="lookFilter()"><svg class="i" viewBox="0 0 24 24"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>'+esc(t('look.mine'))+'</button></div>':'';
+  if(bar)bar.innerHTML=title+sorts;
+  // アイテムのカード：絵を大きく、右上にレアリティ、下に名前（持っていない物は鍵）。選んでいる物は白いふち
+  function card(e,cvHtml){
+    var sel=e.k==='emote'?profile.emo.indexOf(e.i)>=0:profile.look[e.k]===e.i,a='\''+e.k+'\','+e.i;
+    return'<button class="opt lkc'+(e.r>=0?' rar r'+e.r:'')+(e.own?'':' locked')+(sel?' sel':'')+'" title="'+esc(e.name||'')+'" onclick="'+(e.k==='emote'?'pickEmote('+e.i+')':'pickLook('+a+')')+'"'+
+      (e.k==='emote'?'':' onmouseenter="hoverLook('+a+')" onmouseleave="hoverLook(null)"')+'>'+cvHtml+
+      (e.r>=0?'<b class="lkc-rar">'+esc(rarName(e.r))+'</b>':'')+(e.isNew?'<b class="opt-new">'+esc(t('eco.new'))+'</b>':'')+(e.dev?'<b class="opt-dev">DEV</b>':'')+
+      '<span class="lkc-nm">'+(e.own?(sel?'<i class="lkc-ok"></i>':''):'<i class="lkc-lock"></i>')+'<em>'+esc(e.name||'')+'</em></span></button>';
   }
   if(tab.emote){
     html+='<p class="lk-sub">'+esc(t('look.emoteHint'))+'</p><div class="emo-slots">';
     profile.emo.forEach(function(id,i){html+='<button class="emo-slot'+(i===emoSlot?' sel':'')+'" onclick="pickEmoSlot('+i+')"><canvas data-emo="'+id+'" width="112" height="112"></canvas><small>'+esc(t('look.emoteSlot',{k:kdn(keybinds['e'+(i+1)])||'-'}))+'</small></button>';});
     html+='</div>';
-    var free=[];for(var q=0;q<SIM.EMOTE_N;q++)if(SIM.emoteFree(q))free.push(q);
-    html+=sec(t('look.base'))+'<div class="lk-grid">';
-    free.forEach(function(id){html+=card('emote',id,'<canvas data-emo="'+id+'" width="132" height="132"></canvas>',{name:t('emote.'+id),emote:true,on:profile.emo.indexOf(id)>=0});});
-    html+='</div>';
-    rarSections(SIM.ITEMS.filter(function(x){return x.key==='emote';}),function(x,have){return'<canvas data-emo="'+x.idx+'"'+(have?'':' data-lock="1"')+' width="132" height="132"></canvas>';},'emote',true);
   }
-  if(tab.pose){   // 勝ちポーズ：動く見本と名前。のせると上の大きなプレビューでも全身で動く
-    html+='<p class="lk-sub">'+esc(t('look.winHint'))+'</p>'+sec(t('look.base'))+'<div class="lk-grid">';
-    for(var pi=0;pi<SIM.LOOK_BASE.win;pi++){
-      var devP=SIM.LOOK_DEV.win===pi;if(devP&&!isDevUser())continue;   // 開発者の勝ちポーズは、開発者にだけ見せる
-      html+=card('win',pi,'<canvas data-pose="'+pi+'" width="132" height="132"></canvas>',{name:t('pose.'+pi),dev:devP});
-    }
+  if(tab.pose)html+='<p class="lk-sub">'+esc(t('look.winHint'))+'</p>';
+  if(list){
+    html+='<div class="lkc-grid">';
+    list.forEach(function(e){
+      var lk=e.own?'':' data-lock="1"';
+      html+=card(e,gk==='emote'?'<canvas data-emo="'+e.i+'"'+lk+' width="240" height="160"></canvas>':gk==='win'?'<canvas data-pose="'+e.i+'"'+lk+' width="240" height="160"></canvas>':'<canvas data-look="'+e.i+'"'+lk+' width="240" height="160"></canvas>');
+    });
     html+='</div>';
-    rarSections(SIM.ITEMS.filter(function(x){return x.key==='win';}),function(x,have){return'<canvas data-pose="'+x.idx+'"'+(have?'':' data-lock="1"')+' width="132" height="132"></canvas>';},'win');
-  }
-  if(tab.shape){
-    var base=SIM.LOOK_BASE[tab.shape];
-    if(base){   // 帽子・服・首もと：最初から持っている物と、バッジのアイテム（レアリティ順）
-      html+=sec(t('look.base'))+'<div class="lk-grid'+(tab.shape==='outfit'?' tall':'')+'">';
-      var ch=tab.shape==='outfit'?176:132;   // 服は縦長（全身）
-      for(var i=0;i<base;i++){
-        var devOpt=SIM.LOOK_DEV[tab.shape]===i;if(devOpt&&!isDevUser())continue;   // 開発者だけの見た目は、開発者にだけ見せる
-        html+=card(tab.shape,i,'<canvas data-look="'+i+'" width="132" height="'+ch+'"></canvas>',{name:lookBaseName(tab.shape,i),dev:devOpt});
-      }
-      html+='</div>';
-      rarSections(SIM.ITEMS.filter(function(x){return x.key===tab.shape;}),function(x,have){return'<canvas data-look="'+x.idx+'"'+(have?'':' data-lock="1"')+' width="132" height="'+ch+'"></canvas>';},tab.shape);
-    }else{
-      if(tab.color)html+=sec(t('look.shape'));
-      html+='<div class="lk-grid face">';
-      for(var j=0;j<SIM.LOOK_SIZES[tab.shape];j++){var dv=SIM.LOOK_DEV[tab.shape]===j;if(dv&&!isDevUser())continue;html+=card(tab.shape,j,'<canvas data-look="'+j+'" width="132" height="132"></canvas>',{dev:dv});}
-      html+='</div>';
-    }
+    if(!list.length)html+='<p class="lk-empty">'+esc(t('look.locked'))+'</p>';
+  }else if(tab.shape){
+    if(tab.color)html+='<p class="lk-sec">'+esc(t('look.shape'))+'</p>';
+    html+='<div class="lkc-grid face">';
+    for(var j=0;j<SIM.LOOK_SIZES[tab.shape];j++){var dv=SIM.LOOK_DEV[tab.shape]===j;if(dv&&!isDevUser())continue;
+      html+=card({k:tab.shape,i:j,r:-1,own:true,dev:dv,name:''},'<canvas data-look="'+j+'" width="160" height="160"></canvas>');}
+    html+='</div>';
   }
   if(tab.color){
-    html+=sec(t(tab.color==='accent'?'look.accent':'look.color'))+'<div class="lk-swatches">';
-    LOOK_OPTS[tab.color].forEach(function(c,j){var a='\''+tab.color+'\','+j;html+='<button class="opt swatch'+(profile.look[tab.color]===j?' sel':'')+'" onclick="pickLook('+a+')" onmouseenter="hoverLook('+a+')" onmouseleave="hoverLook(null)"><i style="background:'+c+'"></i></button>';});
+    html+='<p class="lk-sec">'+esc(t(tab.color==='accent'?'look.accent':'look.color'))+'</p><div class="lk-swatches">';
+    LOOK_OPTS[tab.color].forEach(function(cc,j){var a='\''+tab.color+'\','+j;html+='<button class="opt swatch'+(profile.look[tab.color]===j?' sel':'')+'" onclick="pickLook('+a+')" onmouseenter="hoverLook('+a+')" onmouseleave="hoverLook(null)"><i style="background:'+cc+'"></i></button>';});
     html+='</div>';
   }
   opts.innerHTML=html;lookHot=null;
   drawEmoteThumbs(0);
   opts.querySelectorAll('canvas[data-pose]').forEach(function(pc){drawPoseThumb(pc,1.1,1.1);});   // 勝ちポーズは、ポーズの途中の形で止めておく
-  // 形の選択肢：顔のパーツはその部分を大きく（[頭の中心からの位置x,y（半径=1）, 倍率]）、髪型は頭全体、服は全身を写す
   var k=tab.shape,F=LOOK_FOCUS[k];
-  opts.querySelectorAll('canvas[data-look]').forEach(function(cv){
-    var look=Object.assign({},profile.look);look[k]=+cv.getAttribute('data-look');
-    var g=cv.getContext('2d'),CH=cv.height;g.clearRect(0,0,132,CH);
-    if(k==='outfit')drawAvatar(g,{x:64,y:CH-6,s:1.82,dir:1,look:Object.assign(look,{hat:0,neck:0}),team:TEAM.me});   // 服だけを比べられるよう、帽子と首もとは外す。縦長に全身
-    else if(F)drawLookHead(g,look,66-F[0]*13*F[2],66-F[1]*13*F[2],F[2]);
-    else drawLookHead(g,look,66,82,3.4);
-    if(cv.getAttribute('data-lock')){g.save();g.globalCompositeOperation='source-atop';g.fillStyle='rgba(10,12,22,.35)';g.fillRect(0,0,132,CH);g.restore();}   // 持っていない物は少し暗く（形は見える）
-  });
+  opts.querySelectorAll('canvas[data-look]').forEach(function(cv){drawLookThumb(cv,k,F);});
   renderLookInfo();renderLookPreview();
 }
+// カードの絵：服は全身、首もとは上半身、帽子は顔のアップ、顔のパーツはその部分を大きく。持っていない物は少し暗く（形は見える）
+function drawLookThumb(cv,k,F){
+  var look=Object.assign({},profile.look);look[k]=+cv.getAttribute('data-look');
+  var W=cv.width,H=cv.height,g=cv.getContext('2d'),s;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);
+  function shadow(x,y,w){var sh=g.createRadialGradient(x,y,0,x,y,w);sh.addColorStop(0,'rgba(0,0,0,.5)');sh.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=sh;g.beginPath();g.ellipse(x,y,w,w*.17,0,0,Math.PI*2);g.fill();}
+  if(k==='outfit'){s=(H-14)/96;shadow(W/2,H-8,s*26);drawAvatar(g,{x:W/2,y:H-8,s:s,dir:1,look:Object.assign(look,{hat:0}),team:TEAM.me});}   // 服だけを比べられるよう、帽子は外す
+  else if(k==='neck'){s=H/66;drawAvatar(g,{x:W/2+4*s,y:H+24*s,s:s,dir:1,look:look,team:TEAM.me});}
+  else if(k==='hat')drawLookHead(g,look,W/2,H*.64,H/62);
+  else if(F)drawLookHead(g,look,W/2-F[0]*13*F[2]*W/132,H/2-F[1]*13*F[2]*W/132,F[2]*W/132);
+  else drawLookHead(g,look,W/2,H*.62,3.4*W/132);
+  if(cv.getAttribute('data-lock')){g.save();g.globalCompositeOperation='source-atop';g.fillStyle='rgba(10,12,22,.3)';g.fillRect(0,0,W,H);g.restore();}
+}
 function drawEmoteThumb(cv,tm){
-  var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);
-  drawEmote(g,+cv.getAttribute('data-emo'),W/2,W/2,W*.9,tm);
-  if(cv.getAttribute('data-lock')){g.save();g.globalCompositeOperation='source-atop';g.fillStyle='rgba(10,12,22,.35)';g.fillRect(0,0,W,W);g.restore();}
+  var g=cv.getContext('2d'),W=cv.width,H=cv.height,S=Math.min(W,H);g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,H);
+  drawEmote(g,+cv.getAttribute('data-emo'),W/2,H/2,S*.9,tm);
+  if(cv.getAttribute('data-lock')){g.save();g.globalCompositeOperation='source-atop';g.fillStyle='rgba(10,12,22,.3)';g.fillRect(0,0,W,H);g.restore();}
 }
 function drawEmoteThumbs(tm){document.querySelectorAll('#look-opts canvas[data-emo]').forEach(function(cv){drawEmoteThumb(cv,tm);});}
 function drawPoseThumb(pc,pt,tm){
-  var pg=pc.getContext('2d'),wid=(loadout&&loadout[0])||2;pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,132,132);
-  pg.fillStyle='rgba(0,0,0,.35)';pg.beginPath();pg.ellipse(66,118,26,5,0,0,Math.PI*2);pg.fill();
-  drawAvatar(pg,{x:70,y:120,s:.98,dir:1,look:profile.look,team:TEAM.me,wid:wid,win:pt>0?{pose:+pc.getAttribute('data-pose'),t:pt}:null,tm:tm});
-  if(pc.getAttribute('data-lock')){pg.save();pg.globalCompositeOperation='source-atop';pg.fillStyle='rgba(10,12,22,.35)';pg.fillRect(0,0,132,132);pg.restore();}
+  var pg=pc.getContext('2d'),W=pc.width,H=pc.height,S=Math.min(W,H)/132,wid=(loadout&&loadout[0])||2;pg.setTransform(1,0,0,1,0,0);pg.clearRect(0,0,W,H);
+  pg.fillStyle='rgba(0,0,0,.35)';pg.beginPath();pg.ellipse(W/2,H-14*S,26*S,5*S,0,0,Math.PI*2);pg.fill();
+  drawAvatar(pg,{x:W/2+4*S,y:H-12*S,s:.98*S,dir:1,look:profile.look,team:TEAM.me,wid:wid,win:pt>0?{pose:+pc.getAttribute('data-pose'),t:pt}:null,tm:tm});
+  if(pc.getAttribute('data-lock')){pg.save();pg.globalCompositeOperation='source-atop';pg.fillStyle='rgba(10,12,22,.3)';pg.fillRect(0,0,W,H);pg.restore();}
 }
 // 見た目の一覧の小さな絵：ふだんは止めておき、指している物（スマホは選んでいる物）だけを動かす
 var lookHot=null;
@@ -6670,7 +6714,8 @@ function pfTab(k){
   var sc=document.getElementById('profile-screen');if(!sc)return;
   sc.setAttribute('data-pf',k);
   sc.querySelectorAll('.pf-tab').forEach(function(b){b.setAttribute('aria-selected',b.getAttribute('data-tab')===k?'true':'false');});
-  startCardLoop();if(k==='look')renderLookPreview();
+  document.body.classList.toggle('lk-wide',k==='look');   // 見た目の画面は横に広く使う
+  startCardLoop();if(k==='look'){lookSnap();renderLookEditor();}
 }
 function showProfileScreen(){showScreen('profile-screen');renderProfileUI();renderLoginUI();if(AUTH.token)refreshMe();}
 // 名前・見た目などを変えたら、小さく「保存しました」（続けて変えたときは最後に1回だけ）
@@ -14727,7 +14772,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,claimMission,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
