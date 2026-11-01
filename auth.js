@@ -501,6 +501,39 @@ async function exchangeWithDiscord(code, redirectUri) {
   return { id: String(me.id), name: me.global_name || me.username || '' };
 }
 
+// ---- 運営からの配布（プレゼント） ----
+// 配布は db.meta.gifts に置く：{ id, at, until, title, msg, rw: { coins, xp, lucky, chaos, items }, to: null（全員）| [フレンドコード], by }
+// 受け取った配布は、その人の u.giftGot（id の配列）。配布を作れるのは運営（DEV_IDS）だけ
+const GIFT_LIMIT = { coins: 100000, xp: 100000, lucky: 50, chaos: 50, items: 10, title: 40, msg: 400, to: 200, days: 90 };
+const giftText = (v, n, lines) => String(v == null ? '' : v).replace(lines ? /[\u0000-\u0009\u000B-\u001F\u007F]/g : /[\u0000-\u001F\u007F]/g, '').replace(/\n{3,}/g, '\n\n').trim().slice(0, n);
+const giftInt = (v, max) => Math.max(0, Math.min(max, Math.floor(+v) || 0));
+function giftList() { if (!Array.isArray(db.meta.gifts)) db.meta.gifts = []; return db.meta.gifts; }
+// 期限が切れて30日たった配布は消す（受け取った記録も一緒に）
+function giftPrune() {
+  const now = Date.now(), all = giftList(), keep = all.filter(g => g.until + 30 * 864e5 > now);
+  if (keep.length === all.length) return;
+  db.meta.gifts = keep; const ids = new Set(keep.map(g => g.id));
+  for (const u of Object.values(db.users)) if (Array.isArray(u.giftGot)) u.giftGot = u.giftGot.filter(id => ids.has(id));
+  touch();
+}
+// その人が今受け取れる配布か（期限内・宛先に入っている・まだ受け取っていない）
+function giftOpenFor(u, g, now) {
+  if (!(g.at <= now && now < g.until)) return false;
+  if (g.to && g.to.indexOf(normFid(u.fid)) < 0) return false;
+  return !(Array.isArray(u.giftGot) && u.giftGot.indexOf(g.id) >= 0);
+}
+const giftPub = g => ({ id: g.id, at: g.at, until: g.until, title: g.title, msg: g.msg, rw: g.rw });
+// 報酬を中身ごとに足す（すでに持っているアイテムは、代わりにコイン）。返り値＝実際に増えた物
+function giftApply(pr, rw, out) {
+  pr.coins = (pr.coins || 0) + rw.coins; out.coins += rw.coins;
+  pr.xp = (pr.xp || 0) + rw.xp; out.xp += rw.xp;
+  pr.misCrates = (pr.misCrates || 0) + rw.lucky; out.lucky += rw.lucky;
+  pr.misChaos = (pr.misChaos || 0) + rw.chaos; out.chaos += rw.chaos;
+  for (const id of rw.items) {
+    if (pr.inv.indexOf(id) < 0) { pr.inv.push(id); out.items.push(id); }
+    else { pr.coins += SIM.PASS_ITEM_COINS; out.coins += SIM.PASS_ITEM_COINS; out.dup.push(id); }
+  }
+}
 const auth = {
   AUTO_BAN_FLAGS,
   enabled() { return !!(CLIENT_ID && CLIENT_SECRET); },
@@ -827,6 +860,68 @@ const auth = {
     return { error: 'bad' };
   },
   // 宝箱を1つ開ける：まだ開けていない宝箱があれば、サーバーの乱数で中身を決めて持ち物に足す
+  // ---- 運営からの配布 ----
+  // 受け取れる配布の一覧
+  giftInbox(uid) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    giftPrune();
+    const now = Date.now();
+    return { gifts: giftList().filter(g => giftOpenFor(u, g, now)).sort((a, b) => b.at - a.at).map(giftPub) };
+  },
+  // 受け取る（id='*' なら受け取れる物を全部）
+  giftClaim(uid, id) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    const now = Date.now(), all = id === '*', list = giftList().filter(g => (all || g.id === id) && giftOpenFor(u, g, now));
+    if (!list.length) return { error: all ? 'none' : 'gone' };
+    const pr = serverProfile(u), got = { coins: 0, xp: 0, lucky: 0, chaos: 0, items: [], dup: [] };
+    if (!Array.isArray(u.giftGot)) u.giftGot = [];
+    for (const g of list) { u.giftGot.push(g.id); giftApply(pr, g.rw, got); }
+    return saveServerProfile(u, pr, { claimed: list.map(g => g.id), got });
+  },
+  // 運営：配布を作る。m = { title, msg, coins, xp, lucky, chaos, items: [id], to: '' | 'ABCD2345,EFGH6789', days }
+  giftSend(uid, m) {
+    const u = db.users[uid];
+    if (!u || !u.dev) return { error: 'dev_only' };
+    m = m && typeof m === 'object' ? m : {};
+    const title = giftText(m.title, GIFT_LIMIT.title, false), msg = giftText(m.msg, GIFT_LIMIT.msg, true);
+    if (!title) return { error: 'no_title' };
+    const items = [];
+    for (const x of Array.isArray(m.items) ? m.items : []) { const id = String(x); if (!SIM.ITEM_BY_ID[id]) return { error: 'bad_item', id }; if (items.indexOf(id) < 0) items.push(id); }
+    if (items.length > GIFT_LIMIT.items) return { error: 'too_many_items' };
+    const rw = { coins: giftInt(m.coins, GIFT_LIMIT.coins), xp: giftInt(m.xp, GIFT_LIMIT.xp), lucky: giftInt(m.lucky, GIFT_LIMIT.lucky), chaos: giftInt(m.chaos, GIFT_LIMIT.chaos), items };
+    if (!rw.coins && !rw.xp && !rw.lucky && !rw.chaos && !items.length) return { error: 'empty' };
+    let to = null;
+    if (m.to != null && String(m.to).trim()) {   // フレンドコードで宛先を決める（知らないコードがあれば送らない）
+      to = []; const bad = [];
+      for (const c of String(m.to).split(/[\s,、]+/).filter(Boolean)) { const f = normFid(c), t = auth.byFid(f); if (!t) bad.push(c.slice(0, 12)); else if (to.indexOf(f) < 0) to.push(f); }
+      if (bad.length) return { error: 'bad_to', codes: bad.slice(0, 10) };
+      if (!to.length || to.length > GIFT_LIMIT.to) return { error: 'bad_to', codes: [] };
+    }
+    const days = Math.max(1, Math.min(GIFT_LIMIT.days, Math.floor(+m.days) || 7)), now = Date.now();
+    const g = { id: crypto.randomBytes(6).toString('hex'), at: now, until: now + days * 864e5, title, msg, rw, to, by: u.fid || u.id };
+    giftList().push(g); touch();
+    return { ok: true, gift: Object.assign(giftPub(g), { to }), targets: to ? to.map(f => fids.get(f)).filter(Boolean) : null };
+  },
+  // 運営：配布の一覧（受け取った人数つき）
+  giftAdmin(uid) {
+    const u = db.users[uid];
+    if (!u || !u.dev) return { error: 'dev_only' };
+    giftPrune();
+    const users = Object.values(db.users), now = Date.now();
+    return { gifts: giftList().slice().sort((a, b) => b.at - a.at).map(g => Object.assign(giftPub(g), { to: g.to, by: g.by, active: g.at <= now && now < g.until,
+      got: users.reduce((n, x) => n + (Array.isArray(x.giftGot) && x.giftGot.indexOf(g.id) >= 0 ? 1 : 0), 0) })) };
+  },
+  // 運営：配布をやめる（まだ受け取っていない人は受け取れなくなる。受け取った分はそのまま）
+  giftStop(uid, id) {
+    const u = db.users[uid];
+    if (!u || !u.dev) return { error: 'dev_only' };
+    const g = giftList().find(x => x.id === String(id));
+    if (!g) return { error: 'gone' };
+    g.until = Math.min(g.until, Date.now()); touch();
+    return { ok: true };
+  },
   crateOpen(uid, kind) {
     const u = db.users[uid];
     if (!u) return { error: 'not_found' };
