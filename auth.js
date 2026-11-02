@@ -523,8 +523,12 @@ function giftOpenFor(u, g, now) {
   return !(Array.isArray(u.giftGot) && u.giftGot.indexOf(g.id) >= 0);
 }
 const giftPub = g => ({ id: g.id, at: g.at, until: g.until, title: g.title, msg: g.msg, rw: g.rw });
+// 配れる称号：イベントの限定称号（トリックオアトリートなど）。称号の id → アカウントに付ける印（hwking など）
+const GIFT_TITLES = {};
+for (const k of Object.keys(SIM.EVENTS)) { const T = SIM.EVENTS[k].title; if (T && T.id && T.flag) GIFT_TITLES[T.id] = T.flag; }
 // 報酬を中身ごとに足す（すでに持っているアイテムは、代わりにコイン）。返り値＝実際に増えた物
-function giftApply(pr, rw, out) {
+function giftApply(pr, rw, out, u) {
+  for (const id of rw.titles || []) { const f = GIFT_TITLES[id]; if (f && u && !u[f]) { u[f] = true; out.titles.push(id); } }   // 称号（もう持っていれば何もしない）
   pr.coins = (pr.coins || 0) + rw.coins; out.coins += rw.coins;
   pr.xp = (pr.xp || 0) + rw.xp; out.xp += rw.xp;
   pr.misCrates = (pr.misCrates || 0) + rw.lucky; out.lucky += rw.lucky;
@@ -876,12 +880,12 @@ const auth = {
     if (!u) return { error: 'not_found' };
     const now = Date.now(), all = id === '*', list = giftList().filter(g => (all || g.id === id) && giftOpenFor(u, g, now));
     if (!list.length) return { error: all ? 'none' : 'gone' };
-    const pr = serverProfile(u), got = { coins: 0, xp: 0, lucky: 0, chaos: 0, items: [], dup: [] };
+    const pr = serverProfile(u), got = { coins: 0, xp: 0, lucky: 0, chaos: 0, items: [], dup: [], titles: [] };
     if (!Array.isArray(u.giftGot)) u.giftGot = [];
-    for (const g of list) { u.giftGot.push(g.id); giftApply(pr, g.rw, got); }
-    return saveServerProfile(u, pr, { claimed: list.map(g => g.id), got });
+    for (const g of list) { u.giftGot.push(g.id); giftApply(pr, g.rw, got, u); }
+    return saveServerProfile(u, pr, { claimed: list.map(g => g.id), got, user: publicUser(u) });   // user：称号の印が変わったときのため
   },
-  // 運営：配布を作る。m = { title, msg, coins, xp, lucky, chaos, items: [id], to: '' | 'ABCD2345,EFGH6789', days }
+  // 運営：配布を作る。m = { title, msg, coins, xp, lucky, chaos, items: [id], titles: [称号の id], to: '' | 'ABCD2345,EFGH6789', days }
   giftSend(uid, m) {
     const u = db.users[uid];
     if (!u || !u.dev) return { error: 'dev_only' };
@@ -891,8 +895,10 @@ const auth = {
     const items = [];
     for (const x of Array.isArray(m.items) ? m.items : []) { const id = String(x); if (!SIM.ITEM_BY_ID[id]) return { error: 'bad_item', id }; if (items.indexOf(id) < 0) items.push(id); }
     if (items.length > GIFT_LIMIT.items) return { error: 'too_many_items' };
-    const rw = { coins: giftInt(m.coins, GIFT_LIMIT.coins), xp: giftInt(m.xp, GIFT_LIMIT.xp), lucky: giftInt(m.lucky, GIFT_LIMIT.lucky), chaos: giftInt(m.chaos, GIFT_LIMIT.chaos), items };
-    if (!rw.coins && !rw.xp && !rw.lucky && !rw.chaos && !items.length) return { error: 'empty' };
+    const titles = [];
+    for (const x of Array.isArray(m.titles) ? m.titles : []) { const id = String(x); if (!GIFT_TITLES[id]) return { error: 'bad_title', id }; if (titles.indexOf(id) < 0) titles.push(id); }
+    const rw = { coins: giftInt(m.coins, GIFT_LIMIT.coins), xp: giftInt(m.xp, GIFT_LIMIT.xp), lucky: giftInt(m.lucky, GIFT_LIMIT.lucky), chaos: giftInt(m.chaos, GIFT_LIMIT.chaos), items, titles };
+    if (!rw.coins && !rw.xp && !rw.lucky && !rw.chaos && !items.length && !titles.length) return { error: 'empty' };
     let to = null;
     if (m.to != null && String(m.to).trim()) {   // フレンドコードで宛先を決める（知らないコードがあれば送らない）
       to = []; const bad = [];
