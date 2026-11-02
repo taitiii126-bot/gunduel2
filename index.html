@@ -13319,26 +13319,40 @@ function cardQuad(g,x,y,w,h,o,keep){
   for(var i=1;i<=4;i++){var c=p[i%4],n=p[(i+1)%4];g.arcTo(c[0],c[1],n[0],n[1],r);}
   g.closePath();
 }
-// しずく（上が雲につながり、下が丸い）
-function dripPath(g,x,y,r,len){g.beginPath();g.moveTo(x-r,y);g.lineTo(x-r,y+len);g.arc(x,y+len,r,Math.PI,0,true);g.lineTo(x+r,y);g.closePath();}
-// カードの上の雲の飾り：ランクの色の雲としずく。左右の星は、段（Ⅰ〜Ⅲ）の数だけ光る（内側から）
-function drawCardCrown(g,idx,cx,cy,w,tm){
-  var rk=SIM.rankOf(idx),C=popOf(rk.r),L=Math.max(1.2,w*.011),bob=Math.sin((tm||0)*1.6)*w*.002;
-  var puffs=[[-.41,.03,.05],[-.32,.0,.074],[-.2,-.022,.088],[-.075,-.036,.096],[.075,-.036,.096],[.2,-.022,.088],[.32,0,.074],[.41,.03,.05]];
-  var drips=[[-.3,.03,.016,.05],[-.12,.035,.014,.06],[.14,.04,.015,.055],[.29,.03,.013,.045]];
-  g.save();g.translate(cx,cy+bob);
-  var each=function(f){puffs.forEach(function(p){g.beginPath();g.arc(p[0]*w,p[1]*w,p[2]*w+f,0,Math.PI*2);g.fill();});drips.forEach(function(d){dripPath(g,d[0]*w,d[1]*w,d[2]*w+f*.8,d[3]*w);g.fill();});};
-  g.save();g.translate(0,w*.012);g.fillStyle='rgba(0,0,0,.35)';each(L);g.restore();   // 影
-  g.fillStyle=C.k;each(L);
-  var cg=g.createLinearGradient(0,-w*.13,0,w*.09);cg.addColorStop(0,C.l);cg.addColorStop(.55,C.b);cg.addColorStop(1,C.d);g.fillStyle=cg;each(0);
-  puffs.forEach(function(p){g.save();g.beginPath();g.arc(p[0]*w,p[1]*w,p[2]*w,0,Math.PI*2);g.clip();g.fillStyle='rgba(255,255,255,.3)';g.beginPath();g.arc(p[0]*w-p[2]*w*.25,p[1]*w-p[2]*w*.45,p[2]*w*.6,0,Math.PI*2);g.fill();g.restore();});
-  g.fillStyle=C.k;g.beginPath();g.arc(.475*w,-.005*w,.016*w+L,0,Math.PI*2);g.fill();g.fillStyle=C.b;g.beginPath();g.arc(.475*w,-.005*w,.016*w,0,Math.PI*2);g.fill();   // 小さな泡
-  var stars=[[-.15,-.05],[-.245,-.03],[-.34,-.006]];
-  [-1,1].forEach(function(sd){stars.forEach(function(q,i){var lit=i<rk.d,sx=sd*-q[0]*w,sy=q[1]*w,sr=w*.034*(lit?1+.08*Math.sin((tm||0)*3+i+sd):.9);
-    flatStar4(g,sx,sy,sr+L*1.2);g.fillStyle=C.k;g.fill();
-    flatStar4(g,sx,sy,sr);if(lit){var sg=g.createLinearGradient(0,sy-sr,0,sy+sr);sg.addColorStop(0,'#FFFFFF');sg.addColorStop(1,C.a);g.fillStyle=sg;}else g.fillStyle=hexA(C.d,.9);g.fill();});});
+// 弾帯：ランクの色の革のベルトが、カードの上にかかる。左右の弾は、段（Ⅰ〜Ⅲ）の数だけささっている（内側から）
+function drawCrownBelt(g,idx,cx,cy,w,tm){
+  var rk=SIM.rankOf(idx),C=popOf(rk.r),L=Math.max(1.2,w*.011),t=w*.084,x0=-w*.47,x1=w*.47,N=24,i;
+  var yc=function(x){var u=x/(w*.47);return -w*.012+u*u*w*.05;},sl=function(x){return 2*(x/(w*.47))*w*.05/(w*.47);};
+  g.save();g.translate(cx,cy);g.lineJoin='round';
+  var top=[],bot=[];for(i=0;i<=N;i++){var x=x0+(x1-x0)*i/N;top.push([x,yc(x)-t/2]);bot.push([x,yc(x)+t/2]);}
+  top[0][0]-=w*.02;top[N][0]+=w*.02;   // 端は斜めに切る
+  var path=function(){g.beginPath();top.forEach(function(p,j){if(j)g.lineTo(p[0],p[1]);else g.moveTo(p[0],p[1]);});for(var j=N;j>=0;j--)g.lineTo(bot[j][0],bot[j][1]);g.closePath();};
+  g.save();g.translate(0,w*.012);path();g.fillStyle='rgba(0,0,0,.35)';g.fill();g.restore();   // 影
+  var sg=g.createLinearGradient(0,-t,0,t);sg.addColorStop(0,C.l);sg.addColorStop(.45,C.b);sg.addColorStop(1,C.d);
+  path();g.fillStyle=sg;g.fill();g.lineWidth=L;g.strokeStyle=C.k;g.stroke();
+  // ぬい目
+  g.save();g.setLineDash([w*.014,w*.01]);g.lineWidth=Math.max(.8,w*.004);g.strokeStyle=rk.r>=8?hexA(C.a,.8):'rgba(255,255,255,.55)';
+  [-t*.32,t*.32].forEach(function(o){g.beginPath();for(var j=0;j<=N;j++){var x=x0+w*.03+(x1-x0-w*.06)*j/N;if(j)g.lineTo(x,yc(x)+o);else g.moveTo(x,yc(x)+o);}g.stroke();});g.restore();
+  // 右の端の留め金
+  var bx=w*.4,by=yc(bx);g.save();g.translate(bx,by);g.rotate(Math.atan(sl(bx)));rrPath(g,-w*.02,-t*.62,w*.04,t*1.24,w*.008);g.fillStyle=metalGrad(g,'silver',-t*.6,t*.6);g.fill();g.lineWidth=L*.8;g.strokeStyle=C.k;g.stroke();
+  rrPath(g,-w*.009,-t*.38,w*.018,t*.76,w*.004);g.fillStyle=C.d;g.fill();g.restore();
+  // 弾の輪と弾
+  var slots=[.15,.245,.34];
+  [-1,1].forEach(function(sd){slots.forEach(function(q,j){var x=sd*q*w,y=yc(x),a=Math.atan(sl(x)),lit=j<rk.d,bw=w*.042,lh=t*.86;
+    g.save();g.translate(x,y);g.rotate(a);
+    if(lit){   // 弾（真ちゅうの薬莢＋先）。輪の上に突き出す
+      var bob=Math.sin((tm||0)*2.4+j+sd)*w*.002,cy0=-lh*.5-w*.06+bob;
+      rrPath(g,-bw/2,cy0,bw,w*.09,w*.007);g.fillStyle=cylGrad(g,'brass',-bw/2,bw/2);g.fill();g.lineWidth=L*.8;g.strokeStyle=C.k;g.stroke();
+      g.beginPath();g.moveTo(-bw/2,cy0+1);g.quadraticCurveTo(-bw/2,cy0-w*.042,0,cy0-w*.06);g.quadraticCurveTo(bw/2,cy0-w*.042,bw/2,cy0+1);g.closePath();
+      g.fillStyle=rk.r>=8?cylGrad(g,'gold',-bw/2,bw/2):cylGrad(g,'copper',-bw/2,bw/2);g.fill();g.stroke();
+      g.fillStyle='rgba(255,255,255,.55)';g.fillRect(-bw*.3,cy0+w*.008,bw*.14,w*.06);
+    }
+    rrPath(g,-bw*.75,-lh/2,bw*1.5,lh,w*.008);g.fillStyle=lit?C.d:hexA(C.d,.95);g.fill();g.lineWidth=L*.8;g.strokeStyle=C.k;g.stroke();   // 輪（革）
+    if(!lit){g.beginPath();g.ellipse(0,-lh*.28,bw*.42,lh*.12,0,0,Math.PI*2);g.fillStyle=C.k;g.fill();}   // からの輪
+    g.restore();});});
   g.restore();
 }
+function drawCardCrown(g,idx,cx,cy,w,tm){drawCrownBelt(g,idx,cx,cy,w,tm);}   // カードの上の飾り＝弾帯
 function drawProfileCard(g,P,x,y,w,h,tm){
   var markR=w*.18,top=y+w*.26,ch=h-(top-y),rad=w*.06,lvl=tierInfo(P.tier).lvl,k=ctxScale(g),rk=SIM.rankOf(P.tier),C=popOf(rk.r),bw=w*.024;
   g.save();
