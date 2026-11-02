@@ -2118,24 +2118,19 @@ var RANK_KEYS = ['', 'BR', 'IR', 'GD', 'PT', 'LG', 'MS', 'CH', 'EC'];
 var TIER_KEYS = [''];             // 段ごとの短い記号（通信や記録に使う。表示はランク名＋ローマ数字）：BR1, BR2, BR3, IR1 …
 for (var _r = 1; _r < RANKS.length; _r++) for (var _d = 1; _d <= 3; _d++) TIER_KEYS.push(RANK_KEYS[_r] + _d);
 function rankOf(t) { t = Math.max(0, Math.min(TIER_MIN.length - 1, Math.floor(+t) || 0)); return t ? { r: Math.ceil(t / 3), d: (t - 1) % 3 + 1 } : { r: 0, d: 0 }; }
-// 絵（紋章・背景の番号 0〜10）：ランクごとに1つ。ブロンズ＝銅の砂漠、アイアン＝鉄の歯車、ゴールド＝金の星、プラチナ＝氷の波、
-// レジェンド＝紫の星、マスター＝深紅の炎、チャンピオン＝青い雷、エクリプス＝黒と金
-var RANK_ART = [0, 2, 1, 5, 3, 6, 7, 8, 10];
-function artOfTier(t) { return RANK_ART[rankOf(t).r]; }
+// 絵（紋章・カード・背景の番号 0〜8）＝ランクの番号。ブロンズ＝荒野の夕日、アイアン＝鉄の歯車、ゴールド＝金の星、プラチナ＝白銀の結晶、
+// レジェンド＝紫の宇宙、マスター＝深紅の炎、チャンピオン＝青い稲妻、エクリプス＝黒い太陽と金のコロナ
+var RANK_ART = [0, 1, 2, 3, 4, 5, 6, 7, 8];
+function artOfTier(t) { return rankOf(t).r; }
 // 前の10段（LT5〜HT1）の番号を、同じレートの新しい段に直す（記録の引っ越しに使う）
 var TIER_OLD_MIN = [0, 1000, 1100, 1200, 1350, 1500, 1650, 1800, 2000, 2250, 2550];
 var TIER_VER = 2;
 function tierFromOld(k) { k = Math.max(0, Math.min(10, Math.floor(+k) || 0)); return k ? tierOfRate(TIER_OLD_MIN[k]) : 0; }
-// 背景（絵 0〜10）が使える段：そのランクに届いたとき。前に同じレートで使えていた背景は、そのまま使える
-var BG_UNLOCK = (function () {
-  var o = [];
-  for (var a = 0; a <= 10; a++) {
-    var need = a ? tierFromOld(a) : 0;
-    for (var r = 1; r < RANK_ART.length; r++) if (RANK_ART[r] === a) need = Math.min(need, (r - 1) * 3 + 1);
-    o.push(need);
-  }
-  return o;
-})();
+// 背景（絵 0〜8）が使える段：そのランクのⅠに届いたとき
+var BG_UNLOCK = RANK_ART.map(function (a) { return a ? (a - 1) * 3 + 1 : 0; });
+// 前の背景の番号（絵 0〜10。ティアの時代の11枚）を、いちばん近いランクの絵に直す（BG_VER より前の記録だけ）
+var BG_VER = 2, BG_FROM_OLD = [0, 2, 1, 4, 4, 3, 5, 6, 7, 7, 8];
+function bgFromOld(v) { if (typeof v !== 'number') return v; var k = Math.floor(v); return k >= 0 && k < BG_FROM_OLD.length ? BG_FROM_OLD[k] : 0; }
 function bgUnlocked(bg, best) { return typeof bg === 'number' && bg >= 0 && bg < BG_UNLOCK.length && (Math.floor(+best) || 0) >= BG_UNLOCK[bg]; }
 var BOT_TIER_CAP = 21;            // BOT戦だけで行けるのは チャンピオンⅢ の下限（2230）まで。その上は本物に勝った人だけ
 // レートからティアを出す（レートの数値だけで決まる。猶予や飛び級はない）
@@ -2408,7 +2403,7 @@ var api = {
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
   RATE_WIN: RATE_WIN, RATE_LOSS: deepFreeze(RATE_LOSS), RATE_TOP: RATE_TOP, RATE_LOSS_MIN: deepFreeze(RATE_LOSS_MIN), RATE_FLOOR_FROM: RATE_FLOOR_FROM, RATE_FLOOR_TO: RATE_FLOOR_TO, RATE_BOOST_TO: RATE_BOOST_TO, RATE_BOOST: RATE_BOOST, SCORE_MULT: deepFreeze(SCORE_MULT), scoreMult: scoreMult, RATE_TOP_GAIN: deepFreeze(RATE_TOP_GAIN), RATE_TOP_LOSS: RATE_TOP_LOSS, SEASON_DROP_N: SEASON_DROP, SEASON_FLOOR_TIER: SEASON_FLOOR_TIER,
   RANKS: deepFreeze(RANKS), RANK_KEYS: deepFreeze(RANK_KEYS), TIER_KEYS: deepFreeze(TIER_KEYS), rankOf: rankOf, RANK_ART: deepFreeze(RANK_ART), artOfTier: artOfTier,
-  TIER_OLD_MIN: deepFreeze(TIER_OLD_MIN), TIER_VER: TIER_VER, tierFromOld: tierFromOld, BG_UNLOCK: deepFreeze(BG_UNLOCK), bgUnlocked: bgUnlocked,
+  TIER_OLD_MIN: deepFreeze(TIER_OLD_MIN), TIER_VER: TIER_VER, tierFromOld: tierFromOld, BG_UNLOCK: deepFreeze(BG_UNLOCK), bgUnlocked: bgUnlocked, BG_VER: BG_VER, BG_FROM_OLD: deepFreeze(BG_FROM_OLD), bgFromOld: bgFromOld,
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
   TITLES: deepFreeze(TITLES), titleOk: titleOk,
   guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,
