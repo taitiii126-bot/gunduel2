@@ -2119,7 +2119,7 @@ var TIER_KEYS = [''];             // 段ごとの短い記号（通信や記録�
 for (var _r = 1; _r < RANKS.length; _r++) for (var _d = 1; _d <= 3; _d++) TIER_KEYS.push(RANK_KEYS[_r] + _d);
 function rankOf(t) { t = Math.max(0, Math.min(TIER_MIN.length - 1, Math.floor(+t) || 0)); return t ? { r: Math.ceil(t / 3), d: (t - 1) % 3 + 1 } : { r: 0, d: 0 }; }
 // 絵（紋章・カード・背景の番号 0〜8）＝ランクの番号。ブロンズ＝荒野の夕日、アイアン＝鉄の歯車、ゴールド＝金の星、プラチナ＝白銀の結晶、
-// レジェンド＝紫の宇宙、マスター＝深紅の炎、チャンピオン＝青い稲妻、エクリプス＝黒い太陽と金のコロナ
+// レジェンド＝紫の宇宙、マスター＝深紅の炎、チャンピオン＝緑の稲妻、エクリプス＝黒い太陽と金のコロナ
 var RANK_ART = [0, 1, 2, 3, 4, 5, 6, 7, 8];
 function artOfTier(t) { return rankOf(t).r; }
 // 前の10段（LT5〜HT1）の番号を、同じレートの新しい段に直す（記録の引っ越しに使う）

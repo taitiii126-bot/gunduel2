@@ -33,7 +33,7 @@ const TIER_KEYS = SIM.TIER_KEYS;   // 段の記号（BR1〜EC3）。0 は「ラ�
 const MAX_TIER = TIER_KEYS.length - 1;
 // Discord に出すときのティアの色（ゲームのティアの色と同じ）
 // ランクごとの色（ブロンズ・アイアン・ゴールド・プラチナ・レジェンド・マスター・チャンピオン・エクリプス）。Ⅰ〜Ⅲは同じ色
-const RANK_COLORS = [0, 0xC9824C, 0xA3AAB4, 0xE2B13C, 0x8FD3F5, 0xB983FF, 0xE0314B, 0x4FAEFF, 0xFFE7A8];
+const RANK_COLORS = [0, 0xC9824C, 0xA3AAB4, 0xE2B13C, 0xC3D5E2, 0xB983FF, 0xE0314B, 0x3FD86A, 0xFFE7A8];
 const TIER_COLORS = {};
 TIER_KEYS.forEach((k, i) => { if (i) TIER_COLORS[k] = RANK_COLORS[SIM.rankOf(i).r]; });
 // ランクの名前（Discord などサーバーから出す文。ゲームの中は lang.js）
