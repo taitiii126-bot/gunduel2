@@ -135,16 +135,26 @@ if (!db.meta.mimicFix) {
   }
   db.meta.mimicFix = 1; dirty = true;
 }
-// レートのやり直し（1回だけ）。全員を初期のレート（＝ティア LT5）に戻す。1v1 と 2v2 の両方。
-// オンラインの通算戦績・称号・見た目は消さない（ランクマッチの勝敗数だけ0に戻る）
-if ((db.meta.rateEpoch || 0) < 3) {
-  for (const u of Object.values(db.users)) {
+// レートのやり直し（エポックごとに1回だけ）。全員を初期のレート（ブロンズⅠ）に戻す。1v1 と 2v2 の両方。
+// オンラインの通算戦績・称号・見た目・解放した背景（bestEver）は消さない（ランクマッチの勝敗数・連勝・ランクブーストは0に戻る）
+//   3：ティア LT5〜HT1 のころのやり直し
+//   4：2026-11 ランクを8つ×Ⅰ〜Ⅲに作り直したのに合わせて、全員を一から。やり直す前のデータは users.before-rate-reset-4.json に残す
+const RATE_EPOCH = 4;
+if ((db.meta.rateEpoch || 0) < RATE_EPOCH) {
+  const users = Object.values(db.users);
+  if (users.length && db.meta.rateEpoch) {   // 戻せるように、やり直す前の全部をとっておく（保存に失敗しても、やり直しは続ける）
+    try { fs.writeFileSync(path.join(DATA_DIR, 'users.before-rate-reset-' + RATE_EPOCH + '.json'), JSON.stringify(db)); }
+    catch (e) { console.error('レートのやり直し前の保存に失敗:', e.message); }
+  }
+  for (const u of users) {
     u.rate = SIM.RATE_START; u.rtier = SIM.tierOfRate(SIM.RATE_START); u.rgames = 0; u.rstreak = 0; u.rwstreak = 0;
     u.rpeak = SIM.RATE_START; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
     u.rate2 = SIM.RATE_START; u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0;
     u.rpeak2 = SIM.RATE_START; u.ranked2 = { w: 0, l: 0 };
+    delete u.rboost; delete u.rboost2;
   }
-  db.meta.rateEpoch = 3; dirty = true;
+  if (users.length) console.log('rate reset (epoch ' + RATE_EPOCH + '):', users.length, 'accounts back to', SIM.RATE_START);
+  db.meta.rateEpoch = RATE_EPOCH; dirty = true;
 }
 // プロフィールのやり直し（段階ごとに1回だけ。中身は sim.js の upgradeProfile）。オンライン戦績とレートは消さない
 if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
@@ -155,6 +165,18 @@ if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
   }
   db.meta.titleEpoch = SIM.PROFILE_EPOCH; dirty = true;
 }
+// ランクの作り直し（10段 LT5〜HT1 → 8つのランク×Ⅰ〜Ⅲの24段）。前の段の番号を、同じレートの新しい段に直す（1回だけ）。
+// レートそのものは変えない。背景の番号（絵 0〜10）もそのまま
+if ((db.meta.tierVer || 1) < SIM.TIER_VER) {
+  const users = Object.values(db.users);
+  if (users.length) for (const u of users) {
+    if (u.bestEver) u.bestEver = SIM.tierFromOld(u.bestEver);
+    if (u.tierBest) u.tierBest = SIM.tierFromOld(u.tierBest);
+    if (typeof u.rate === 'number') u.rtier = SIM.tierOfRate(u.rate);
+    if (u.profile && u.profile.bestTier) { u.profile.bestTier = SIM.tierFromOld(u.profile.bestTier); u.profileRev = (u.profileRev || 0) + 1; }
+  }
+  db.meta.tierVer = SIM.TIER_VER; dirty = true;
+}
 // 解放した背景の上限（bestEver）を、サーバーの記録から作る（1回だけ）。
 // 前はブラウザが送った bestTier をそのまま信じていたので、前のシーズンまでに届いたと考えられる所（今の最高＋5ティア）までだけ残す
 if (!db.meta.bestEpoch) {
@@ -162,7 +184,7 @@ if (!db.meta.bestEpoch) {
     const peak = SIM.tierOfRate(Math.max(u.rpeak || 0, u.rate || 0, u.rpeak2 || 0, u.rate2 || 0));
     const played = u.online && (u.online.w + u.online.l) > 0;
     const claimed = u.profile && Number.isFinite(+u.profile.bestTier) ? +u.profile.bestTier : 0;
-    const cap = played ? Math.min(P.TIER_KEYS.length - 1, peak + ((db.meta.season || 1) > 1 ? 5 : 0)) : peak;
+    const cap = played ? Math.min(P.TIER_KEYS.length - 1, peak + ((db.meta.season || 1) > 1 ? 12 : 0)) : peak;
     u.bestEver = Math.max(peak, u.tierBest || 0, Math.min(claimed, cap));
   }
   db.meta.bestEpoch = 1; dirty = true;
@@ -205,6 +227,8 @@ function rollSeason(now) {
   }
   for (const u of Object.values(db.users)) {
     const r = rateState(u), r2 = rateState2(u);
+    // ランクブースト：前のシーズンの最高の段を覚えておく（そこまで、勝ちが1割増し）
+    u.rboost = SIM.tierOfRate(Math.max(u.rpeak || 0, r.rate)); u.rboost2 = SIM.tierOfRate(Math.max(u.rpeak2 || 0, r2.rate));
     u.rate = SIM.seasonNextRate(r.rate); u.rtier = SIM.tierOfRate(u.rate);
     u.rgames = 0; u.rstreak = 0; u.rwstreak = 0; u.rpeak = u.rate; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
     u.rate2 = SIM.seasonNextRate(r2.rate); u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0; u.rpeak2 = u.rate2; u.ranked2 = { w: 0, l: 0 };
@@ -251,7 +275,7 @@ function keepServerOwned(next, old, u) {
   // ブラウザも同じ決まりで判断するので、両方がそろう（そろわないと、お知らせがくり返し出る）
   { const proofG = { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor }, ctxG = u ? titleCtx(u) : null;
     for (const t of SIM.TITLES) if (!t.gate && !next.ach.got[t.id] && SIM.titleProof(t.id, proofG, ctxG)) next.ach.got[t.id] = 1; }
-  if (u) { next.bestTier = bestTierOf(u); if (typeof next.bg === 'number' && next.bg > next.bestTier) next.bg = null; }
+  if (u) { next.bestTier = bestTierOf(u); if (typeof next.bg === 'number' && !SIM.bgUnlocked(next.bg, next.bestTier)) next.bg = null; }
   // 付けている称号も、サーバーの記録で確かめ直す
   next.title = P.validTitle(next.title, u ? titleCtx(u) : null, { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor });
   if (next.bg === 'emperor' && !next.emperor.beat) next.bg = null;
@@ -418,14 +442,14 @@ function rateState(u) {
   if (u.rtier !== t2) { u.rtier = t2; touch(); }
   if (!u.ranked) { u.ranked = { w: 0, l: 0 }; touch(); }
   return { rate: u.rate, tier: u.rtier, games: u.rgames || 0, streak: u.rstreak || 0, wstreak: u.rwstreak || 0,
-    w: u.ranked.w, l: u.ranked.l, peak: u.rpeak || u.rate };
+    w: u.ranked.w, l: u.ranked.l, peak: u.rpeak || u.rate, boostTo: u.rboost || 0 };
 }
 // ---- 2v2 のレート（1v1 とは完全に別。1000 から、ティアの区切りは同じ）----
 function rateState2(u) {
   if (typeof u.rate2 !== 'number' || !isFinite(u.rate2)) { u.rate2 = SIM.RATE_START; u.rgames2 = 0; touch(); }
   if (!u.ranked2) { u.ranked2 = { w: 0, l: 0 }; touch(); }
   return { rate: u.rate2, tier: SIM.tierOfRate(u.rate2), games: u.rgames2 || 0, streak: u.rstreak2 || 0, wstreak: u.rwstreak2 || 0,
-    w: u.ranked2.w, l: u.ranked2.l, peak: u.rpeak2 || u.rate2 };
+    w: u.ranked2.w, l: u.ranked2.l, peak: u.rpeak2 || u.rate2, boostTo: u.rboost2 || 0 };
 }
 function writeRate2(u, r, win) {
   u.rate2 = r.rate; u.rgames2 = r.games; u.rstreak2 = r.streak; u.rwstreak2 = r.wstreak;
@@ -598,34 +622,42 @@ const auth = {
   rating(uid) { const u = db.users[uid]; return u ? rateState(u) : null; },
   // ランクマッチの結果をレートに当てはめて、両方の結果を返す。
   // capWin：勝った側がここまでしか上がれない（BOT戦の上限）。二人ぶんとも、試合前の値から計算する
+  // score：{ w: 勝った側のラウンド数, l: 負けた側のラウンド数 }（3-0 / 3-1 / 3-2 で動く量が変わる）。forfeit：負けた側が途中で抜けた
   applyRanked(winUid, loseUid, opt) {
     const a = db.users[winUid], b = db.users[loseUid];
     if (!a || !b) return null;
-    const ra = rateState(a), rb = rateState(b);
-    const A2 = SIM.applyRate(ra, { theirs: rb.rate, opTier: rb.tier, win: true, cap: (opt && opt.capWin) || null });
-    const B2 = SIM.applyRate(rb, { theirs: ra.rate, opTier: ra.tier, win: false, cap: null });
+    opt = opt || {};
+    const ra = rateState(a), rb = rateState(b), sc = opt.forfeit ? null : opt.score;
+    const A2 = SIM.applyRate(ra, { theirs: rb.rate, opTier: rb.tier, win: true, cap: opt.capWin || null,
+      rw: sc ? sc.w : null, rl: sc ? sc.l : null });
+    const B2 = SIM.applyRate(rb, { theirs: ra.rate, opTier: ra.tier, win: false, cap: null,
+      rw: sc ? sc.l : null, rl: sc ? sc.w : null, forfeit: !!opt.forfeit });
     writeRate(a, A2, true); writeRate(b, B2, false);
     return { win: A2, lose: B2 };
   },
 
   // BOT戦：人の側だけレートを動かす。勝っても cap のティアの下限より上には行かない
-  applyVsBot(uid, botRate, win, cap) {
+  // score：{ mine: 自分のラウンド数, theirs: BOTのラウンド数 }。forfeit：自分が途中で抜けた
+  applyVsBot(uid, botRate, win, cap, score, forfeit) {
     const u = db.users[uid];
     if (!u) return null;
-    const st = rateState(u);
-    const r = SIM.applyRate(st, { theirs: botRate, opTier: SIM.tierOfRate(botRate), win: !!win, cap: win ? cap : null });
+    const st = rateState(u), sc = forfeit ? null : score;
+    const r = SIM.applyRate(st, { theirs: botRate, opTier: SIM.tierOfRate(botRate), win: !!win, cap: win ? cap : null,
+      rw: sc ? sc.mine : null, rl: sc ? sc.theirs : null, forfeit: !win && !!forfeit });
     writeRate(u, r, !!win);
     return r;
   },
 
   // 2v2 のレート（1v1 とは別）
   rating2(uid) { const u = db.users[uid]; return u ? rateState2(u) : null; },
-  // 2v2 のランクマッチの結果を1人ぶん当てはめる。o = { mine: 自分のチームの平均, theirs: 相手チームの平均, win, cap }
+  // 2v2 のランクマッチの結果を1人ぶん当てはめる。o = { mine: 自分のチームの平均, theirs: 相手チームの平均, win, cap,
+  //   rw: 自分のチームのラウンド数, rl: 相手チームのラウンド数, forfeit: 途中で抜けた }
   applyRanked2(uid, o) {
     const u = db.users[uid];
     if (!u) return null;
     const st = rateState2(u);
-    const r = SIM.applyRate(st, { mine: o.mine, theirs: o.theirs, win: !!o.win, cap: o.win ? (o.cap == null ? null : o.cap) : null });
+    const r = SIM.applyRate(st, { mine: o.mine, theirs: o.theirs, win: !!o.win, cap: o.win ? (o.cap == null ? null : o.cap) : null,
+      rw: o.forfeit ? null : o.rw, rl: o.forfeit ? null : o.rl, forfeit: !o.win && !!o.forfeit });
     writeRate2(u, r, !!o.win);
     return r;
   },
@@ -959,7 +991,7 @@ const auth = {
       title: P.validTitle(p.title, titleCtx(u), p),
       bg: bg === 'emperor' ? (p.emperor && p.emperor.beat ? 'emperor' : null) : bg === 'dev' ? (u.dev ? 'dev' : null)
         : bg === 'champion' ? (u.champion ? 'champion' : null) : bg === 'halloween' ? ((p.inv || []).indexOf('bHW') >= 0 ? 'halloween' : null)
-        : typeof bg === 'number' && bg >= 0 && bg <= bestTierOf(u) ? bg : null,
+        : SIM.bgUnlocked(bg, bestTierOf(u)) ? bg : null,
     };
   },
   ownedLook(uid, look) { const u = uid && db.users[uid]; return SIM.lookOwned(look, u && u.profile ? SIM.cleanInv(u.profile.inv) : null); },
@@ -1029,7 +1061,7 @@ const auth = {
     return {
       fid: u.fid, name: p ? p.name : u.name, discord: u.name, dev: !!u.dev, badge: SIM.badgeShown(u.badges, p ? p.badge : null),
       title: p ? P.validTitle(p.title, titleCtx(u), p) : 'rookie', bio: p && !SIM.badText(p.bio) ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
-      tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
+      tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? SIM.artOfTier(p.bestTier) : p.bg) : 0,
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },
       rate2: r2.rate, tier2: r2.tier, ranked2: { w: r2.w, l: r2.l },
       status, lastSeen: status === 'offline' ? (u.lastSeen || 0) : 0,

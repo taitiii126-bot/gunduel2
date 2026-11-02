@@ -169,39 +169,49 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .sub-btn:hover{color:var(--tx);border-color:var(--line-2);transform:translateY(-1px);}
 .sub-btn svg.i{width:18px;height:18px;}
 /* 射撃場：キャンバスの下に、武器の切りかえと武器ごとの記録 */
-#range-panel{display:none;margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(10,12,20,.78);border:1px solid var(--line);}
+#range-panel{display:none;margin-top:12px;padding:14px 16px;border-radius:14px;background:rgba(10,12,20,.88);border:1px solid var(--line-2);}
 #game-screen.range #range-panel{display:block;}
 @media (min-width:700px){
   #game-screen.range.playing .canvas-frame{width:min(100%,max(480px,calc((100vh - 340px) * 2)));width:min(100%,max(480px,calc((100dvh - 340px) * 2)));}
 }
 .rp-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-.rp-head b{font-family:var(--f-disp);font-weight:400;font-size:15px;letter-spacing:.1em;color:var(--gold);}
-.rp-head .rp-note{flex:1;min-width:180px;font-size:11px;color:var(--tx-3);}
-.rp-head button{padding:6px 12px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.04);font-size:12px;font-weight:700;color:var(--tx-2);}
+.rp-head b{font-family:var(--f-disp);font-weight:400;font-size:18px;letter-spacing:.1em;color:var(--gold);}
+.rp-head .rp-note{flex:1;min-width:180px;font-size:12px;color:var(--tx-2);}
+.rp-head button{padding:7px 14px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.05);font-size:12.5px;font-weight:800;color:var(--tx);}
+.rp-head .rp-close{display:none;border-color:var(--gold);color:var(--gold);}
+.rp-h{margin:0 0 8px;font-size:11.5px;font-weight:800;letter-spacing:.16em;color:var(--tx-2);}
 .rp-head button:hover{color:var(--tx);border-color:var(--gold);}
 .rp-body{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;align-items:start;}
 @media (max-width:760px){.rp-body{grid-template-columns:1fr;}}
 .rp-slots{display:flex;gap:6px;margin-bottom:8px;}
-.rp-slots button{flex:1;display:flex;align-items:center;gap:7px;min-width:0;padding:6px 8px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);font-size:12px;font-weight:700;color:var(--tx-2);}
+.rp-slots button{flex:1;display:flex;align-items:center;gap:7px;min-width:0;padding:8px 10px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.04);font-size:13px;font-weight:800;color:var(--tx);}
 .rp-slots button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rp-slots button.sel{border-color:var(--gold);color:var(--gold);background:rgba(255,197,61,.08);}
 .rp-slots kbd{font-family:var(--f-ui);font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid rgba(255,255,255,.25);color:var(--tx-2);}
 .rp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
 @media (max-width:760px){.rp-grid{grid-template-columns:repeat(5,1fr);}}
-.rp-grid button{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 2px 5px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:10px;font-weight:700;color:var(--tx-2);}
+.rp-grid button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:5px 2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:11px;font-weight:800;letter-spacing:0;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rp-grid button:hover{border-color:rgba(255,255,255,.3);color:var(--tx);}
 .rp-grid button canvas{width:100%;height:auto;aspect-ratio:96/42;}
 .rp-grid button.on{border-color:var(--wc);box-shadow:0 0 12px -4px var(--wc);color:var(--tx);}
-.rp-grid button .sl{position:absolute;top:2px;left:4px;font-family:var(--f-ui);font-size:9px;color:var(--gold);}
-.rp-hint{margin-top:7px;font-size:10.5px;line-height:1.6;color:var(--tx-3);}
-.rp-table{width:100%;border-collapse:collapse;font-size:12px;}
-.rp-table th{font-size:10px;font-weight:700;color:var(--tx-3);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap;}
+.rp-grid button .sl{position:absolute;top:2px;left:4px;font-family:var(--f-ui);font-size:10px;font-weight:800;color:var(--gold);}
+.rp-hint{margin-top:8px;font-size:12px;line-height:1.65;color:var(--tx-2);}
+body.touch .rp-keys{display:none;}
+.rp-table{width:100%;border-collapse:collapse;font-size:13px;}
+.rp-table th{font-size:11px;font-weight:800;color:var(--tx-2);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap;}
 .rp-table th:first-child,.rp-table td:first-child{text-align:left;}
-.rp-table td{padding:5px 6px;text-align:right;font-family:var(--f-ui);font-weight:700;color:var(--tx-2);border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;}
+.rp-table td{padding:6px 6px;text-align:right;font-family:var(--f-ui);font-weight:700;color:var(--tx);border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;}
 .rp-table tr.cur td{color:var(--tx);background:rgba(255,197,61,.07);}
 .rp-table .wdot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--wc);}
-.rp-empty{font-size:11.5px;line-height:1.6;color:var(--tx-3);padding:8px 2px;}
-.rp-sub{margin-top:6px;font-size:10px;color:var(--tx-3);}
+.rp-empty{font-size:12.5px;line-height:1.65;color:var(--tx-2);padding:10px 12px;border:1px dashed var(--line-2);border-radius:10px;}
+.rp-sub{margin-top:8px;font-size:11px;line-height:1.6;color:var(--tx-3);}
+/* スマホ横持ち：表は「武器を変える」で左から出す（ふだんは画面の外なので隠す） */
+body.mland #game-screen.range #range-panel{display:none;}
+body.mland #game-screen.range.rp-open #range-panel{display:block;position:fixed;top:0;left:0;bottom:0;width:min(540px,66vw);z-index:40;margin:0;padding:10px 14px 16px max(14px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain;border:0;border-right:1px solid var(--line-2);border-radius:0;background:rgba(7,8,13,.96);}
+body.mland #game-screen.range.rp-open .rp-body{grid-template-columns:1fr;}
+body.mland #game-screen.range.rp-open .rp-grid{grid-template-columns:repeat(5,1fr);}
+body.mland #game-screen.range.rp-open .rp-head .rp-close{display:inline-block;}
+body.mland #game-screen.range.rp-open #gm-weps{display:none;}
 .sb-ic{position:relative;display:grid;place-items:center;}
 .sb-ic .mb-badge{top:-9px;right:-11px;}
 #login-bar{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:18px;}
@@ -619,10 +629,8 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 #match-panel .mp-col.mini h4{font-size:10.5px;}
 #match-panel .mp-col.ally h4{color:#5EEAD4;}
 /* オンライン対戦：①形式 → ②モード → ③対戦。選んでいるカードは金の枠と「選択中」。戻るボタンは上に固定 */
-.ol-bar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:12px;margin:-4px 0 10px;padding:10px 0;background:linear-gradient(180deg,var(--bg) 72%,rgba(0,0,0,0));}
-.ol-back{display:inline-flex;align-items:center;gap:6px;flex:none;padding:8px 14px;border-radius:99px;border:1px solid var(--line-2);background:rgba(10,12,20,.85);color:var(--tx-2);font-size:13px;font-weight:700;letter-spacing:.04em;transition:.15s;}
-.ol-back:hover{color:var(--tx);border-color:var(--gold);}
-.ol-back svg.i{width:16px;height:16px;}
+.ol-bar{display:flex;align-items:center;gap:12px;margin:-4px 0 10px;padding:6px 0;}
+.ol-bar:has(.ol-steps:empty){display:none;}
 .ol-steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;padding:0;list-style:none;font-size:11.5px;color:var(--tx-3);}
 .ol-steps li{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;border:1px solid transparent;white-space:nowrap;}
 .ol-steps li i{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:rgba(255,255,255,.08);font-family:var(--f-ui);font-size:10px;font-style:normal;font-weight:700;}
@@ -749,11 +757,14 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 .tier-row>span:first-child{display:flex;align-items:center;font-family:var(--f-ui);font-weight:700;letter-spacing:.06em;color:var(--tx-2);}
 .tier-row.current{background:rgba(255,197,61,.07);border-color:rgba(255,197,61,.45);color:var(--tx);}
 .tier-row.current>span:first-child{color:var(--tx);}
+.tier-divs{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+.tier-divs i{font-style:normal;padding:2px 7px;border-radius:6px;background:rgba(255,255,255,.05);font-family:var(--f-ui);font-size:11px;font-weight:700;color:var(--tx-3);white-space:nowrap;}
+.tier-divs i.on{background:rgba(255,197,61,.2);color:var(--gold);}
 .tier-dot{display:inline-block;width:8px;height:8px;margin-right:10px;border-radius:2px;transform:rotate(45deg);}
 
 /* ---------- ランキング ---------- */
 #rank-screen{max-width:680px;margin:0 auto;}
-.rk-row{display:grid;grid-template-columns:38px 1fr 54px 62px 52px;align-items:center;gap:8px;padding:8px 10px;border:1px solid transparent;border-radius:10px;font-size:12.5px;color:var(--tx-2);}
+.rk-row{display:grid;grid-template-columns:38px 1fr 78px 62px 52px;align-items:center;gap:8px;padding:8px 10px;border:1px solid transparent;border-radius:10px;font-size:12.5px;color:var(--tx-2);}
 .rk-row+.rk-row{margin-top:4px;}
 .rk-head{padding:4px 10px;font-size:10px;font-weight:800;letter-spacing:.1em;color:var(--tx-3);}
 #rank-list .rk-row{background:rgba(255,255,255,.025);}
@@ -763,7 +774,7 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 .rk-who b{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--tx-1);}
 .rk-who small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10.5px;color:var(--tx-3);}
 .rk-who .rk-col{display:flex;flex-direction:column;min-width:0;line-height:1.25;}
-.rk-tier{font-family:var(--f-ui);font-weight:800;font-size:11px;letter-spacing:.06em;text-align:center;}
+.rk-tier{font-family:var(--f-ui);font-weight:800;font-size:10.5px;letter-spacing:0;text-align:center;white-space:nowrap;}
 .rk-rate{font-family:var(--f-disp);font-size:15px;color:var(--tx-1);text-align:right;}
 .rk-wr{font-size:11.5px;color:var(--tx-3);text-align:right;}
 .rk-row canvas{width:26px;height:26px;flex:0 0 26px;}
@@ -1059,10 +1070,9 @@ body.in-game #wrap{max-width:1340px;}
   #game-screen.playing .canvas-frame{width:min(100%,max(480px,calc((100vh - 120px) * 2)));width:min(100%,max(480px,calc((100dvh - 120px) * 2)));}
   body.touch #game-screen.playing .canvas-frame{width:min(100%,max(480px,calc((100vh - 340px) * 2)));width:min(100%,max(480px,calc((100dvh - 340px) * 2)));}
 }
-#game-screen.playing #weapon-bar,#game-screen.playing #difficulty-bar,#game-screen.playing #hint,#game-screen.playing #btns,#game-screen.playing #back-to-menu{display:none;}
+#game-screen.playing #weapon-bar,#game-screen.playing #difficulty-bar,#game-screen.playing #hint,#game-screen.playing #btns{display:none;}
 body.touch #game-screen.playing #btns{display:grid;}
 body.touch #game-screen.playing #weapon-bar{display:grid;}
-body.touch #game-screen.playing #back-to-menu{display:flex;}
 /* ---------- スマホ横持ち（body.mland）：ゲームを画面いっぱいに出し、操作ボタンは画面の上に重ねる ---------- */
 #tpad{display:none;position:absolute;inset:0;z-index:3;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 #rotate-hint{display:none;margin-top:10px;padding:8px 12px;border:1px dashed var(--line-2);border-radius:10px;font-size:12px;font-weight:700;color:var(--tx-2);text-align:center;}
@@ -1074,11 +1084,10 @@ body.mland #game-screen{max-width:none;}
 body.mland #game-screen.playing .canvas-frame{width:min(100vw,calc(100vh * 2));width:min(100vw,calc(100dvh * 2));padding:0;border-radius:0;background:none;box-shadow:none;}
 body.mland #game-screen.playing .canvas-frame::before,body.mland #game-screen.playing .canvas-frame::after{display:none;}
 body.mland #game-screen.playing #c{border-radius:0;}
-body.mland #game-screen.playing #btns,body.mland #game-screen.playing #weapon-bar,body.mland #game-screen.playing #back-to-menu,body.mland #game-screen.playing #online-hud{display:none;}
+body.mland #game-screen.playing #btns,body.mland #game-screen.playing #weapon-bar,body.mland #game-screen.playing #online-hud{display:none;}
 body.mland #game-screen.playing #tpad{display:block;}
 body.mland.pad #game-screen.playing #tpad{display:none;}
 body.mland #game-screen.playing #match-panel.on~#tpad{display:none;}   /* 試合前の準備（ステージ・武器を選ぶ）の間は隠す */   /* ゲームパッドで遊んでいる間は隠す */
-body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
 #tp-stick{position:absolute;left:0;bottom:0;width:40%;height:78%;pointer-events:auto;touch-action:none;}
 #tp-stick i{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;}
 #tp-stick .tp-base{width:24vh;height:24vh;border:1.5px solid rgba(255,255,255,.22);background:rgba(10,12,20,.22);opacity:.55;transition:opacity .15s;}
@@ -1104,7 +1113,7 @@ body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
 .tp-xs{width:10vh;height:10vh;}
 #tp-emo{right:9vh;bottom:50vh;border-color:rgba(255,210,74,.6);}
 body.mland #emote-menu{bottom:auto;top:12vh;}
-body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:50px;}
+body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:10px;}
 #tp-weps{position:absolute;left:50%;bottom:2vh;transform:translateX(-50%);display:flex;gap:1.5vh;pointer-events:auto;}
 .tp-w{min-width:16vh;height:9vh;padding:0 2vh;border-radius:2.4vh;border:1.5px solid rgba(255,255,255,.22);background:rgba(10,12,20,.5);color:rgba(255,255,255,.72);font-size:max(10px,2.8vh);font-weight:900;letter-spacing:.04em;touch-action:none;}
 .tp-w small{display:block;margin-top:1px;font-family:var(--f-ui);font-size:max(8px,2.2vh);font-weight:700;opacity:.7;}
@@ -1132,8 +1141,13 @@ body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:50px;}
 #tl-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:46%;margin:0;text-align:center;font-size:max(10px,2.4vh);font-weight:700;color:rgba(255,255,255,.55);pointer-events:none;}
 #tl-rot{display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(7,8,12,.92);color:var(--tx);font-weight:700;}
 @media (orientation:portrait){#tl-rot{display:flex;}}
-#tp-menu{position:absolute;top:19vh;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);pointer-events:auto;}
-#tp-menu svg.i{width:16px;height:16px;}
+/* 試合・射撃場の戻るボタン：ゲームの絵の左上（上の体力の帯の下）。射撃場は一番上の角 */
+#gm-back,#gm-weps{position:absolute;left:10px;top:18%;z-index:6;display:none;align-items:center;gap:5px;height:30px;padding:0 12px 0 8px;border:1px solid var(--line-2);background:rgba(10,12,20,.62);color:var(--tx-2);font-size:12px;font-weight:800;letter-spacing:.05em;white-space:nowrap;clip-path:var(--cut-s);opacity:.8;transition:.15s var(--ease);-webkit-tap-highlight-color:transparent;}
+#gm-back svg.i,#gm-weps svg.i{width:16px;height:16px;}
+#gm-back:hover,#gm-weps:hover{opacity:1;color:var(--tx);border-color:var(--gold);}
+body.in-game #gm-back{display:inline-flex;}
+#game-screen.range #gm-back{top:10px;opacity:1;color:var(--tx);background:rgba(10,12,20,.85);border-color:rgba(255,255,255,.3);}
+body.mland #game-screen.range #gm-weps{display:inline-flex;top:48px;opacity:1;color:var(--gold);background:rgba(10,12,20,.85);border-color:rgba(255,197,61,.5);}
 #fs-btn{position:absolute;bottom:10px;right:10px;z-index:5;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);opacity:.5;transition:.15s var(--ease);}
 #fs-btn:hover{opacity:1;color:var(--tx);}
 #fs-btn svg.i{width:16px;height:16px;}
@@ -1157,6 +1171,14 @@ body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:50px;}
 
 /* ---------- 右上のボタン ---------- */
 #corner{position:fixed;top:12px;right:12px;z-index:999;display:flex;gap:6px;}
+/* 左上の戻るボタン（ホームとゲーム画面以外）。中身は下に 64px ずらして、ボタンと重ならないようにする */
+.nav-back{position:fixed;top:12px;left:12px;z-index:999;display:none;align-items:center;gap:6px;height:40px;padding:0 18px 0 11px;border:1px solid var(--line-2);background:rgba(15,18,27,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--tx);font-size:13.5px;font-weight:800;letter-spacing:.08em;clip-path:var(--cut-s);transition:.18s var(--ease);}
+.nav-back svg.i{width:18px;height:18px;}
+.nav-back:hover{color:var(--gold);border-color:var(--gold);}
+.nav-back:focus-visible{outline-offset:-4px;}
+body.nav-on .nav-back{display:inline-flex;}
+body.nav-on #wrap{padding-top:68px;}
+body.crate-open .nav-back{display:none;}
 .corner-btn{width:36px;height:36px;display:grid;place-items:center;background:rgba(18,21,31,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:10px;color:var(--tx-3);transition:.2s var(--ease);}
 .corner-btn svg.i{width:17px;height:17px;}
 .corner-btn:hover{color:var(--tx);border-color:rgba(255,255,255,.28);}
@@ -1855,6 +1877,8 @@ body.demo #bg-shade{opacity:1;}
 body.mland:not(.in-game){align-items:flex-start;}
 body.mland:not(.in-game) #wrap{max-width:none;padding:8px max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left));}
 body.mland #corner{top:6px;right:max(8px,env(safe-area-inset-right));gap:4px;}
+body.mland .nav-back{top:6px;left:max(8px,env(safe-area-inset-left));height:32px;padding:0 13px 0 8px;font-size:12px;}
+body.mland.nav-on:not(.in-game) #wrap{padding-top:46px;}
 body.mland .corner-btn{width:32px;height:32px;}
 body.mland .menu,body.mland .menu.wide{max-width:none;}
 body.mland .scr-head{margin:0 90px 8px;}
@@ -1960,7 +1984,7 @@ body:has(#profile-screen:not([style*="none"])) #wrap{max-width:1120px;}
 
 /* 背景：少し大きく */
 #profile-screen .bg-grid{grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;}
-#profile-screen .bg-opt .lk{font-size:10.5px;}
+#profile-screen .bg-opt .lk{font-size:9.5px;letter-spacing:0;white-space:nowrap;}
 
 /* 見た目：右の欄に収まるように */
 #profile-screen .look-wrap{grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:22px;}
@@ -2532,7 +2556,7 @@ body.ev-wn .ev-off{background:linear-gradient(180deg,#8FD8FF,#3D8FE6);border-col
 body:not([data-scr="game-screen"]) #fps-meter{display:none!important;}
 .kb-hint{display:block;margin-top:2px;font-size:11px;font-weight:600;color:var(--tx-3);letter-spacing:0;}
 /* 窓を開いている間は、右上の設定・音のボタンを隠す（窓の閉じるボタンと重ならないように） */
-body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
+body:has(.fr-modal.show) .corner-btn,body:has(.fr-modal.show) .nav-back{visibility:hidden;}
 /* ---- ホーム（見た目の整理）：左はアイコンの小さな列にして、真ん中のキャラを大きく見せる ---- */
 @media (min-width:1000px){
   .home-main{grid-template-columns:96px minmax(0,1fr) 420px;column-gap:24px;}
@@ -2566,6 +2590,8 @@ body.mland .home-hero{height:72vh;}
 <div id="bs-bg" aria-hidden="true"></div>
 <div id="fps-meter" aria-hidden="true" style="display:none"></div>
 <div id="ev-deco" aria-hidden="true"><div class="glow"></div><div class="web l"></div><div class="web r"></div></div>
+<!-- 戻るボタン：どの画面でも左上の同じ場所（右上の設定・音のボタンと対になる）。行き先は navBack が画面ごとに決める -->
+<button id="nav-back" class="nav-back" onclick="navBack()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
 <div id="corner">
   <button id="settings-btn" class="corner-btn" onclick="showSettingsScreen()" data-i18n-title="common.settings">
     <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
@@ -2677,7 +2703,6 @@ body.mland .home-hero{height:72vh;}
       <button class="st-arrow" onclick="stageStep(1)" aria-label="next"><svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
     </div>
     <div class="st-dots" id="st-dots"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="stage.backMode"></span></button>
   </div>
 
   <div id="cpu-screen" class="screen menu" style="display:none;">
@@ -2689,13 +2714,11 @@ body.mland .home-hero{height:72vh;}
       <button class="pill-btn" id="cpu-replay" onclick="startReplay()" style="display:none"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="m10 9 5 3-5 3z"/></svg><span data-i18n="rp.watch"></span></button>
     </div>
     <div id="cpu-list"></div>
-    <button class="back-btn" onclick="showStageScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="cpu.backStage"></span></button>
   </div>
 
   <div id="room-screen" class="screen menu" style="display:none;">
     <!-- 戻るボタンと、いまどこまで選んだか（上に固定。戻るボタンはいつも同じ場所） -->
     <div class="ol-bar">
-      <button class="ol-back" onclick="onlineBack()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
       <ol class="ol-steps" id="ol-steps"></ol>
     </div>
     <div class="scr-head">
@@ -2752,7 +2775,6 @@ body.mland .home-hero{height:72vh;}
     <div id="rank-head" class="rk-row rk-head"><span class="rk-no">#</span><span class="rk-who" data-i18n="rank.player"></span><span class="rk-tier" data-i18n="rank.tier"></span><span class="rk-rate" data-i18n="rank.rate"></span><span class="rk-wr" data-i18n="rank.winrate"></span></div>
     <div id="rank-list"></div>
     <div id="rank-me"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="shop-screen" class="screen menu wide" style="display:none;">
@@ -2761,7 +2783,6 @@ body.mland .home-hero{height:72vh;}
       <div class="v2-coins" id="shop-coins"></div>
     </div>
     <div id="shop-body"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="event-screen" class="screen menu wide" style="display:none;">
@@ -2771,7 +2792,6 @@ body.mland .home-hero{height:72vh;}
       <div class="ev-candy" id="ev-candy"></div>
     </div>
     <div id="ev-body"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="pass-screen" class="screen menu wide" style="display:none;">
@@ -2791,7 +2811,6 @@ body.mland .home-hero{height:72vh;}
     </div>
     <div class="v2-sec"><h3 data-i18n="pass.missions"></h3><p id="pass-note"></p></div>
     <div class="ps-mis" id="pass-mis"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="clan-screen" class="screen menu wide" style="display:none;">
@@ -2801,7 +2820,6 @@ body.mland .home-hero{height:72vh;}
       <p class="scr-sub" id="cl-sub"></p>
     </div>
     <div id="cl-body"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
   </div>
 
   <div id="friends-screen" class="screen menu" style="display:none;">
@@ -2825,7 +2843,6 @@ body.mland .home-hero{height:72vh;}
       </div>
       <div id="fr-lists"></div>
     </div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
   </div>
 
   <div id="settings-screen" class="screen menu" style="display:none;">
@@ -2900,7 +2917,6 @@ body.mland .home-hero{height:72vh;}
       <div id="server-url-bar"><label for="server-url">URL</label><input id="server-url" value="wss://gunduel2-production.up.railway.app" spellcheck="false"></div>
       <p class="pf-note" data-i18n="set.serverNote"></p>
     </div>
-    <button class="back-btn" onclick="closeSettings()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="loadout-screen" class="screen menu wide" style="display:none;">
@@ -2912,7 +2928,6 @@ body.mland .home-hero{height:72vh;}
     <div class="lo-slots" id="lo-slots"></div>
     <p class="lo-hint" data-i18n="lo.hint"></p>
     <div class="lo-grid" id="lo-grid"></div>
-    <button class="back-btn" onclick="closeLoadout()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="lo.done"></span></button>
   </div>
 
   <div id="profile-screen" class="screen menu wide" style="display:none;" data-pf="card">
@@ -2995,7 +3010,7 @@ body.mland .home-hero{height:72vh;}
             <div id="profile-rows"></div>
           </div>
           <div class="settings-section">
-            <h3><span data-i18n="pf.tier"></span><span>TIER</span></h3>
+            <h3><span data-i18n="pf.tier"></span><span>RANK</span></h3>
             <div id="tier-badge-wrap">
               <div id="tier-score"></div>
               <div id="tier-progress-wrap"><div id="tier-progress-bar"></div></div>
@@ -3006,7 +3021,6 @@ body.mland .home-hero{height:72vh;}
         </div>
       </div>
     </div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="game-screen" class="screen" style="display:none;">
@@ -3019,8 +3033,7 @@ body.mland .home-hero{height:72vh;}
       <button id="tp-emo" class="tp-b tp-xs" onclick="toggleEmoteMenu()"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></button>
       <button id="tp-jump" class="tp-b tp-m"><svg class="i" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg><small data-i18n="btn.jump"></small></button>
       <button id="tp-atk" class="tp-b tp-l"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg><small data-i18n="btn.attack"></small></button>
-      <button id="tp-menu" onclick="leaveMatch()" data-i18n-title="common.backMenu"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
-    </div><button id="fs-btn" onclick="toggleFullscreen()" data-i18n-title="common.fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+    </div><button id="gm-back" onclick="gameBack()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button><button id="gm-weps" onclick="rangePanelToggle()"><svg class="i" viewBox="0 0 24 24"><path d="M3 10h13l2-2h3v5h-4l-2 2H9l-1 4H5l1-4H3z"/></svg><span data-i18n="range.weps"></span></button><button id="fs-btn" onclick="toggleFullscreen()" data-i18n-title="common.fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
     <div id="online-hud"></div>
     <div id="range-panel"></div>
     <div id="rotate-hint" data-i18n="game.rotate"></div>
@@ -3053,7 +3066,6 @@ body.mland .home-hero{height:72vh;}
       <span class="lock-note"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-i18n="game.locked"></span></span>
     </div>
     <div id="hint"><span data-i18n="game.hint"></span><span><kbd>Enter</kbd><span data-i18n="game.hintEnter"></span></span></div>
-    <button id="back-to-menu" class="back-btn" onclick="leaveMatch()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 </div>
 <div id="dev-ask" class="fr-modal dev-ask" role="dialog" aria-modal="true">
@@ -3139,8 +3151,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=55"></script>
-<script src="lang.js?v=73"></script>
+<script src="sim.js?v=59"></script>
+<script src="lang.js?v=78"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4294,6 +4306,7 @@ function ensureProfileShape(){
     if(!profile.stats[k])profile.stats[k]={w:0,l:0};
     if(!profile.tierProgress[k])profile.tierProgress[k]={beat:false,straight:false};
   });
+  if((+profile.tierVer||1)<SIM.TIER_VER){profile.bestTier=SIM.tierFromOld(profile.bestTier);profile.tierVer=SIM.TIER_VER;}   // 10段（LT5〜HT1）の番号を、24段に直す
   profile.bestTier=Math.max(0,Math.min(TIER_LADDER.length-1,Math.floor(+profile.bestTier||0)));   // 解放済みの背景（ここが未設定だと全部開いて見えてしまう）
   // 宝箱・レベル・ミッション（ログイン中は、持ち物などはサーバーの値が本物）
   profile.xp=Math.max(0,Math.floor(+profile.xp||0));
@@ -4319,7 +4332,7 @@ function ensureProfileShape(){
   else if(profile.bg===CHAMP_BG){if(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&!isChampion())profile.bg=null;}
   else if(profile.bg===DEV_BG){if(typeof AUTH!=='undefined'&&AUTH&&AUTH.user&&!isDevUser())profile.bg=null;}   // 開発者の背景：開発者でないと分かったら外す
   else if(profile.bg===HW_BG){if(!(Array.isArray(profile.inv)&&profile.inv.indexOf('bHW')>=0))profile.bg=null;}   // ハロウィン限定：持っていなければ外す
-  else if(profile.bg!=null&&!(profile.bg>=0&&profile.bg<=profile.bestTier))profile.bg=null;
+  else if(profile.bg!=null&&!SIM.bgUnlocked(profile.bg,profile.bestTier))profile.bg=null;
 }
 // ============================================================
 // 宝箱・レベル・デイリーミッション
@@ -5687,6 +5700,14 @@ function recordMatchResult(diff,win,straight){
 }
 // ランクマッチの結果（サーバーが計算したもの）を当てはめる。rateFx はリザルト画面で見せる増減
 var rateFx=null;
+// 試合のスコアと、それで決まった倍率（3-0 ×1.2 など）。途中で抜けた負けは「途中退出」。分からなければ null
+function rateScoreOf(r){
+  var m=+r.mult;if(!(m>0))return null;
+  var lbl=r.ff?t('c.rateLeft'):(typeof r.rw==='number'&&typeof r.rl==='number')?(r.rw+'-'+r.rl):null;
+  if(!lbl)return null;
+  var good=r.win?m>1:m<1,bad=r.win?m<1:m>1;   // 自分にとって得か損か（色に使う）
+  return {lbl:lbl,mult:'\u00D7'+m.toFixed(1),col:good?'#34D399':bad?'#FF6B6B':'rgba(255,255,255,.62)'};
+}
 function applyRateResult(r){
   if(!r||typeof r.rate!=='number')return;
   ensureProfileShape();
@@ -5698,7 +5719,7 @@ function applyRateResult(r){
     var t2a=typeof r.tier==='number'?r.tier:SIM.tierOfRate(profile.rate2);
     profile.bestTier=Math.max(+profile.bestTier||0,t2a);   // 背景は 1v1・2v2 どちらのティアでも解放
     saveProfile();
-    rateFx={kind:'2v2',before:b2,after:profile.rate2,delta:profile.rate2-b2,tierBefore:t2b,tierAfter:t2a};
+    rateFx={kind:'2v2',before:b2,after:profile.rate2,delta:profile.rate2-b2,tierBefore:t2b,tierAfter:t2a,sc:rateScoreOf(r)};
     renderHomeBar();return;
   }
   var before=typeof r.before==='number'?r.before:myRate(),tb=typeof r.tierBefore==='number'?r.tierBefore:computeTierIndex();
@@ -5709,14 +5730,16 @@ function applyRateResult(r){
   if(r.win)profile.ranked.w++;else profile.ranked.l++;
   profile.bestTier=Math.max(+profile.bestTier||0,profile.tier);
   saveProfile();
-  rateFx={before:before,after:profile.rate,delta:profile.rate-before,tierBefore:tb,tierAfter:profile.tier};
+  rateFx={before:before,after:profile.rate,delta:profile.rate-before,tierBefore:tb,tierAfter:profile.tier,sc:rateScoreOf(r)};
   if(profile.tier>tb)reportTier(TIER_LADDER[profile.tier].key);
   renderHomeBar();
 }
-function bgIndex(){return profile.bg==null?profile.bestTier:profile.bg;}
+function bgIndex(){return profile.bg==null?tierArt(profile.bestTier):profile.bg;}   // 背景の絵の番号（選んでいなければ、届いた一番上のランクの絵）
 function titleText(id){return t('title.'+(id||'rookie'));}
+// カードの上に出すランク：1v1 と 2v2 の高いほう
+function cardTierIndex(){return Math.max(computeTierIndex(),myTier2Index());}
 function myCardData(){
-  return{clan:AUTH.user?clanTag():'',name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),titleHw:isHwTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
+  return{clan:AUTH.user?clanTag():'',name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),titleHw:isHwTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:cardTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
 }
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
@@ -5746,7 +5769,7 @@ function pickBg(i){
   if(i===CHAMP_BG){if(!isChampion())return;profile.bg=CHAMP_BG;saveProfile();renderBgOptions();return;}
   if(i===DEV_BG){if(!isDevUser())return;profile.bg=DEV_BG;saveProfile();renderBgOptions();pfSaved();return;}
   if(i===HW_BG){if(!itemOwned('bHW'))return;profile.bg=HW_BG;saveProfile();renderBgOptions();pfSaved();return;}
-  i=+i;if(!(i>=0&&i<=profile.bestTier))return;profile.bg=i;saveProfile();renderBgOptions();pfSaved();
+  i=+i;if(!SIM.bgUnlocked(i,profile.bestTier))return;profile.bg=i;saveProfile();renderBgOptions();pfSaved();
 }
 // 見た目のエディター：タブは 肌・目（形と色）・まゆげ・髪（形と色）・鼻・口・帽子（形と自分の色）・服・首もと（形と自分の色）
 var LOOK_TABS=[
@@ -6041,11 +6064,11 @@ function pickBadge(n){n=+n;if(n!==-1&&SIM.cleanBadges(AUTH&&AUTH.user&&AUTH.user
 function renderBgOptions(){
   var el=document.getElementById('pf-bgs');if(!el)return;
   var html='';
-  for(var i=0;i<TIER_LADDER.length;i++){
-    var locked=i>profile.bestTier;
-    html+='<button class="bg-opt'+(i===bgIndex()?' sel':'')+(locked?' locked':'')+'" onclick="pickBg('+i+')" title="'+esc(locked?t('pf.bgLocked',{tier:tierName(i)}):tierName(i))+'">'+
+  for(var i=0;i<SIM.BG_UNLOCK.length;i++){   // 絵 0〜10。それぞれ、届いた段で使える
+    var locked=!SIM.bgUnlocked(i,profile.bestTier),need=tierName(SIM.BG_UNLOCK[i]);
+    html+='<button class="bg-opt'+(i===bgIndex()?' sel':'')+(locked?' locked':'')+'" onclick="pickBg('+i+')" title="'+esc(locked?t('pf.bgLocked',{tier:need}):bgName(i))+'">'+
       '<canvas data-bg="'+i+'" width="104" height="138"></canvas>'+
-      (locked?'<span class="lk"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'+esc(tierName(i))+'</span>':'')+'</button>';
+      (locked?'<span class="lk"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>'+esc(need)+'</span>':'')+'</button>';
   }
   // 鬼帝の背景：勝った人だけ（それまでは、あることも見せない）
   if(emperorSlain())html+='<button class="bg-opt emp'+(profile.bg===EMP_BG?' sel':'')+'" onclick="pickBg(\''+EMP_BG+'\')" title="'+esc(t('pf.bgEmperor'))+'"><canvas data-bg="'+EMP_BG+'" width="104" height="138"></canvas></button>';
@@ -6060,7 +6083,7 @@ function renderBgOptions(){
     if(v===CHAMP_BG){g.clearRect(0,0,104,138);drawChampionBg(g,0,0,104,138,1);return;}
     if(v===HW_BG){drawTierBg(g,HW_BG,0,0,104,138,1);return;}
     var i=+v;
-    drawTierBg(g,i,0,0,104,138,1);drawTierIcon(g,i,52,50,76,64,1);
+    drawTierBg(g,i,0,0,104,138,1);drawArtIcon(g,i,52,50,76,64,1);
   });
 }
 function renderProfileUI(){
@@ -6098,19 +6121,9 @@ function renderProfileUI(){
 // CPU戦の到達度は「ランクマッチを始めるまでのレートの下限」と、称号・背景の解放に使う。
 // 下から：LT5<HT5<LT4<HT4<LT3<HT3<LT2<HT2<LT1<HT1
 // color は画面の差し色（進み具合のバー・丸いアイコンの背景・Discord）。紋章の素材は TIER_STYLE
-var TIER_LADDER=[
-  {key:'',   color:'#6874B8'},
-  {key:'LT5',color:'#8A919B'},   // 鉄
-  {key:'HT5',color:'#C07A45'},   // 銅
-  {key:'LT4',color:'#7CCBF2'},   // 銀（氷の水色）
-  {key:'HT4',color:'#4FD39E'},   // 銀＋金（翡翠）
-  {key:'LT3',color:'#D9A331'},   // 金
-  {key:'HT3',color:'#B983FF'},   // 金＋ルビー（紫水晶）
-  {key:'LT2',color:'#C81E3A'},   // 深紅＋銀
-  {key:'HT2',color:'#4FAEFF'},   // 深紅＋金（青い炎）
-  {key:'LT1',color:'#FF8A2A'},   // こげ茶＋煙（オレンジ）
-  {key:'HT1',color:'#FFF4D6'}    // 白金
-];
+// ランク（8つ×Ⅰ〜Ⅲの24段）。key は通信や記録に使う記号（BR1〜EC3）、color はランクの色（Ⅰ〜Ⅲは同じ）
+var RANK_COLOR=['#6874B8','#C9824C','#A3AAB4','#E2B13C','#8FD3F5','#B983FF','#E0314B','#4FAEFF','#FFE7A8'];
+var TIER_LADDER=SIM.TIER_KEYS.map(function(k,i){var rk=SIM.rankOf(i);return{key:k,color:RANK_COLOR[rk.r],r:rk.r,d:rk.d};});
 // CPU戦の到達度（0〜10）。称号・背景の解放と、ランクマッチを始めるまでのレートの下限に使う
 function cpuTierIndex(){
   var idx=0,tp=profile&&profile.tierProgress;
@@ -6154,16 +6167,19 @@ function renderTierUI(){
     barEl.style.width=(hi?Math.max(2,Math.min(100,(rate-lo)/(hi-lo)*100)):100)+'%';
     barEl.style.background=tier.color;barEl.style.color=tier.color;
   }
-  if(nextEl)nextEl.textContent=next?t('tier.nextRate',{tier:next.key,n:Math.max(1,SIM.TIER_MIN[idx+1]-rate)}):t('tier.max');
+  if(nextEl)nextEl.textContent=next?t('tier.nextRate',{tier:tierName(idx+1),n:Math.max(1,SIM.TIER_MIN[idx+1]-rate)}):t('tier.max');
   renderTierLadder(idx);
 }
 function renderTierLadder(idx){
   var ladderEl=document.getElementById('tier-ladder');
   if(ladderEl){
-    var html='';
-    for(var i=TIER_LADDER.length-1;i>=0;i--){
-      html+='<div class="tier-row'+(i===idx?' current':'')+'"><span><canvas class="tier-mk" data-mk="'+i+'" width="72" height="72"></canvas>'+esc(tierName(i))+'</span><span>'+esc(tierRangeText(i))+'</span></div>';
+    var html='',cur=SIM.rankOf(idx);
+    for(var r=SIM.RANKS.length-1;r>=1;r--){
+      var t1=(r-1)*3+1,on=cur.r===r&&idx>0;
+      html+='<div class="tier-row'+(on?' current':'')+'"><span><canvas class="tier-mk" data-mk="'+(on?idx:t1)+'" width="72" height="72"></canvas>'+esc(rankName(r))+'</span><span class="tier-divs">'+
+        [0,1,2].map(function(k){return'<i class="'+(on&&cur.d===k+1?'on':'')+'">'+ROMAN[k+1]+' '+SIM.TIER_MIN[t1+k]+'</i>';}).join('')+'</span></div>';
     }
+    html+='<div class="tier-row'+(idx===0?' current':'')+'"><span><canvas class="tier-mk" data-mk="0" width="72" height="72"></canvas>'+esc(tierName(0))+'</span><span>'+esc(tierRangeText(0))+'</span></div>';
     ladderEl.innerHTML=html;
     ladderEl.querySelectorAll('canvas[data-mk]').forEach(function(cv){var g=cv.getContext('2d');drawTierIcon(g,+cv.getAttribute('data-mk'),36,36,70,70,0);});
   }
@@ -6342,7 +6358,7 @@ function pushProfile(){
 // サーバーの内容で手元を置きかえる（送り返さない）
 function adoptProfile(p){
   if(!p||typeof p!=='object')return;
-  ['name','bio','title','look','bg','badge','bestTier','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['name','bio','title','look','bg','badge','bestTier','tierVer','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
   ensureProfileShape();writeProfileLocal();setSyncBase();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
@@ -6808,7 +6824,7 @@ function clanFormHtml(){
   h+='<label class="cl-fl"><span>'+esc(t('cl.desc'))+'</span><textarea class="fr-input" maxlength="200" rows="4" placeholder="'+esc(t('cl.descPh'))+'" oninput="clanF(\'desc\',this.value)">'+esc(F.desc)+'</textarea></label>';
   h+='<div class="cl-fl"><span>'+esc(t('cl.typeLbl'))+'</span><div class="cl-types">'+CL_TYPES.map(function(tp){
     return'<label class="cl-tp'+(F.type===tp?' sel':'')+'"><input type="radio" name="cl-type" value="'+tp+'"'+(F.type===tp?' checked':'')+' onchange="clanF(\'type\',this.value)"><b>'+esc(t('cl.type.'+tp))+'</b><small>'+esc(t('cl.typeNote.'+tp))+'</small></label>';}).join('')+'</div></div>';
-  var tops='';for(var i=0;i<=10;i++)tops+='<option value="'+i+'"'+(F.minTier===i?' selected':'')+'>'+esc(i?tierName(i):t('cl.noReq'))+'</option>';
+  var tops='';for(var i=0;i<TIER_LADDER.length;i++)tops+='<option value="'+i+'"'+(F.minTier===i?' selected':'')+'>'+esc(i?tierName(i):t('cl.noReq'))+'</option>';
   h+='<div class="cl-f2"><label class="cl-fl"><span>'+esc(t('cl.minTier'))+'</span><select class="fr-input" onchange="clanF(\'minTier\',this.value)">'+tops+'</select><small>'+esc(t('cl.minTierNote'))+'</small></label>'+
     '<label class="cl-fl"><span>'+esc(t('cl.region'))+'</span><select class="fr-input" onchange="clanF(\'region\',this.value)">'+regionOptions(F.region)+'</select></label></div>';
   h+='<div class="cl-fbtns"><button class="cl-btn main" onclick="clanSubmit()">'+esc(t(cr?'cl.createBtn':'cl.save'))+'</button><button class="cl-btn" onclick="clanGo(\'home\')">'+esc(t('cl.cancel'))+'</button></div>';
@@ -6871,7 +6887,7 @@ function friendOp(op,fid){
 }
 // ---- フレンドのプロフィール（自分のプロフィールと同じカード）----
 function friendCardData(p){
-  return{clan:cleanTagC(p.clan),name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),titleHw:isHwTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
+  return{clan:cleanTagC(p.clan),name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),titleHw:isHwTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:Math.max(+p.tier||0,+p.tier2||0),bg:bgOf(p.bg,Math.max(+p.tier||0,+p.tier2||0)),
     look:SIM.cleanLook(p.look||LOOK_DEFAULT,true),loadout:p.loadout?SIM.cleanLoadout(p.loadout,false):null,team:TEAM.me,badge:p.badge==null?null:+p.badge};
 }
 function openFriend(fid){
@@ -7018,6 +7034,7 @@ function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
   currentScreen=id;document.body.setAttribute('data-scr',id);   // 画面ごとの背景色（ショップ・パス）
   document.body.classList.toggle('in-game',id==='game-screen');
+  document.body.classList.toggle('nav-on',!!navBackFn(id));   // 左上の戻るボタン
   SCREENS.forEach(function(s){var el=document.getElementById(s);if(el)el.style.display=(s===id)?'':'none';});
   setDemo(id==='mode-screen');   // ホームだけ背景でCPU同士が戦う
   setDemoOn(PREVIEW,id==='stage-screen');
@@ -7065,7 +7082,7 @@ function renderHomeBar(){
   tl.textContent=titleText(profile.title);tl.className='hb-title'+(titleCls(profile.title)?' '+titleCls(profile.title):'');
   document.getElementById('hb-tier-name').textContent=isRanked()?tierName(tier):'';
   var rt=document.getElementById('hb-rate');   // 2v2のぶんは、狭い画面では隠す（名前が消えてしまうため）
-  if(isRanked())rt.innerHTML=esc(String(myRate()))+'<span class="hb-r2">  ·  2v2 '+esc((myTier2Index()?TIER_LADDER[myTier2Index()].key+' ':'')+myRate2())+'</span>';
+  if(isRanked())rt.innerHTML=esc(String(myRate()))+'<span class="hb-r2">  ·  2v2 '+esc((myTier2Index()?tierName(myTier2Index())+' ':'')+myRate2())+'</span>';
   else rt.textContent=t('tier.loginShort');
   var av=document.getElementById('hb-av');if(av)drawMiniAvatar(av,{tier:tier,look:profile.look});
   renderSeason();
@@ -7250,6 +7267,23 @@ function olLeaveMode(){
   document.getElementById('room-number-display').style.display='none';document.getElementById('create-btn').style.display='';setRoomStatusText('');
 }
 // 戻る：1つ前の段階へ（いちばん最初ならホームへ）
+// 左上の戻るボタンの行き先（画面ごと。前は各画面の一番下にあったボタンと同じ）。ホーム・ゲーム画面は null（出さない）
+function navBackFn(id){
+  switch(id){
+    case 'stage-screen':case 'rank-screen':case 'shop-screen':case 'event-screen':case 'pass-screen':case 'friends-screen':case 'profile-screen':return showModeScreen;
+    case 'cpu-screen':return showStageScreen;
+    case 'room-screen':return onlineBack;
+    case 'settings-screen':return closeSettings;
+    case 'loadout-screen':return closeLoadout;
+    case 'clan-screen':return clanBack;
+  }
+  return null;
+}
+function navBack(){dropFocus();var f=navBackFn(currentScreen);if(f)f();}
+// クラン：ほかのクランを見ているときは、まず自分のクラン（か検索）に戻る
+function clanBack(){var b=document.querySelector('#cl-body .cl-backlink');if(b)b.click();else showModeScreen();}
+// 試合・射撃場の左上の戻るボタン（射撃場はすぐ戻る。試合は今までの「メニューに戻る」と同じで、対戦中は一度確かめる）
+function gameBack(){dropFocus();if(gameMode==='range'){backToMenu();return;}leaveMatch();}
 function onlineBack(){
   if(OL.mode){olLeaveMode();OL.mode=null;renderOnline();return;}
   if(OL.fmt){OL.fmt=null;renderOnline();return;}
@@ -7377,9 +7411,9 @@ document.body.classList.toggle('touch',isTouch);
 function showGameScreen(mode){
   showScreen('game-screen');
   document.getElementById('game-screen').classList.toggle('range',mode==='range');   // 射撃場の表を、ほかの試合に残さない
+  document.getElementById('game-screen').classList.remove('rp-open');
   if(mode!=='range')RANGE=null;
   document.getElementById('difficulty-bar').style.display=(mode==='ai'&&difficulty!==EMP)?'':'none';   // 鬼帝との戦いは、途中で難易度を変えない
-  document.getElementById('back-to-menu').style.display='';
   setInGameUI(true);   // ロビー中も下のパネルは出さない（設定はメニューで決め済み）
   fitCanvas();
 }
@@ -7643,7 +7677,7 @@ function leaveMatch(){
 function backToMenu(){
   var wasRp=!!RP;rpStop();
   clearGameTimers();endWaitUI();CV=null;
-  if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range');}
+  if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range','rp-open');}
   loopRunning=false;lobbyPhase=false;gameMode='ai';
   flashMsg='';flashTimer=0;tierUp=null;killCam=null;matchOver=false;vsPhase=false;bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;
   rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;
@@ -8027,9 +8061,9 @@ function teamNames(role){return teamSlots(role).map(function(s){return s===mySlo
 // 頭の上の名札：自分は 2v2 のティア、ほかの人はサーバーが教えたティア。名前は役割の色
 function teamLabel(s){
   var r=slotRole(s),P=TM.players[s]||{};
-  if(r==='me'){var i2=myTier2Index();return{tag:i2?TIER_LADDER[i2].key:'--',tagCol:TIER_LADDER[i2].color,tierIdx:i2,nm:profile.name,nmCol:'#FFFFFF',dev:!!(AUTH.user&&AUTH.user.dev)};}
+  if(r==='me'){var i2=myTier2Index();return{tag:i2?tierName(i2):'--',tagCol:TIER_LADDER[i2].color,tierIdx:i2,nm:profile.name,nmCol:'#FFFFFF',dev:!!(AUTH.user&&AUTH.user.dev)};}
   var ti=tierIdxOf(P.tier);
-  return{tag:ti?TIER_LADDER[ti].key:(r==='ally'?'ALLY':'RIVAL'),tagCol:r==='ally'?TEAM_COL.ally:TEAM_COL.foe,tierIdx:ti,nm:(P.name||'?')+(P.left?' (BOT)':''),nmCol:TEAM_COL[r],dev:!!P.dev};
+  return{tag:ti?tierName(ti):(r==='ally'?'ALLY':'RIVAL'),tagCol:r==='ally'?TEAM_COL.ally:TEAM_COL.foe,tierIdx:ti,nm:(P.name||'?')+(P.left?' (BOT)':''),nmCol:TEAM_COL[r],dev:!!P.dev};
 }
 // 足元の輪（役割の色）。自分の輪は少し太く
 function drawFootMark(c,role){
@@ -8490,7 +8524,7 @@ function srvAdopt(p,rev){
   if(!p||typeof p!=='object')return;
   // 手元に送っていない変更がなければ、別の端末で変えた見た目なども含めて、サーバーの内容にそろえる
   if(rev&&STORE_ACC&&!SYNC.dirty){adoptProfile(p);SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();renderHomeEco();return;}
-  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','title','bg','inv','opened','pity','chaosOpened','misCrates','misChaos','coins','pass','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','tierVer','title','bg','inv','opened','pity','chaosOpened','misCrates','misChaos','coins','pass','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   // 版の番号は進めない（進めると、別の端末の変更を見ないまま「最新」と思い込み、古い見た目で上書きしてしまう）
   ensureProfileShape();writeProfileLocal();renderHomeEco();
   if(currentScreen==='profile-screen')renderProfileUI();
@@ -11428,8 +11462,14 @@ function drawHair(g,style,col,hx,hy,r,d,cut){
 //   LT1 光条＋交差した金のリボルバー＋黒と金のシリンダー（金の弾6発）
 //   HT1 伝説の黄金銃（銃口のフラッシュ・硝煙・落ちる薬莢が動く）
 // ============================================================
-function tierInfo(idx){var e=TIER_LADDER[idx]||TIER_LADDER[0];return{e:e,lvl:idx<=0?0:Math.ceil(idx/2),high:idx>0&&idx%2===0};}
-function tierName(idx){return idx<=0?t('tier.unranked'):TIER_LADDER[idx].key;}
+// 段（0〜24）→ 絵（紋章と背景の番号 0〜10）。飾りの量（lvl 1〜5）はランクで決まる
+var ROMAN=['','Ⅰ','Ⅱ','Ⅲ'],RANK_LVL=[0,1,1,2,3,3,4,5,5];
+function tierArt(idx){return SIM.artOfTier(idx);}
+function tierInfo(idx){var rk=SIM.rankOf(idx);return{e:TIER_LADDER[idx]||TIER_LADDER[0],lvl:RANK_LVL[rk.r],high:rk.d===3};}
+function rankName(r){return r>0?t('rank.n.'+SIM.RANKS[r]):t('tier.unranked');}
+function tierName(idx){var rk=SIM.rankOf(idx);return rk.r?t('rank.fmt',{r:rankName(rk.r),n:ROMAN[rk.d]}):t('tier.unranked');}
+// 背景（絵）の名前：その絵を使うランクの名前。どのランクにも使われていない絵は、解放される段の名前
+function bgName(a){if(!(a>0))return t('tier.unranked');var r=SIM.RANK_ART.indexOf(a);return r>0?rankName(r):tierName(SIM.BG_UNLOCK[a]||0);}
 function prand(n){var x=Math.sin(n*12.9898+78.233)*43758.5453;return x-Math.floor(x);}
 function starPath(g,cx,cy,R,r,n){g.beginPath();for(var i=0;i<n*2;i++){var a=-Math.PI/2+i*Math.PI/n,rad=i%2?r:R;g.lineTo(cx+Math.cos(a)*rad,cy+Math.sin(a)*rad);}g.closePath();}
 // いまの座標の拡大率（影のぼかしは拡大・縮小されないので、自分で合わせる）
@@ -11479,8 +11519,9 @@ var TIER_STYLE=[
   {m:'onyx',   trim:'gold',   glow:'#F2C94C',bg:['#2B2631','#131016','#050406'],pill:['#3A3440','#121016','#E8B84A','#F5D67A'],rib:['#1E1B22','#07060A','#FFD968','#FFE7A0']},
   {m:'gold',   trim:'gold',   glow:'#FFD580',bg:['#3A2A12','#1A1208','#050403'],pill:['#FFFFFF','#EADFC4','#E2A92E','#7A0F1F'],rib:['#2A1E0A','#0C0803','#FFD968','#FFE7A0']}
 ];
-function tierStyle(idx){return TIER_STYLE[idx]||TIER_STYLE[0];}
-function isTopTier(idx){return idx>=TIER_LADDER.length-1;}
+function artStyle(a){return TIER_STYLE[a]||TIER_STYLE[0];}           // 絵の番号で
+function tierStyle(idx){return artStyle(tierArt(idx));}              // 段の番号で
+function isTopTier(idx){return SIM.rankOf(idx).r>=SIM.RANKS.length-1;}   // いちばん上のランク（エクリプスⅠ〜Ⅲ）
 
 // ---- 紋章の部品（紋章は中心 (0,0)、本体の半径が約 30 の座標で描く）----
 function emShadow(g,on){
@@ -11705,9 +11746,9 @@ var TIER_BG=[
 // 紋章：どのティアも同じ六角形のバッジ。色は背景と同じティアの色、縁はティアの金属、真ん中に背景の模様と同じ記号を1つ
 //   （未ランク：星／LT5：ボルト／HT5：山／LT4：雪の結晶／HT4：葉／LT3：保安官の星／HT3：スペード／LT2：バラ／HT2：炎／LT1：宝石／HT1：王冠）
 function hexPath(g,r){g.beginPath();for(var i=0;i<6;i++){var a=-Math.PI/2+i*Math.PI/3;g.lineTo(Math.cos(a)*r,Math.sin(a)*r);}g.closePath();}
-function drawEmblem(g,idx,tm){
+function drawEmblem(g,idx,tm){   // idx＝絵の番号（0〜10）
   idx=Math.max(0,Math.min(TIER_BG.length-1,idx|0));
-  var B=TIER_BG[idx],S=tierStyle(idx),T=METAL[S.trim],R=31,top=idx>=9;
+  var B=TIER_BG[idx],S=artStyle(idx),T=METAL[S.trim],R=31,top=idx>=9;
   g.save();g.lineJoin='round';g.lineCap='round';
   // 光（上のティアほど強い）
   var gl=g.createRadialGradient(0,0,R*.4,0,0,R*1.35);gl.addColorStop(0,hexA(B.glow,.25+idx*.025));gl.addColorStop(1,hexA(B.glow,0));
@@ -11816,8 +11857,9 @@ function emGlyph(g,pat,idx,tm){
 }
 // ティア名の札：ねじ止めした金属の銘板
 function emLabelPath(g,rw,y0,y1){rrPath(g,-rw,y0,rw*2,y1-y0,4);}
-function emLabel(g,idx,tm){
-  var R=tierStyle(idx).rib,label=tierName(idx),rw=idx===0?52:42,y0=39,y1=57,ym=(y0+y1)/2;
+function emLabel(g,idx,tm){   // idx＝段の番号（名前はランク名＋Ⅰ〜Ⅲ）
+  var R=tierStyle(idx).rib,label=tierName(idx),y0=39,y1=57,ym=(y0+y1)/2;
+  g.font='700 13px '+FONT_UI;var rw=Math.max(42,Math.min(64,g.measureText(label).width/2+13));   // 長い名前は札を広げる
   emLabelPath(g,rw,y0,y1);
   var rg=g.createLinearGradient(0,y0,0,y1);rg.addColorStop(0,R[0]);rg.addColorStop(1,R[1]);
   emShadow(g,true);g.fillStyle=rg;g.fill();emShadow(g,false);
@@ -11827,29 +11869,45 @@ function emLabel(g,idx,tm){
     g.beginPath();g.arc(x,ym,2,0,Math.PI*2);g.fillStyle=sg;g.fill();
     g.beginPath();g.moveTo(x-1.2,ym-1.2);g.lineTo(x+1.2,ym+1.2);g.lineWidth=.6;g.strokeStyle='rgba(0,0,0,.6)';g.stroke();
   });
-  var fs=label.length>5?(label.length>7?9.5:11.5):14.5;
-  g.font='700 '+fs+'px '+FONT_UI;g.textAlign='center';g.textBaseline='middle';
-  if('letterSpacing' in g)g.letterSpacing=label.length>5?'1px':'2px';
+  var fs=13;g.font='700 '+fs+'px '+FONT_UI;
+  while(fs>8.5&&g.measureText(label).width>rw*2-16){fs-=.5;g.font='700 '+fs+'px '+FONT_UI;}
+  g.textAlign='center';g.textBaseline='middle';
+  if('letterSpacing' in g)g.letterSpacing='.5px';
   g.fillStyle=R[3];g.fillText(label,0,ym+.5);
   if('letterSpacing' in g)g.letterSpacing='0px';
   if(isTopTier(idx))emShine(g,function(){emLabelPath(g,rw,y0,y1);},tm+1.2,3.4);
 }
 // マーク：(cx,cy)=中心、R=本体の大きさの目安（50 で紋章の座標そのまま。光などはもっと外まで出る）
-function drawTierMark(g,idx,cx,cy,R,tm,noLabel){
+function drawTierMark(g,idx,cx,cy,R,tm,noLabel){   // idx＝段の番号
   g.save();g.translate(cx,cy);g.scale(R/50,R/50);
-  drawEmblem(g,idx,tm||0);
-  if(!noLabel)emLabel(g,idx,tm||0);
+  drawEmblem(g,tierArt(idx),tm||0);
+  if(!noLabel)emLabel(g,idx,tm||0);else emDiv(g,idx);
   g.restore();
+}
+// Ⅰ・Ⅱ・Ⅲ の小さな札（紋章の下の角に重ねる）
+function emDiv(g,idx){
+  var rk=SIM.rankOf(idx);if(!rk.d)return;
+  var R=tierStyle(idx).rib,w=13,y0=24,y1=39,ym=(y0+y1)/2;
+  rrPath(g,-w,y0,w*2,y1-y0,4);
+  var rg=g.createLinearGradient(0,y0,0,y1);rg.addColorStop(0,R[0]);rg.addColorStop(1,R[1]);
+  emShadow(g,true);g.fillStyle=rg;g.fill();emShadow(g,false);
+  g.lineWidth=1.6;g.strokeStyle=R[2];g.stroke();
+  g.font='800 12px '+FONT_UI;g.textAlign='center';g.textBaseline='middle';g.fillStyle=R[3];g.fillText(ROMAN[rk.d],0,ym+.5);
 }
 // 紋章ごとの大きさ。アイコンでは、これを w×h の中にぴったり収める（label ならティア名の札も入れる）
 var EM_BOX=[[-38,-38,38,38],[-38,-38,38,38],[-38,-38,38,38],[-38,-38,38,38],[-38,-38,38,38],[-38,-38,38,38],[-38,-38,38,38],
   [-38,-38,38,38],[-38,-38,38,38],[-38,-38,38,38],[-38,-38,38,38]];
-function drawTierIcon(g,idx,cx,cy,w,h,tm,label){
-  var b=EM_BOX[idx]||EM_BOX[0],x0=b[0],y0=b[1],x1=b[2],y1=label?Math.max(b[3],58):b[3];
+function drawTierIcon(g,idx,cx,cy,w,h,tm,label){   // idx＝段の番号。label なら名前の札、そうでなければ Ⅰ〜Ⅲ の小さな札
+  var a=tierArt(idx),b=EM_BOX[a]||EM_BOX[0],x0=b[0],y0=b[1],x1=b[2],y1=label?Math.max(b[3],58):Math.max(b[3],idx>0?40:b[3]);
   var sc=Math.min(w/(x1-x0),h/(y1-y0));
   g.save();g.translate(cx-(x0+x1)/2*sc,cy-(y0+y1)/2*sc);g.scale(sc,sc);
-  drawEmblem(g,idx,tm||0);if(label)emLabel(g,idx,tm||0);
+  drawEmblem(g,a,tm||0);if(label)emLabel(g,idx,tm||0);else emDiv(g,idx);
   g.restore();
+}
+// 絵の番号で、紋章だけ（背景を選ぶ所）
+function drawArtIcon(g,a,cx,cy,w,h,tm){
+  var b=EM_BOX[a]||EM_BOX[0],sc=Math.min(w/(b[2]-b[0]),h/(b[3]-b[1]));
+  g.save();g.translate(cx-(b[0]+b[2])/2*sc,cy-(b[1]+b[3])/2*sc);g.scale(sc,sc);drawEmblem(g,a,tm||0);g.restore();
 }
 // 名札（試合中の頭の上）：ティアの素材の小さな札
 function drawTierPill(g,idx,x,y,w,h,label,tm){
@@ -12434,8 +12492,8 @@ function drawTierBg(g,idx,x,y,w,h,tm){
   if(idx===CHAMP_BG){drawChampionBg(g,x,y,w,h,tm);return;}
   if(idx===DEV_BG){drawDevBg(g,x,y,w,h,tm);return;}
   var B,S,T,lift;
-  if(idx===HW_BG){B={c:['#3E1458','#1A0A2E','#07020C'],glow:'#FF9A3D',acc:'#FFCB6E',flat:'halloween',par:'embers'};S=tierStyle(8);T=METAL.gold;lift=.8;idx=8;}
-  else{idx=Math.max(0,Math.min(TIER_BG.length-1,idx|0));B=TIER_BG[idx];S=tierStyle(idx);T=METAL[S.trim];lift=idx/(TIER_BG.length-1);}   // lift：上のティアほど光を少し強く
+  if(idx===HW_BG){B={c:['#3E1458','#1A0A2E','#07020C'],glow:'#FF9A3D',acc:'#FFCB6E',flat:'halloween',par:'embers'};S=artStyle(8);T=METAL.gold;lift=.8;idx=8;}
+  else{idx=Math.max(0,Math.min(TIER_BG.length-1,idx|0));B=TIER_BG[idx];S=artStyle(idx);T=METAL[S.trim];lift=idx/(TIER_BG.length-1);}   // lift：上のティアほど光を少し強く
   tm=tm||0;
   var cx=x+w/2,cy=y+h*.47,lw=Math.max(.6,w*.004),i,k=ctxScale(g);
   g.save();g.beginPath();g.rect(x,y,w,h);g.clip();
@@ -12950,12 +13008,12 @@ function drawProfileCard(g,P,x,y,w,h,tm){
     rrPath(sg,x,top,w,ch,rad);sg.fillStyle='#0B0D14';sg.fill();
   }),x-sm,top-sm,w+sm*2,ch+sm*2);
   g.save();rrPath(g,x,top,w,ch,rad);g.clip();
-  drawTierBg(g,P.bg==null?P.tier:P.bg,x,top,w,ch,tm);
+  drawTierBg(g,P.bg==null?tierArt(P.tier):P.bg,x,top,w,ch,tm);
   // キャラクター
   var feet=top+ch*1.2,sc=ch*.0107;   // 上半身を大きく（足はカードの外）
   // 背景の光の色でふちを光らせて、背景になじませる
   // 光るふちつきのキャラは描くのがとても重いので、一度だけ別の紙に描いて、毎回はそれを貼る（息づかいは上下に少し動かす）
-  var glow=hexA(tierStyle(P.bg==null||typeof P.bg!=='number'?P.tier:P.bg).glow,.55),mg=sc*3,av={x:x+w*.44,y:feet,s:sc,dir:1,look:P.look,team:P.team||TEAM.me,wid:P.loadout&&P.loadout[0]};
+  var glow=hexA((typeof P.bg==='number'?artStyle(P.bg):tierStyle(P.tier)).glow,.55),mg=sc*3,av={x:x+w*.44,y:feet,s:sc,dir:1,look:P.look,team:P.team||TEAM.me,wid:P.loadout&&P.loadout[0]};
   var spr=cachedSprite(['card',w,ch,k,glow,JSON.stringify(P.look),JSON.stringify(av.team),av.wid].join('|'),w*k,(ch+mg*2)*k,function(sg){
     sg.setTransform(k,0,0,k,-x*k,-(top-mg)*k);sg.shadowColor=glow;sg.shadowBlur=w*.05*k;drawAvatar(sg,av);
   });
@@ -13258,9 +13316,9 @@ function drawChar(s,isMe,o){
   }
   var tag,tagCol,nm;
   if(o.label){tag=o.label.tag;tagCol=o.label.tagCol;nm=o.label.nm;}
-  else if(isMe){var tIdx=computeTierIndex(),tInfo=TIER_LADDER[tIdx];tag=tIdx?tInfo.key:'--';tagCol=tInfo.color;nm=profile.name;}
+  else if(isMe){var tIdx=computeTierIndex(),tInfo=TIER_LADDER[tIdx];tag=tIdx?tierName(tIdx):'--';tagCol=tInfo.color;nm=profile.name;}
   else if(gameMode==='ai'){tag=isBossFight()?'BOSS':'CPU';tagCol=isBossFight()?'#E8C66A':'#FF4D5E';nm=diffName(difficulty);}
-  else{var ot=tierByKey(oppInfo.tier);tag=ot&&ot.key?ot.key:'RIVAL';tagCol=ot&&ot.key?ot.color:'#FF4D5E';nm=oppInfo.name||t('c.opp');}
+  else{var oti=tierIdxOf(oppInfo.tier);tag=oti?tierName(oti):'RIVAL';tagCol=oti?TIER_LADDER[oti].color:'#FF4D5E';nm=oppInfo.name||t('c.opp');}
   ctx.font='700 9px '+FONT_UI;
   var dv=o.label?!!o.label.dev:isMe?!!(AUTH.user&&AUTH.user.dev):gameMode==='ai'?false:!!oppInfo.dev;
   var dw=dv?12:0;
@@ -14423,9 +14481,9 @@ function drawDuelResult(lines){
   var ex=[];if(acc>=0)ex.push(t('res.acc')+' '+acc+'%');if(farM>0)ex.push(t('res.far')+' '+farM+'m');
   var P=[
     {x:VW*.25,dir:1,won:win,look:RP?RP.R.look:profile.look,team:TEAM.me,boss:false,wid:myW,
-     card:{nm:profile.name,tag:ai?'':myTierKey(),tagCol:TIER_LADDER[computeTierIndex()].color,col:meCol,me:true,dmg:MST.dmg,dg:MST.dodges,wid:myW,extra:ex.join('・')}},
+     card:{nm:profile.name,tag:ai||!computeTierIndex()?'':tierName(computeTierIndex()),tagCol:TIER_LADDER[computeTierIndex()].color,col:meCol,me:true,dmg:MST.dmg,dg:MST.dodges,wid:myW,extra:ex.join('・')}},
     {x:VW*.75,dir:-1,won:!win,look:ai?(cpuLook||LOOK_DEFAULT):(oppInfo.look||LOOK_DEFAULT),team:boss?TEAM.boss:TEAM.foe,boss:boss,wid:opW,
-     card:{nm:ai?(boss?diffName(difficulty):'CPU'):(oppInfo.name||t('c.opp')),tag:ai?(boss?'BOSS':diffName(difficulty)):(oppInfo.tier||''),tagCol:ai?'':((tierByKey(oppInfo.tier)||{}).color||''),col:opCol,me:false,dmg:MST.taken,dg:MST.odg,wid:opW,extra:''}}
+     card:{nm:ai?(boss?diffName(difficulty):'CPU'):(oppInfo.name||t('c.opp')),tag:ai?(boss?'BOSS':diffName(difficulty)):(tierIdxOf(oppInfo.tier)?tierName(tierIdxOf(oppInfo.tier)):''),tagCol:ai?'':((tierByKey(oppInfo.tier)||{}).color||''),col:opCol,me:false,dmg:MST.taken,dg:MST.odg,wid:opW,extra:''}}
   ];
   var gy=186,cw=184,ch=68,cnt=Math.min(1,Math.max(0,flashAge-30)/40);cnt=1-Math.pow(1-cnt,3);
   P.forEach(function(q,i){
@@ -14459,7 +14517,19 @@ function drawRateFx(cx,y,a){
   var cur=Math.round(rateFx.before+(rateFx.after-rateFx.before)*e);
   var up=rateFx.delta>=0,col=up?'#34D399':'#FF6B6B',num=String(cur),dtx=(up?'+':'')+rateFx.delta;
   ctx.save();ctx.globalAlpha=a*Math.min(1,T*5);ctx.textBaseline='middle';
-  ctx.textAlign='center';ctx.font='700 10px '+FONT_UI;setLS(4);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(t(rateFx.kind==='2v2'?'c.rate2':'c.rate'),cx,y-20);setLS(0);
+  var lab=t(rateFx.kind==='2v2'?'c.rate2':'c.rate'),sc=rateFx.sc;
+  if(!sc){ctx.textAlign='center';ctx.font='700 10px '+FONT_UI;setLS(4);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(lab,cx,y-20);setLS(0);}
+  else{
+    // 見出しの右に、スコアと倍率の札（例：3-0 ×1.2）
+    ctx.font='700 10px '+FONT_UI;setLS(4);var lw=ctx.measureText(lab).width;setLS(0);
+    ctx.font='700 10px '+FONT_UI;setLS(1);var st=sc.lbl+'  '+sc.mult,sw=ctx.measureText(st).width+14;setLS(0);
+    var lx=cx-(lw+8+sw)/2;
+    ctx.textAlign='left';ctx.font='700 10px '+FONT_UI;setLS(4);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(lab,lx,y-20);setLS(0);
+    var px=lx+lw+8;
+    ctx.fillStyle='rgba(255,255,255,.07)';rrect(px,y-28,sw,16,8);ctx.fill();
+    ctx.strokeStyle=sc.col;ctx.globalAlpha*=.55;ctx.lineWidth=1;rrect(px+.5,y-27.5,sw-1,15,7.5);ctx.stroke();ctx.globalAlpha/=.55;
+    ctx.font='700 10px '+FONT_UI;setLS(1);ctx.fillStyle=sc.col;ctx.fillText(st,px+7,y-20);setLS(0);
+  }
   ctx.font='700 27px '+FONT_UI;var w1=ctx.measureText(num).width;
   ctx.font='700 15px '+FONT_UI;var w2=ctx.measureText(dtx).width,x0=cx-(w1+10+w2)/2;
   ctx.textAlign='left';
@@ -14776,12 +14846,17 @@ function rangeCycle(d){
   }
 }
 function rangeSlot(n){dropFocus();setWeapon(n);renderRangePanel();}
+// スマホ横持ち：武器の表は画面の外に隠れるので、左上の「武器を変える」で左から引き出す
+function rangePanelToggle(on){
+  dropFocus();var g=document.getElementById('game-screen');if(!g)return;
+  g.classList.toggle('rp-open',on==null?!g.classList.contains('rp-open'):!!on);
+}
 function renderRangePanel(){
   var el=document.getElementById('range-panel');if(!el||!RANGE)return;
   var me=RANGE.me,h='';
   h+='<div class="rp-head"><b>'+esc(t('range.title'))+'</b><span class="rp-note">'+esc(t('range.note'))+'</span>'+
-    '<button onclick="rangeReset()">'+esc(t('range.reset'))+'</button><button onclick="backToMenu()">'+esc(t('common.backMenu'))+'</button></div>';
-  h+='<div class="rp-body"><div>';
+    '<button onclick="rangeReset()">'+esc(t('range.reset'))+'</button><button class="rp-close" onclick="rangePanelToggle(false)">'+esc(t('eco.close'))+'</button></div>';
+  h+='<div class="rp-body"><div><h4 class="rp-h">'+esc(t('range.secWeps'))+'</h4>';
   h+='<div class="rp-slots">';
   for(var k=0;k<3;k++)h+='<button class="'+(k===playerSlot?'sel':'')+'" onclick="rangeSlot('+(k+1)+')"><kbd>'+esc(kdn(keybinds['w'+(k+1)])||String(k+1))+'</kbd><span>'+esc(wName(me.load[k]))+'</span></button>';
   h+='</div><div class="rp-grid">';
@@ -14790,8 +14865,8 @@ function renderRangePanel(){
     h+='<button class="'+(at>=0?'on':'')+'" style="--wc:'+WEAPONS[id].color+'" onclick="rangeSetWeapon('+id+')" title="'+esc(wName(id)+'｜'+t('mp.stat',{range:S2.range,power:S2.power,rate:(Math.round(S2.rps*10)/10)}))+'">'+
       (at>=0?'<span class="sl">'+(at+1)+'</span>':'')+'<canvas width="96" height="42" data-gun="'+id+'"></canvas>'+esc(wShort(id))+'</button>';
   });
-  h+='</div><div class="rp-hint">'+esc(t('range.pickHint',{n:playerSlot+1}))+'<br>'+esc(t('range.keys',{reload:(kdn(keybinds.reload)||'R').toUpperCase()}))+'</div></div>';
-  h+='<div><div id="rp-stats"></div><div class="rp-sub">'+esc(t('range.dpsNote'))+'</div></div></div>';
+  h+='</div><div class="rp-hint">'+esc(t('range.pickHint',{n:playerSlot+1}))+'<span class="rp-keys"><br>'+esc(t('range.keys',{reload:(kdn(keybinds.reload)||'R').toUpperCase()}))+'</span></div></div>';
+  h+='<div><h4 class="rp-h">'+esc(t('range.secStats'))+'</h4><div id="rp-stats"></div><div class="rp-sub">'+esc(t('range.dpsNote'))+'</div></div></div>';
   el.innerHTML=h;
   el.querySelectorAll('canvas[data-gun]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);drawGunIcon(g,+cv.getAttribute('data-gun'),0,0,cv.width,cv.height);});
   renderRangeStats();
@@ -14828,8 +14903,10 @@ function drawRangeScene(){
 // 左の段に「どの的をねらえるか」の小さな札
 function drawRangeSteps(){
   var lab=[['range.laneNear',194,GND-70],['range.laneMid',104,GND-140],['range.laneFar',14,GND-210]];
-  ctx.save();ctx.font='700 8px '+FONT_UI;ctx.textAlign='left';ctx.textBaseline='middle';setLS(1);
-  lab.forEach(function(l){ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillText(t(l[0]),wx(l[1]),l[2]+22);});
+  ctx.save();ctx.font='800 9.5px '+FONT_UI;ctx.textAlign='left';ctx.textBaseline='middle';setLS(1);
+  lab.forEach(function(l){var tx=t(l[0]),w=ctx.measureText(tx).width+12,x=wx(l[1]),y=l[2]+22;
+    ctx.fillStyle='rgba(6,8,14,.55)';rrect(x-2,y-8,w,16,4);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.78)';ctx.fillText(tx,x+4,y+.5);});
   setLS(0);ctx.restore();
 }
 // 的：人と同じ大きさの板（頭と胴に同心円）。当たると白く光って少しゆれる。上に「今の距離」
@@ -14852,10 +14929,10 @@ function drawRangeTarget(tg){
   // 上の札：種類と距離
   var me=R.me,d=Math.round(Math.abs((tg.x+CHAR_W/2)-(me.x+CHAR_W/2))),W=WEAPONS[me.load[me.slot]],reach=d<=W.range;
   var label=t('range.'+tg.side),sub=t('range.dist',{d:d});
-  ctx.font='700 9px '+FONT_UI;var lw=Math.max(ctx.measureText(label).width,ctx.measureText(sub).width)+12;
-  ctx.fillStyle='rgba(6,8,14,.72)';rrect(cx-lw/2,y-31,lw,24,4);ctx.fill();
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#EDEBE6';ctx.fillText(label,cx,y-24);
-  ctx.font='700 8px '+FONT_UI;ctx.fillStyle=reach?'#34D399':'rgba(255,255,255,.45)';ctx.fillText(sub,cx,y-14);   // 今の武器の射程内なら緑
+  ctx.font='800 10px '+FONT_UI;var lw=Math.max(ctx.measureText(label).width,ctx.measureText(sub).width)+14;
+  ctx.fillStyle='rgba(6,8,14,.82)';rrect(cx-lw/2,y-34,lw,27,5);ctx.fill();
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#FFFFFF';ctx.fillText(label,cx,y-26);
+  ctx.font='700 9px '+FONT_UI;ctx.fillStyle=reach?'#34D399':'rgba(255,255,255,.6)';ctx.fillText(sub,cx,y-15);   // 今の武器の射程内なら緑
   ctx.restore();
 }
 // 上の帯：今の武器の記録
@@ -14863,22 +14940,24 @@ function drawRangeHud(){
   var R=RANGE,me=R.me,wid=me.load[me.slot],W=WEAPONS[wid],s=R.stats[wid]||{dmg:0,shots:0,hits:0,max:0,frames:0};
   var items=[[t('range.dmg'),String(s.dmg)],['DPS',rangeDps(s).toFixed(1)],[t('range.acc'),rangeAcc(s)+'%'],[t('range.max'),String(s.max)]];
   ctx.save();
-  var y=8,h=34;
-  ctx.font='800 13px '+FONT_UI;
-  var ws=items.map(function(it){ctx.font='700 8px '+FONT_UI;var a=ctx.measureText(it[0]).width;ctx.font='800 14px '+FONT_UI;return Math.max(a,ctx.measureText(it[1]).width)+18;});
-  var total=ws.reduce(function(a,b){return a+b;},0)+118,x0=12;   // 左上（右上は遠い的の札と重なるので）
-  ctx.fillStyle='rgba(6,8,14,.78)';rrect(x0,y,total,h,8);ctx.fill();
-  ctx.strokeStyle=rgba(W.color,.6);ctx.lineWidth=1;ctx.stroke();
-  drawGunIcon(ctx,wid,x0+8,y+7,34,20);
-  ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='700 10px '+FONT_UI;ctx.fillStyle=W.color;ctx.fillText(wShort(wid),x0+46,y+h/2);
-  var cx=x0+118;
+  var y=8,h=38;
+  ctx.font='800 11px '+FONT_UI;var nw=Math.max(54,ctx.measureText(wShort(wid)).width);
+  var ws=items.map(function(it){ctx.font='700 9px '+FONT_UI;var a=ctx.measureText(it[0]).width;ctx.font='800 16px '+FONT_UI;return Math.max(a,ctx.measureText(it[1]).width)+20;});
+  var head=54+nw+14,total=ws.reduce(function(a,b){return a+b;},0)+head,x0=Math.round((VW-total)/2);   // 上の真ん中（左上は戻るボタン、右上は遠い的の札）
+  ctx.fillStyle='rgba(6,8,14,.88)';rrect(x0,y,total,h,8);ctx.fill();
+  ctx.strokeStyle=rgba(W.color,.75);ctx.lineWidth=1.2;ctx.stroke();
+  drawGunIcon(ctx,wid,x0+10,y+8,36,22);
+  ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='800 11px '+FONT_UI;ctx.fillStyle=W.color;ctx.fillText(wShort(wid),x0+54,y+h/2);
+  ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x0+head-8,y+8,1,h-16);   // 区切り
+  var cx=x0+head;
   items.forEach(function(it,i){
-    ctx.font='700 8px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(it[0],cx,y+10);
-    ctx.font='800 14px '+FONT_UI;ctx.fillStyle='#FFFFFF';ctx.fillText(it[1],cx,y+24);
+    ctx.font='700 9px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.62)';ctx.fillText(it[0],cx,y+11);
+    ctx.font='800 16px '+FONT_UI;ctx.fillStyle='#FFFFFF';ctx.fillText(it[1],cx,y+27);
     cx+=ws[i];
   });
   // その下：段の説明
-  ctx.font='600 9px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(t('range.lane'),14,y+h+12);
+  ctx.textAlign='center';ctx.font='700 10px '+FONT_UI;ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.strokeText(t('range.lane'),VW/2,y+h+13);
+  ctx.fillStyle='rgba(255,255,255,.72)';ctx.fillText(t('range.lane'),VW/2,y+h+13);
   ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 var dryFlash=0;   // 弾切れで撃とうとしたときに、リロードの案内を光らせる
@@ -14972,7 +15051,7 @@ function drawTierUp(){
     ctx.textAlign='center';ctx.textBaseline='middle';
     ctx.font='700 14px '+FONT_UI;ctx.fillStyle='#EDEBE6';ctx.fillText(t(down?'c.tierDownTo':'c.tierUpTo',{tier:tierName(toI),range:tierRangeText(toI)}),cx,cy+64);
     ctx.font='600 11px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.5)';
-    ctx.fillText(next?t('c.tierNext2',{tier:next.key,n:SIM.TIER_MIN[toI+1]}):t('c.tierMax'),cx,cy+85);
+    ctx.fillText(next?t('c.tierNext2',{tier:tierName(toI+1),n:SIM.TIER_MIN[toI+1]}):t('c.tierMax'),cx,cy+85);
     if(!down&&tierReported===to.key){ctx.font='700 11px '+FONT_UI;ctx.fillStyle='#A5B0FF';ctx.fillText(t('c.discordReported'),cx,cy+104);}
   }
   ctx.restore();
@@ -15157,7 +15236,8 @@ function drawVs(){
     ctx.beginPath();ctx.moveTo(VW*.57,0);ctx.lineTo(VW*.43,VH);ctx.stroke();ctx.restore();}
   // カード
   var lx=58-(1-e)*320,rx=VW-58-cw+(1-e)*320;
-  ctx.save();ctx.translate(lx+cw/2,cy+ch/2);ctx.rotate(-.05);ctx.translate(-cw/2,-ch/2);drawProfileCard(ctx,myCardData(),0,0,cw,ch,T);ctx.restore();
+  var mc=myCardData();mc.tier=computeTierIndex();   // 1v1 の VS では、相手と同じく 1v1 のランク
+  ctx.save();ctx.translate(lx+cw/2,cy+ch/2);ctx.rotate(-.05);ctx.translate(-cw/2,-ch/2);drawProfileCard(ctx,mc,0,0,cw,ch,T);ctx.restore();
   ctx.save();ctx.translate(rx+cw/2,cy+ch/2);ctx.rotate(.05);ctx.translate(-cw/2,-ch/2);drawProfileCard(ctx,oppCardData(),0,0,cw,ch,T);ctx.restore();
   if(T>.5){ctx.save();ctx.globalAlpha=Math.min(1,(T-.5)/.25);drawRecPill(lx+cw/2,cy+ch+10,myRecord(),'#B794FF');drawRecPill(rx+cw/2,cy+ch+10,oppInfo.rec,'#FF6B7A');
     drawDiscordTag(lx+cw/2,cy-30,AUTH.user?AUTH.user.name:'');drawDiscordTag(rx+cw/2,cy-30,oppInfo.discord);ctx.restore();}
@@ -15377,7 +15457,7 @@ function drawBgFx(tm){
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
- startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
+ startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,rangePanelToggle,navBack,gameBack,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
  showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,doChat,setQc,showClanScreen,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();

@@ -29,11 +29,17 @@
 const { SIM } = require('./game');
 
 const DIFFS = ['easy', 'normal', 'hard', 'pro', 'god'];
-const TIER_KEYS = ['', 'LT5', 'HT5', 'LT4', 'HT4', 'LT3', 'HT3', 'LT2', 'HT2', 'LT1', 'HT1'];
+const TIER_KEYS = SIM.TIER_KEYS;   // 段の記号（BR1〜EC3）。0 は「ランクなし」
 const MAX_TIER = TIER_KEYS.length - 1;
 // Discord に出すときのティアの色（ゲームのティアの色と同じ）
-const TIER_COLORS = { LT5: 0x8A919B, HT5: 0xC07A45, LT4: 0xB8C2CE, HT4: 0xE3E8EE, LT3: 0xD9A331,
-  HT3: 0xF5C84C, LT2: 0xC81E3A, HT2: 0xE0314B, LT1: 0xE8C66A, HT1: 0xFFF4D6 };
+// ランクごとの色（ブロンズ・アイアン・ゴールド・プラチナ・レジェンド・マスター・チャンピオン・エクリプス）。Ⅰ〜Ⅲは同じ色
+const RANK_COLORS = [0, 0xC9824C, 0xA3AAB4, 0xE2B13C, 0x8FD3F5, 0xB983FF, 0xE0314B, 0x4FAEFF, 0xFFE7A8];
+const TIER_COLORS = {};
+TIER_KEYS.forEach((k, i) => { if (i) TIER_COLORS[k] = RANK_COLORS[SIM.rankOf(i).r]; });
+// ランクの名前（Discord などサーバーから出す文。ゲームの中は lang.js）
+const RANK_JA = ['', 'ブロンズ', 'アイアン', 'ゴールド', 'プラチナ', 'レジェンド', 'マスター', 'チャンピオン', 'エクリプス'];
+const ROMAN = ['', 'Ⅰ', 'Ⅱ', 'Ⅲ'];
+function tierLabel(i) { const k = SIM.rankOf(i); return k.r ? RANK_JA[k.r] + ROMAN[k.d] : '未ランク'; }
 
 // 見えない制御文字を落として、文字数（絵文字も1文字）で切る
 function text(v, max) {
@@ -128,7 +134,7 @@ function clean(v, ctx, rtier) {
     : v.bg === 'champion' ? (champ ? 'champion' : null)
     : v.bg === 'dev' ? (ctx && ctx.dev ? 'dev' : null)   // 開発者だけの背景
     : v.bg === 'halloween' ? (SIM.cleanInv(v.inv).indexOf('bHW') >= 0 ? 'halloween' : null)   // ハロウィン限定（持ち物はサーバーの物で確かめ直す）
-    : v.bg == null ? null : int(v.bg, 0, best, null);
+    : v.bg == null ? null : (SIM.bgUnlocked(int(v.bg, 0, 10, -1), best) ? int(v.bg, 0, 10, null) : null);   // 背景の絵（0〜10）は、届いた段で使える物だけ
   return {
     name: SIM.badText(text(v.name, 12)) ? 'プレイヤー' : (text(v.name, 12) || 'プレイヤー'),   // 禁止ワードの入った名前・ひとことは使わない
     bio: SIM.badText(text(v.bio, 40)) ? '' : text(v.bio, 40),
@@ -149,7 +155,7 @@ function clean(v, ctx, rtier) {
     badge: SIM.cleanBadgeSel(v.badge, ctx && ctx.badges),   // 見せるシーズンバッジ（持っているものだけ）   // 開発者だけの見た目は、開発者のときだけ残す
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない
-    bestTier: best,
+    bestTier: best, tierVer: SIM.TIER_VER,   // 段の番号は24段のもの（ブラウザが前の10段だと思って直さないように）
     stats, tierProgress: prog,
     ach, emperor,
     epoch: SIM.PROFILE_EPOCH,
@@ -243,4 +249,4 @@ function cpuTotals(p) {
 
 // 自分で選ぶ見た目など（端末どうしで同時に変えたとき、変えた方の値を残すもの）
 const EDIT_KEYS = ['name', 'bio', 'title', 'look', 'loadout', 'bg', 'emo', 'badge'];
-module.exports = { EDIT_KEYS, DIFFS, TIER_KEYS, TIER_COLORS, text, tierIndex, clean, merge, cpuTotals, validTitle, limitGrowth, forgeCheck };
+module.exports = { EDIT_KEYS, DIFFS, TIER_KEYS, TIER_COLORS, tierLabel, text, tierIndex, clean, merge, cpuTotals, validTitle, limitGrowth, forgeCheck };
