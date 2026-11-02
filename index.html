@@ -1644,6 +1644,7 @@ body.demo #bg-shade{opacity:1;}
 .pt-ok{position:absolute;top:4px;right:6px;color:#6BE38F;font-size:13px;}
 .pi{display:block;width:40px;height:40px;background-size:contain;background-repeat:no-repeat;background-position:center;}
 .pi.coin{background-image:radial-gradient(circle closest-side,#FFF1A8 0 28%,#FFD34A 30% 78%,#C9901A 80% 96%,transparent 98%);}
+.pi.gem{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath d='M7 15 14 6h12l7 9-13 20z' fill='%2334E3CC' stroke='%23073F3A' stroke-width='2.2' stroke-linejoin='round'/%3E%3Cpath d='M14 6l3 9h-10z' fill='%23B6FFF3'/%3E%3Cpath d='M17 15h6l-3 20z' fill='%2320B7A4'/%3E%3Cpath d='M7 15h26M14 6l3 9 3 20 3-20 3-9' fill='none' stroke='%23073F3A' stroke-width='1.4' stroke-linejoin='round'/%3E%3C/svg%3E");}
 .pi.lucky{background-image:radial-gradient(circle,#3FA0FF 0 30%,transparent 31%),conic-gradient(from 0deg,#8CC8FF 0 8%,transparent 8% 16.6%,#8CC8FF 16.6% 24.6%,transparent 24.6% 33.3%,#8CC8FF 33.3% 41.3%,transparent 41.3% 50%,#8CC8FF 50% 58%,transparent 58% 66.6%,#8CC8FF 66.6% 74.6%,transparent 74.6% 83.3%,#8CC8FF 83.3% 91.3%,transparent 91.3%);border-radius:50%;}
 .pi.chaos{background-image:radial-gradient(circle,#C890FF 0 28%,#15101E 29% 62%,transparent 63%);border-radius:50%;box-shadow:0 0 14px rgba(200,144,255,.7);}
 .pt-coins .pi{width:24px;height:24px;}
@@ -2231,6 +2232,35 @@ body[data-scr="pass-screen"] #bs-bg,body[data-scr="shop-screen"] #bs-bg{display:
 .v2-coins{display:inline-flex;align-items:center;gap:8px;padding:7px 16px 7px 10px;clip-path:var(--cut-s);background:rgba(15,18,27,.86);box-shadow:inset 0 0 0 1px var(--line-2);}
 .v2-coins b{font-family:var(--f-ui);font-weight:700;font-size:22px;color:var(--tx);letter-spacing:.04em;}
 .v2-coins .pi{width:26px;height:26px;}
+.v2-coins .pi.gem{margin-left:10px;}
+/* ショップの切りかえ（ショップ／ジェム交換所） */
+.sh-tabs{display:flex;gap:6px;margin:4px 0 14px;}
+.sh-tabs button{display:inline-flex;align-items:center;gap:7px;padding:10px 18px;border:0;clip-path:var(--cut-s);background:rgba(255,255,255,.05);box-shadow:inset 0 0 0 1px var(--line-2);color:var(--tx-2);font-size:14px;font-weight:900;letter-spacing:.04em;}
+.sh-tabs button.sel{background:linear-gradient(180deg,rgba(255,197,61,.2),rgba(255,197,61,.06));box-shadow:inset 0 0 0 1px var(--gold);color:var(--gold);}
+.sh-tabs .pi{width:20px;height:20px;}
+/* ジェム交換所 */
+.gx-intro{display:flex;align-items:center;gap:14px;padding:14px 16px;margin-bottom:12px;clip-path:var(--cut-s);background:linear-gradient(120deg,rgba(52,227,204,.14),rgba(15,18,27,.86) 60%);box-shadow:inset 0 0 0 1px rgba(52,227,204,.35);}
+.gx-intro .pi.big{flex:none;width:52px;height:52px;}
+.gx-intro b{font-family:var(--f-disp);font-weight:400;font-size:20px;letter-spacing:.06em;color:#5FF0DA;}
+.gx-intro p{margin-top:4px;font-size:12.5px;line-height:1.6;color:var(--tx-2);}
+.gx-intro .gx-how{color:var(--tx-3);font-size:12px;}
+.gx-prices{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;}
+.gx-prices span{display:inline-flex;align-items:center;gap:8px;padding:5px 10px;border-radius:8px;background:rgba(255,255,255,.04);box-shadow:inset 0 0 0 1px var(--line);font-size:11.5px;font-weight:800;color:var(--rc,var(--gd-rare0));}
+.gx-prices .r1{--rc:var(--gd-rare1);}.gx-prices .r2{--rc:var(--gd-rare2);}.gx-prices .r3{--rc:var(--gd-rare3);}.gx-prices .r4{--rc:var(--gd-rare4);}
+.gx-prices b{display:inline-flex;align-items:center;gap:3px;font-family:var(--f-ui);font-size:13px;color:var(--tx);}
+.gx-prices .pi{width:15px;height:15px;}
+.gx-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:6px;}
+.gx-kinds{display:flex;gap:5px;flex-wrap:wrap;}
+.gx-kinds button{padding:7px 12px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.04);color:var(--tx-2);font-size:12.5px;font-weight:800;}
+.gx-kinds button.sel{border-color:#5FF0DA;color:#5FF0DA;background:rgba(52,227,204,.1);}
+.gx-new{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:700;color:var(--tx-2);cursor:pointer;}
+.gx-new input{accent-color:#34E3CC;width:16px;height:16px;}
+.gx-empty{padding:28px 0;text-align:center;font-size:13px;color:var(--tx-3);}
+.sh-grid.gx-grid{grid-template-columns:repeat(4,1fr);gap:16px 12px;}
+.gx-grid .sh-stage{height:128px;}.gx-grid .sh-stage canvas{width:128px;height:128px;}
+.gx-grid .sh-nm b{font-size:14px;}
+.sh-buy.gem{font-size:18px;}
+.sh-buy.gem .pi{width:20px;height:20px;}
 .v2-sec{margin:22px 0 10px;}
 .v2-sec h3{display:flex;align-items:center;gap:10px;margin:0;font-family:var(--f-disp);font-weight:400;font-size:19px;letter-spacing:.06em;color:var(--tx);}
 .v2-sec h3::before{content:'';width:3px;height:16px;background:var(--gold);}
@@ -2424,12 +2454,15 @@ body[data-scr="pass-screen"] #bs-bg,body[data-scr="shop-screen"] #bs-bg{display:
   .ps-arrow{display:none;}
   #pass-track .pt{width:126px;}.pt-card{height:158px;}.pt-card canvas.rwc{width:72px;height:72px;}
   .sh-grid{grid-template-columns:repeat(2,1fr);gap:26px 10px;}
+  .sh-grid.gx-grid{grid-template-columns:repeat(2,1fr);gap:14px 10px;}
+  .gx-grid .sh-stage{height:104px;}.gx-grid .sh-stage canvas{width:104px;height:104px;}
   .sh-stage{height:116px;}.sh-stage canvas{width:116px;height:116px;}
   .sh-head{font-size:10.5px;letter-spacing:.12em;height:34px;}
   .sh-nm{padding:0 10px 10px;}.sh-nm b{font-size:13.5px;}.sh-sale{top:42px;right:8px;font-size:11px;}.sh-buy{font-size:17px;padding:10px 0;}
   .sh-badges{grid-template-columns:1fr;}
   .sh-gift{gap:10px;padding:10px 14px;}.sh-gift-art canvas{width:58px;height:58px;}.sh-gift-txt b{font-size:18px;}
   .v2-coins b{font-size:18px;}
+  .v2-coins{gap:5px;padding:6px 10px 6px 8px;}.v2-coins b{font-size:15px;}.v2-coins .pi{width:19px;height:19px;}.v2-coins .pi.gem{margin-left:5px;}
   .lb-sheet.v2{padding:18px 12px 14px;}
   .lb-calic{width:74px;height:78px;}#lb-calnum{font-size:30px;}.lb-u{font-size:24px;white-space:nowrap;}.lb-n{font-size:15px;}
   .lb-sheet.v2 .lb-shields{position:absolute;top:56px;right:4px;margin:0;}.lb-sheet.v2 .lb-shield{width:20px;height:24px;}
@@ -3151,8 +3184,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=59"></script>
-<script src="lang.js?v=78"></script>
+<script src="sim.js?v=60"></script>
+<script src="lang.js?v=79"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4311,7 +4344,7 @@ function ensureProfileShape(){
   // 宝箱・レベル・ミッション（ログイン中は、持ち物などはサーバーの値が本物）
   profile.xp=Math.max(0,Math.floor(+profile.xp||0));
   profile.inv=SIM.cleanInv(profile.inv);
-  profile.opened=Math.max(0,Math.floor(+profile.opened||0));profile.misCrates=Math.max(0,Math.floor(+profile.misCrates||0));profile.pity=Math.max(0,Math.floor(+profile.pity||0));profile.chaosOpened=Math.max(0,Math.floor(+profile.chaosOpened||0));profile.coins=Math.max(0,Math.floor(+profile.coins||0));if(!profile.login||typeof profile.login!=='object')profile.login={day:'',streak:0,best:0,count:0,shields:0,hist:[]};
+  profile.opened=Math.max(0,Math.floor(+profile.opened||0));profile.misCrates=Math.max(0,Math.floor(+profile.misCrates||0));profile.pity=Math.max(0,Math.floor(+profile.pity||0));profile.chaosOpened=Math.max(0,Math.floor(+profile.chaosOpened||0));profile.coins=Math.max(0,Math.floor(+profile.coins||0));profile.gems=Math.max(0,Math.floor(+profile.gems||0));if(!profile.login||typeof profile.login!=='object')profile.login={day:'',streak:0,best:0,count:0,shields:0,hist:[]};
   if(!profile.pass||typeof profile.pass!=='object')profile.pass={s:0,xp:0};if(!profile.sea||typeof profile.sea!=='object'||!Array.isArray(profile.sea.p))profile.sea={s:0,p:[],got:[]};
   profile.misChaos=Math.max(0,Math.floor(+profile.misChaos||0));
   profile.emo=SIM.cleanEmotes(profile.emo,profile.inv);
@@ -4409,7 +4442,7 @@ function ecoSeaClaim(i,cb){
     ecoApi({op:'sclaim',i:i},function(r){ECO.busy=false;if(r&&!r.error){ecoAdopt(r);SFX.coin();passTierFx(r.tiers);renderPass();renderHomeEco();cb&&cb(true);}else{note(t('eco.err'));cb&&cb(false);}});
     return;
   }
-  Z.got[i]=day;profile.coins+=SIM.SEA_COINS;SFX.coin();passTierFx(passAddLocal(SIM.SEASON_MIS_PXP));saveProfile();renderPass();renderHomeEco();cb&&cb(true);
+  Z.got[i]=day;profile.coins+=SIM.SEA_COINS;profile.gems+=SIM.SEA_GEMS;SFX.coin();passTierFx(passAddLocal(SIM.SEASON_MIS_PXP));saveProfile();renderPass();renderHomeEco();cb&&cb(true);
 }
 function missionText(id){var d=SIM.MISSIONS[id];return t('mis.'+d.k,{n:d.n,w:d.w?wName(d.w):''});}
 // ミッションの報酬を受け取る（宝箱1つ＋経験値）
@@ -4422,31 +4455,33 @@ function ecoClaim(i,cb){
       else{if(r&&r.error==='claimed'){M.c[i]=true;saveProfile();renderHomeEco();}cb&&cb(false);}});
     return;
   }
-  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();profile.coins+=SIM.MIS_COINS;passTierFx(passAddLocal(SIM.DAILY_PXP));   // 全部終えたら、カオスバッジ
+  M.c[i]=true;profile.misCrates++;if(M.c.every(Boolean))profile.misChaos++;SFX.coin();profile.coins+=SIM.MIS_COINS;profile.gems+=SIM.MIS_GEMS;passTierFx(passAddLocal(SIM.DAILY_PXP));   // 全部終えたら、カオスバッジ
 ecoAddXp(SIM.MISSION_XP);saveProfile();renderHomeEco();cb&&cb(true);
 }
 // 宝箱を開ける → cb({item,r,dup})
 // バッジを開ける → cb({kind,r,n,items:[{item,dup}]})。kind='lucky'|'chaos'
+// 中身は アイテム {item,dup}・コイン {coins}・経験値 {xp}。経験値でレベルが上がったら、開け終わってから知らせる（CR.lvUp）
 function ecoOpen(kind,cb){
   if(badgeCount(kind)<=0||ECO.busy)return cb&&cb(null);
+  var lv0=ecoLevel().lv;
+  var done=function(res){var lv1=ecoLevel().lv;if(lv1>lv0)CR.lvUp=lv1;cb&&cb(res);};
   if(AUTH.user&&AUTH.token&&STORE_ACC){
     ECO.busy=true;
     ecoApi({op:'open',kind:kind},function(r){ECO.busy=false;
-      if(r&&!r.error&&r.items){ecoAdopt(r);r.items.forEach(function(x){if(!x.dup)ecoMarkNew(x.item);});cb&&cb(r);}else cb&&cb(null);});
+      if(r&&!r.error&&r.items){ecoAdopt(r);r.items.forEach(function(x){if(x.item&&!x.dup)ecoMarkNew(x.item);});done(r);}else cb&&cb(null);});
     return;
   }
-  var res;
-  if(kind==='chaos'){res=SIM.rollChaos(Math.random,profile.inv,profile.pity);res.kind='chaos';profile.chaosOpened++;}
-  else{var one=SIM.rollCrate(Math.random,profile.inv,profile.pity);res={kind:'lucky',r:one.r,n:1,items:[{item:one.item,dup:one.dup}]};profile.opened++;}
-  res.items.forEach(function(x){if(x.dup){profile.xp+=SIM.DUP_XP[res.r];profile.coins+=SIM.DUP_COINS[res.r];}else{profile.inv.push(x.item);ecoMarkNew(x.item);}});
-  profile.pity=res.r>=3?0:profile.pity+1;
-  saveProfile();cb&&cb(res);
+  var res=kind==='chaos'?SIM.rollChaos(Math.random,profile.inv,profile.pity):SIM.rollCrate(Math.random,profile.inv,profile.pity);
+  res.kind=kind==='chaos'?'chaos':'lucky';
+  if(kind==='chaos')profile.chaosOpened++;else profile.opened++;
+  SIM.applyCrate(profile,res).forEach(ecoMarkNew);
+  saveProfile();done(res);
 }
 function ecoMarkNew(id){if(profile.newItems.indexOf(id)<0)profile.newItems.push(id);}
 // サーバーの答えで、宝箱まわりの値を合わせる（版も進める）
 function ecoAdopt(r){
   var p=r&&r.profile;if(!p)return;
-  ['xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','gems','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(r.rev){SYNC.rev=Math.max(SYNC.rev,+r.rev);saveSyncMeta();}
   ensureProfileShape();writeProfileLocal();
 }
@@ -4488,7 +4523,7 @@ function renderHomeEco(){
   var mc=document.getElementById('mis-crate');mc.style.display=n>0?'':'none';mc.textContent=t('eco.crate')+' '+t('eco.crateN',{n:n});
 }
 // ---- ショップ：今日の無料ギフト・今日のおすすめ（6つ・1つはセール）・バッジ ----
-var SHOP={confirm:-1,ct:0};
+var SHOP={confirm:-1,ct:0,tab:'daily',gk:'all',gnew:true};   // tab：'daily'（ショップ）/ 'gems'（ジェム交換所）。gk＝交換所の種類、gnew＝持っていない物だけ
 function shopWho(){return AUTH.user&&AUTH.user.fid||'guest';}
 function giftReady(){ensureProfileShape();return profile.giftDay!==SIM.dayKey();}
 function showShopScreen(){showScreen('shop-screen');SHOP.confirm=-1;renderShop();}
@@ -4497,8 +4532,10 @@ function renderShop(){
   ensureProfileShape();
   var day=SIM.dayKey(),left=Math.max(1,Math.ceil((SIM.dayEnd(day)-Date.now())/36e5)),offers=SIM.shopOffers(day,shopWho()),gf=SIM.shopGift(day),gr=giftReady(),onSale=SIM.saleOn(day),peak=SIM.salePeak(day);
   document.getElementById('shop-left').innerHTML=CLOCK_SVG+esc(t('shop.left',{h:left}));
-  document.getElementById('shop-coins').innerHTML='<i class="pi coin"></i><b>'+profile.coins+'</b>';
-  var h=onSale?saleBannerHtml(day,peak):'';
+  document.getElementById('shop-coins').innerHTML='<i class="pi coin"></i><b>'+profile.coins+'</b><i class="pi gem"></i><b>'+profile.gems+'</b>';
+  var tabs='<div class="sh-tabs" role="tablist">'+[['daily','shop.tabDaily',''],['gems','shop.tabGems','<i class="pi gem"></i>']].map(function(q){var on=SHOP.tab===q[0];return'<button role="tab" aria-selected="'+on+'" class="'+(on?'sel':'')+'" onclick="shopTab(\''+q[0]+'\')">'+q[2]+esc(t(q[1]))+'</button>';}).join('')+'</div>';
+  if(SHOP.tab==='gems'){body.innerHTML=tabs+gemShopHtml();drawShopArt(0);watchArt(body);return;}
+  var h=tabs+(onSale?saleBannerHtml(day,peak):'');
   h+='<div class="v2-sec"><h3>'+esc(t('shop.gift'))+'</h3></div>'+
     '<button class="sh-gift'+(gr?'':' done')+'" onclick="shopGiftClaim()"'+(gr?'':' disabled')+'>'+
     '<span class="sh-gift-art">'+(gf.lucky?'<canvas data-sb="lucky" width="160" height="160"></canvas>':'<i class="pi coin big"></i>')+'</span>'+
@@ -4555,6 +4592,37 @@ function drawShopArt(tm){
   document.querySelectorAll('#shop-body canvas[data-si]').forEach(function(cv){if(artSkip(cv,tm))return;itemArt(cv,tm,cv.width/190,function(g,s){drawItemArt(g,SIM.ITEM_BY_ID[cv.getAttribute('data-si')],s,tm);});});
   document.querySelectorAll('#shop-body canvas[data-sb]').forEach(function(cv){if(artSkip(cv,tm))return;var g=cv.getContext('2d'),W=cv.width;g.setTransform(1,0,0,1,0,0);g.clearRect(0,0,W,W);var k=cv.getAttribute('data-sb');drawBadge(g,W/2,W/2,W/190,k==='chaos'?2:1,k,tm,{glow:false});});
 }
+// ---- ジェム交換所：パス・イベントの限定品でないアイテムを、レアリティの値段のジェムで交換 ----
+var GEM_KINDS=['all','hat','outfit','neck','win','emote'];
+function shopTab(k){SHOP.tab=k==='gems'?'gems':'daily';SHOP.confirm=-1;SFX.switchW();renderShop();}
+function gemKind(k){SHOP.gk=GEM_KINDS.indexOf(k)>=0?k:'all';SHOP.confirm=-1;renderShop();}
+function gemNewOnly(){SHOP.gnew=!SHOP.gnew;SHOP.confirm=-1;renderShop();}
+function gemShopHtml(){
+  var list=SIM.ITEMS.filter(function(it){return SIM.gemPrice(it.id)>0&&(SHOP.gk==='all'||it.key===SHOP.gk)&&(!SHOP.gnew||!itemOwned(it.id));})
+    .sort(function(a,b){return b.r-a.r||GEM_KINDS.indexOf(a.key)-GEM_KINDS.indexOf(b.key)||String(a.idx).localeCompare(String(b.idx),undefined,{numeric:true});});
+  var h='<div class="gx-intro"><i class="pi gem big"></i><div><b>'+esc(t('gem.title'))+'</b><p>'+esc(t('gem.sub'))+'</p><p class="gx-how">'+esc(t('gem.how',{d:SIM.MIS_GEMS,s:SIM.SEA_GEMS}))+'</p></div></div>';
+  h+='<div class="gx-prices">'+SIM.GEM_PRICE.map(function(p,r){return'<span class="r'+r+'">'+esc(rarName(r))+'<b><i class="pi gem"></i>'+p+'</b></span>';}).join('')+'</div>';
+  h+='<div class="gx-bar"><div class="gx-kinds">'+GEM_KINDS.map(function(k){return'<button class="'+(SHOP.gk===k?'sel':'')+'" onclick="gemKind(\''+k+'\')">'+esc(k==='all'?t('gem.all'):t('look.'+k))+'</button>';}).join('')+'</div>'+
+    '<label class="gx-new"><input type="checkbox"'+(SHOP.gnew?' checked':'')+' onchange="gemNewOnly()"><span>'+esc(t('gem.newOnly'))+'</span></label></div>';
+  if(!list.length)return h+'<p class="gx-empty">'+esc(t('gem.none'))+'</p>';
+  h+='<div class="sh-grid gx-grid">';
+  list.forEach(function(it){
+    var pr=SIM.gemPrice(it.id),own=itemOwned(it.id),key='g:'+it.id,cf=SHOP.confirm===key,poor=profile.gems<pr;
+    h+='<div class="sh-card gx r'+it.r+(own?' own':'')+'"><div class="sh-face">'+
+      '<div class="sh-head">'+esc(rarName(it.r))+'</div>'+
+      '<div class="sh-stage"><canvas data-si="'+it.id+'" width="200" height="200"></canvas></div>'+
+      '<div class="sh-nm"><b>'+esc(itemName(it.id))+'</b><small>'+esc(t('look.'+it.key))+'</small></div>'+
+      (own?'<span class="sh-owned">'+CHECK_SVG+esc(t('shop.owned'))+'</span>':
+        '<button class="sh-buy gem'+(cf?' confirm':'')+(poor?' poor':'')+'" onclick="gemBuy(\''+it.id+'\')">'+(cf?'<b>'+esc(t('gem.sure'))+'</b>':'<i class="pi gem"></i><b>'+pr+'</b>')+'</button>')+'</div></div>';
+  });
+  return h+'</div>';
+}
+function gemBuy(id){
+  var it=SIM.ITEM_BY_ID[id],pr=SIM.gemPrice(id);if(!it||!pr||itemOwned(id))return;
+  if(profile.gems<pr){note(t('gem.poor'));SFX.dry();return;}
+  if(!shopArm('g:'+id))return;
+  shopDo({op:'gem',item:id},function(){profile.gems-=pr;profile.inv.push(id);},function(){ecoMarkNew(id);SFX.coin();shopReveal({item:id,r:it.r});});
+}
 // 1回目のタップで「購入する？」、2回目で買う（押しまちがい防止）
 function shopArm(key){if(SHOP.confirm!==key){SHOP.confirm=key;SHOP.ct=Date.now();SFX.switchW();renderShop();return false;}SHOP.confirm=-1;return true;}
 function shopBuy(i){
@@ -4577,7 +4645,7 @@ function shopDo(body,local,done){
   if(ECO.busy)return;
   if(AUTH.user&&AUTH.token&&STORE_ACC){
     ECO.busy=true;
-    ecoApi(body,function(r){ECO.busy=false;if(r&&!r.error){ecoAdopt(r);done();}else{if(r&&r.error==='claimed'){profile.giftDay=SIM.dayKey();writeProfileLocal();renderShop();}note(t(r&&r.error==='coins'?'shop.poor':'eco.err'));}});
+    ecoApi(body,function(r){ECO.busy=false;if(r&&!r.error){ecoAdopt(r);done();}else{if(r&&r.error==='claimed'){profile.giftDay=SIM.dayKey();writeProfileLocal();renderShop();}note(t(r&&r.error==='coins'?'shop.poor':r&&r.error==='gems'?'gem.poor':'eco.err'));}});
     return;
   }
   local();saveProfile();done();
@@ -5099,6 +5167,11 @@ var RAR_COL=['#C8CFDA','#3FA0FF','#B45CFF','#FFB020','#FF5CD6'];
 // ph：idle（選ぶ）→ wait（サーバーの答え待ち）→ tap（タップで色を上げる）→ split（カオスの分裂）→ reveal → result
 var CR={on:false,kind:'lucky',ph:'idle',res:null,parts:[],shake:0,flash:0,flashCol:'#fff',tier:0,plan:[],tapI:0,tapT:0,upT:-9,nudgeT:-9,lastT:0,rt:0,btnAt:0};
 function hueCol(h,l){return'hsl('+((h%360+360)%360)+',100%,'+(l||60)+'%)';}
+// 中身の割合（アイテム／コイン・経験値）の説明。レアリティごとのアイテムの割合を SIM から作る
+function crateMixText(kind){
+  var a=[];for(var r=kind==='chaos'?1:0;r<SIM.CRATE_MIX.length;r++)a.push(rarName(r)+' '+SIM.CRATE_MIX[r][0]+'%');
+  return t('eco.mix',{list:a.join(' / ')});
+}
 function badgeCount(kind){return kind==='chaos'?ecoChaos():ecoCrates();}
 function openCrateScreen(kind){
   if(CR.on)return;
@@ -5159,7 +5232,7 @@ function crateBurst(){
   crateUi();
 }
 function crateEquip(){
-  var r=CR.res;if(!r||r.n!==1||r.items[0].dup)return;
+  var r=CR.res;if(!r||r.n!==1||!r.items[0].item||r.items[0].dup)return;
   var it=SIM.ITEM_BY_ID[r.items[0].item];if(!it)return;
   if(it.key==='emote'){var e=profile.emo.slice();if(e.indexOf(it.idx)<0){e.pop();e.unshift(it.idx);}profile.emo=SIM.cleanEmotes(e,profile.inv);}
   else profile.look[it.key]=it.idx;
@@ -5173,10 +5246,10 @@ function crateUi(){
     var kb=function(k,c){return'<button class="cr-kind'+(CR.kind===k?' sel':'')+(k==='chaos'?' chaos':'')+'" onclick="pickBadgeKind(\''+k+'\')"><b>'+esc(t('eco.'+k))+'</b><span>×'+c+'</span></button>';};
     h='<div class="cr-kinds">'+kb('lucky',nl)+kb('chaos',nc)+'</div>'+
       '<p class="cr-tap">'+esc(n>0?t('eco.tap'):t('eco.crateNone'))+'</p>'+
-      '<p class="cr-odds">'+esc(CR.kind==='chaos'?t('eco.chaosNote'):t('eco.pity',{n:SIM.PITY_AT-profile.pity}))+'<br>'+esc(t(CR.kind==='chaos'?'eco.oddsChaos':'eco.odds'))+'</p>'+
+      '<p class="cr-odds">'+esc(CR.kind==='chaos'?t('eco.chaosNote'):t('eco.pity',{n:SIM.PITY_AT-profile.pity}))+'<br>'+esc(t(CR.kind==='chaos'?'eco.oddsChaos':'eco.odds'))+'<br>'+esc(crateMixText(CR.kind))+'</p>'+
       '<div class="cr-btns"><button class="cr-b ghost" onclick="closeCrateScreen()">'+esc(t('eco.close'))+'</button></div>';
   }else if(CR.ph==='result'){
-    var r=CR.res,one=r.n===1&&!r.items[0].dup,left=nl+nc;
+    var r=CR.res,one=r.n===1&&!!r.items[0].item&&!r.items[0].dup,left=nl+nc;
     h='<div class="cr-btns">'+(left>0?'<button class="cr-b main" onclick="crateAgain()">'+esc(t('eco.again'))+' <small>×'+left+'</small></button>':'')+
       (one?'<button class="cr-b" id="cr-equip" onclick="crateEquip()">'+esc(t('eco.equip'))+'</button>':'')+
       '<button class="cr-b ghost" onclick="closeCrateScreen()">'+esc(t('eco.close'))+'</button></div>';
@@ -5269,7 +5342,7 @@ function crateLoop(ts){
   var speed=CR.ph==='reveal'&&r>=3&&CR.rt<.55?.35:1;   // レジェンダリー以上ははじけた直後をスローに
   CR.rt+=dt*speed;
   if(CR.ph==='split'&&CR.rt>=1.3)crateBurst();
-  if(CR.ph==='reveal'&&CR.rt>=CR.btnAt){CR.ph='result';crateUi();}
+  if(CR.ph==='reveal'&&CR.rt>=CR.btnAt){CR.ph='result';crateUi();if(CR.lvUp){SFX.levelUp();showLevelUp(CR.lvUp);CR.lvUp=0;}}
   CR.shake=Math.max(0,CR.shake-dt*30);CR.flash=Math.max(0,CR.flash-dt*1.6);
   g.setTransform(dpr,0,0,dpr,0,0);
   var shk=CR.shake*S*(SETTINGS.shake===false?.2:1),sx=(Math.random()-.5)*shk,sy=(Math.random()-.5)*shk;
@@ -5389,16 +5462,33 @@ function drawCrateRays(g,x,y,r,S,tm){
 }
 // 中身の絵：帽子は顔を大きく、服・首もとは全身、エモートはシール
 function drawCrateItem(g,x,y,S,tm,obj){
-  var it=SIM.ITEM_BY_ID[obj.item];if(!it)return;
+  var it=SIM.ITEM_BY_ID[obj.item];if(!it&&!obj.coins&&!obj.xp)return;
   var k=Math.min(1,CR.rt/.45),e=k<1?1+Math.sin(k*Math.PI)*.35-(1-k)*.9:1;   // ぴょんと大きく出る
   var sc=Math.max(0,e)*(1+Math.sin(tm*2)*.02),fy=Math.sin(tm*1.8)*6*S;
   var bd=g.createRadialGradient(x,y,0,x,y,150*S);bd.addColorStop(0,'rgba(8,6,20,.55)');bd.addColorStop(1,'rgba(8,6,20,0)');   // 中身の後ろを少し暗くして、明るい光の中でも見えるように
   g.save();g.globalAlpha=Math.min(1,CR.rt/.3);g.fillStyle=bd;g.beginPath();g.arc(x,y,150*S,0,Math.PI*2);g.fill();g.restore();
   g.save();g.beginPath();g.rect(0,0,g.canvas.width,y+145*S);g.clip();   // 下の文字にかからないように
   g.translate(x,y+fy);g.scale(sc,sc);
-  drawItemArt(g,it,S,tm);
+  if(it)drawItemArt(g,it,S,tm);else drawCurArt(g,obj,S,tm);
   g.restore();
 }
+// バッジの中身がコイン・経験値のときの絵（中心が (0,0)。アイテムの絵と同じ大きさのつもりで、少し下に描く）
+function drawCurArt(g,obj,S,tm){
+  if(obj.coins){
+    var n=obj.coins>=900?6:obj.coins>=350?5:obj.coins>=150?4:3,pos=[[0,10,54],[-48,30,40],[48,30,40],[-26,-30,38],[28,-34,38],[0,62,34]];
+    for(var i=n-1;i>=0;i--){var q=pos[i];drawCoin(g,q[0]*S,(q[1]+30)*S,q[2]*S,tm+i*.8);}
+  }else if(obj.xp)drawXpOrb(g,0,40*S,66*S,tm);
+}
+function drawXpOrb(g,x,y,R,tm){
+  g.save();g.globalCompositeOperation='lighter';var gl=g.createRadialGradient(x,y,R*.5,x,y,R*1.6);gl.addColorStop(0,'rgba(80,230,130,.55)');gl.addColorStop(1,'rgba(0,0,0,0)');g.fillStyle=gl;g.beginPath();g.arc(x,y,R*1.6,0,Math.PI*2);g.fill();g.restore();
+  var xg=g.createRadialGradient(x-R*.25,y-R*.3,R*.1,x,y,R);xg.addColorStop(0,'#C8FFD6');xg.addColorStop(.55,'#3FCF72');xg.addColorStop(1,'#1F7A40');
+  g.fillStyle=xg;g.beginPath();g.arc(x,y,R,0,Math.PI*2);g.fill();g.lineWidth=R*.1;g.strokeStyle='#0E4A24';g.stroke();
+  g.font='900 '+Math.round(R*.78)+'px '+UI_FONT;g.textAlign='center';g.textBaseline='middle';g.lineWidth=R*.12;g.strokeStyle='rgba(8,50,24,.7)';g.strokeText('XP',x,y+R*.04);g.fillStyle='#fff';g.fillText('XP',x,y+R*.04);
+  g.fillStyle='rgba(255,255,255,.5)';g.beginPath();g.ellipse(x-R*.38,y-R*.45,R*.24,R*.12,-.6,0,Math.PI*2);g.fill();
+}
+// 中身の名前と、その下の小さな札（NEW・かぶり）
+function crateObjName(obj){return obj.coins?t('pass.coins',{n:obj.coins}):obj.xp?t('eco.xpN',{n:obj.xp}):itemName(obj.item);}
+function crateObjSub(obj,r){return obj.coins||obj.xp?'':obj.dup?t('eco.dup',{gems:SIM.DUP_GEMS[r],xp:SIM.DUP_XP[r]}):t('eco.new');}
 // アイテムの絵（中心が (0,0)。S＝大きさ）
 function drawItemArt(g,it,S,tm){
   if(it.key==='emote'){if(typeof drawEmote==='function')drawEmote(g,it.idx,0,0,150*S,tm);}
@@ -5412,19 +5502,20 @@ function drawItemArt(g,it,S,tm){
 }
 // 分裂したときの1枚：暗いカードに、アイテムの絵と名前・NEW（dl＝出てからの秒）
 function drawCrateCard(g,x,y,cell,tm,obj,r,dl){
-  var it=SIM.ITEM_BY_ID[obj.item];if(!it)return;
+  var it=SIM.ITEM_BY_ID[obj.item];if(!it&&!obj.coins&&!obj.xp)return;
   var k=Math.min(1,dl/.35),e=k<1?1+Math.sin(k*Math.PI)*.3-(1-k)*.9:1;if(e<=0)return;
   var w=cell*.84,h=cell*.9,col=r>=4?hueCol(tm*140,60):RAR_COL[r];
   g.save();g.translate(x,y);g.scale(e,e);
   rrPath(g,-w/2,-h/2,w,h,w*.1);g.fillStyle='rgba(8,6,20,.82)';g.fill();g.lineWidth=Math.max(2,w*.025);g.strokeStyle=col;g.shadowColor=col;g.shadowBlur=w*.08;g.stroke();g.shadowBlur=0;
-  g.save();rrPath(g,-w/2,-h/2,w,h,w*.1);g.clip();g.translate(0,-h*.08);drawItemArt(g,it,w/330,tm);g.restore();
+  g.save();rrPath(g,-w/2,-h/2,w,h,w*.1);g.clip();g.translate(0,-h*.08);if(it)drawItemArt(g,it,w/330,tm);else drawCurArt(g,obj,w/330,tm);g.restore();
   g.textAlign='center';g.textBaseline='middle';g.font='800 '+Math.max(9,Math.round(w*.085))+'px '+UI_FONT;g.lineWidth=3;g.strokeStyle='rgba(0,0,0,.8)';g.lineJoin='round';
-  var nm=itemName(it.id);g.strokeText(nm,0,h*.36,w*.95);g.fillStyle='#fff';g.fillText(nm,0,h*.36,w*.95);
-  var sub=obj.dup?'+'+SIM.DUP_XP[r]+'XP':t('eco.new');g.font='900 '+Math.max(8,Math.round(w*.075))+'px '+UI_FONT;g.strokeText(sub,0,-h*.4);g.fillStyle=obj.dup?'#9FD8FF':'#FF6B5C';g.fillText(sub,0,-h*.4);
+  var nm=crateObjName(obj);g.strokeText(nm,0,h*.36,w*.95);g.fillStyle='#fff';g.fillText(nm,0,h*.36,w*.95);
+  var sub=obj.dup?'+'+SIM.DUP_GEMS[r]+' '+t('gem.name'):obj.coins||obj.xp?'':t('eco.new');
+  if(sub){g.font='900 '+Math.max(8,Math.round(w*.075))+'px '+UI_FONT;g.strokeText(sub,0,-h*.4);g.fillStyle=obj.dup?'#5FF0DA':'#FF6B5C';g.fillText(sub,0,-h*.4);}
   g.restore();
 }
 function drawCrateText(g,cx,cy,S,r,tm,W,H){
-  var multi=CR.res.n>1,o0=CR.res.items[0],it=SIM.ITEM_BY_ID[o0.item],t1=CR.rt-(multi&&CR.kind==='chaos'?chaosFlipAt(CR.res.n-1)+.3:.25);if(t1<=0)return;
+  var multi=CR.res.n>1,o0=CR.res.items[0],t1=CR.rt-(multi&&CR.kind==='chaos'?chaosFlipAt(CR.res.n-1)+.3:.25);if(t1<=0)return;
   var k=Math.min(1,t1/.22),sc=1+(1-k)*2.2,a=k;
   var y=multi?H*.09:cy+136*S,label=rarName(r).toUpperCase()+(multi?' ×'+CR.res.n:'');
   g.save();g.translate(cx,y);g.scale(sc,sc);g.globalAlpha=a;g.textAlign='center';g.textBaseline='middle';
@@ -5438,9 +5529,9 @@ function drawCrateText(g,cx,cy,S,r,tm,W,H){
   var t2=CR.rt-.45;if(t2<=0||multi)return;
   g.save();g.globalAlpha=Math.min(1,t2/.25);g.textAlign='center';g.textBaseline='middle';
   g.font='800 '+Math.round(24*S)+'px '+UI_FONT;g.lineWidth=6*S;g.strokeStyle='rgba(0,0,0,.7)';g.lineJoin='round';
-  var nm=itemName(it.id);g.strokeText(nm,cx,y+38*S);g.fillStyle='#fff';g.fillText(nm,cx,y+38*S);
-  var sub=o0.dup?t('eco.dup',{xp:SIM.DUP_XP[r]}):t('eco.new');
-  g.font='900 '+Math.round(16*S)+'px '+UI_FONT;g.strokeText(sub,cx,y+63*S);g.fillStyle=o0.dup?'#9FD8FF':'#FF6B5C';g.fillText(sub,cx,y+63*S);
+  var nm=crateObjName(o0);g.strokeText(nm,cx,y+38*S);g.fillStyle=o0.coins?'#FFD34A':o0.xp?'#7CF2A0':'#fff';g.fillText(nm,cx,y+38*S);
+  var sub=crateObjSub(o0,r);
+  if(sub){g.font='900 '+Math.round(16*S)+'px '+UI_FONT;g.strokeText(sub,cx,y+63*S);g.fillStyle=o0.dup?'#5FF0DA':'#FF6B5C';g.fillText(sub,cx,y+63*S);}
   g.restore();
 }
 // ============================================================
@@ -15453,7 +15544,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
