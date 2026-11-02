@@ -217,6 +217,8 @@ function rollSeason(now) {
   }
   for (const u of Object.values(db.users)) {
     const r = rateState(u), r2 = rateState2(u);
+    // ランクブースト：前のシーズンの最高の段を覚えておく（そこまで、勝ちが1割増し）
+    u.rboost = SIM.tierOfRate(Math.max(u.rpeak || 0, r.rate)); u.rboost2 = SIM.tierOfRate(Math.max(u.rpeak2 || 0, r2.rate));
     u.rate = SIM.seasonNextRate(r.rate); u.rtier = SIM.tierOfRate(u.rate);
     u.rgames = 0; u.rstreak = 0; u.rwstreak = 0; u.rpeak = u.rate; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
     u.rate2 = SIM.seasonNextRate(r2.rate); u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0; u.rpeak2 = u.rate2; u.ranked2 = { w: 0, l: 0 };
@@ -430,14 +432,14 @@ function rateState(u) {
   if (u.rtier !== t2) { u.rtier = t2; touch(); }
   if (!u.ranked) { u.ranked = { w: 0, l: 0 }; touch(); }
   return { rate: u.rate, tier: u.rtier, games: u.rgames || 0, streak: u.rstreak || 0, wstreak: u.rwstreak || 0,
-    w: u.ranked.w, l: u.ranked.l, peak: u.rpeak || u.rate };
+    w: u.ranked.w, l: u.ranked.l, peak: u.rpeak || u.rate, boostTo: u.rboost || 0 };
 }
 // ---- 2v2 のレート（1v1 とは完全に別。1000 から、ティアの区切りは同じ）----
 function rateState2(u) {
   if (typeof u.rate2 !== 'number' || !isFinite(u.rate2)) { u.rate2 = SIM.RATE_START; u.rgames2 = 0; touch(); }
   if (!u.ranked2) { u.ranked2 = { w: 0, l: 0 }; touch(); }
   return { rate: u.rate2, tier: SIM.tierOfRate(u.rate2), games: u.rgames2 || 0, streak: u.rstreak2 || 0, wstreak: u.rwstreak2 || 0,
-    w: u.ranked2.w, l: u.ranked2.l, peak: u.rpeak2 || u.rate2 };
+    w: u.ranked2.w, l: u.ranked2.l, peak: u.rpeak2 || u.rate2, boostTo: u.rboost2 || 0 };
 }
 function writeRate2(u, r, win) {
   u.rate2 = r.rate; u.rgames2 = r.games; u.rstreak2 = r.streak; u.rwstreak2 = r.wstreak;
