@@ -612,34 +612,42 @@ const auth = {
   rating(uid) { const u = db.users[uid]; return u ? rateState(u) : null; },
   // ランクマッチの結果をレートに当てはめて、両方の結果を返す。
   // capWin：勝った側がここまでしか上がれない（BOT戦の上限）。二人ぶんとも、試合前の値から計算する
+  // score：{ w: 勝った側のラウンド数, l: 負けた側のラウンド数 }（3-0 / 3-1 / 3-2 で動く量が変わる）。forfeit：負けた側が途中で抜けた
   applyRanked(winUid, loseUid, opt) {
     const a = db.users[winUid], b = db.users[loseUid];
     if (!a || !b) return null;
-    const ra = rateState(a), rb = rateState(b);
-    const A2 = SIM.applyRate(ra, { theirs: rb.rate, opTier: rb.tier, win: true, cap: (opt && opt.capWin) || null });
-    const B2 = SIM.applyRate(rb, { theirs: ra.rate, opTier: ra.tier, win: false, cap: null });
+    opt = opt || {};
+    const ra = rateState(a), rb = rateState(b), sc = opt.forfeit ? null : opt.score;
+    const A2 = SIM.applyRate(ra, { theirs: rb.rate, opTier: rb.tier, win: true, cap: opt.capWin || null,
+      rw: sc ? sc.w : null, rl: sc ? sc.l : null });
+    const B2 = SIM.applyRate(rb, { theirs: ra.rate, opTier: ra.tier, win: false, cap: null,
+      rw: sc ? sc.l : null, rl: sc ? sc.w : null, forfeit: !!opt.forfeit });
     writeRate(a, A2, true); writeRate(b, B2, false);
     return { win: A2, lose: B2 };
   },
 
   // BOT戦：人の側だけレートを動かす。勝っても cap のティアの下限より上には行かない
-  applyVsBot(uid, botRate, win, cap) {
+  // score：{ mine: 自分のラウンド数, theirs: BOTのラウンド数 }。forfeit：自分が途中で抜けた
+  applyVsBot(uid, botRate, win, cap, score, forfeit) {
     const u = db.users[uid];
     if (!u) return null;
-    const st = rateState(u);
-    const r = SIM.applyRate(st, { theirs: botRate, opTier: SIM.tierOfRate(botRate), win: !!win, cap: win ? cap : null });
+    const st = rateState(u), sc = forfeit ? null : score;
+    const r = SIM.applyRate(st, { theirs: botRate, opTier: SIM.tierOfRate(botRate), win: !!win, cap: win ? cap : null,
+      rw: sc ? sc.mine : null, rl: sc ? sc.theirs : null, forfeit: !win && !!forfeit });
     writeRate(u, r, !!win);
     return r;
   },
 
   // 2v2 のレート（1v1 とは別）
   rating2(uid) { const u = db.users[uid]; return u ? rateState2(u) : null; },
-  // 2v2 のランクマッチの結果を1人ぶん当てはめる。o = { mine: 自分のチームの平均, theirs: 相手チームの平均, win, cap }
+  // 2v2 のランクマッチの結果を1人ぶん当てはめる。o = { mine: 自分のチームの平均, theirs: 相手チームの平均, win, cap,
+  //   rw: 自分のチームのラウンド数, rl: 相手チームのラウンド数, forfeit: 途中で抜けた }
   applyRanked2(uid, o) {
     const u = db.users[uid];
     if (!u) return null;
     const st = rateState2(u);
-    const r = SIM.applyRate(st, { mine: o.mine, theirs: o.theirs, win: !!o.win, cap: o.win ? (o.cap == null ? null : o.cap) : null });
+    const r = SIM.applyRate(st, { mine: o.mine, theirs: o.theirs, win: !!o.win, cap: o.win ? (o.cap == null ? null : o.cap) : null,
+      rw: o.forfeit ? null : o.rw, rl: o.forfeit ? null : o.rl, forfeit: !o.win && !!o.forfeit });
     writeRate2(u, r, !!o.win);
     return r;
   },

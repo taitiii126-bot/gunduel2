@@ -155,7 +155,7 @@ function recordResult(room, winner, loser, reason) {
   if (n > PAIR_DAILY_CAP) return log(tag, 'not recorded: same pair over daily cap');
   auth.recordOnlineResult(winner.uid, true);
   auth.recordOnlineResult(loser.uid, false);
-  applyRating(room, winner, loser);
+  applyRating(room, winner, loser, reason);
   // 再戦のVS画面で新しい戦績を出せるように、接続中の情報も更新しておく
   if (winner.ws.account) winner.ws.account.wins = (winner.ws.account.wins || 0) + 1;
   if (loser.ws.account) loser.ws.account.losses = (loser.ws.account.losses || 0) + 1;
@@ -166,11 +166,16 @@ function recordResult(room, winner, loser, reason) {
 function sendRate(p, r, win) {
   if (!p || !p.ws) return;
   p.ws.send(JSON.stringify({ type: 'rate', win, rate: r.rate, before: r.before, delta: r.delta,
-    tier: r.tier, tierBefore: r.tierBefore, games: r.games, streak: r.streak, wstreak: r.wstreak }));
+    tier: r.tier, tierBefore: r.tierBefore, games: r.games, streak: r.streak, wstreak: r.wstreak, ...rateScore(r) }));
 }
-function applyRating(room, winner, loser) {
+// 結果画面に出すスコアと倍率（3-0 ×1.2 など）
+function rateScore(r) { return { mult: r.mult, rw: r.rw, rl: r.rl, ff: !!r.forfeit }; }
+// 1v1 の部屋で、その人が取ったラウンド数
+function roundsOf(room, p) { const w = room.wins || {}; return room.players.a === p ? (w.a || 0) : room.players.b === p ? (w.b || 0) : 0; }
+function applyRating(room, winner, loser, reason) {
   if (!room.ranked) return;
-  const rr = auth.applyRanked(winner.uid, loser.uid, { capWin: winner.bot ? SIM.BOT_TIER_CAP : null });
+  const rr = auth.applyRanked(winner.uid, loser.uid, { capWin: winner.bot ? SIM.BOT_TIER_CAP : null,
+    score: { w: roundsOf(room, winner), l: roundsOf(room, loser) }, forfeit: reason === 'forfeit' });
   if (!rr) return;
   sendRate(winner, rr.win, true); sendRate(loser, rr.lose, false);
   // 再戦のVS画面で新しいレートを出せるように、接続中の情報も更新しておく
@@ -199,7 +204,7 @@ function recordBotResult(room, winner, loser, reason) {
   if (p.ws.account) { if (win) p.ws.account.wins = (p.ws.account.wins || 0) + 1; else p.ws.account.losses = (p.ws.account.losses || 0) + 1; }
   p.rec[win ? 'w' : 'l']++;
   if (room.ranked) {
-    const r = auth.applyVsBot(p.uid, bot.rate, win, SIM.BOT_TIER_CAP);
+    const r = auth.applyVsBot(p.uid, bot.rate, win, SIM.BOT_TIER_CAP, { mine: roundsOf(room, p), theirs: roundsOf(room, bot) }, reason === 'forfeit');
     if (r) {
       sendRate(p, r, win);
       if (p.ws.account) { p.ws.account.rate = r.rate; p.ws.account.tier = r.tier; p.ws.account.tierKey = TIER_KEYS[r.tier] || ''; }
@@ -386,7 +391,7 @@ function teamAvg(room, team) {
 function sendRate2(p, r, win) {
   if (!p || !p.ws || p.bot) return;
   p.ws.send(JSON.stringify({ type: 'rate', kind: '2v2', win, rate: r.rate, before: r.before, delta: r.delta,
-    tier: r.tier, tierBefore: r.tierBefore, games: r.games, streak: r.streak, wstreak: r.wstreak }));
+    tier: r.tier, tierBefore: r.tierBefore, games: r.games, streak: r.streak, wstreak: r.wstreak, ...rateScore(r) }));
 }
 // 2v2 の結果：人だけ記録する（BOT と、先に抜けて負けを記録した人は除く）。ランクなら 2v2 のレートを動かす
 function recordTeamResult(room, winTeam) {
@@ -403,7 +408,9 @@ function recordTeamResult(room, winTeam) {
     if (p.ws.account) { if (win) p.ws.account.wins = (p.ws.account.wins || 0) + 1; else p.ws.account.losses = (p.ws.account.losses || 0) + 1; }
     p.rec[win ? 'w' : 'l']++;
     if (room.ranked) {
-      const r = auth.applyRanked2(p.uid, { mine: avg[teamOf(k)], theirs: avg[1 - teamOf(k)], win, cap: withBots ? SIM.BOT_TIER_CAP : null });
+      const wins = room.wins || [0, 0];
+      const r = auth.applyRanked2(p.uid, { mine: avg[teamOf(k)], theirs: avg[1 - teamOf(k)], win, cap: withBots ? SIM.BOT_TIER_CAP : null,
+        rw: wins[teamOf(k)] || 0, rl: wins[1 - teamOf(k)] || 0 });
       if (r) {
         sendRate2(p, r, win);
         p.rate = r.rate; p.tier = TIER_KEYS[r.tier] || '';
@@ -420,7 +427,7 @@ function recordTeamLeave(room, p) {
   const tag = 'room ' + room.id + ' (2v2)', team = teamOf(p.slot);
   auth.recordOnlineResult(p.uid, false);
   if (room.ranked) {
-    const r = auth.applyRanked2(p.uid, { mine: teamAvg(room, team), theirs: teamAvg(room, 1 - team), win: false, cap: null });
+    const r = auth.applyRanked2(p.uid, { mine: teamAvg(room, team), theirs: teamAvg(room, 1 - team), win: false, cap: null, forfeit: true });   // 抜けた負けは 0-3 と同じ
     if (r) log(tag, 'left (lose):', p.name, r.before + '→' + r.rate);
   } else log(tag, 'left:', p.name);
 }

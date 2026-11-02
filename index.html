@@ -3142,8 +3142,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=58"></script>
-<script src="lang.js?v=76"></script>
+<script src="sim.js?v=59"></script>
+<script src="lang.js?v=77"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -5691,6 +5691,14 @@ function recordMatchResult(diff,win,straight){
 }
 // ランクマッチの結果（サーバーが計算したもの）を当てはめる。rateFx はリザルト画面で見せる増減
 var rateFx=null;
+// 試合のスコアと、それで決まった倍率（3-0 ×1.2 など）。途中で抜けた負けは「途中退出」。分からなければ null
+function rateScoreOf(r){
+  var m=+r.mult;if(!(m>0))return null;
+  var lbl=r.ff?t('c.rateLeft'):(typeof r.rw==='number'&&typeof r.rl==='number')?(r.rw+'-'+r.rl):null;
+  if(!lbl)return null;
+  var good=r.win?m>1:m<1,bad=r.win?m<1:m>1;   // 自分にとって得か損か（色に使う）
+  return {lbl:lbl,mult:'\u00D7'+m.toFixed(1),col:good?'#34D399':bad?'#FF6B6B':'rgba(255,255,255,.62)'};
+}
 function applyRateResult(r){
   if(!r||typeof r.rate!=='number')return;
   ensureProfileShape();
@@ -5702,7 +5710,7 @@ function applyRateResult(r){
     var t2a=typeof r.tier==='number'?r.tier:SIM.tierOfRate(profile.rate2);
     profile.bestTier=Math.max(+profile.bestTier||0,t2a);   // 背景は 1v1・2v2 どちらのティアでも解放
     saveProfile();
-    rateFx={kind:'2v2',before:b2,after:profile.rate2,delta:profile.rate2-b2,tierBefore:t2b,tierAfter:t2a};
+    rateFx={kind:'2v2',before:b2,after:profile.rate2,delta:profile.rate2-b2,tierBefore:t2b,tierAfter:t2a,sc:rateScoreOf(r)};
     renderHomeBar();return;
   }
   var before=typeof r.before==='number'?r.before:myRate(),tb=typeof r.tierBefore==='number'?r.tierBefore:computeTierIndex();
@@ -5713,7 +5721,7 @@ function applyRateResult(r){
   if(r.win)profile.ranked.w++;else profile.ranked.l++;
   profile.bestTier=Math.max(+profile.bestTier||0,profile.tier);
   saveProfile();
-  rateFx={before:before,after:profile.rate,delta:profile.rate-before,tierBefore:tb,tierAfter:profile.tier};
+  rateFx={before:before,after:profile.rate,delta:profile.rate-before,tierBefore:tb,tierAfter:profile.tier,sc:rateScoreOf(r)};
   if(profile.tier>tb)reportTier(TIER_LADDER[profile.tier].key);
   renderHomeBar();
 }
@@ -14480,7 +14488,19 @@ function drawRateFx(cx,y,a){
   var cur=Math.round(rateFx.before+(rateFx.after-rateFx.before)*e);
   var up=rateFx.delta>=0,col=up?'#34D399':'#FF6B6B',num=String(cur),dtx=(up?'+':'')+rateFx.delta;
   ctx.save();ctx.globalAlpha=a*Math.min(1,T*5);ctx.textBaseline='middle';
-  ctx.textAlign='center';ctx.font='700 10px '+FONT_UI;setLS(4);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(t(rateFx.kind==='2v2'?'c.rate2':'c.rate'),cx,y-20);setLS(0);
+  var lab=t(rateFx.kind==='2v2'?'c.rate2':'c.rate'),sc=rateFx.sc;
+  if(!sc){ctx.textAlign='center';ctx.font='700 10px '+FONT_UI;setLS(4);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(lab,cx,y-20);setLS(0);}
+  else{
+    // 見出しの右に、スコアと倍率の札（例：3-0 ×1.2）
+    ctx.font='700 10px '+FONT_UI;setLS(4);var lw=ctx.measureText(lab).width;setLS(0);
+    ctx.font='700 10px '+FONT_UI;setLS(1);var st=sc.lbl+'  '+sc.mult,sw=ctx.measureText(st).width+14;setLS(0);
+    var lx=cx-(lw+8+sw)/2;
+    ctx.textAlign='left';ctx.font='700 10px '+FONT_UI;setLS(4);ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(lab,lx,y-20);setLS(0);
+    var px=lx+lw+8;
+    ctx.fillStyle='rgba(255,255,255,.07)';rrect(px,y-28,sw,16,8);ctx.fill();
+    ctx.strokeStyle=sc.col;ctx.globalAlpha*=.55;ctx.lineWidth=1;rrect(px+.5,y-27.5,sw-1,15,7.5);ctx.stroke();ctx.globalAlpha/=.55;
+    ctx.font='700 10px '+FONT_UI;setLS(1);ctx.fillStyle=sc.col;ctx.fillText(st,px+7,y-20);setLS(0);
+  }
   ctx.font='700 27px '+FONT_UI;var w1=ctx.measureText(num).width;
   ctx.font='700 15px '+FONT_UI;var w2=ctx.measureText(dtx).width,x0=cx-(w1+10+w2)/2;
   ctx.textAlign='left';
