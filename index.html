@@ -1489,13 +1489,15 @@ body.demo #bg-shade{opacity:1;}
 .gf-chip.it b{padding:1px 7px;border-radius:99px;font-size:10px;color:#0B0A12;background:var(--rc,#AEB6C4);}
 .gf-chip.r1{--rc:#3FA0FF;}.gf-chip.r2{--rc:#B45CFF;}.gf-chip.r3{--rc:#FFB020;}.gf-chip.r4{--rc:#FF5CD6;}
 .gf-chip.r2 b{color:#fff;}.gf-chip.r4 b{background:linear-gradient(90deg,#FF5C5C,#FFD84A,#5CFF8A,#4AB8FF,#C05CFF);}
+.gf-chip.ttl{padding-left:4px;color:#FFC07A;}
+.gf-chip.ttl b{padding:1px 7px;border-radius:99px;font-size:10px;color:#2A1400;background:linear-gradient(90deg,#FF9A3C,#FFC86B);}
 .gf-chip.del{cursor:pointer;}.gf-chip.del:hover{border-color:#FF8A7A;}
 .gf-form{display:flex;flex-direction:column;gap:11px;padding:12px;border-radius:14px;border:1px solid var(--line);background:rgba(255,255,255,.02);}
 .gf-note{margin:0;font-size:12px;line-height:1.55;color:var(--tx-3);}
 .gf-l{display:flex;flex-direction:column;gap:5px;font-size:12px;font-weight:900;color:var(--tx-2);}
 .gf-l>span{display:inline-flex;align-items:center;gap:5px;}
 .gf-l .pi{width:16px;height:16px;}
-.gf-form input:not([type=radio]),.gf-form textarea,.gf-form select{width:100%;min-width:0;padding:9px 11px;border-radius:10px;border:1px solid var(--line-2);background:#0B0D16;color:var(--tx);font:inherit;font-size:14px;font-weight:700;}
+.gf-form input:not([type=radio]):not([type=checkbox]),.gf-form textarea,.gf-form select{width:100%;min-width:0;padding:9px 11px;border-radius:10px;border:1px solid var(--line-2);background:#0B0D16;color:var(--tx);font:inherit;font-size:14px;font-weight:700;}
 .gf-form textarea{resize:vertical;min-height:70px;line-height:1.5;}
 .gf-form input:focus,.gf-form textarea:focus,.gf-form select:focus{outline:2px solid rgba(255,197,61,.6);outline-offset:0;}
 .gf-nums{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;}
@@ -3138,7 +3140,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=55"></script>
-<script src="lang.js?v=72"></script>
+<script src="lang.js?v=73"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4883,7 +4885,9 @@ function claimLoginBonus(){
 function maybeLoginBonus(){if(LB.shown||!loginReady()||currentScreen!=='mode-screen')return;LB.shown=true;setTimeout(function(){if(currentScreen==='mode-screen'&&loginReady())openLoginBonus();},SPLASH.on?2700:400);}
 // ---- 運営からのプレゼント（ログイン中だけ）。運営（DEV_IDS の人）は、ここから配布もできる ----
 var GIFT_SVG='<svg class="i" viewBox="0 0 24 24"><rect x="4" y="11" width="16" height="9" rx="1.5"/><path d="M3 7.5h18V11H3zM12 7.5V20M12 7.5C10.8 4.6 7.5 3.8 7.2 5.8 7 7.3 9.6 7.5 12 7.5zm0 0c1.2-2.9 4.5-3.7 4.8-1.7.2 1.5-2.4 1.7-4.8 1.7z"/></svg>';
-var GIFT={list:[],at:0,busy:false,tab:'inbox',sent:null,ask:false,form:{title:'',msg:'',coins:'',lucky:'',chaos:'',xp:'',items:[],toAll:true,to:'',days:7}};
+var GIFT={list:[],at:0,busy:false,tab:'inbox',sent:null,ask:false,form:{title:'',msg:'',coins:'',lucky:'',chaos:'',xp:'',items:[],titles:[],toAll:true,to:'',days:7}};
+// 配れる称号：イベントの限定称号（トリックオアトリートなど）
+function giftTitleIds(){var a=[];Object.keys(SIM.EVENTS).forEach(function(k){var T=SIM.EVENTS[k].title;if(T&&T.id&&a.indexOf(T.id)<0)a.push(T.id);});return a;}
 function giftOn(){return !!(AUTH.user&&AUTH.token&&STORE_ACC);}
 // 届いているプレゼントを読む（force でなければ1分に1回まで）。tell＝新しく届いたら知らせる
 function giftsLoad(force,tell){
@@ -4910,6 +4914,7 @@ function giftRwHtml(rw){
   if(rw.chaos)h+='<span class="gf-chip"><i class="pi chaos"></i>'+esc(t('eco.chaos'))+' ×'+rw.chaos+'</span>';
   if(rw.xp)h+='<span class="gf-chip xp">'+esc(t('gift.xp',{n:rw.xp}))+'</span>';
   (rw.items||[]).forEach(function(id){var it=SIM.ITEM_BY_ID[id];h+='<span class="gf-chip it'+(it?' r'+it.r:'')+'"><b>'+esc(it?rarName(it.r):'')+'</b>'+esc(itemName(id))+'</span>';});
+  (rw.titles||[]).forEach(function(id){h+='<span class="gf-chip ttl"><b>'+esc(t('gift.titleTag'))+'</b>'+esc(titleText(id))+'</span>';});
   return h;
 }
 function giftDate(ms){var d=new Date(ms);return (d.getMonth()+1)+'/'+d.getDate();}
@@ -4934,6 +4939,7 @@ function renderGifts(){
 function giftGotText(g){
   var a=[];if(g.coins)a.push(t('pass.coins',{n:g.coins}));if(g.lucky)a.push(t('eco.lucky')+' ×'+g.lucky);if(g.chaos)a.push(t('eco.chaos')+' ×'+g.chaos);if(g.xp)a.push(t('gift.xp',{n:g.xp}));
   (g.items||[]).forEach(function(id){a.push(itemName(id));});
+  (g.titles||[]).forEach(function(id){a.push(t('gift.titleGot',{n:titleText(id)}));});
   return a.join('・')+(g.dup&&g.dup.length?t('gift.dup'):'');
 }
 function giftClaim(id){
@@ -4941,10 +4947,12 @@ function giftClaim(id){
   ecoApi({op:'gclaim',id:String(id)},function(r){GIFT.busy=false;
     if(!r||r.error||!r.got){note(t('gift.err'));GIFT.at=0;giftsLoad(true);return;}
     var lv0=ecoLevel().lv;ecoAdopt(r);
+    if(r.user&&AUTH.user){AUTH.user=r.user;renderLoginUI();}   // 称号の印（ハロウィンの称号など）が付いたとき
     GIFT.list=GIFT.list.filter(function(g){return(r.claimed||[]).indexOf(g.id)<0;});
     (r.got.items||[]).forEach(ecoMarkNew);SFX.coin();
     if(ecoLevel().lv>lv0){SFX.levelUp();showLevelUp(ecoLevel().lv);}
     note(t('gift.got',{r:giftGotText(r.got)}));renderHomeEco();giftsUi();
+    if(r.got.titles&&r.got.titles.length)checkTitles();   // もらった称号のお祝いを出して、選べるようにする
     var first=(r.got.items||[])[0],it=first&&SIM.ITEM_BY_ID[first];   // アイテムをもらったら、バッジと同じ演出で見せる
     if(it&&!GIFT.list.length){closeGifts();setTimeout(function(){if(CR.on)return;openCrateScreen('lucky');CR.res={kind:'lucky',r:it.r,n:1,items:[{item:first,dup:false}]};CR.tier=it.r;crateBurst();},400);}
   });
@@ -4953,6 +4961,7 @@ function giftClaim(id){
 var GIFT_KINDS=['hat','outfit','neck','win','emote','bg'];
 function giftF(k,v){GIFT.form[k]=v;if(k==='toAll'){GIFT.ask=false;renderGifts();}}
 function giftAddItem(){var sel=document.getElementById('gf-f-item');if(!sel||!sel.value)return;if(GIFT.form.items.indexOf(sel.value)<0&&GIFT.form.items.length<10)GIFT.form.items.push(sel.value);GIFT.ask=false;renderGifts();}
+function giftTitle(id,on){var a=GIFT.form.titles,i=a.indexOf(id);if(on&&i<0)a.push(id);if(!on&&i>=0)a.splice(i,1);GIFT.ask=false;}
 function giftDelItem(i){GIFT.form.items.splice(i,1);GIFT.ask=false;renderGifts();}
 function giftFormHtml(){
   var F=GIFT.form,h='<div class="gf-form">';
@@ -4968,6 +4977,8 @@ function giftFormHtml(){
   });
   h+='<div class="gf-l"><span>'+esc(t('gift.fItems'))+'</span><div class="gf-pick"><select id="gf-f-item">'+opts+'</select><button class="mq-link" onclick="giftAddItem()">'+esc(t('gift.add'))+'</button></div>'+
     (F.items.length?'<div class="gf-rw">'+F.items.map(function(id,i){var it=SIM.ITEM_BY_ID[id];return'<button class="gf-chip it del'+(it?' r'+it.r:'')+'" onclick="giftDelItem('+i+')" title="'+esc(t('gift.remove'))+'"><b>'+esc(it?rarName(it.r):'')+'</b>'+esc(itemName(id))+' ×</button>';}).join('')+'</div>':'')+'</div>';
+  h+='<div class="gf-l"><span>'+esc(t('gift.fTitles'))+'</span><div class="gf-to">'+giftTitleIds().map(function(id){
+    return'<label><input type="checkbox"'+(F.titles.indexOf(id)>=0?' checked':'')+' onchange="giftTitle(\''+esc(id)+'\',this.checked)">'+esc(titleText(id))+'</label>';}).join('')+'</div></div>';
   h+='<div class="gf-l"><span>'+esc(t('gift.fTo'))+'</span><div class="gf-to"><label><input type="radio" name="gf-to"'+(F.toAll?' checked':'')+' onchange="giftF(\'toAll\',true)">'+esc(t('gift.toAll'))+'</label>'+
     '<label><input type="radio" name="gf-to"'+(F.toAll?'':' checked')+' onchange="giftF(\'toAll\',false)">'+esc(t('gift.toCodes'))+'</label></div>'+
     (F.toAll?'':'<input id="gf-f-to" placeholder="'+esc(t('gift.codesPh'))+'" value="'+esc(F.to)+'" oninput="giftF(\'to\',this.value)">')+'</div>';
@@ -4988,14 +4999,14 @@ function giftAskCancel(){GIFT.ask=false;renderGifts();}
 function giftAsk(){
   var F=GIFT.form;
   if(!String(F.title).trim())return note(t('gift.e.no_title'));
-  if(!(+F.coins>0||+F.lucky>0||+F.chaos>0||+F.xp>0||F.items.length))return note(t('gift.e.empty'));
+  if(!(+F.coins>0||+F.lucky>0||+F.chaos>0||+F.xp>0||F.items.length||F.titles.length))return note(t('gift.e.empty'));
   if(!F.toAll&&!String(F.to).trim())return note(t('gift.e.bad_to',{c:''}));
   GIFT.ask=true;renderGifts();
 }
 function giftSend(){
   if(GIFT.busy)return;var F=GIFT.form;GIFT.busy=true;
-  ecoApi({op:'gsend',title:F.title,msg:F.msg,coins:+F.coins||0,lucky:+F.lucky||0,chaos:+F.chaos||0,xp:+F.xp||0,items:F.items.slice(),to:F.toAll?'':F.to,days:+F.days||7},function(r){GIFT.busy=false;GIFT.ask=false;
-    if(r&&r.ok){note(t('gift.sent'));GIFT.form={title:'',msg:'',coins:'',lucky:'',chaos:'',xp:'',items:[],toAll:true,to:'',days:7};GIFT.sent=null;renderGifts();giftAdminLoad();giftsLoad(true);return;}
+  ecoApi({op:'gsend',title:F.title,msg:F.msg,coins:+F.coins||0,lucky:+F.lucky||0,chaos:+F.chaos||0,xp:+F.xp||0,items:F.items.slice(),titles:F.titles.slice(),to:F.toAll?'':F.to,days:+F.days||7},function(r){GIFT.busy=false;GIFT.ask=false;
+    if(r&&r.ok){note(t('gift.sent'));GIFT.form={title:'',msg:'',coins:'',lucky:'',chaos:'',xp:'',items:[],titles:[],toAll:true,to:'',days:7};GIFT.sent=null;renderGifts();giftAdminLoad();giftsLoad(true);return;}
     var e=r&&r.error||'net',k='gift.e.'+e;note(t(k)!==k?t(k,{c:(r&&r.codes||[]).join(', ')}):t('gift.e.other',{e:e}));renderGifts();
   });
 }
@@ -15362,7 +15373,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
