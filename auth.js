@@ -135,16 +135,26 @@ if (!db.meta.mimicFix) {
   }
   db.meta.mimicFix = 1; dirty = true;
 }
-// レートのやり直し（1回だけ）。全員を初期のレート（＝ティア LT5）に戻す。1v1 と 2v2 の両方。
-// オンラインの通算戦績・称号・見た目は消さない（ランクマッチの勝敗数だけ0に戻る）
-if ((db.meta.rateEpoch || 0) < 3) {
-  for (const u of Object.values(db.users)) {
+// レートのやり直し（エポックごとに1回だけ）。全員を初期のレート（ブロンズⅠ）に戻す。1v1 と 2v2 の両方。
+// オンラインの通算戦績・称号・見た目・解放した背景（bestEver）は消さない（ランクマッチの勝敗数・連勝・ランクブーストは0に戻る）
+//   3：ティア LT5〜HT1 のころのやり直し
+//   4：2026-11 ランクを8つ×Ⅰ〜Ⅲに作り直したのに合わせて、全員を一から。やり直す前のデータは users.before-rate-reset-4.json に残す
+const RATE_EPOCH = 4;
+if ((db.meta.rateEpoch || 0) < RATE_EPOCH) {
+  const users = Object.values(db.users);
+  if (users.length && db.meta.rateEpoch) {   // 戻せるように、やり直す前の全部をとっておく（保存に失敗しても、やり直しは続ける）
+    try { fs.writeFileSync(path.join(DATA_DIR, 'users.before-rate-reset-' + RATE_EPOCH + '.json'), JSON.stringify(db)); }
+    catch (e) { console.error('レートのやり直し前の保存に失敗:', e.message); }
+  }
+  for (const u of users) {
     u.rate = SIM.RATE_START; u.rtier = SIM.tierOfRate(SIM.RATE_START); u.rgames = 0; u.rstreak = 0; u.rwstreak = 0;
     u.rpeak = SIM.RATE_START; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
     u.rate2 = SIM.RATE_START; u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0;
     u.rpeak2 = SIM.RATE_START; u.ranked2 = { w: 0, l: 0 };
+    delete u.rboost; delete u.rboost2;
   }
-  db.meta.rateEpoch = 3; dirty = true;
+  if (users.length) console.log('rate reset (epoch ' + RATE_EPOCH + '):', users.length, 'accounts back to', SIM.RATE_START);
+  db.meta.rateEpoch = RATE_EPOCH; dirty = true;
 }
 // プロフィールのやり直し（段階ごとに1回だけ。中身は sim.js の upgradeProfile）。オンライン戦績とレートは消さない
 if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
