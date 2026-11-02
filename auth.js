@@ -155,6 +155,18 @@ if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
   }
   db.meta.titleEpoch = SIM.PROFILE_EPOCH; dirty = true;
 }
+// ランクの作り直し（10段 LT5〜HT1 → 8つのランク×Ⅰ〜Ⅲの24段）。前の段の番号を、同じレートの新しい段に直す（1回だけ）。
+// レートそのものは変えない。背景の番号（絵 0〜10）もそのまま
+if ((db.meta.tierVer || 1) < SIM.TIER_VER) {
+  const users = Object.values(db.users);
+  if (users.length) for (const u of users) {
+    if (u.bestEver) u.bestEver = SIM.tierFromOld(u.bestEver);
+    if (u.tierBest) u.tierBest = SIM.tierFromOld(u.tierBest);
+    if (typeof u.rate === 'number') u.rtier = SIM.tierOfRate(u.rate);
+    if (u.profile && u.profile.bestTier) { u.profile.bestTier = SIM.tierFromOld(u.profile.bestTier); u.profileRev = (u.profileRev || 0) + 1; }
+  }
+  db.meta.tierVer = SIM.TIER_VER; dirty = true;
+}
 // 解放した背景の上限（bestEver）を、サーバーの記録から作る（1回だけ）。
 // 前はブラウザが送った bestTier をそのまま信じていたので、前のシーズンまでに届いたと考えられる所（今の最高＋5ティア）までだけ残す
 if (!db.meta.bestEpoch) {
@@ -162,7 +174,7 @@ if (!db.meta.bestEpoch) {
     const peak = SIM.tierOfRate(Math.max(u.rpeak || 0, u.rate || 0, u.rpeak2 || 0, u.rate2 || 0));
     const played = u.online && (u.online.w + u.online.l) > 0;
     const claimed = u.profile && Number.isFinite(+u.profile.bestTier) ? +u.profile.bestTier : 0;
-    const cap = played ? Math.min(P.TIER_KEYS.length - 1, peak + ((db.meta.season || 1) > 1 ? 5 : 0)) : peak;
+    const cap = played ? Math.min(P.TIER_KEYS.length - 1, peak + ((db.meta.season || 1) > 1 ? 12 : 0)) : peak;
     u.bestEver = Math.max(peak, u.tierBest || 0, Math.min(claimed, cap));
   }
   db.meta.bestEpoch = 1; dirty = true;
@@ -251,7 +263,7 @@ function keepServerOwned(next, old, u) {
   // ブラウザも同じ決まりで判断するので、両方がそろう（そろわないと、お知らせがくり返し出る）
   { const proofG = { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor }, ctxG = u ? titleCtx(u) : null;
     for (const t of SIM.TITLES) if (!t.gate && !next.ach.got[t.id] && SIM.titleProof(t.id, proofG, ctxG)) next.ach.got[t.id] = 1; }
-  if (u) { next.bestTier = bestTierOf(u); if (typeof next.bg === 'number' && next.bg > next.bestTier) next.bg = null; }
+  if (u) { next.bestTier = bestTierOf(u); if (typeof next.bg === 'number' && !SIM.bgUnlocked(next.bg, next.bestTier)) next.bg = null; }
   // 付けている称号も、サーバーの記録で確かめ直す
   next.title = P.validTitle(next.title, u ? titleCtx(u) : null, { stats: next.stats, tierProgress: next.tierProgress, ach: next.ach, emperor: next.emperor });
   if (next.bg === 'emperor' && !next.emperor.beat) next.bg = null;
@@ -959,7 +971,7 @@ const auth = {
       title: P.validTitle(p.title, titleCtx(u), p),
       bg: bg === 'emperor' ? (p.emperor && p.emperor.beat ? 'emperor' : null) : bg === 'dev' ? (u.dev ? 'dev' : null)
         : bg === 'champion' ? (u.champion ? 'champion' : null) : bg === 'halloween' ? ((p.inv || []).indexOf('bHW') >= 0 ? 'halloween' : null)
-        : typeof bg === 'number' && bg >= 0 && bg <= bestTierOf(u) ? bg : null,
+        : SIM.bgUnlocked(bg, bestTierOf(u)) ? bg : null,
     };
   },
   ownedLook(uid, look) { const u = uid && db.users[uid]; return SIM.lookOwned(look, u && u.profile ? SIM.cleanInv(u.profile.inv) : null); },
@@ -1029,7 +1041,7 @@ const auth = {
     return {
       fid: u.fid, name: p ? p.name : u.name, discord: u.name, dev: !!u.dev, badge: SIM.badgeShown(u.badges, p ? p.badge : null),
       title: p ? P.validTitle(p.title, titleCtx(u), p) : 'rookie', bio: p && !SIM.badText(p.bio) ? p.bio : '', look: p ? p.look : null, loadout: p ? p.loadout || null : null,
-      tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? p.bestTier : p.bg) : 0,
+      tier, tierKey: P.TIER_KEYS[tier], bg: p ? (p.bg == null ? SIM.artOfTier(p.bestTier) : p.bg) : 0,
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },
       rate2: r2.rate, tier2: r2.tier, ranked2: { w: r2.w, l: r2.l },
       status, lastSeen: status === 'offline' ? (u.lastSeen || 0) : 0,

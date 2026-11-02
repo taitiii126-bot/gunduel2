@@ -13,7 +13,7 @@ const SIM = require('./sim.js');
 const DATA_DIR = process.env.DATA_DIR || process.env.STATE_DIRECTORY || __dirname;
 const FILE = path.join(DATA_DIR, 'clans.json');
 const MAX_MEMBERS = 20, NAME_MAX = 16, TAG_MIN = 2, TAG_MAX = 4, DESC_MAX = 200;
-const TYPES = ['open', 'approval', 'closed'], TIER_MAX = 10;
+const TYPES = ['open', 'approval', 'closed'], TIER_MAX = SIM.TIER_MIN.length - 1;   // 必要な最高ランク：0（なし）〜24
 const REQ_PER_CLAN = 30, REQ_PER_USER = 5, REQ_DAYS = 7;   // 申請：1つのクランに30件まで・1人5件まで・7日で消える
 const PTS_WIN = 3, PTS_PLAY = 1;
 
@@ -23,15 +23,17 @@ try {
   if (loaded && typeof loaded === 'object') db = { clans: loaded.clans || {}, member: loaded.member || {} };
 } catch (e) { /* 初回は存在しない */ }
 // 前の版で作ったクランには、新しい設定の既定値を入れる（参加自由・条件なし・地域なし）
+let migrated = false;
 for (const c of Object.values(db.clans)) {
   if (typeof c.desc !== 'string') c.desc = '';
   if (TYPES.indexOf(c.type) < 0) c.type = 'open';
   if (!(c.minTier >= 0)) c.minTier = 0;
+  if ((c.tierVer || 1) < SIM.TIER_VER) { c.minTier = SIM.tierFromOld(c.minTier); c.tierVer = SIM.TIER_VER; migrated = true; }   // 前の10段の番号を、24段に直す
   if (typeof c.region !== 'string') c.region = '';
   if (!Array.isArray(c.req)) c.req = [];
 }
 
-let dirty = false;
+let dirty = migrated;   // 直した所があれば、すぐ保存する
 function flush() {
   if (!dirty) return;
   dirty = false;
@@ -90,7 +92,7 @@ function create(uid, name, tag, opts) {
   const st = cleanSettings(opts);
   if (st.error) return st;
   const id = newId();
-  db.clans[id] = Object.assign({ id, name: n, tag: tg, owner: uid, members: [uid], pts: 0, mp: {}, created: Date.now(), wk: { key: weekKey(), pts: 0, mp: {} }, req: [] }, st);
+  db.clans[id] = Object.assign({ id, name: n, tag: tg, owner: uid, members: [uid], pts: 0, mp: {}, created: Date.now(), wk: { key: weekKey(), pts: 0, mp: {} }, req: [], tierVer: SIM.TIER_VER }, st);
   db.member[uid] = id; dropReqs(uid); dirty = true;
   return { ok: true, clan: db.clans[id] };
 }

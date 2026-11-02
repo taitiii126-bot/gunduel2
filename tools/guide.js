@@ -303,22 +303,25 @@ function secCpu() {
 <details class="spoiler"><summary>ネタバレ注意：鬼神のその先</summary><p>${esc(TXT.emperor)}</p></details></section>`;
 }
 
-const TIER_KEYS = ['', 'LT5', 'HT5', 'LT4', 'HT4', 'LT3', 'HT3', 'LT2', 'HT2', 'LT1', 'HT1'];   // index.html の TIER_LADDER と同じ順
+const RANK_JA = ['', 'ブロンズ', 'アイアン', 'ゴールド', 'プラチナ', 'レジェンド', 'マスター', 'チャンピオン', 'エクリプス'];   // sim.js の RANKS と同じ順
+const ROMAN = ['', 'Ⅰ', 'Ⅱ', 'Ⅲ'];
+const rankLabel = i => { const k = SIM.rankOf(i); return k.r ? RANK_JA[k.r] + ROMAN[k.d] : '未ランク'; };
 function secOnline() {
-  if (TIER_KEYS.length !== SIM.TIER_MIN.length) throw new Error('ティアの数が sim.js の TIER_MIN と合いません');
-  const tiers = SIM.TIER_MIN.map((lo, i) => {
-    if (i === 0) return '';
-    const hi = SIM.TIER_MIN[i + 1];
-    return `<div class="tier">${img('tier-' + i + '.webp', TIER_KEYS[i] + 'の紋章', 144, 144)}<b>${TIER_KEYS[i]}</b><span>${hi ? `${lo}〜${hi - 1}` : `${lo}〜`}</span></div>`;
+  if (RANK_JA.length !== SIM.RANKS.length) throw new Error('ランクの数が sim.js の RANKS と合いません');
+  // ランクごとに1行：紋章（絵の番号の画像）・名前・Ⅰ〜Ⅲになるレート
+  const tiers = RANK_JA.map((nm, r) => {
+    if (r === 0) return '';
+    const t1 = (r - 1) * 3 + 1;
+    return `<div class="tier">${img('tier-' + SIM.RANK_ART[r] + '.webp', nm + 'の紋章', 144, 144)}<b>${nm}</b><span>${[0, 1, 2].map(k => ROMAN[k + 1] + ' ' + SIM.TIER_MIN[t1 + k]).join('・')}〜</span></div>`;
   }).join('');
   const tz = G.monthStartJst;
   return `<section id="online">${sectionHead('online', 'オンライン対戦', 'ほかのプレイヤーとの対戦。1対1と2対2があり、フレンドと部屋を作って遊ぶこともできる。')}
 <div class="grid g-2"><div class="card"><h3>${esc(t('mm.ranked'))}</h3><p>${esc(t('mm.rankedSub'))}。Discord でのログインが必要。</p></div>
 <div class="card"><h3>${esc(t('mm.casual'))}</h3><p>${esc(t('mm.casualSub'))}。ログインしなくても遊べる。</p></div></div>
-<h3 class="sub">ティア（ランク）</h3><p>ティアはレートの数字だけで決まり、レートはランクマッチの結果でだけ上下する。最初はレート${SIM.RATE_START}（LT5）から始まり、${SIM.RATE_FLOOR}より下には下がらない（${SIM.TIER_MIN[1]}未満は「未ランク」の表示）。</p>
+<h3 class="sub">ランク</h3><p>ランクはブロンズ・アイアン・ゴールド・プラチナ・レジェンド・マスター・チャンピオン・エクリプスの8つで、それぞれにⅠ・Ⅱ・Ⅲがある（全部で24段）。ランクはレートの数字だけで決まり、レートはランクマッチの結果でだけ上下する。最初はレート${SIM.RATE_START}（${rankLabel(1)}）から始まり、${SIM.RATE_FLOOR}より下には下がらない（${SIM.TIER_MIN[1]}未満は「未ランク」の表示）。</p>
 <div class="card tiers">${tiers}</div>
-<h3 class="sub">レートの上がり方</h3><ul class="dots"><li>勝てば必ず上がり、負ければ必ず下がる。</li><li>格上に勝つほど大きく上がる。連勝しているうちは、上がり方がさらに大きくなる。</li><li>始めのうち（ランクマッチの最初の数十戦）は、大きく動いて早く実力の位置へ近づく。</li><li>格下に続けて負けると、下がり方が大きくなる。上のティアほど、負けたときに下がりやすい。</li></ul>
-<h3 class="sub">シーズン</h3><ul class="dots"><li>1か月で1シーズン。毎月1日の午前${tz}時（日本時間）に新しいシーズンが始まる。</li><li>シーズンが終わると、ティアが${SIM.SEASON_DROP}つ下がったところから次のシーズンが始まる（例：HT1 → LT3）。</li><li>シーズン中にログインした人全員に、そのシーズンの記念バッジが配られる。</li></ul></section>`;
+<h3 class="sub">レートの上がり方</h3><ul class="dots"><li>勝てば必ず上がり、負ければ必ず下がる。</li><li>格上に勝つほど大きく上がる。連勝しているうちは、上がり方がさらに大きくなる。</li><li>始めのうち（ランクマッチの最初の数十戦）は、大きく動いて早く実力の位置へ近づく。</li><li>格下に続けて負けると、下がり方が大きくなる。上のランクほど、負けたときに下がりやすい。</li></ul>
+<h3 class="sub">シーズン</h3><ul class="dots"><li>1か月で1シーズン。毎月1日の午前${tz}時（日本時間）に新しいシーズンが始まる。</li><li>シーズンが終わると、${SIM.SEASON_DROP}段（4ランク分）下がったところから次のシーズンが始まる（例：${rankLabel(SIM.TIER_MIN.length - 1)} → ${rankLabel(SIM.TIER_MIN.length - 1 - SIM.SEASON_DROP)}）。</li><li>シーズン中にログインした人全員に、そのシーズンの記念バッジが配られる。</li></ul></section>`;
 }
 
 function secRewards() {

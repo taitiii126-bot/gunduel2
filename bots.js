@@ -71,7 +71,7 @@ function makeBot(rate, rnd, cfgRate) {
   return {
     name, rate: rt, tier, tierKey: TIER_KEYS[tier] || '',
     look: SIM.randomLook(r), loadout: SIM.cpuLoadout(r), title: botTitle(rt, r), bio: pick(BIOS, r),
-    bg: tier, rec, cfg: SIM.aiForRate(cfgRate == null ? rt : cfgRate),
+    bg: SIM.artOfTier(tier), rec, cfg: SIM.aiForRate(cfgRate == null ? rt : cfgRate),
   };
 }
 

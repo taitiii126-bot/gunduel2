@@ -48,7 +48,7 @@ var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6�
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;
 var BALL_G = 0.16, BALL_BOUNCE = 0.72;   // バウンドボール：重力と、跳ねたときに残る速さ   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 11;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール
+var PROTO = 12;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール、12＝ランク（8つ×Ⅰ〜Ⅲ・記号が変わった）
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
@@ -2070,18 +2070,43 @@ function keepFooting(b, w, me, inp) {
 }
 
 // ---- レート ----
-// ティアはレートの数値で決まる。TIER_MIN[i] = そのティアになる最低レート（0番は「まだティアなし」）
-// 下から：（なし）<LT5<HT5<LT4<HT4<LT3<HT3<LT2<HT2<LT1<HT1
-var RATE_START = 1000;            // 始まりのレート（＝LT5）
+// ランクはレートの数値で決まる。8つのランク（下から ブロンズ・アイアン・ゴールド・プラチナ・レジェンド・マスター・チャンピオン・エクリプス）に
+// それぞれ Ⅰ・Ⅱ・Ⅲ があり、全部で24段。段の番号（ティア）は 1〜24、0 は「まだランクなし」。TIER_MIN[i] = その段になる最低レート
+var RATE_START = 1000;            // 始まりのレート（＝ブロンズⅠ）
 var RATE_FLOOR = 800;             // これより下がらない
-var TIER_MIN = [0, 1000, 1100, 1200, 1350, 1500, 1650, 1800, 2000, 2250, 2550];
-var BOT_TIER_CAP = 9;             // BOT戦だけで行けるのは LT1 の下限（2250）まで。HT1 は本物に勝った人だけ
+var TIER_MIN = [0, 1000, 1040, 1080, 1120, 1160, 1200, 1250, 1300, 1350, 1400, 1460, 1520,
+  1580, 1650, 1720, 1800, 1880, 1960, 2050, 2150, 2250, 2400, 2550, 2700];
+var RANKS = ['', 'bronze', 'iron', 'gold', 'platinum', 'legend', 'master', 'champion', 'eclipse'];
+var RANK_KEYS = ['', 'BR', 'IR', 'GD', 'PT', 'LG', 'MS', 'CH', 'EC'];
+var TIER_KEYS = [''];             // 段ごとの短い記号（通信や記録に使う。表示はランク名＋ローマ数字）：BR1, BR2, BR3, IR1 …
+for (var _r = 1; _r < RANKS.length; _r++) for (var _d = 1; _d <= 3; _d++) TIER_KEYS.push(RANK_KEYS[_r] + _d);
+function rankOf(t) { t = Math.max(0, Math.min(TIER_MIN.length - 1, Math.floor(+t) || 0)); return t ? { r: Math.ceil(t / 3), d: (t - 1) % 3 + 1 } : { r: 0, d: 0 }; }
+// 絵（紋章・背景の番号 0〜10）：ランクごとに1つ。ブロンズ＝銅の砂漠、アイアン＝鉄の歯車、ゴールド＝金の星、プラチナ＝氷の波、
+// レジェンド＝紫の星、マスター＝深紅の炎、チャンピオン＝青い雷、エクリプス＝黒と金
+var RANK_ART = [0, 2, 1, 5, 3, 6, 7, 8, 10];
+function artOfTier(t) { return RANK_ART[rankOf(t).r]; }
+// 前の10段（LT5〜HT1）の番号を、同じレートの新しい段に直す（記録の引っ越しに使う）
+var TIER_OLD_MIN = [0, 1000, 1100, 1200, 1350, 1500, 1650, 1800, 2000, 2250, 2550];
+var TIER_VER = 2;
+function tierFromOld(k) { k = Math.max(0, Math.min(10, Math.floor(+k) || 0)); return k ? tierOfRate(TIER_OLD_MIN[k]) : 0; }
+// 背景（絵 0〜10）が使える段：そのランクに届いたとき。前に同じレートで使えていた背景は、そのまま使える
+var BG_UNLOCK = (function () {
+  var o = [];
+  for (var a = 0; a <= 10; a++) {
+    var need = a ? tierFromOld(a) : 0;
+    for (var r = 1; r < RANK_ART.length; r++) if (RANK_ART[r] === a) need = Math.min(need, (r - 1) * 3 + 1);
+    o.push(need);
+  }
+  return o;
+})();
+function bgUnlocked(bg, best) { return typeof bg === 'number' && bg >= 0 && bg < BG_UNLOCK.length && (Math.floor(+best) || 0) >= BG_UNLOCK[bg]; }
+var BOT_TIER_CAP = 21;            // BOT戦だけで行けるのは チャンピオンⅢ の下限（2250）まで。その上は本物に勝った人だけ
 // レートからティアを出す（レートの数値だけで決まる。猶予や飛び級はない）
 // ---- シーズン（シンガポール時間 UTC+8 の1か月ごと）----
 // 月の初め（1日 0:00）に新しいシーズンが始まり、月末で終わる
 var SEASON_TZ_MIN = 8 * 60;
 var SEASON_ORIGIN = { y: 2026, m: 8 };          // 2026年9月 ＝ シーズン1（m は 0 から数える）
-var SEASON_DROP = 5;                            // 次のシーズンは、ティアをこれだけ下げたところから（HT1 → LT3）
+var SEASON_DROP = 12;                           // 次のシーズンは、段をこれだけ下げたところから（エクリプスⅢ → プラチナⅢ）
 function seasonMonthOf(ms) {
   var d = new Date((ms == null ? Date.now() : ms) + SEASON_TZ_MIN * 60000);
   return { y: d.getUTCFullYear(), m: d.getUTCMonth() };
@@ -2223,10 +2248,10 @@ function resetCpuTitles(p, tier) {
   p.ach.streak = 0; p.ach.best = 0;
   p.tierProgress = {};           // 難度をクリアした記録
   p.emperor = { w: 0, l: 0, beat: false, seen: false };   // 隠しボス
-  // 背景は今のティアのものまで
+  // 背景は今の段で使えるものまで
   var t = Math.max(0, Math.min(TIER_MIN.length - 1, Math.floor(+tier || 0)));
   p.bestTier = t;
-  if (p.bg === 'emperor' || (typeof p.bg === 'number' && p.bg > t)) p.bg = null;
+  if (p.bg === 'emperor' || (typeof p.bg === 'number' && !bgUnlocked(p.bg, t))) p.bg = null;
   // サーバーが確かめる称号（開拓者・オンライン戦績・運営から配ったもの）は、そのまま着けていられる
   var gated = false;
   for (var j = 0; j < TITLES.length; j++) if (TITLES[j].id === p.title && TITLES[j].gate) gated = true;
@@ -2323,6 +2348,8 @@ var api = {
   packChar: packChar, packShots: packShots, blockAt: blockAt,
   newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, decideTactic: decideTactic,
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
+  RANKS: deepFreeze(RANKS), RANK_KEYS: deepFreeze(RANK_KEYS), TIER_KEYS: deepFreeze(TIER_KEYS), rankOf: rankOf, RANK_ART: deepFreeze(RANK_ART), artOfTier: artOfTier,
+  TIER_OLD_MIN: deepFreeze(TIER_OLD_MIN), TIER_VER: TIER_VER, tierFromOld: tierFromOld, BG_UNLOCK: deepFreeze(BG_UNLOCK), bgUnlocked: bgUnlocked,
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
   TITLES: deepFreeze(TITLES), titleOk: titleOk,
   guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,

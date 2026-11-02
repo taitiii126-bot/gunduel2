@@ -38,7 +38,7 @@ const clans = require('./clans');   // クラン
 let bots = null;
 try { bots = require('./bots'); } catch (e) { console.error('bots.js を読み込めませんでした。BOTの相手は出ません:', e.message); }
 const interactions = require('./interactions');
-const { TIER_COLORS, TIER_KEYS } = require('./profile');
+const { TIER_COLORS, TIER_KEYS, tierLabel } = require('./profile');
 
 const list = v => String(v || '').split(',').map(s => s.trim()).filter(Boolean);
 const PORT = +process.env.PORT || 8080;
@@ -92,8 +92,8 @@ const inviteTries = limiter(12, 60 * 1000);       // 対戦の招待：1人1分�
 // ---- ティア昇格をDiscordに投稿 ----
 // ティアはCPU戦（ブラウザ内）の結果なので検証できない。そのため、
 // ・ログイン中の本人だけ ・前に報告したティアより上のときだけ（1人最大10回） ・連投は止める に制限する
-const TIERS = ['LT5', 'HT5', 'LT4', 'HT4', 'LT3', 'HT3', 'LT2', 'HT2', 'LT1', 'HT1'];   // 添字+1 がティアの順位
-// ティアの説明（レートの範囲）
+const TIERS = TIER_KEYS.slice(1);   // 段の記号（BR1〜EC3）。添字+1 が段の番号
+// 段の説明（レートの範囲）
 const tierRange = idx => {
   const lo = SIM.TIER_MIN[idx], hi = SIM.TIER_MIN[idx + 1];
   return hi ? 'レート ' + lo + '〜' + (hi - 1) : 'レート ' + lo + ' 以上';
@@ -108,12 +108,12 @@ function postTierUp(user, key) {
   if (!WEBHOOK_URL || !webhookPosts.hit('all')) return Promise.resolve(false);
   const next = TIERS[TIERS.indexOf(key) + 1];
   const embed = {
-    title: 'ティア昇格',
-    description: `<@${user.id}>（${mdEscape(user.name)}）が **${key}** に昇格しました！`,
+    title: 'ランク昇格',
+    description: `<@${user.id}>（${mdEscape(user.name)}）が **${tierLabel(TIERS.indexOf(key) + 1)}** に昇格しました！`,
     color: TIER_COLORS[key],
     fields: [
-      { name: 'ティア', value: tierRange(TIERS.indexOf(key) + 1), inline: true },
-      { name: '次の目標', value: next ? `${next}：レート ${SIM.TIER_MIN[TIERS.indexOf(next) + 1]}` : '最高ティア到達！', inline: true },
+      { name: 'ランク', value: tierRange(TIERS.indexOf(key) + 1), inline: true },
+      { name: '次の目標', value: next ? `${tierLabel(TIERS.indexOf(next) + 1)}：レート ${SIM.TIER_MIN[TIERS.indexOf(next) + 1]}` : '最高ランク到達！', inline: true },
     ],
     footer: { text: 'GUN DUEL' },
     timestamp: new Date().toISOString(),
