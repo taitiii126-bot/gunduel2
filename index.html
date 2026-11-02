@@ -13534,9 +13534,9 @@ function drawProfileCard(g,P,x,y,w,h,tm){
   if(rk.r>=8){g.save();cardQuad(g,x,top,w,ch,bdw);cardQuad(g,x,top,w,ch,0,true);g.clip('evenodd');
     var sp=((tm||0)*.35)%1.6,sx=x-w*.6+sp*w*1.6,lg=g.createLinearGradient(sx-w*.25,top,sx+w*.25,top+ch*.4);
     lg.addColorStop(0,'rgba(255,212,92,0)');lg.addColorStop(.5,'rgba(255,212,92,.95)');lg.addColorStop(1,'rgba(255,212,92,0)');g.fillStyle=lg;g.fillRect(x-bdw*2,top-bdw*2,w+bdw*4,ch+bdw*4);g.restore();}
-  // 上：雲の飾りと紋章・ランク名
+  // 上：弾帯と紋章
   drawCardCrown(g,P.tier,x+w/2,top+w*.004,w,tm);
-  drawTierMark(g,P.tier,x+w/2,top+w*.004,markR,tm);
+  g.save();g.translate(x+w/2,top+w*.004);g.scale(markR/50,markR/50);drawEmblem(g,tierArt(P.tier),tm||0);g.restore();   // 紋章だけ（ランク名は書かない。段は弾の数で分かる）
   if(P.badge!=null)drawSeasonBadge(g,x+w*.115,top+w*.2,w*.075,P.badge,tm);   // 左上：シーズンバッジ
   g.restore();
 }
