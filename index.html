@@ -3974,7 +3974,7 @@ function seasonText(){
 }
 function isBossFight(){return gameMode==='ai'&&difficulty===EMP;}
 // 背景の値：数字＝ティアの背景、'emperor'＝鬼帝の背景、null＝今のティア
-function bgOf(v,tier){return v===EMP_BG||v===CHAMP_BG||v===DEV_BG||v===HW_BG?v:v==null||v===''?tier:(+v||0);}
+function bgOf(v,tier){return v===EMP_BG||v===CHAMP_BG||v===DEV_BG||v===HW_BG?v:v==null||v===''?tierArt(tier):(+v||0);}   // 選んでいなければ、そのランクの絵
 // ============================================================
 // 称号（二つ名）
 // ============================================================
@@ -13403,8 +13403,8 @@ function cardQuad(g,x,y,w,h,o,keep){
   g.closePath();
 }
 // 弾帯：ランクの色の革のベルトが、カードの上にかかる。左右の弾は、段（Ⅰ〜Ⅲ）の数だけささっている（内側から）
-function drawCrownBelt(g,idx,cx,cy,w,tm){
-  var rk=SIM.rankOf(idx),C=popOf(rk.r),L=Math.max(1.2,w*.011),t=w*.084,x0=-w*.47,x1=w*.47,N=24,i;
+function drawCrownBelt(g,art,div,cx,cy,w,tm){   // art＝カードの絵（色）、div＝本人の今の段（弾の数 0〜3）
+  var rk={r:art,d:div},C=popOf(art),L=Math.max(1.2,w*.011),t=w*.084,x0=-w*.47,x1=w*.47,N=24,i;
   var yc=function(x){var u=x/(w*.47);return -w*.012+u*u*w*.05;},sl=function(x){return 2*(x/(w*.47))*w*.05/(w*.47);};
   g.save();g.translate(cx,cy);g.lineJoin='round';
   var top=[],bot=[];for(i=0;i<=N;i++){var x=x0+(x1-x0)*i/N;top.push([x,yc(x)-t/2]);bot.push([x,yc(x)+t/2]);}
@@ -13435,9 +13435,11 @@ function drawCrownBelt(g,idx,cx,cy,w,tm){
     g.restore();});});
   g.restore();
 }
-function drawCardCrown(g,idx,cx,cy,w,tm){drawCrownBelt(g,idx,cx,cy,w,tm);}   // カードの上の飾り＝弾帯
+function drawCardCrown(g,art,div,cx,cy,w,tm){drawCrownBelt(g,art,div,cx,cy,w,tm);}   // カードの上の飾り＝弾帯（色はカードの絵、弾の数は本人の段）
 function drawProfileCard(g,P,x,y,w,h,tm){
-  var markR=w*.18,top=y+w*.26,ch=h-(top-y),rad=w*.06,lvl=tierInfo(P.tier).lvl,k=ctxScale(g),rk=SIM.rankOf(P.tier),C=popOf(rk.r),bdw=w*.024;
+  // 紋章・弾帯・帯の色は、カードの絵（選んだ背景のランク）に合わせる。特別な背景（鬼帝など）や選んでいないときは、本人のランク
+  var art=typeof P.bg==='number'?Math.max(0,Math.min(TIER_BG.length-1,P.bg|0)):tierArt(P.tier),rk={r:art,d:SIM.rankOf(P.tier).d};
+  var markR=w*.18,top=y+w*.26,ch=h-(top-y),rad=w*.06,lvl=RANK_LVL[art]||0,k=ctxScale(g),C=popOf(art),bdw=w*.024;
   g.save();
   // 影（エクリプス・チャンピオンは、影のかわりにランクの色がにじむ）。ぼかしが重いので、一度だけ描いて貼る
   var sm=w*.2,shc=lvl>=5?hexA(C.b,.55):'';
@@ -13535,8 +13537,8 @@ function drawProfileCard(g,P,x,y,w,h,tm){
     var sp=((tm||0)*.35)%1.6,sx=x-w*.6+sp*w*1.6,lg=g.createLinearGradient(sx-w*.25,top,sx+w*.25,top+ch*.4);
     lg.addColorStop(0,'rgba(255,212,92,0)');lg.addColorStop(.5,'rgba(255,212,92,.95)');lg.addColorStop(1,'rgba(255,212,92,0)');g.fillStyle=lg;g.fillRect(x-bdw*2,top-bdw*2,w+bdw*4,ch+bdw*4);g.restore();}
   // 上：弾帯と紋章
-  drawCardCrown(g,P.tier,x+w/2,top+w*.004,w,tm);
-  g.save();g.translate(x+w/2,top+w*.004);g.scale(markR/50,markR/50);drawEmblem(g,tierArt(P.tier),tm||0);g.restore();   // 紋章だけ（ランク名は書かない。段は弾の数で分かる）
+  drawCardCrown(g,art,rk.d,x+w/2,top+w*.004,w,tm);
+  g.save();g.translate(x+w/2,top+w*.004);g.scale(markR/50,markR/50);drawEmblem(g,art,tm||0);g.restore();   // カードの絵の紋章（ランク名は書かない。弾の数は本人の段）
   if(P.badge!=null)drawSeasonBadge(g,x+w*.115,top+w*.2,w*.075,P.badge,tm);   // 左上：シーズンバッジ
   g.restore();
 }
