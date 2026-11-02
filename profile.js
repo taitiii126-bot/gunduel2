@@ -151,7 +151,7 @@ function clean(v, ctx, rtier) {
     pity: int(v.pity, 0, 999, 0),
     emo: SIM.cleanEmotes(v.emo, SIM.cleanInv(v.inv)),
     mis: cleanMis(v.mis),
-    sea: cleanSea(v.sea), pass: cleanPass(v.pass), coins: int(v.coins, 0, 99999999, 0), login: cleanLogin(v.login), candy: cleanCandy(v.candy),   // シーズン・パス・コイン（パスとコインと sea.got はサーバーが決める）
+    sea: cleanSea(v.sea), pass: cleanPass(v.pass), coins: int(v.coins, 0, 99999999, 0), gems: int(v.gems, 0, 99999999, 0), login: cleanLogin(v.login), candy: cleanCandy(v.candy),   // シーズン・パス・コイン（パスとコインと sea.got はサーバーが決める）
     badge: SIM.cleanBadgeSel(v.badge, ctx && ctx.badges),   // 見せるシーズンバッジ（持っているものだけ）   // 開発者だけの見た目は、開発者のときだけ残す
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない

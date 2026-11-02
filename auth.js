@@ -287,6 +287,7 @@ function keepServerOwned(next, old, u) {
   next.misChaos = old ? old.misChaos || 0 : 0;
   next.pass = old && old.pass ? old.pass : { s: 0, xp: 0 };
   next.coins = old ? old.coins || 0 : 0;
+  next.gems = old ? old.gems || 0 : 0;   // ジェムもサーバーの値だけ
   next.candy = old && old.candy ? old.candy : { ev: '', n: 0, day: '', today: 0, fw: '' };   // キャンディもサーバーの値だけ
   next.login = old && old.login ? old.login : { day: '', streak: 0, best: 0, count: 0, shields: 0, hist: [] };
   if (next.sea && old && old.sea && old.sea.s === next.sea.s) next.sea.got = old.sea.got.slice(); else if (next.sea) next.sea.got = next.sea.got.map(() => '');
@@ -759,6 +760,7 @@ const auth = {
     pr.xp = (pr.xp || 0) + SIM.MISSION_XP;
     if (pr.mis && pr.mis.day === day) pr.mis.c[i] = true;
     pr.coins = (pr.coins || 0) + SIM.MIS_COINS;
+    pr.gems = (pr.gems || 0) + SIM.MIS_GEMS;
     const tiers = addPassXp(pr, SIM.DAILY_PXP);
     return saveServerProfile(u, pr, { claimed: i, tiers });
   },
@@ -775,6 +777,7 @@ const auth = {
     if (!(pr.sea.p[i] >= SIM.SEASON_MISSIONS[i].n)) return { error: 'not_done' };
     pr.sea.got[i] = day;
     pr.coins = (pr.coins || 0) + SIM.SEA_COINS;
+    pr.gems = (pr.gems || 0) + SIM.SEA_GEMS;
     const tiers = addPassXp(pr, SIM.SEASON_MIS_PXP);
     return saveServerProfile(u, pr, { sclaimed: i, tiers });
   },
@@ -865,7 +868,7 @@ const auth = {
     c.n -= row[1]; pr.inv.push(id);
     return saveServerProfile(u, pr, { evbought: id });
   },
-  // ショップ：op='gift'（1日1回の無料ギフト）/ 'buy'（slot＝おすすめの番号）/ 'badge'（kind＝lucky|chaos）
+  // ショップ：op='gift'（1日1回の無料ギフト）/ 'buy'（slot＝おすすめの番号）/ 'badge'（kind＝lucky|chaos）/ 'gem'（item＝ジェムで交換する物）
   shop(uid, m) {
     const u = db.users[uid];
     if (!u) return { error: 'not_found' };
@@ -886,6 +889,14 @@ const auth = {
       if (pr.coins < of.price) return { error: 'coins' };
       pr.coins -= of.price; pr.inv.push(of.item);
       return saveServerProfile(u, pr, { bought: of.item });
+    }
+    if (m.op === 'gem') {   // ジェムの交換所：パス・イベントの限定品でない物を、レアリティの値段で
+      const id = String(m.item || ''), price = SIM.gemPrice(id);
+      if (!price) return { error: 'bad' };
+      if (pr.inv.indexOf(id) >= 0) return { error: 'owned' };
+      if ((pr.gems || 0) < price) return { error: 'gems' };
+      pr.gems -= price; pr.inv.push(id);
+      return saveServerProfile(u, pr, { exchanged: id });
     }
     if (m.op === 'badge') {
       const kind = m.kind === 'chaos' ? 'chaos' : 'lucky', price = SIM.badgePrice(kind, day);
@@ -968,18 +979,15 @@ const auth = {
     if (kind === 'chaos') {   // カオスバッジ：分かれた分もまとめて決める
       if ((pr.chaosOpened || 0) >= SIM.chaosEarned(pr.xp, pr.misChaos)) return { error: 'no_crate' };
       const res = SIM.rollChaos(() => crypto.randomInt(0, 1 << 30) / (1 << 30), pr.inv, pr.pity);
-      res.items.forEach(x => { if (x.dup) { pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r]; pr.coins = (pr.coins || 0) + SIM.DUP_COINS[res.r]; } else pr.inv.push(x.item); });
+      SIM.applyCrate(pr, res);   // アイテム・コイン・経験値・かぶり（ジェム）を足し、天井を進める
       pr.chaosOpened = (pr.chaosOpened || 0) + 1;
-      pr.pity = res.r >= 3 ? 0 : (pr.pity || 0) + 1;
       return saveServerProfile(u, pr, { kind: 'chaos', r: res.r, n: res.n, items: res.items });
     }
     if ((pr.opened || 0) >= SIM.cratesEarned(pr.xp, pr.misCrates)) return { error: 'no_crate' };
     const res = SIM.rollCrate(() => crypto.randomInt(0, 1 << 30) / (1 << 30), pr.inv, pr.pity);
-    if (res.dup) { pr.xp = (pr.xp || 0) + SIM.DUP_XP[res.r]; pr.coins = (pr.coins || 0) + SIM.DUP_COINS[res.r]; }
-    else pr.inv.push(res.item);
+    SIM.applyCrate(pr, res);
     pr.opened = (pr.opened || 0) + 1;
-    pr.pity = res.r >= 3 ? 0 : (pr.pity || 0) + 1;
-    return saveServerProfile(u, pr, { kind: 'lucky', item: res.item, r: res.r, dup: res.dup, n: 1, items: [{ item: res.item, dup: res.dup }] });
+    return saveServerProfile(u, pr, { kind: 'lucky', r: res.r, n: 1, items: res.items });
   },
   // オンライン対戦で見せる見た目・エモート：持ち物を確かめる（ゲストは宝箱の物を外す）
   // 対戦相手に見せる称号と背景。ブラウザから届いた値は使わず、サーバーの記録で確かめた物だけ

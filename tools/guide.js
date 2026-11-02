@@ -353,16 +353,20 @@ function secRewards() {
 <div class="card"><h3>経験値とレベル</h3><p>1試合で ${xpBase} XP、勝つと +${xpWin}、取ったラウンド1つにつき +${xpRound}。オンライン対戦は${xpOnline}倍。</p>
 <table class="tbl mini"><tbody>${ex.map(e => `<tr><th scope="row">${esc(e[0])}</th><td>${e[1]} XP</td></tr>`).join('')}</tbody></table>
 <p>次のレベルまでに要る経験値は、Lv.1 で ${lv(1)}、そこから1レベルごとに +${lv(2) - lv(1)}（最大 Lv.${SIM.LEVEL_MAX}）。レベルが上がるたびに${esc(t('eco.lucky'))}が1つ、5の倍数のレベルでは${esc(t('eco.chaos'))}ももらえる。</p></div>
-<div class="card"><h3>ミッション</h3><p><b>${esc(t('eco.missions'))}</b>：毎日${SIM.MIS_PER_DAY}つ（全員同じ）。日本時間の朝${reset}時に入れかわる。1つ終えるごとに${esc(t('eco.lucky'))}・${SIM.MISSION_XP} XP・コイン${SIM.MIS_COINS}・パスXP ${SIM.DAILY_PXP}。${SIM.MIS_PER_DAY}つ全部で${esc(t('eco.chaos'))}も。</p>
-<p><b>${esc(t('pass.missions'))}</b>：全${SIM.SEASON_MISSIONS.length}個。シーズンの始まりから1週間ごとに${SIM.SEASON_PER_WEEK}つずつまとめて出て（${SIM.SEASON_WEEKS}週目まで）、出た物はシーズンの終わりまで残る。1つでパスXP ${SIM.SEASON_MIS_PXP}・コイン${SIM.SEA_COINS}。</p></div>
+<div class="card"><h3>ミッション</h3><p><b>${esc(t('eco.missions'))}</b>：毎日${SIM.MIS_PER_DAY}つ（全員同じ）。日本時間の朝${reset}時に入れかわる。1つ終えるごとに${esc(t('eco.lucky'))}・${SIM.MISSION_XP} XP・コイン${SIM.MIS_COINS}・ジェム${SIM.MIS_GEMS}・パスXP ${SIM.DAILY_PXP}。${SIM.MIS_PER_DAY}つ全部で${esc(t('eco.chaos'))}も。</p>
+<p><b>${esc(t('pass.missions'))}</b>：全${SIM.SEASON_MISSIONS.length}個。シーズンの始まりから1週間ごとに${SIM.SEASON_PER_WEEK}つずつまとめて出て（${SIM.SEASON_WEEKS}週目まで）、出た物はシーズンの終わりまで残る。1つでパスXP ${SIM.SEASON_MIS_PXP}・コイン${SIM.SEA_COINS}・ジェム${SIM.SEA_GEMS}。</p></div>
 <div class="card"><h3>シーズンパス</h3><p>全${SIM.PASS_TIERS}段。パスXPで段が上がる（1段目は${SIM.passCost(0)}、1段ごとに +${SIM.passCost(1) - SIM.passCost(0)}。最後まで合計 ${passTotal}）。</p>
 <ul class="dots"><li>スキン：${skinTiers.join('・')}段目（${skinTiers[skinTiers.length - 1]}段目は${esc(t('eco.chaos'))}×${SIM.passReward(SIM.PASS_TIERS).chaos}つき）</li><li>${esc(t('eco.chaos'))}：${chaosTiers.join('・')}段目</li><li>ほかの段：奇数は${esc(t('eco.lucky'))}、偶数はコイン${SIM.passReward(2).coins}</li></ul></div>
 <div class="card"><h3>ログインボーナス</h3><p>7日で1周。</p><ul class="days">${login}</ul><p>連続ログインの記念：</p><ul class="days">${streak}</ul><p class="note">保安官の盾：7日連続ごとに1枚（最大${SIM.SHIELD_MAX}枚）。休んだ日に自動で使って、連続記録を守る。</p></div>
 <div class="card"><h3>ショップ</h3><p>毎日入れかわる。無料ギフト1つと、おすすめ${offers.length}つ（${offerTxt}）。おすすめのうち1つはセールで約${saleOff}%オフ。</p>
 <table class="tbl mini"><tbody>${[0, 1, 2, 3].map(r => `<tr><th scope="row">${esc(rar(r))}</th><td>コイン ${SIM.SHOP_PRICE[r]}</td></tr>`).join('')}<tr><th scope="row">${esc(t('eco.lucky'))}</th><td>コイン ${SIM.SHOP_BADGE.lucky}</td></tr><tr><th scope="row">${esc(t('eco.chaos'))}</th><td>コイン ${SIM.SHOP_BADGE.chaos}</td></tr></tbody></table>
 <p class="note">11月はセール。11月11日は全部半額で、特別なギフトもある。</p></div>
-<div class="card"><h3>バッジ（アイテムの入手）</h3><p><b>${esc(t('eco.lucky'))}</b>　${esc(t('eco.odds'))}。${SIM.PITY_AT}回以内にレジェンダリー以上が確定。</p><p><b>${esc(t('eco.chaos'))}</b>　${esc(t('eco.oddsChaos'))}。${esc(t('eco.chaosNote'))}。</p>
-<p>持っているアイテムがかぶったときは、経験値とコインに変わる（${rar(0)} ${SIM.DUP_XP[0]} XP・コイン${SIM.DUP_COINS[0]} 〜 ${rar(4)} ${SIM.DUP_XP[4]} XP・コイン${SIM.DUP_COINS[4]}）。</p></div>
+<div class="card"><h3>バッジ（アイテムの入手）</h3><p><b>${esc(t('eco.lucky'))}</b>　${esc(t('eco.odds'))}。${SIM.PITY_AT}回以内にレジェンダリー以上のアイテムが確定。</p><p><b>${esc(t('eco.chaos'))}</b>　${esc(t('eco.oddsChaos'))}。${esc(t('eco.chaosNote'))}。</p>
+<p>先にレアリティが決まり、そのあと中身（アイテム・コイン・経験値）が決まる。</p>
+<table class="tbl mini"><thead><tr><th></th><th>アイテム</th><th>コイン</th><th>経験値</th></tr></thead><tbody>${SIM.CRATE_MIX.map((m, r) => `<tr><th scope="row">${esc(rar(r))}</th><td>${m[0]}%</td><td>${m[1] ? m[1] + '%（' + SIM.CRATE_COINS[r] + '）' : '—'}</td><td>${m[2] ? m[2] + '%（' + SIM.CRATE_XP[r] + ' XP）' : '—'}</td></tr>`).join('')}</tbody></table>
+<p>持っているアイテムがかぶったときは、ジェム・経験値・コインに変わる（${rar(0)} ジェム${SIM.DUP_GEMS[0]}・${SIM.DUP_XP[0]} XP・コイン${SIM.DUP_COINS[0]} 〜 ${rar(4)} ジェム${SIM.DUP_GEMS[4]}・${SIM.DUP_XP[4]} XP・コイン${SIM.DUP_COINS[4]}）。</p></div>
+<div class="card"><h3>ジェム交換所</h3><p>ショップの「ジェム交換所」で、ジェムを好きなアイテムと交換できる（シーズンパスとイベントの限定品は除く）。ジェムは、バッジでかぶったとき・デイリーミッション（1つ${SIM.MIS_GEMS}）・シーズンミッション（1つ${SIM.SEA_GEMS}）でもらえる。</p>
+<table class="tbl mini"><tbody>${SIM.GEM_PRICE.map((p, r) => `<tr><th scope="row">${esc(rar(r))}</th><td>ジェム ${p}</td></tr>`).join('')}</tbody></table></div>
 </div></section>`;
 }
 

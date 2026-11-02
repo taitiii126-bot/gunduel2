@@ -350,32 +350,67 @@ function cleanEmotes(v, inv) {
   for (var j = 0; j < 4; j++) if (o[j] < 0) { for (var d = 0; d < def.length; d++) if (o.indexOf(def[d]) < 0) { o[j] = def[d]; break; } }
   return o;
 }
-// 宝箱を1つ開ける：rnd=0〜1の乱数（サーバーは暗号の乱数）、inv=今の持ち物、pity=前のレジェンダリー以上から開けた数
-// 返り値 { item, dup, r }：dup=持っていた物（そのレアリティを全部持っていたとき）→ 経験値に替える
+// バッジの中身：先にレアリティが決まり、そのあと中身（アイテム・コイン・経験値）が決まる（ブロスタのスタードロップと同じ形）
+// CRATE_MIX[r] = [アイテム, コイン, 経験値]（%）。ミシックと、天井で上がったときは必ずアイテム
+var CRATE_MIX = [[50, 30, 20], [60, 25, 15], [70, 20, 10], [85, 15, 0], [100, 0, 0]];
+var CRATE_COINS = [60, 150, 350, 900, 0], CRATE_XP = [80, 160, 320, 0, 0];   // レアリティごとの量
+function crateContent(rnd, r, forceItem) {
+  if (forceItem) return 'item';
+  var m = CRATE_MIX[r] || CRATE_MIX[0], x = rnd() * 100;
+  return x < m[0] ? 'item' : x < m[0] + m[1] ? 'coins' : 'xp';
+}
+// 中身の1つ：{ item, dup } か { coins } か { xp }。have＝持ち物（まだ持っていない物から選ぶ。全部持っていたら、かぶり）
+function crateOne(rnd, r, kind, have) {
+  if (kind === 'coins') return { coins: CRATE_COINS[r] };
+  if (kind === 'xp') return { xp: CRATE_XP[r] };
+  var pool = ITEMS.filter(function (it) { return it.r === r && !it.pass && !it.ev; }), fresh = pool.filter(function (it) { return !(have && have.indexOf(it.id) >= 0); });
+  var list = fresh.length ? fresh : pool, it = list[Math.floor(rnd() * list.length)];
+  return { item: it.id, dup: !fresh.length };
+}
+// ラッキーバッジを1つ開ける：rnd=0〜1の乱数（サーバーは暗号の乱数）、inv=今の持ち物、pity=前のレジェンダリー以上のアイテムから開けた数
+// 返り値 { r, n: 1, items: [中身] }
 function rollCrate(rnd, inv, pity) {
-  var r, x = rnd() * 100, acc = 0;
+  var r, x = rnd() * 100, acc = 0, forced = false;
   for (r = RARITY_W.length - 1; r >= 0; r--) { acc += RARITY_W[r]; if (x < acc) break; }
   if (r < 0) r = 0;
-  if ((pity || 0) + 1 >= PITY_AT && r < 3) r = 3;   // 天井：まとめてハズレが続かないように
-  var pool = ITEMS.filter(function (it) { return it.r === r && !it.pass && !it.ev; }), fresh = pool.filter(function (it) { return !(inv && inv.indexOf(it.id) >= 0); });
-  var list = fresh.length ? fresh : pool, it = list[Math.floor(rnd() * list.length)];
-  return { item: it.id, r: r, dup: !fresh.length };
+  if ((pity || 0) + 1 >= PITY_AT && r < 3) { r = 3; forced = true; }   // 天井：まとめてハズレが続かないように（必ずアイテム）
+  return { r: r, n: 1, items: [crateOne(rnd, r, crateContent(rnd, r, forced), inv)] };
 }
+// 天井のカウント：レジェンダリー以上の「アイテム」が出たら 0 に戻る（コインや経験値だったときは戻らない）
+function pityAfter(pity, res) { return res.r >= 3 && res.items.some(function (x) { return !!x.item; }) ? 0 : (pity || 0) + 1; }
 var DUP_XP = [30, 60, 120, 250, 500];   // かぶったときにもらえる経験値
+var DUP_GEMS = [10, 20, 50, 120, 300];  // かぶったときにもらえるジェム
+// 開けた結果をプロフィールに足す（サーバーとブラウザで同じ）。返り値＝新しく手に入れたアイテムの id
+function applyCrate(pr, res) {
+  var got = [];
+  if (!Array.isArray(pr.inv)) pr.inv = [];
+  res.items.forEach(function (x) {
+    if (x.coins) pr.coins = (pr.coins || 0) + x.coins;
+    else if (x.xp) pr.xp = (pr.xp || 0) + x.xp;
+    else if (x.dup) { pr.xp = (pr.xp || 0) + DUP_XP[res.r]; pr.coins = (pr.coins || 0) + DUP_COINS[res.r]; pr.gems = (pr.gems || 0) + DUP_GEMS[res.r]; }
+    else if (x.item && pr.inv.indexOf(x.item) < 0) { pr.inv.push(x.item); got.push(x.item); }
+  });
+  pr.pity = pityAfter(pr.pity, res);
+  return got;
+}
+// ---- ジェム：かぶり・ミッションでたまり、交換所で好きなアイテムと交換できる（シーズンパスとイベントの限定品は除く）----
+var GEM_PRICE = [100, 250, 600, 1500, 4000];   // レアリティごと
+var MIS_GEMS = 5, SEA_GEMS = 15;               // デイリー・シーズンミッション1つで
+function gemPrice(id) { var it = ITEM_BY_ID[id]; return it && !it.pass && !it.ev ? GEM_PRICE[it.r] : 0; }
 // カオスバッジ：必ずレア以上。開けると 2・4・8 個に分かれることがあり、分かれた物はすべて同じレアリティ
 var CHAOS_W = [0, 50, 30, 15, 5];            // レアリティごと（コモンは出ない）
 var CHAOS_SPLIT = [[1, 70], [2, 20], [4, 8], [8, 2]];   // [個数, 確率%]
 function rollChaos(rnd, inv, pity) {
-  var r, x = rnd() * 100, acc = 0;
+  var r, x = rnd() * 100, acc = 0, forced = false;
   for (r = CHAOS_W.length - 1; r >= 1; r--) { acc += CHAOS_W[r]; if (x < acc) break; }
   if (r < 1) r = 1;
-  if ((pity || 0) + 1 >= PITY_AT && r < 3) r = 3;
+  if ((pity || 0) + 1 >= PITY_AT && r < 3) { r = 3; forced = true; }
   var y = rnd() * 100, n = 1; acc = 0;
   for (var i = 0; i < CHAOS_SPLIT.length; i++) { acc += CHAOS_SPLIT[i][1]; if (y < acc) { n = CHAOS_SPLIT[i][0]; break; } }
-  var have = (inv || []).slice(), pool = ITEMS.filter(function (it) { return it.r === r && !it.pass && !it.ev; }), items = [];
-  for (var k = 0; k < n; k++) {   // 分かれた分は、まだ持っていない物から順に（全部持っていたら、かぶり＝経験値）
-    var fresh = pool.filter(function (it) { return have.indexOf(it.id) < 0; }), list = fresh.length ? fresh : pool, it = list[Math.floor(rnd() * list.length)];
-    items.push({ item: it.id, dup: !fresh.length }); if (fresh.length) have.push(it.id);
+  var have = (inv || []).slice(), items = [];
+  for (var k = 0; k < n; k++) {   // 分かれた分も1つずつ中身が決まる。アイテムは、まだ持っていない物から順に（全部持っていたら、かぶり）
+    var one = crateOne(rnd, r, crateContent(rnd, r, forced && k === 0), have);
+    items.push(one); if (one.item && !one.dup) have.push(one.item);
   }
   return { r: r, n: n, items: items };
 }
@@ -2361,7 +2396,8 @@ var api = {
   SHOP_PRICE: deepFreeze(SHOP_PRICE), SHOP_BADGE: deepFreeze(SHOP_BADGE), DUP_COINS: deepFreeze(DUP_COINS), MIS_COINS: MIS_COINS, SEA_COINS: SEA_COINS, shopOffers: shopOffers, shopGift: shopGift, QUICK_CHAT: QUICK_CHAT, CHAT_MAX: CHAT_MAX, normText: normText, badText: badText, cleanSay: cleanSay, SALE: SALE, saleOn: saleOn, salePeak: salePeak, badgePrice: badgePrice,
   REGIONS: deepFreeze(REGIONS), SEASON_MISSIONS: deepFreeze(SEASON_MISSIONS), SEASON_WEEKS: SEASON_WEEKS, SEASON_PER_WEEK: SEASON_PER_WEEK, SEA_VER: SEA_VER, seasonWeek: seasonWeek, seasonNextWeekAt: seasonNextWeekAt, MIS_PER_DAY: MIS_PER_DAY, SEASON_MIS_PXP: SEASON_MIS_PXP, DAILY_PXP: DAILY_PXP, PASS_TIERS: PASS_TIERS, passCost: passCost, passTierOf: passTierOf, passReward: passReward, seasonUnlocked: seasonUnlocked,
   EMOTE_N: EMOTE_N, EMOTE_FREE: EMOTE_FREE, emoteFree: emoteFree, EMOTE_RAR: deepFreeze(EMOTE_RAR), itemOf: itemOf, cleanInv: cleanInv, CHAOS_W: deepFreeze(CHAOS_W), CHAOS_SPLIT: deepFreeze(CHAOS_SPLIT), rollChaos: rollChaos, chaosEarned: chaosEarned, lookOwned: lookOwned, cleanEmotes: cleanEmotes,
-  rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
+  rollCrate: rollCrate, DUP_XP: deepFreeze(DUP_XP), CRATE_MIX: deepFreeze(CRATE_MIX), CRATE_COINS: deepFreeze(CRATE_COINS), CRATE_XP: deepFreeze(CRATE_XP), pityAfter: pityAfter, applyCrate: applyCrate,
+  DUP_GEMS: deepFreeze(DUP_GEMS), GEM_PRICE: deepFreeze(GEM_PRICE), MIS_GEMS: MIS_GEMS, SEA_GEMS: SEA_GEMS, gemPrice: gemPrice, LEVEL_MAX: LEVEL_MAX, xpToNext: xpToNext, levelOf: levelOf, cratesEarned: cratesEarned,
   MISSIONS: deepFreeze(MISSIONS), MISSION_XP: MISSION_XP, dayKey: dayKey, dailyMissions: dailyMissions,
   cleanBadges: cleanBadges, cleanBadgeSel: cleanBadgeSel, badgeShown: badgeShown, randomLook: randomLook,
   cleanLoadout: cleanLoadout, newWorld: newWorld, newRangeWorld: newRangeWorld,
