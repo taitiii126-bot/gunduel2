@@ -314,14 +314,21 @@ function secOnline() {
     const t1 = (r - 1) * 3 + 1;
     return `<div class="tier">${img('tier-' + SIM.RANK_ART[r] + '.webp', nm + 'の紋章', 144, 144)}<b>${nm}</b><span>${[0, 1, 2].map(k => ROMAN[k + 1] + ' ' + SIM.TIER_MIN[t1 + k]).join('・')}〜</span></div>`;
   }).join('');
+  // ランクごとの負けの減り（Ⅰ〜Ⅲ の幅）
+  const lossText = () => {
+    const zero = [], rest = [];
+    RANK_JA.slice(1).forEach((nm, k) => { const a = SIM.RATE_LOSS.slice(k * 3 + 1, k * 3 + 4), lo = Math.min(...a), hi = Math.max(...a);
+      if (hi === 0) zero.push(nm); else rest.push(nm + ' -' + (lo === hi ? lo : lo + '〜-' + hi)); });
+    return (zero.length ? zero.join('と') + 'は減らない、' : '') + rest.join('、');
+  };
   const tz = G.monthStartJst;
   return `<section id="online">${sectionHead('online', 'オンライン対戦', 'ほかのプレイヤーとの対戦。1対1と2対2があり、フレンドと部屋を作って遊ぶこともできる。')}
 <div class="grid g-2"><div class="card"><h3>${esc(t('mm.ranked'))}</h3><p>${esc(t('mm.rankedSub'))}。Discord でのログインが必要。</p></div>
 <div class="card"><h3>${esc(t('mm.casual'))}</h3><p>${esc(t('mm.casualSub'))}。ログインしなくても遊べる。</p></div></div>
 <h3 class="sub">ランク</h3><p>ランクはブロンズ・アイアン・ゴールド・プラチナ・レジェンド・マスター・チャンピオン・エクリプスの8つで、それぞれにⅠ・Ⅱ・Ⅲがある（全部で24段）。ランクはレートの数字だけで決まり、レートはランクマッチの結果でだけ上下する。最初はレート${SIM.RATE_START}（${rankLabel(1)}）から始まり、${SIM.RATE_FLOOR}より下には下がらない（${SIM.TIER_MIN[1]}未満は「未ランク」の表示）。</p>
 <div class="card tiers">${tiers}</div>
-<h3 class="sub">レートの上がり方</h3><ul class="dots"><li>勝つと、どのランクでも +${SIM.RATE_WIN}。</li><li>負けたときの減り方はランクで決まる：${rankLabel(1)}〜${rankLabel(3)} は減らない。そこから上のランクほど大きくなり、${rankLabel(10)} で -${SIM.RATE_LOSS[10]}、${rankLabel(13)} で -${SIM.RATE_LOSS[13]}、${rankLabel(16)} で -${SIM.RATE_LOSS[16]}、${rankLabel(17)} からは -${SIM.RATE_LOSS[17]}。</li><li>${rankLabel(SIM.RATE_TOP)} から上は、相手とのレートの差で増減が変わる（勝ちは +6〜+18、負けは最低でも -${SIM.RATE_LOSS_MIN[SIM.RATE_TOP]}〜-${SIM.RATE_LOSS_MIN[24]}）。</li><li>${rankLabel(SIM.RATE_FLOOR_FROM)}〜${rankLabel(SIM.RATE_FLOOR_TO)} は、段の下限で一度止まる（ちょうど下限のときに負けると、下の段に落ちる）。エクリプスには、この守りはない。</li></ul>
-<h3 class="sub">シーズン</h3><ul class="dots"><li>1か月で1シーズン。毎月1日の午前${tz}時（日本時間）に新しいシーズンが始まる。</li><li>シーズンが終わると、${SIM.SEASON_DROP}段（2ランク分）下がったところから次のシーズンが始まる（例：${rankLabel(SIM.TIER_MIN.length - 1)} → ${rankLabel(SIM.TIER_MIN.length - 1 - SIM.SEASON_DROP)}）。ただし ${rankLabel(SIM.SEASON_FLOOR_TIER)} より下にはならず、それより下だった人は ${rankLabel(SIM.SEASON_FLOOR_TIER)} から始まる。</li><li>シーズンの始めは、前のシーズンの最高のランク（${rankLabel(SIM.RATE_BOOST_TO)} まで）に戻るまで、勝ったときのレートが1割増える（ランクブースト）。</li><li>シーズン中にログインした人全員に、そのシーズンの記念バッジが配られる。</li></ul></section>`;
+<h3 class="sub">レートの上がり方</h3><ul class="dots"><li>勝つと、どのランクでも +${SIM.RATE_WIN}。</li><li>負けたときの減り方はランクで決まる：${lossText()}。</li><li>${rankLabel(SIM.RATE_TOP)} から上は、相手とのレートの差で増減が変わる（勝ちは +${SIM.RATE_TOP_GAIN[0]}〜+${SIM.RATE_TOP_GAIN[1]}、負けは -${SIM.RATE_LOSS_MIN[SIM.RATE_TOP]}〜-${SIM.RATE_TOP_LOSS}）。</li><li>${rankLabel(SIM.RATE_FLOOR_FROM)}〜${rankLabel(SIM.RATE_FLOOR_TO)} は、段の下限で一度止まる（ちょうど下限のときに負けると、下の段に落ちる）。エクリプスには、この守りはない。</li></ul>
+<h3 class="sub">シーズン</h3><ul class="dots"><li>1か月で1シーズン。毎月1日の午前${tz}時（日本時間）に新しいシーズンが始まる。</li><li>シーズンが終わると、${SIM.SEASON_DROP}段（${SIM.SEASON_DROP / 3}ランク分）下がったところから次のシーズンが始まる（例：${rankLabel(SIM.TIER_MIN.length - 1)} → ${rankLabel(SIM.TIER_MIN.length - 1 - SIM.SEASON_DROP)}）。ただし ${rankLabel(SIM.SEASON_FLOOR_TIER)} より下にはならず、それより下だった人は ${rankLabel(SIM.SEASON_FLOOR_TIER)} から始まる。</li><li>シーズンの始めは、前のシーズンの最高のランク（${rankLabel(SIM.RATE_BOOST_TO)} まで）に戻るまで、勝ったときのレートが${Math.round((SIM.RATE_BOOST - 1) * 10)}割増える（ランクブースト）。</li><li>シーズン中にログインした人全員に、そのシーズンの記念バッジが配られる。</li></ul></section>`;
 }
 
 function secRewards() {

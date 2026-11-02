@@ -2108,7 +2108,7 @@ var BOT_TIER_CAP = 21;            // BOT戦だけで行けるのは チャンピ
 // 月の初め（1日 0:00）に新しいシーズンが始まり、月末で終わる
 var SEASON_TZ_MIN = 8 * 60;
 var SEASON_ORIGIN = { y: 2026, m: 8 };          // 2026年9月 ＝ シーズン1（m は 0 から数える）
-var SEASON_DROP = 6, SEASON_FLOOR_TIER = 4;     // 次のシーズンは、6段下げたところから。ただしアイアンⅠより下にはしない（ブロスタと同じ：6段下げるか、シルバーⅠ）
+var SEASON_DROP = 3, SEASON_FLOOR_TIER = 4;     // 次のシーズンは、3段（1ランク）下げたところから。ただしアイアンⅠより下にはしない（ブロスタは6段。やりこむ人が少ないので軽くした）
 function seasonMonthOf(ms) {
   var d = new Date((ms == null ? Date.now() : ms) + SEASON_TZ_MIN * 60000);
   return { y: d.getUTCFullYear(), m: d.getUTCMonth() };
@@ -2133,28 +2133,31 @@ function tierOfRate(rate) {
 }
 // Elo の期待勝率（相手より 400 高ければ 10回中9回勝つ見込み）
 function rateExpect(mine, theirs) { return 1 / (1 + Math.pow(10, (theirs - mine) / 400)); }
-// 1試合ぶんのレートの増減（ブロスタのランクマッチの割合を 0.12 倍にしたもの）
-//   勝ち：どの段でも +12（ブロスタの +100）。チャンピオンとエクリプスだけ、相手とのレートの差で +6〜+18
-//   負け：段ごとに決まった分だけ減る。ブロンズは減らない → プラチナⅠで -6（-50）→ レジェンドⅠで -8（-70）→ マスターⅠで -11（-90）→ マスターⅡから -12（-100）
-//         チャンピオンとエクリプスは相手との差で変わり、最低でも -10（チャンピオンⅠ）〜 -13（エクリプス）
+// 1試合ぶんのレートの増減。ブロスタのランクマッチの形（勝ちは一定・負けは下のランクほど小さい・上位の段の下限の守り）を、
+// やりこむ人が少ないことに合わせて少し軽くしたもの
+//   勝ち：どの段でも +15。チャンピオンとエクリプスだけ、相手とのレートの差で +8〜+20
+//   負け：段ごとに決まった分だけ減る。ブロンズとアイアンは減らない → ゴールド -2〜-3 → プラチナ -4〜-5 → レジェンド -6〜-7 → マスター -8〜-10
+//         チャンピオン -12〜-14・エクリプス -16 が目安で、相手との差で変わる（最低でも -10〜-13、多くても -20）
+//         勝率5割ならチャンピオンのあたりで止まり、エクリプスは勝ち越さないと届かない
 // o = { mine（自分か、2v2 はチームの平均）, theirs, win, tier（自分の今の段）, boost（ランクブーストが効いているか）}
-var RATE_WIN = 12;
-var RATE_LOSS = [0, 0, 0, 0, 1, 2, 2, 3, 4, 5, 6, 7, 7, 8, 9, 10, 11, 12, 12, 12, 12, 12, 12, 12, 12];   // 段ごとの負けの減り（0 は未ランク）
+var RATE_WIN = 15;
+var RATE_LOSS = [0, 0, 0, 0, 0, 0, 0, 2, 2, 3, 4, 4, 5, 6, 6, 7, 8, 9, 10, 12, 13, 14, 16, 16, 16];   // 段ごとの負けの減り（0 は未ランク）
 var RATE_TOP = 19;                                // チャンピオンⅠから上は、相手との差で増減する
-var RATE_LOSS_MIN = { 19: 10, 20: 11, 21: 12, 22: 13, 23: 13, 24: 13 };   // 上位の負けの最低（ブロスタの -80〜-110）
-var RATE_FLOOR_FROM = 13, RATE_FLOOR_TO = 21;     // レジェンドⅠ〜チャンピオンⅢ：段の下限で一度止まる（ちょうど下限で負けたときだけ下の段へ）
-var RATE_BOOST_TO = 16;                           // ランクブースト：前のシーズンの最高の段か マスターⅠ まで、勝ちが1割増し（切り捨て）
+var RATE_TOP_GAIN = [8, 20], RATE_TOP_LOSS = 20;  // 上位の勝ちの幅と、負けのいちばん大きい減り
+var RATE_LOSS_MIN = { 19: 10, 20: 11, 21: 12, 22: 13, 23: 13, 24: 13 };   // 上位の負けの最低
+var RATE_FLOOR_FROM = 7, RATE_FLOOR_TO = 21;      // ゴールドⅠ〜チャンピオンⅢ：段の下限で一度止まる（ちょうど下限で負けたときだけ下の段へ）
+var RATE_BOOST_TO = 16, RATE_BOOST = 1.2;         // ランクブースト：前のシーズンの最高の段か マスターⅠ まで、勝ちが2割増し（切り捨て）
 function rateChange(o) {
   var mine = +o.mine || RATE_START, theirs = +o.theirs || RATE_START, win = !!o.win;
   var t = o.tier != null ? Math.max(0, Math.min(TIER_MIN.length - 1, Math.floor(+o.tier) || 0)) : tierOfRate(mine);
   var top = t >= RATE_TOP, diff = Math.round((theirs - mine) / 25);   // 相手が 25 高いごとに ±1（上位だけ）
   if (win) {
-    var g = top ? Math.max(6, Math.min(18, RATE_WIN + diff)) : RATE_WIN;
-    if (o.boost) g = Math.floor(g * 1.1);
+    var g = top ? Math.max(RATE_TOP_GAIN[0], Math.min(RATE_TOP_GAIN[1], RATE_WIN + diff)) : RATE_WIN;
+    if (o.boost) g = Math.floor(g * RATE_BOOST);
     return g;
   }
-  var l = top ? Math.max(RATE_LOSS_MIN[t] || 12, Math.min(18, RATE_WIN - diff)) : RATE_LOSS[t];
-  return -l;   // ブロンズは 0（減らない）
+  var l = top ? Math.max(RATE_LOSS_MIN[t] || RATE_LOSS[t], Math.min(RATE_TOP_LOSS, RATE_LOSS[t] - diff)) : RATE_LOSS[t];
+  return -l;   // ブロンズ・アイアンは 0（減らない）
 }
 // 1試合ぶんを当てはめた結果（レート・ティア・連敗数の新しい値）
 // cap を渡すと、そのティアの下限までしか上がらない（BOT戦の上限に使う）
@@ -2166,7 +2169,7 @@ function applyRate(st, o) {
   var boost = !!o.win && t < Math.min(+st.boostTo || 0, RATE_BOOST_TO);   // シーズンの始め：前のシーズンの最高（かマスターⅠ）に戻るまで
   var d = rateChange({ mine: base, theirs: o.theirs, win: o.win, tier: t, boost: boost });
   var next = Math.max(RATE_FLOOR, rate + d);
-  // 段の下限の守り（レジェンドⅠ〜チャンピオンⅢ）：下限より上にいたら、負けても下限で止まる
+  // 段の下限の守り（ゴールドⅠ〜チャンピオンⅢ）：下限より上にいたら、負けても下限で止まる
   if (!o.win && t >= RATE_FLOOR_FROM && t <= RATE_FLOOR_TO && rate > TIER_MIN[t] && next < TIER_MIN[t]) next = TIER_MIN[t];
   if (o.cap != null && next > rate) next = Math.max(rate, Math.min(next, TIER_MIN[o.cap] || next));
   d = next - rate;
@@ -2355,7 +2358,7 @@ var api = {
   packChar: packChar, packShots: packShots, blockAt: blockAt,
   newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, decideTactic: decideTactic,
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
-  RATE_WIN: RATE_WIN, RATE_LOSS: deepFreeze(RATE_LOSS), RATE_TOP: RATE_TOP, RATE_LOSS_MIN: deepFreeze(RATE_LOSS_MIN), RATE_FLOOR_FROM: RATE_FLOOR_FROM, RATE_FLOOR_TO: RATE_FLOOR_TO, RATE_BOOST_TO: RATE_BOOST_TO, SEASON_FLOOR_TIER: SEASON_FLOOR_TIER,
+  RATE_WIN: RATE_WIN, RATE_LOSS: deepFreeze(RATE_LOSS), RATE_TOP: RATE_TOP, RATE_LOSS_MIN: deepFreeze(RATE_LOSS_MIN), RATE_FLOOR_FROM: RATE_FLOOR_FROM, RATE_FLOOR_TO: RATE_FLOOR_TO, RATE_BOOST_TO: RATE_BOOST_TO, RATE_BOOST: RATE_BOOST, RATE_TOP_GAIN: deepFreeze(RATE_TOP_GAIN), RATE_TOP_LOSS: RATE_TOP_LOSS, SEASON_DROP_N: SEASON_DROP, SEASON_FLOOR_TIER: SEASON_FLOOR_TIER,
   RANKS: deepFreeze(RANKS), RANK_KEYS: deepFreeze(RANK_KEYS), TIER_KEYS: deepFreeze(TIER_KEYS), rankOf: rankOf, RANK_ART: deepFreeze(RANK_ART), artOfTier: artOfTier,
   TIER_OLD_MIN: deepFreeze(TIER_OLD_MIN), TIER_VER: TIER_VER, tierFromOld: tierFromOld, BG_UNLOCK: deepFreeze(BG_UNLOCK), bgUnlocked: bgUnlocked,
   tierOfRate: tierOfRate, rateExpect: rateExpect, rateChange: rateChange, applyRate: applyRate,
