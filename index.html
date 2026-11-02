@@ -169,39 +169,49 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .sub-btn:hover{color:var(--tx);border-color:var(--line-2);transform:translateY(-1px);}
 .sub-btn svg.i{width:18px;height:18px;}
 /* 射撃場：キャンバスの下に、武器の切りかえと武器ごとの記録 */
-#range-panel{display:none;margin-top:12px;padding:12px 14px;border-radius:14px;background:rgba(10,12,20,.78);border:1px solid var(--line);}
+#range-panel{display:none;margin-top:12px;padding:14px 16px;border-radius:14px;background:rgba(10,12,20,.88);border:1px solid var(--line-2);}
 #game-screen.range #range-panel{display:block;}
 @media (min-width:700px){
   #game-screen.range.playing .canvas-frame{width:min(100%,max(480px,calc((100vh - 340px) * 2)));width:min(100%,max(480px,calc((100dvh - 340px) * 2)));}
 }
 .rp-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
-.rp-head b{font-family:var(--f-disp);font-weight:400;font-size:15px;letter-spacing:.1em;color:var(--gold);}
-.rp-head .rp-note{flex:1;min-width:180px;font-size:11px;color:var(--tx-3);}
-.rp-head button{padding:6px 12px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.04);font-size:12px;font-weight:700;color:var(--tx-2);}
+.rp-head b{font-family:var(--f-disp);font-weight:400;font-size:18px;letter-spacing:.1em;color:var(--gold);}
+.rp-head .rp-note{flex:1;min-width:180px;font-size:12px;color:var(--tx-2);}
+.rp-head button{padding:7px 14px;border-radius:99px;border:1px solid var(--line-2);background:rgba(255,255,255,.05);font-size:12.5px;font-weight:800;color:var(--tx);}
+.rp-head .rp-close{display:none;border-color:var(--gold);color:var(--gold);}
+.rp-h{margin:0 0 8px;font-size:11.5px;font-weight:800;letter-spacing:.16em;color:var(--tx-2);}
 .rp-head button:hover{color:var(--tx);border-color:var(--gold);}
 .rp-body{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;align-items:start;}
 @media (max-width:760px){.rp-body{grid-template-columns:1fr;}}
 .rp-slots{display:flex;gap:6px;margin-bottom:8px;}
-.rp-slots button{flex:1;display:flex;align-items:center;gap:7px;min-width:0;padding:6px 8px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.03);font-size:12px;font-weight:700;color:var(--tx-2);}
+.rp-slots button{flex:1;display:flex;align-items:center;gap:7px;min-width:0;padding:8px 10px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.04);font-size:13px;font-weight:800;color:var(--tx);}
 .rp-slots button span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .rp-slots button.sel{border-color:var(--gold);color:var(--gold);background:rgba(255,197,61,.08);}
 .rp-slots kbd{font-family:var(--f-ui);font-size:10px;padding:1px 5px;border-radius:4px;border:1px solid rgba(255,255,255,.25);color:var(--tx-2);}
 .rp-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px;}
 @media (max-width:760px){.rp-grid{grid-template-columns:repeat(5,1fr);}}
-.rp-grid button{position:relative;display:flex;flex-direction:column;align-items:center;gap:1px;padding:4px 2px 5px;border-radius:8px;border:1px solid rgba(255,255,255,.08);background:rgba(255,255,255,.03);font-size:10px;font-weight:700;color:var(--tx-2);}
+.rp-grid button{position:relative;display:flex;flex-direction:column;align-items:center;gap:2px;min-width:0;padding:5px 2px 6px;border-radius:8px;border:1px solid rgba(255,255,255,.12);background:rgba(255,255,255,.04);font-size:11px;font-weight:800;letter-spacing:0;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .rp-grid button:hover{border-color:rgba(255,255,255,.3);color:var(--tx);}
 .rp-grid button canvas{width:100%;height:auto;aspect-ratio:96/42;}
 .rp-grid button.on{border-color:var(--wc);box-shadow:0 0 12px -4px var(--wc);color:var(--tx);}
-.rp-grid button .sl{position:absolute;top:2px;left:4px;font-family:var(--f-ui);font-size:9px;color:var(--gold);}
-.rp-hint{margin-top:7px;font-size:10.5px;line-height:1.6;color:var(--tx-3);}
-.rp-table{width:100%;border-collapse:collapse;font-size:12px;}
-.rp-table th{font-size:10px;font-weight:700;color:var(--tx-3);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap;}
+.rp-grid button .sl{position:absolute;top:2px;left:4px;font-family:var(--f-ui);font-size:10px;font-weight:800;color:var(--gold);}
+.rp-hint{margin-top:8px;font-size:12px;line-height:1.65;color:var(--tx-2);}
+body.touch .rp-keys{display:none;}
+.rp-table{width:100%;border-collapse:collapse;font-size:13px;}
+.rp-table th{font-size:11px;font-weight:800;color:var(--tx-2);text-align:right;padding:4px 6px;border-bottom:1px solid var(--line);white-space:nowrap;}
 .rp-table th:first-child,.rp-table td:first-child{text-align:left;}
-.rp-table td{padding:5px 6px;text-align:right;font-family:var(--f-ui);font-weight:700;color:var(--tx-2);border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;}
+.rp-table td{padding:6px 6px;text-align:right;font-family:var(--f-ui);font-weight:700;color:var(--tx);border-bottom:1px solid rgba(255,255,255,.05);white-space:nowrap;}
 .rp-table tr.cur td{color:var(--tx);background:rgba(255,197,61,.07);}
 .rp-table .wdot{display:inline-block;width:8px;height:8px;border-radius:2px;margin-right:6px;background:var(--wc);}
-.rp-empty{font-size:11.5px;line-height:1.6;color:var(--tx-3);padding:8px 2px;}
-.rp-sub{margin-top:6px;font-size:10px;color:var(--tx-3);}
+.rp-empty{font-size:12.5px;line-height:1.65;color:var(--tx-2);padding:10px 12px;border:1px dashed var(--line-2);border-radius:10px;}
+.rp-sub{margin-top:8px;font-size:11px;line-height:1.6;color:var(--tx-3);}
+/* スマホ横持ち：表は「武器を変える」で左から出す（ふだんは画面の外なので隠す） */
+body.mland #game-screen.range #range-panel{display:none;}
+body.mland #game-screen.range.rp-open #range-panel{display:block;position:fixed;top:0;left:0;bottom:0;width:min(540px,66vw);z-index:40;margin:0;padding:10px 14px 16px max(14px,env(safe-area-inset-left));overflow-y:auto;overscroll-behavior:contain;border:0;border-right:1px solid var(--line-2);border-radius:0;background:rgba(7,8,13,.96);}
+body.mland #game-screen.range.rp-open .rp-body{grid-template-columns:1fr;}
+body.mland #game-screen.range.rp-open .rp-grid{grid-template-columns:repeat(5,1fr);}
+body.mland #game-screen.range.rp-open .rp-head .rp-close{display:inline-block;}
+body.mland #game-screen.range.rp-open #gm-weps{display:none;}
 .sb-ic{position:relative;display:grid;place-items:center;}
 .sb-ic .mb-badge{top:-9px;right:-11px;}
 #login-bar{display:flex;flex-direction:column;align-items:center;gap:8px;margin-top:18px;}
@@ -619,10 +629,8 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 #match-panel .mp-col.mini h4{font-size:10.5px;}
 #match-panel .mp-col.ally h4{color:#5EEAD4;}
 /* オンライン対戦：①形式 → ②モード → ③対戦。選んでいるカードは金の枠と「選択中」。戻るボタンは上に固定 */
-.ol-bar{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:12px;margin:-4px 0 10px;padding:10px 0;background:linear-gradient(180deg,var(--bg) 72%,rgba(0,0,0,0));}
-.ol-back{display:inline-flex;align-items:center;gap:6px;flex:none;padding:8px 14px;border-radius:99px;border:1px solid var(--line-2);background:rgba(10,12,20,.85);color:var(--tx-2);font-size:13px;font-weight:700;letter-spacing:.04em;transition:.15s;}
-.ol-back:hover{color:var(--tx);border-color:var(--gold);}
-.ol-back svg.i{width:16px;height:16px;}
+.ol-bar{display:flex;align-items:center;gap:12px;margin:-4px 0 10px;padding:6px 0;}
+.ol-bar:has(.ol-steps:empty){display:none;}
 .ol-steps{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0;padding:0;list-style:none;font-size:11.5px;color:var(--tx-3);}
 .ol-steps li{display:flex;align-items:center;gap:6px;padding:4px 10px;border-radius:99px;border:1px solid transparent;white-space:nowrap;}
 .ol-steps li i{display:inline-grid;place-items:center;width:17px;height:17px;border-radius:50%;background:rgba(255,255,255,.08);font-family:var(--f-ui);font-size:10px;font-style:normal;font-weight:700;}
@@ -1062,10 +1070,9 @@ body.in-game #wrap{max-width:1340px;}
   #game-screen.playing .canvas-frame{width:min(100%,max(480px,calc((100vh - 120px) * 2)));width:min(100%,max(480px,calc((100dvh - 120px) * 2)));}
   body.touch #game-screen.playing .canvas-frame{width:min(100%,max(480px,calc((100vh - 340px) * 2)));width:min(100%,max(480px,calc((100dvh - 340px) * 2)));}
 }
-#game-screen.playing #weapon-bar,#game-screen.playing #difficulty-bar,#game-screen.playing #hint,#game-screen.playing #btns,#game-screen.playing #back-to-menu{display:none;}
+#game-screen.playing #weapon-bar,#game-screen.playing #difficulty-bar,#game-screen.playing #hint,#game-screen.playing #btns{display:none;}
 body.touch #game-screen.playing #btns{display:grid;}
 body.touch #game-screen.playing #weapon-bar{display:grid;}
-body.touch #game-screen.playing #back-to-menu{display:flex;}
 /* ---------- スマホ横持ち（body.mland）：ゲームを画面いっぱいに出し、操作ボタンは画面の上に重ねる ---------- */
 #tpad{display:none;position:absolute;inset:0;z-index:3;pointer-events:none;touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;}
 #rotate-hint{display:none;margin-top:10px;padding:8px 12px;border:1px dashed var(--line-2);border-radius:10px;font-size:12px;font-weight:700;color:var(--tx-2);text-align:center;}
@@ -1077,11 +1084,10 @@ body.mland #game-screen{max-width:none;}
 body.mland #game-screen.playing .canvas-frame{width:min(100vw,calc(100vh * 2));width:min(100vw,calc(100dvh * 2));padding:0;border-radius:0;background:none;box-shadow:none;}
 body.mland #game-screen.playing .canvas-frame::before,body.mland #game-screen.playing .canvas-frame::after{display:none;}
 body.mland #game-screen.playing #c{border-radius:0;}
-body.mland #game-screen.playing #btns,body.mland #game-screen.playing #weapon-bar,body.mland #game-screen.playing #back-to-menu,body.mland #game-screen.playing #online-hud{display:none;}
+body.mland #game-screen.playing #btns,body.mland #game-screen.playing #weapon-bar,body.mland #game-screen.playing #online-hud{display:none;}
 body.mland #game-screen.playing #tpad{display:block;}
 body.mland.pad #game-screen.playing #tpad{display:none;}
 body.mland #game-screen.playing #match-panel.on~#tpad{display:none;}   /* 試合前の準備（ステージ・武器を選ぶ）の間は隠す */   /* ゲームパッドで遊んでいる間は隠す */
-body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
 #tp-stick{position:absolute;left:0;bottom:0;width:40%;height:78%;pointer-events:auto;touch-action:none;}
 #tp-stick i{position:absolute;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none;}
 #tp-stick .tp-base{width:24vh;height:24vh;border:1.5px solid rgba(255,255,255,.22);background:rgba(10,12,20,.22);opacity:.55;transition:opacity .15s;}
@@ -1107,7 +1113,7 @@ body.mland.pad #game-screen.playing #tpad #tp-menu{display:none;}
 .tp-xs{width:10vh;height:10vh;}
 #tp-emo{right:9vh;bottom:50vh;border-color:rgba(255,210,74,.6);}
 body.mland #emote-menu{bottom:auto;top:12vh;}
-body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:50px;}
+body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:10px;}
 #tp-weps{position:absolute;left:50%;bottom:2vh;transform:translateX(-50%);display:flex;gap:1.5vh;pointer-events:auto;}
 .tp-w{min-width:16vh;height:9vh;padding:0 2vh;border-radius:2.4vh;border:1.5px solid rgba(255,255,255,.22);background:rgba(10,12,20,.5);color:rgba(255,255,255,.72);font-size:max(10px,2.8vh);font-weight:900;letter-spacing:.04em;touch-action:none;}
 .tp-w small{display:block;margin-top:1px;font-family:var(--f-ui);font-size:max(8px,2.2vh);font-weight:700;opacity:.7;}
@@ -1135,8 +1141,13 @@ body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:50px;}
 #tl-hint{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);max-width:46%;margin:0;text-align:center;font-size:max(10px,2.4vh);font-weight:700;color:rgba(255,255,255,.55);pointer-events:none;}
 #tl-rot{display:none;position:absolute;inset:0;z-index:3;align-items:center;justify-content:center;padding:24px;text-align:center;background:rgba(7,8,12,.92);color:var(--tx);font-weight:700;}
 @media (orientation:portrait){#tl-rot{display:flex;}}
-#tp-menu{position:absolute;top:19vh;right:10px;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);pointer-events:auto;}
-#tp-menu svg.i{width:16px;height:16px;}
+/* 試合・射撃場の戻るボタン：ゲームの絵の左上（上の体力の帯の下）。射撃場は一番上の角 */
+#gm-back,#gm-weps{position:absolute;left:10px;top:18%;z-index:6;display:none;align-items:center;gap:5px;height:30px;padding:0 12px 0 8px;border:1px solid var(--line-2);background:rgba(10,12,20,.62);color:var(--tx-2);font-size:12px;font-weight:800;letter-spacing:.05em;white-space:nowrap;clip-path:var(--cut-s);opacity:.8;transition:.15s var(--ease);-webkit-tap-highlight-color:transparent;}
+#gm-back svg.i,#gm-weps svg.i{width:16px;height:16px;}
+#gm-back:hover,#gm-weps:hover{opacity:1;color:var(--tx);border-color:var(--gold);}
+body.in-game #gm-back{display:inline-flex;}
+#game-screen.range #gm-back{top:10px;opacity:1;color:var(--tx);background:rgba(10,12,20,.85);border-color:rgba(255,255,255,.3);}
+body.mland #game-screen.range #gm-weps{display:inline-flex;top:48px;opacity:1;color:var(--gold);background:rgba(10,12,20,.85);border-color:rgba(255,197,61,.5);}
 #fs-btn{position:absolute;bottom:10px;right:10px;z-index:5;display:grid;place-items:center;width:32px;height:32px;border:1px solid var(--line-2);border-radius:8px;background:rgba(10,12,20,.55);color:var(--tx-2);opacity:.5;transition:.15s var(--ease);}
 #fs-btn:hover{opacity:1;color:var(--tx);}
 #fs-btn svg.i{width:16px;height:16px;}
@@ -1160,6 +1171,14 @@ body.mland #game-screen.playing #fs-btn{top:19vh;bottom:auto;right:50px;}
 
 /* ---------- 右上のボタン ---------- */
 #corner{position:fixed;top:12px;right:12px;z-index:999;display:flex;gap:6px;}
+/* 左上の戻るボタン（ホームとゲーム画面以外）。中身は下に 64px ずらして、ボタンと重ならないようにする */
+.nav-back{position:fixed;top:12px;left:12px;z-index:999;display:none;align-items:center;gap:6px;height:40px;padding:0 18px 0 11px;border:1px solid var(--line-2);background:rgba(15,18,27,.82);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);color:var(--tx);font-size:13.5px;font-weight:800;letter-spacing:.08em;clip-path:var(--cut-s);transition:.18s var(--ease);}
+.nav-back svg.i{width:18px;height:18px;}
+.nav-back:hover{color:var(--gold);border-color:var(--gold);}
+.nav-back:focus-visible{outline-offset:-4px;}
+body.nav-on .nav-back{display:inline-flex;}
+body.nav-on #wrap{padding-top:68px;}
+body.crate-open .nav-back{display:none;}
 .corner-btn{width:36px;height:36px;display:grid;place-items:center;background:rgba(18,21,31,.6);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:10px;color:var(--tx-3);transition:.2s var(--ease);}
 .corner-btn svg.i{width:17px;height:17px;}
 .corner-btn:hover{color:var(--tx);border-color:rgba(255,255,255,.28);}
@@ -1858,6 +1877,8 @@ body.demo #bg-shade{opacity:1;}
 body.mland:not(.in-game){align-items:flex-start;}
 body.mland:not(.in-game) #wrap{max-width:none;padding:8px max(14px,env(safe-area-inset-right)) 12px max(14px,env(safe-area-inset-left));}
 body.mland #corner{top:6px;right:max(8px,env(safe-area-inset-right));gap:4px;}
+body.mland .nav-back{top:6px;left:max(8px,env(safe-area-inset-left));height:32px;padding:0 13px 0 8px;font-size:12px;}
+body.mland.nav-on:not(.in-game) #wrap{padding-top:46px;}
 body.mland .corner-btn{width:32px;height:32px;}
 body.mland .menu,body.mland .menu.wide{max-width:none;}
 body.mland .scr-head{margin:0 90px 8px;}
@@ -2535,7 +2556,7 @@ body.ev-wn .ev-off{background:linear-gradient(180deg,#8FD8FF,#3D8FE6);border-col
 body:not([data-scr="game-screen"]) #fps-meter{display:none!important;}
 .kb-hint{display:block;margin-top:2px;font-size:11px;font-weight:600;color:var(--tx-3);letter-spacing:0;}
 /* 窓を開いている間は、右上の設定・音のボタンを隠す（窓の閉じるボタンと重ならないように） */
-body:has(.fr-modal.show) .corner-btn{visibility:hidden;}
+body:has(.fr-modal.show) .corner-btn,body:has(.fr-modal.show) .nav-back{visibility:hidden;}
 /* ---- ホーム（見た目の整理）：左はアイコンの小さな列にして、真ん中のキャラを大きく見せる ---- */
 @media (min-width:1000px){
   .home-main{grid-template-columns:96px minmax(0,1fr) 420px;column-gap:24px;}
@@ -2569,6 +2590,8 @@ body.mland .home-hero{height:72vh;}
 <div id="bs-bg" aria-hidden="true"></div>
 <div id="fps-meter" aria-hidden="true" style="display:none"></div>
 <div id="ev-deco" aria-hidden="true"><div class="glow"></div><div class="web l"></div><div class="web r"></div></div>
+<!-- 戻るボタン：どの画面でも左上の同じ場所（右上の設定・音のボタンと対になる）。行き先は navBack が画面ごとに決める -->
+<button id="nav-back" class="nav-back" onclick="navBack()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
 <div id="corner">
   <button id="settings-btn" class="corner-btn" onclick="showSettingsScreen()" data-i18n-title="common.settings">
     <svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1Z"/></svg>
@@ -2680,7 +2703,6 @@ body.mland .home-hero{height:72vh;}
       <button class="st-arrow" onclick="stageStep(1)" aria-label="next"><svg class="i" viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
     </div>
     <div class="st-dots" id="st-dots"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="stage.backMode"></span></button>
   </div>
 
   <div id="cpu-screen" class="screen menu" style="display:none;">
@@ -2692,13 +2714,11 @@ body.mland .home-hero{height:72vh;}
       <button class="pill-btn" id="cpu-replay" onclick="startReplay()" style="display:none"><svg class="i" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="m10 9 5 3-5 3z"/></svg><span data-i18n="rp.watch"></span></button>
     </div>
     <div id="cpu-list"></div>
-    <button class="back-btn" onclick="showStageScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="cpu.backStage"></span></button>
   </div>
 
   <div id="room-screen" class="screen menu" style="display:none;">
     <!-- 戻るボタンと、いまどこまで選んだか（上に固定。戻るボタンはいつも同じ場所） -->
     <div class="ol-bar">
-      <button class="ol-back" onclick="onlineBack()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
       <ol class="ol-steps" id="ol-steps"></ol>
     </div>
     <div class="scr-head">
@@ -2755,7 +2775,6 @@ body.mland .home-hero{height:72vh;}
     <div id="rank-head" class="rk-row rk-head"><span class="rk-no">#</span><span class="rk-who" data-i18n="rank.player"></span><span class="rk-tier" data-i18n="rank.tier"></span><span class="rk-rate" data-i18n="rank.rate"></span><span class="rk-wr" data-i18n="rank.winrate"></span></div>
     <div id="rank-list"></div>
     <div id="rank-me"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="shop-screen" class="screen menu wide" style="display:none;">
@@ -2764,7 +2783,6 @@ body.mland .home-hero{height:72vh;}
       <div class="v2-coins" id="shop-coins"></div>
     </div>
     <div id="shop-body"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="event-screen" class="screen menu wide" style="display:none;">
@@ -2774,7 +2792,6 @@ body.mland .home-hero{height:72vh;}
       <div class="ev-candy" id="ev-candy"></div>
     </div>
     <div id="ev-body"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="pass-screen" class="screen menu wide" style="display:none;">
@@ -2794,7 +2811,6 @@ body.mland .home-hero{height:72vh;}
     </div>
     <div class="v2-sec"><h3 data-i18n="pass.missions"></h3><p id="pass-note"></p></div>
     <div class="ps-mis" id="pass-mis"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="clan-screen" class="screen menu wide" style="display:none;">
@@ -2804,7 +2820,6 @@ body.mland .home-hero{height:72vh;}
       <p class="scr-sub" id="cl-sub"></p>
     </div>
     <div id="cl-body"></div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
   </div>
 
   <div id="friends-screen" class="screen menu" style="display:none;">
@@ -2828,7 +2843,6 @@ body.mland .home-hero{height:72vh;}
       </div>
       <div id="fr-lists"></div>
     </div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button>
   </div>
 
   <div id="settings-screen" class="screen menu" style="display:none;">
@@ -2903,7 +2917,6 @@ body.mland .home-hero{height:72vh;}
       <div id="server-url-bar"><label for="server-url">URL</label><input id="server-url" value="wss://gunduel2-production.up.railway.app" spellcheck="false"></div>
       <p class="pf-note" data-i18n="set.serverNote"></p>
     </div>
-    <button class="back-btn" onclick="closeSettings()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="loadout-screen" class="screen menu wide" style="display:none;">
@@ -2915,7 +2928,6 @@ body.mland .home-hero{height:72vh;}
     <div class="lo-slots" id="lo-slots"></div>
     <p class="lo-hint" data-i18n="lo.hint"></p>
     <div class="lo-grid" id="lo-grid"></div>
-    <button class="back-btn" onclick="closeLoadout()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="lo.done"></span></button>
   </div>
 
   <div id="profile-screen" class="screen menu wide" style="display:none;" data-pf="card">
@@ -3009,7 +3021,6 @@ body.mland .home-hero{height:72vh;}
         </div>
       </div>
     </div>
-    <button class="back-btn" onclick="showModeScreen()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 
   <div id="game-screen" class="screen" style="display:none;">
@@ -3022,8 +3033,7 @@ body.mland .home-hero{height:72vh;}
       <button id="tp-emo" class="tp-b tp-xs" onclick="toggleEmoteMenu()"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 14.5a4.5 4.5 0 0 0 7 0"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></button>
       <button id="tp-jump" class="tp-b tp-m"><svg class="i" viewBox="0 0 24 24"><path d="m6 14 6-6 6 6"/></svg><small data-i18n="btn.jump"></small></button>
       <button id="tp-atk" class="tp-b tp-l"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><path d="M12 2v5M12 17v5M2 12h5M17 12h5"/></svg><small data-i18n="btn.attack"></small></button>
-      <button id="tp-menu" onclick="leaveMatch()" data-i18n-title="common.backMenu"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
-    </div><button id="fs-btn" onclick="toggleFullscreen()" data-i18n-title="common.fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
+    </div><button id="gm-back" onclick="gameBack()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.back"></span></button><button id="gm-weps" onclick="rangePanelToggle()"><svg class="i" viewBox="0 0 24 24"><path d="M3 10h13l2-2h3v5h-4l-2 2H9l-1 4H5l1-4H3z"/></svg><span data-i18n="range.weps"></span></button><button id="fs-btn" onclick="toggleFullscreen()" data-i18n-title="common.fullscreen"><svg class="i" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg></button></div>
     <div id="online-hud"></div>
     <div id="range-panel"></div>
     <div id="rotate-hint" data-i18n="game.rotate"></div>
@@ -3056,7 +3066,6 @@ body.mland .home-hero{height:72vh;}
       <span class="lock-note"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg><span data-i18n="game.locked"></span></span>
     </div>
     <div id="hint"><span data-i18n="game.hint"></span><span><kbd>Enter</kbd><span data-i18n="game.hintEnter"></span></span></div>
-    <button id="back-to-menu" class="back-btn" onclick="leaveMatch()"><svg class="i" viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg><span data-i18n="common.backMenu"></span></button>
   </div>
 </div>
 <div id="dev-ask" class="fr-modal dev-ask" role="dialog" aria-modal="true">
@@ -3143,7 +3152,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=59"></script>
-<script src="lang.js?v=77"></script>
+<script src="lang.js?v=78"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -5727,8 +5736,10 @@ function applyRateResult(r){
 }
 function bgIndex(){return profile.bg==null?tierArt(profile.bestTier):profile.bg;}   // 背景の絵の番号（選んでいなければ、届いた一番上のランクの絵）
 function titleText(id){return t('title.'+(id||'rookie'));}
+// カードの上に出すランク：1v1 と 2v2 の高いほう
+function cardTierIndex(){return Math.max(computeTierIndex(),myTier2Index());}
 function myCardData(){
-  return{clan:AUTH.user?clanTag():'',name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),titleHw:isHwTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:computeTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
+  return{clan:AUTH.user?clanTag():'',name:profile.name,title:titleText(profile.title),titleRare:isRareTitle(profile.title),titleMythic:isMythicTitle(profile.title),titleGift:isGiftTitle(profile.title),titlePrism:isPrismTitle(profile.title),titleCrown:isCrownTitle(profile.title),titleGlitch:isGlitchTitle(profile.title),titleHw:isHwTitle(profile.title),dev:!!(AUTH.user&&AUTH.user.dev),bio:profile.bio,tier:cardTierIndex(),bg:bgIndex(),look:profile.look,loadout:loadout,team:TEAM.me,badge:SIM.badgeShown(AUTH.user&&AUTH.user.badges,profile.badge==null?null:profile.badge)};
 }
 function editProfileText(field,v){
   if(field==='name')profile.name=String(v).trim().slice(0,12)||t('pf.defaultName');
@@ -6876,7 +6887,7 @@ function friendOp(op,fid){
 }
 // ---- フレンドのプロフィール（自分のプロフィールと同じカード）----
 function friendCardData(p){
-  return{clan:cleanTagC(p.clan),name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),titleHw:isHwTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:+p.tier||0,bg:bgOf(p.bg,+p.tier||0),
+  return{clan:cleanTagC(p.clan),name:p.name||'',title:titleText(p.title),titleRare:isRareTitle(p.title),titleMythic:isMythicTitle(p.title),titleGift:isGiftTitle(p.title),titlePrism:isPrismTitle(p.title),titleCrown:isCrownTitle(p.title),titleGlitch:isGlitchTitle(p.title),titleHw:isHwTitle(p.title),dev:!!p.dev,bio:p.bio||'',tier:Math.max(+p.tier||0,+p.tier2||0),bg:bgOf(p.bg,Math.max(+p.tier||0,+p.tier2||0)),
     look:SIM.cleanLook(p.look||LOOK_DEFAULT,true),loadout:p.loadout?SIM.cleanLoadout(p.loadout,false):null,team:TEAM.me,badge:p.badge==null?null:+p.badge};
 }
 function openFriend(fid){
@@ -7023,6 +7034,7 @@ function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
   currentScreen=id;document.body.setAttribute('data-scr',id);   // 画面ごとの背景色（ショップ・パス）
   document.body.classList.toggle('in-game',id==='game-screen');
+  document.body.classList.toggle('nav-on',!!navBackFn(id));   // 左上の戻るボタン
   SCREENS.forEach(function(s){var el=document.getElementById(s);if(el)el.style.display=(s===id)?'':'none';});
   setDemo(id==='mode-screen');   // ホームだけ背景でCPU同士が戦う
   setDemoOn(PREVIEW,id==='stage-screen');
@@ -7255,6 +7267,23 @@ function olLeaveMode(){
   document.getElementById('room-number-display').style.display='none';document.getElementById('create-btn').style.display='';setRoomStatusText('');
 }
 // 戻る：1つ前の段階へ（いちばん最初ならホームへ）
+// 左上の戻るボタンの行き先（画面ごと。前は各画面の一番下にあったボタンと同じ）。ホーム・ゲーム画面は null（出さない）
+function navBackFn(id){
+  switch(id){
+    case 'stage-screen':case 'rank-screen':case 'shop-screen':case 'event-screen':case 'pass-screen':case 'friends-screen':case 'profile-screen':return showModeScreen;
+    case 'cpu-screen':return showStageScreen;
+    case 'room-screen':return onlineBack;
+    case 'settings-screen':return closeSettings;
+    case 'loadout-screen':return closeLoadout;
+    case 'clan-screen':return clanBack;
+  }
+  return null;
+}
+function navBack(){dropFocus();var f=navBackFn(currentScreen);if(f)f();}
+// クラン：ほかのクランを見ているときは、まず自分のクラン（か検索）に戻る
+function clanBack(){var b=document.querySelector('#cl-body .cl-backlink');if(b)b.click();else showModeScreen();}
+// 試合・射撃場の左上の戻るボタン（射撃場はすぐ戻る。試合は今までの「メニューに戻る」と同じで、対戦中は一度確かめる）
+function gameBack(){dropFocus();if(gameMode==='range'){backToMenu();return;}leaveMatch();}
 function onlineBack(){
   if(OL.mode){olLeaveMode();OL.mode=null;renderOnline();return;}
   if(OL.fmt){OL.fmt=null;renderOnline();return;}
@@ -7382,9 +7411,9 @@ document.body.classList.toggle('touch',isTouch);
 function showGameScreen(mode){
   showScreen('game-screen');
   document.getElementById('game-screen').classList.toggle('range',mode==='range');   // 射撃場の表を、ほかの試合に残さない
+  document.getElementById('game-screen').classList.remove('rp-open');
   if(mode!=='range')RANGE=null;
   document.getElementById('difficulty-bar').style.display=(mode==='ai'&&difficulty!==EMP)?'':'none';   // 鬼帝との戦いは、途中で難易度を変えない
-  document.getElementById('back-to-menu').style.display='';
   setInGameUI(true);   // ロビー中も下のパネルは出さない（設定はメニューで決め済み）
   fitCanvas();
 }
@@ -7648,7 +7677,7 @@ function leaveMatch(){
 function backToMenu(){
   var wasRp=!!RP;rpStop();
   clearGameTimers();endWaitUI();CV=null;
-  if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range');}
+  if(gameMode==='range'){RANGE=null;document.getElementById('game-screen').classList.remove('range','rp-open');}
   loopRunning=false;lobbyPhase=false;gameMode='ai';
   flashMsg='';flashTimer=0;tierUp=null;killCam=null;matchOver=false;vsPhase=false;bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;
   rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;
@@ -14817,12 +14846,17 @@ function rangeCycle(d){
   }
 }
 function rangeSlot(n){dropFocus();setWeapon(n);renderRangePanel();}
+// スマホ横持ち：武器の表は画面の外に隠れるので、左上の「武器を変える」で左から引き出す
+function rangePanelToggle(on){
+  dropFocus();var g=document.getElementById('game-screen');if(!g)return;
+  g.classList.toggle('rp-open',on==null?!g.classList.contains('rp-open'):!!on);
+}
 function renderRangePanel(){
   var el=document.getElementById('range-panel');if(!el||!RANGE)return;
   var me=RANGE.me,h='';
   h+='<div class="rp-head"><b>'+esc(t('range.title'))+'</b><span class="rp-note">'+esc(t('range.note'))+'</span>'+
-    '<button onclick="rangeReset()">'+esc(t('range.reset'))+'</button><button onclick="backToMenu()">'+esc(t('common.backMenu'))+'</button></div>';
-  h+='<div class="rp-body"><div>';
+    '<button onclick="rangeReset()">'+esc(t('range.reset'))+'</button><button class="rp-close" onclick="rangePanelToggle(false)">'+esc(t('eco.close'))+'</button></div>';
+  h+='<div class="rp-body"><div><h4 class="rp-h">'+esc(t('range.secWeps'))+'</h4>';
   h+='<div class="rp-slots">';
   for(var k=0;k<3;k++)h+='<button class="'+(k===playerSlot?'sel':'')+'" onclick="rangeSlot('+(k+1)+')"><kbd>'+esc(kdn(keybinds['w'+(k+1)])||String(k+1))+'</kbd><span>'+esc(wName(me.load[k]))+'</span></button>';
   h+='</div><div class="rp-grid">';
@@ -14831,8 +14865,8 @@ function renderRangePanel(){
     h+='<button class="'+(at>=0?'on':'')+'" style="--wc:'+WEAPONS[id].color+'" onclick="rangeSetWeapon('+id+')" title="'+esc(wName(id)+'｜'+t('mp.stat',{range:S2.range,power:S2.power,rate:(Math.round(S2.rps*10)/10)}))+'">'+
       (at>=0?'<span class="sl">'+(at+1)+'</span>':'')+'<canvas width="96" height="42" data-gun="'+id+'"></canvas>'+esc(wShort(id))+'</button>';
   });
-  h+='</div><div class="rp-hint">'+esc(t('range.pickHint',{n:playerSlot+1}))+'<br>'+esc(t('range.keys',{reload:(kdn(keybinds.reload)||'R').toUpperCase()}))+'</div></div>';
-  h+='<div><div id="rp-stats"></div><div class="rp-sub">'+esc(t('range.dpsNote'))+'</div></div></div>';
+  h+='</div><div class="rp-hint">'+esc(t('range.pickHint',{n:playerSlot+1}))+'<span class="rp-keys"><br>'+esc(t('range.keys',{reload:(kdn(keybinds.reload)||'R').toUpperCase()}))+'</span></div></div>';
+  h+='<div><h4 class="rp-h">'+esc(t('range.secStats'))+'</h4><div id="rp-stats"></div><div class="rp-sub">'+esc(t('range.dpsNote'))+'</div></div></div>';
   el.innerHTML=h;
   el.querySelectorAll('canvas[data-gun]').forEach(function(cv){var g=cv.getContext('2d');g.clearRect(0,0,cv.width,cv.height);drawGunIcon(g,+cv.getAttribute('data-gun'),0,0,cv.width,cv.height);});
   renderRangeStats();
@@ -14869,8 +14903,10 @@ function drawRangeScene(){
 // 左の段に「どの的をねらえるか」の小さな札
 function drawRangeSteps(){
   var lab=[['range.laneNear',194,GND-70],['range.laneMid',104,GND-140],['range.laneFar',14,GND-210]];
-  ctx.save();ctx.font='700 8px '+FONT_UI;ctx.textAlign='left';ctx.textBaseline='middle';setLS(1);
-  lab.forEach(function(l){ctx.fillStyle='rgba(255,255,255,.3)';ctx.fillText(t(l[0]),wx(l[1]),l[2]+22);});
+  ctx.save();ctx.font='800 9.5px '+FONT_UI;ctx.textAlign='left';ctx.textBaseline='middle';setLS(1);
+  lab.forEach(function(l){var tx=t(l[0]),w=ctx.measureText(tx).width+12,x=wx(l[1]),y=l[2]+22;
+    ctx.fillStyle='rgba(6,8,14,.55)';rrect(x-2,y-8,w,16,4);ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.78)';ctx.fillText(tx,x+4,y+.5);});
   setLS(0);ctx.restore();
 }
 // 的：人と同じ大きさの板（頭と胴に同心円）。当たると白く光って少しゆれる。上に「今の距離」
@@ -14893,10 +14929,10 @@ function drawRangeTarget(tg){
   // 上の札：種類と距離
   var me=R.me,d=Math.round(Math.abs((tg.x+CHAR_W/2)-(me.x+CHAR_W/2))),W=WEAPONS[me.load[me.slot]],reach=d<=W.range;
   var label=t('range.'+tg.side),sub=t('range.dist',{d:d});
-  ctx.font='700 9px '+FONT_UI;var lw=Math.max(ctx.measureText(label).width,ctx.measureText(sub).width)+12;
-  ctx.fillStyle='rgba(6,8,14,.72)';rrect(cx-lw/2,y-31,lw,24,4);ctx.fill();
-  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#EDEBE6';ctx.fillText(label,cx,y-24);
-  ctx.font='700 8px '+FONT_UI;ctx.fillStyle=reach?'#34D399':'rgba(255,255,255,.45)';ctx.fillText(sub,cx,y-14);   // 今の武器の射程内なら緑
+  ctx.font='800 10px '+FONT_UI;var lw=Math.max(ctx.measureText(label).width,ctx.measureText(sub).width)+14;
+  ctx.fillStyle='rgba(6,8,14,.82)';rrect(cx-lw/2,y-34,lw,27,5);ctx.fill();
+  ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillStyle='#FFFFFF';ctx.fillText(label,cx,y-26);
+  ctx.font='700 9px '+FONT_UI;ctx.fillStyle=reach?'#34D399':'rgba(255,255,255,.6)';ctx.fillText(sub,cx,y-15);   // 今の武器の射程内なら緑
   ctx.restore();
 }
 // 上の帯：今の武器の記録
@@ -14904,22 +14940,24 @@ function drawRangeHud(){
   var R=RANGE,me=R.me,wid=me.load[me.slot],W=WEAPONS[wid],s=R.stats[wid]||{dmg:0,shots:0,hits:0,max:0,frames:0};
   var items=[[t('range.dmg'),String(s.dmg)],['DPS',rangeDps(s).toFixed(1)],[t('range.acc'),rangeAcc(s)+'%'],[t('range.max'),String(s.max)]];
   ctx.save();
-  var y=8,h=34;
-  ctx.font='800 13px '+FONT_UI;
-  var ws=items.map(function(it){ctx.font='700 8px '+FONT_UI;var a=ctx.measureText(it[0]).width;ctx.font='800 14px '+FONT_UI;return Math.max(a,ctx.measureText(it[1]).width)+18;});
-  var total=ws.reduce(function(a,b){return a+b;},0)+118,x0=12;   // 左上（右上は遠い的の札と重なるので）
-  ctx.fillStyle='rgba(6,8,14,.78)';rrect(x0,y,total,h,8);ctx.fill();
-  ctx.strokeStyle=rgba(W.color,.6);ctx.lineWidth=1;ctx.stroke();
-  drawGunIcon(ctx,wid,x0+8,y+7,34,20);
-  ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='700 10px '+FONT_UI;ctx.fillStyle=W.color;ctx.fillText(wShort(wid),x0+46,y+h/2);
-  var cx=x0+118;
+  var y=8,h=38;
+  ctx.font='800 11px '+FONT_UI;var nw=Math.max(54,ctx.measureText(wShort(wid)).width);
+  var ws=items.map(function(it){ctx.font='700 9px '+FONT_UI;var a=ctx.measureText(it[0]).width;ctx.font='800 16px '+FONT_UI;return Math.max(a,ctx.measureText(it[1]).width)+20;});
+  var head=54+nw+14,total=ws.reduce(function(a,b){return a+b;},0)+head,x0=Math.round((VW-total)/2);   // 上の真ん中（左上は戻るボタン、右上は遠い的の札）
+  ctx.fillStyle='rgba(6,8,14,.88)';rrect(x0,y,total,h,8);ctx.fill();
+  ctx.strokeStyle=rgba(W.color,.75);ctx.lineWidth=1.2;ctx.stroke();
+  drawGunIcon(ctx,wid,x0+10,y+8,36,22);
+  ctx.textAlign='left';ctx.textBaseline='middle';ctx.font='800 11px '+FONT_UI;ctx.fillStyle=W.color;ctx.fillText(wShort(wid),x0+54,y+h/2);
+  ctx.fillStyle='rgba(255,255,255,.12)';ctx.fillRect(x0+head-8,y+8,1,h-16);   // 区切り
+  var cx=x0+head;
   items.forEach(function(it,i){
-    ctx.font='700 8px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(it[0],cx,y+10);
-    ctx.font='800 14px '+FONT_UI;ctx.fillStyle='#FFFFFF';ctx.fillText(it[1],cx,y+24);
+    ctx.font='700 9px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.62)';ctx.fillText(it[0],cx,y+11);
+    ctx.font='800 16px '+FONT_UI;ctx.fillStyle='#FFFFFF';ctx.fillText(it[1],cx,y+27);
     cx+=ws[i];
   });
   // その下：段の説明
-  ctx.font='600 9px '+FONT_UI;ctx.fillStyle='rgba(255,255,255,.45)';ctx.fillText(t('range.lane'),14,y+h+12);
+  ctx.textAlign='center';ctx.font='700 10px '+FONT_UI;ctx.lineWidth=3;ctx.strokeStyle='rgba(0,0,0,.6)';ctx.strokeText(t('range.lane'),VW/2,y+h+13);
+  ctx.fillStyle='rgba(255,255,255,.72)';ctx.fillText(t('range.lane'),VW/2,y+h+13);
   ctx.restore();ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 var dryFlash=0;   // 弾切れで撃とうとしたときに、リロードの案内を光らせる
@@ -15198,7 +15236,8 @@ function drawVs(){
     ctx.beginPath();ctx.moveTo(VW*.57,0);ctx.lineTo(VW*.43,VH);ctx.stroke();ctx.restore();}
   // カード
   var lx=58-(1-e)*320,rx=VW-58-cw+(1-e)*320;
-  ctx.save();ctx.translate(lx+cw/2,cy+ch/2);ctx.rotate(-.05);ctx.translate(-cw/2,-ch/2);drawProfileCard(ctx,myCardData(),0,0,cw,ch,T);ctx.restore();
+  var mc=myCardData();mc.tier=computeTierIndex();   // 1v1 の VS では、相手と同じく 1v1 のランク
+  ctx.save();ctx.translate(lx+cw/2,cy+ch/2);ctx.rotate(-.05);ctx.translate(-cw/2,-ch/2);drawProfileCard(ctx,mc,0,0,cw,ch,T);ctx.restore();
   ctx.save();ctx.translate(rx+cw/2,cy+ch/2);ctx.rotate(.05);ctx.translate(-cw/2,-ch/2);drawProfileCard(ctx,oppCardData(),0,0,cw,ch,T);ctx.restore();
   if(T>.5){ctx.save();ctx.globalAlpha=Math.min(1,(T-.5)/.25);drawRecPill(lx+cw/2,cy+ch+10,myRecord(),'#B794FF');drawRecPill(rx+cw/2,cy+ch+10,oppInfo.rec,'#FF6B7A');
     drawDiscordTag(lx+cw/2,cy-30,AUTH.user?AUTH.user.name:'');drawDiscordTag(rx+cw/2,cy-30,oppInfo.discord);ctx.restore();}
@@ -15418,7 +15457,7 @@ function drawBgFx(tm){
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
- startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
+ startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,rangePanelToggle,navBack,gameBack,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
  showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,doChat,setQc,showClanScreen,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
