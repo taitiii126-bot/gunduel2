@@ -11831,7 +11831,7 @@ var TIER_BG=[
   {c:['#56606D','#23282F','#07080A'],glow:'#D3DCE8',acc:'#DCE2EA',pat:'rivets', par:'sparks',  flat:'pop2',pop:1,    em:'gear'},      // アイアン：鉄の歯車・火花
   {c:['#B07A14','#452C06','#0B0602'],glow:'#FFD65C',acc:'#FFF1B8',pat:'sheriff',par:'coins',   flat:'pop3',pop:1,  em:'sheriff'},   // ゴールド：金の保安官の星
   {c:['#C4D3DF','#5A6B7C','#0E151E'],glow:'#E8F4FF',acc:'#FFFFFF',pat:'snow',   par:'motes',   flat:'pop4',pop:1, em:'ingot'},   // プラチナ：白銀の結晶
-  {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards',  flat:'pop5',pop:1,   em:'planet'},    // レジェンド：紫の宇宙・輪のある惑星
+  {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards',  flat:'pop5',pop:1,   em:'wing'},    // レジェンド：紫の宇宙・輪のある惑星
   {c:['#A3172D','#3F0812','#0A0103'],glow:'#FF7182',acc:'#FFD6DC',pat:'roses',  par:'petals',  flat:'pop6',pop:1,   em:'reticle'},    // マスター：深紅の炎
   {c:['#178A3E','#08391A','#010A04'],glow:'#7CF29A',acc:'#DFFFE6',pat:'flames', par:'embers',  flat:'pop7',pop:1,em:'bolt'},      // チャンピオン：緑の稲妻
   {c:['#2A2216','#0E0B08','#030202'],glow:'#FFD98A',acc:'#FFF1C8',pat:'deco',   par:'golddust',flat:'pop8',pop:1,  em:'eclipse'}    // エクリプス：黒い太陽と金のコロナ
@@ -12813,44 +12813,65 @@ function popBg3(g,w,h,tm,lw){
   spikes(['#FFD23F','#FFE68C'],0,.58,37);
   popStars(g,w,h,tm,8,['#FFF7CF','#FFD23F'],7,.6);
 }
-// プラチナ：磨いた白金のプレートが斜めに重なり、光の反射が走る。下の左右に積んだ延べ棒
-function popIngot(g,cx,cy,s,ink,L){
-  var tp=[[cx-s*.32,cy-s*.2],[cx+s*.32,cy-s*.2],[cx+s*.5,cy+s*.2],[cx-s*.5,cy+s*.2]];
-  var gr=g.createLinearGradient(0,cy-s*.2,0,cy+s*.2);gr.addColorStop(0,'#FFFFFF');gr.addColorStop(.45,'#D3DEE8');gr.addColorStop(1,'#8C9DB0');
-  popPoly(g,tp,gr,ink,L);popPoly(g,[[cx-s*.32,cy-s*.2],[cx+s*.32,cy-s*.2],[cx+s*.26,cy-s*.08],[cx-s*.26,cy-s*.08]],'rgba(255,255,255,.75)',null);
+// プラチナ：アールデコ調の高級感。下から広がる白金の扇、キャラの後ろに彫りの入った大きな白金のメダル（光が回る）、舞い落ちる白金のコイン
+function popCoin(g,cx,cy,r,spin,ink,L){   // 回る白金のコイン（横から見ると細くなる）
+  var sx=Math.max(.12,Math.abs(Math.cos(spin)));g.save();g.translate(cx,cy);g.scale(sx,1);
+  g.beginPath();g.arc(0,0,r,0,Math.PI*2);var cg=g.createLinearGradient(-r,-r,r,r);cg.addColorStop(0,'#FFFFFF');cg.addColorStop(.5,'#C4D3DF');cg.addColorStop(1,'#7B8EA2');g.fillStyle=cg;g.fill();g.lineWidth=L/sx*.7;g.strokeStyle=ink;g.stroke();
+  g.beginPath();g.arc(0,0,r*.66,0,Math.PI*2);g.lineWidth=L/sx*.45;g.strokeStyle='rgba(20,30,42,.45)';g.stroke();
+  flatStar4(g,0,0,r*.42);g.fillStyle='#FFFFFF';g.fill();g.restore();
 }
 function popBg4(g,w,h,tm,lw){
-  var C=POP[4],L=lw*1.8,i;g.fillStyle=popGrad(g,h,'#3A4A5C','#0D141D');g.fillRect(0,0,w,h);
-  popDots(g,w,h,'rgba(200,240,255,.05)',w*.05);
-  // 斜めに重なる白金のプレート（ふちは太線、面は磨いた金属のグラデーション）
-  [[-.3,.05,.62,'#A7B7C7'],[.25,-.05,.5,'#C4D3DF'],[.55,.32,.55,'#B3C3D2'],[-.25,.55,.5,'#93A5B8']].forEach(function(q,j){
-    g.save();g.translate(w*(q[0]+q[2]/2),h*(q[1]+.25));g.rotate(-.5);var pw=w*q[2],ph=h*.17;
-    var mg=g.createLinearGradient(0,-ph/2,0,ph/2);mg.addColorStop(0,'#FFFFFF');mg.addColorStop(.35,q[3]);mg.addColorStop(.7,'#6C7E92');mg.addColorStop(1,'#B9C8D6');
-    rrPath(g,-pw/2,-ph/2,pw,ph,ph*.18);g.fillStyle=mg;g.fill();g.lineWidth=L;g.strokeStyle=C.k;g.stroke();
-    [-pw/2+ph*.3,pw/2-ph*.3].forEach(function(rx){g.beginPath();g.arc(rx,0,ph*.09,0,Math.PI*2);g.fillStyle='#E9F2F8';g.fill();g.lineWidth=L*.6;g.stroke();});   // ねじ
-    var sp=((tm*.3+j*.27)%1.4)/1.4;   // 面を走る光
-    if(sp<.6){g.save();rrPath(g,-pw/2,-ph/2,pw,ph,ph*.18);g.clip();var sx=-pw*.7+sp/.6*pw*1.4,sg=g.createLinearGradient(sx-ph,0,sx+ph,0);sg.addColorStop(0,'rgba(255,255,255,0)');sg.addColorStop(.5,'rgba(255,255,255,.85)');sg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=sg;g.fillRect(-pw,-ph,pw*2,ph*2);g.restore();}
-    g.restore();});
-  // 積んだ延べ棒（左下・右下）
-  var s=w*.2;
-  [[.13,.9],[.33,.9],[.23,.8],[.78,.92],[.98,.92],[.88,.82]].forEach(function(q){popIngot(g,w*q[0],h*q[1],s,C.k,L);});
-  // きらめき（白と、すこし水色）
-  [[.18,.72],[.86,.7],[.62,.18],[.08,.2],[.92,.38]].forEach(function(q,j){var tw=Math.max(0,Math.sin(tm*1.9+j*1.7));g.fillStyle=j%2?'#C8F7FF':'#FFFFFF';flatStar4(g,w*q[0],h*q[1],w*.05*tw);g.fill();});
+  var C=POP[4],L=lw*1.8,i,cx=w*.47,cy=h*.35;
+  g.fillStyle=popGrad(g,h,'#334457','#0B1219');g.fillRect(0,0,w,h);
+  // 下から広がる扇（白金と影の色を交互に）。細い水色の線
+  g.save();g.translate(w*.5,h*1.05);
+  for(i=0;i<14;i++){var a0=-Math.PI+i*Math.PI/14,a1=a0+Math.PI/14;g.beginPath();g.moveTo(0,0);g.arc(0,0,h*1.25,a0,a1);g.closePath();g.fillStyle=i%2?'#2A3A4C':'#3E5266';g.fill();}
+  for(i=1;i<14;i++){var aa=-Math.PI+i*Math.PI/14;g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(aa)*h*1.25,Math.sin(aa)*h*1.25);g.lineWidth=Math.max(1,lw*.8);g.strokeStyle='rgba(160,240,255,.28)';g.stroke();}
+  [.42,.62,.82].forEach(function(k){g.beginPath();g.arc(0,0,h*k,-Math.PI,0);g.lineWidth=Math.max(1,lw*.9);g.strokeStyle='rgba(220,235,245,.22)';g.stroke();});
+  g.restore();
+  // 大きな白金のメダル（ぎざぎざのふち・彫りの輪・真ん中の星）
+  var R=w*.3;
+  flatSpot(g,cx,cy,R*1.7,'rgba(220,245,255,.30)');
+  g.save();g.translate(cx,cy);
+  g.beginPath();for(i=0;i<=96;i++){var ma=i/96*Math.PI*2,mr=R*(1+.035*Math.cos(ma*32));g.lineTo(Math.cos(ma)*mr,Math.sin(ma)*mr);}g.closePath();
+  var mg=g.createLinearGradient(-R,-R,R,R);mg.addColorStop(0,'#FFFFFF');mg.addColorStop(.35,'#D2DEE8');mg.addColorStop(.7,'#8FA2B6');mg.addColorStop(1,'#CBD8E3');g.fillStyle=mg;g.fill();g.lineWidth=L;g.strokeStyle=C.k;g.stroke();
+  g.beginPath();g.arc(0,0,R*.86,0,Math.PI*2);var ig=g.createLinearGradient(0,-R,0,R);ig.addColorStop(0,'#93A7B9');ig.addColorStop(1,'#DCE6EE');g.fillStyle=ig;g.fill();g.lineWidth=L*.8;g.strokeStyle=C.k;g.stroke();
+  g.save();g.rotate(-tm*.1);for(i=0;i<36;i++){var da=i*Math.PI/18;g.beginPath();g.moveTo(Math.cos(da)*R*.74,Math.sin(da)*R*.74);g.lineTo(Math.cos(da)*R*.82,Math.sin(da)*R*.82);g.lineWidth=Math.max(1,lw*(i%3?.8:1.6));g.strokeStyle='rgba(30,44,60,.55)';g.stroke();}g.restore();
+  g.beginPath();g.arc(0,0,R*.7,0,Math.PI*2);g.lineWidth=L*.6;g.strokeStyle='rgba(30,44,60,.5)';g.stroke();
+  flatStar4(g,0,0,R*.58);var sg2=g.createLinearGradient(0,-R*.6,0,R*.6);sg2.addColorStop(0,'#FFFFFF');sg2.addColorStop(1,'#B9CBD9');g.fillStyle=sg2;g.fill();g.lineWidth=L*.8;g.strokeStyle=C.k;g.stroke();
+  g.save();g.beginPath();g.arc(0,0,R*1.04,0,Math.PI*2);g.clip();   // メダルの面を走る光
+  var sp=((tm*.28)%1.5)/1.5;if(sp<.55){var sx=-R*1.4+sp/.55*R*2.8,lg=g.createLinearGradient(sx-R*.3,-R,sx+R*.3,R);lg.addColorStop(0,'rgba(255,255,255,0)');lg.addColorStop(.5,'rgba(255,255,255,.8)');lg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=lg;g.fillRect(-R*1.2,-R*1.2,R*2.4,R*2.4);}
+  g.restore();
+  g.restore();
+  // 舞い落ちる白金のコイン
+  for(i=0;i<7;i++){var t=(tm*.12+i/7)%1,px=w*((i*.37+.07)%1)+Math.sin(tm+i)*w*.03,py=h*(-.1+t*1.0);popCoin(g,px,py,w*(.035+.012*(i%3)),tm*2.2+i,C.k,L);}
+  // きらめき（白と水色）
+  [[.12,.18],[.86,.24],[.8,.62],[.1,.6],[.6,.08]].forEach(function(q,j){var tw=Math.max(0,Math.sin(tm*1.9+j*1.7));g.fillStyle=j%2?'#C8F7FF':'#FFFFFF';flatStar4(g,w*q[0],h*q[1],w*.055*tw);g.fill();});
 }
-// レジェンド：紫の宇宙。うずと、輪のある惑星
+// レジェンド：伝説の英雄。キャラの後ろに大きな紫の翼が広がり、頭の上に金の光の輪。回る光の筋と、のぼる光の粒
+function popWing(g,sd,cx,cy,sc,flap,C,L){
+  g.save();g.translate(cx,cy);g.scale(sd,1);g.rotate(-flap);
+  var rows=[[C.d,1,8,.3,-1.05,1.5],[C.b,.78,8,.32,-.95,1.35],[C.l,.56,7,.34,-.85,1.15],['#FFFFFF',.36,6,.36,-.7,.9]];
+  rows.forEach(function(r){for(var j=r[2]-1;j>=0;j--){var a=r[4]+j*(r[5]/(r[2]-1)),len=sc*r[1]*(1-j*.05);g.save();g.rotate(a);featherPath(g,len,len*r[3]);g.fillStyle=r[0];g.fill();g.lineJoin='round';g.lineWidth=L;g.strokeStyle=C.k;g.stroke();g.restore();}});
+  g.restore();
+}
 function popBg5(g,w,h,tm,lw){
-  var C=POP[5],L=lw*1.8;g.fillStyle=popGrad(g,h,'#4A1A8C','#170635');g.fillRect(0,0,w,h);
-  g.save();g.translate(w*.45,h*.55);g.rotate(tm*.08);
-  for(var k=0;k<3;k++){g.beginPath();for(var t=0;t<=1.001;t+=.02){var rr=w*(.08+t*.7),aa=k*Math.PI*2/3+t*Math.PI*2.2;var px=Math.cos(aa)*rr,py=Math.sin(aa)*rr*.7;if(t===0)g.moveTo(px,py);else g.lineTo(px,py);}
-    g.lineCap='round';g.lineWidth=w*.07;g.strokeStyle=C.k;g.stroke();g.lineWidth=w*.05;g.strokeStyle=k%2?'#7A3FD8':'#9B5CF2';g.stroke();}
+  var C=POP[5],L=lw*1.6,i,cx=w*.45,cy=h*.4;
+  g.fillStyle=popGrad(g,h,'#3E1478','#12052A');g.fillRect(0,0,w,h);
+  g.save();g.translate(cx,cy);g.rotate(tm*.05);
+  for(i=0;i<16;i++){var a=i*Math.PI/8;g.beginPath();g.moveTo(0,0);g.arc(0,0,h*1.3,a-.1,a+.1);g.closePath();g.fillStyle=i%2?'rgba(163,92,255,.22)':'rgba(255,212,92,.10)';g.fill();}
   g.restore();
-  g.save();g.translate(w*.8,h*.2);var pr=w*.13;
-  g.save();g.rotate(-.35);g.beginPath();g.ellipse(0,0,pr*1.8,pr*.45,0,Math.PI,Math.PI*2);g.lineWidth=w*.035;g.strokeStyle=C.k;g.stroke();g.lineWidth=w*.022;g.strokeStyle='#FFD45C';g.stroke();g.restore();
-  g.beginPath();g.arc(0,0,pr,0,Math.PI*2);g.fillStyle='#E07BFF';g.fill();g.lineWidth=L;g.strokeStyle=C.k;g.stroke();
-  g.save();g.beginPath();g.arc(0,0,pr,0,Math.PI*2);g.clip();g.fillStyle='#B04CE8';g.fillRect(-pr,pr*.15,pr*2,pr*.3);g.fillStyle='rgba(255,255,255,.35)';g.beginPath();g.arc(-pr*.35,-pr*.4,pr*.45,0,Math.PI*2);g.fill();g.restore();
-  g.save();g.rotate(-.35);g.beginPath();g.ellipse(0,0,pr*1.8,pr*.45,0,0,Math.PI);g.lineWidth=w*.035;g.strokeStyle=C.k;g.stroke();g.lineWidth=w*.022;g.strokeStyle='#FFD45C';g.stroke();g.restore();
-  g.restore();
-  popStars(g,w,h,tm,14,['#FFFFFF','#FFD45C','#D4A9FF'],9,.95);
+  flatSpot(g,cx,cy-h*.05,w*.65,'rgba(230,200,255,.45)');
+  var flap=Math.sin(tm*1.6)*.05;
+  popWing(g,-1,cx-w*.06,cy+h*.02,w*.62,flap,C,L);
+  popWing(g,1,cx+w*.06,cy+h*.02,w*.62,flap,C,L);
+  // 金の光の輪（頭のうしろ）
+  var hy=cy-h*.17+Math.sin(tm*2)*h*.006;
+  g.save();g.globalCompositeOperation='lighter';flatSpot(g,cx,hy,w*.22,'rgba(255,214,120,.35)');g.restore();
+  g.beginPath();g.ellipse(cx,hy,w*.17,h*.032,0,0,Math.PI*2);g.lineWidth=w*.032;g.strokeStyle=C.k;g.stroke();g.lineWidth=w*.02;g.strokeStyle='#FFD45C';g.stroke();
+  g.beginPath();g.ellipse(cx,hy-h*.003,w*.17,h*.032,0,Math.PI*1.1,Math.PI*1.9);g.lineWidth=w*.008;g.strokeStyle='#FFF4C8';g.stroke();
+  for(i=0;i<16;i++){var t=(tm*.22+i*.0625)%1;g.globalAlpha=Math.sin(t*Math.PI);g.fillStyle=['#FFD45C','#F3E6FF','#D4A9FF','#FFFFFF'][i%4];flatStar4(g,w*((i*.37+.05)%1),h*(.95-t*.85),w*(.011+.008*(i%2)));g.fill();}
+  g.globalAlpha=1;
 }
 // マスター：深紅と黒の集中線に、大きなスコープの照準（ゆっくり回る）。ふちには弾の穴、のぼる火の粉
 function popBg6(g,w,h,tm,lw){
