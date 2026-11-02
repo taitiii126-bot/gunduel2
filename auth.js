@@ -156,6 +156,16 @@ if ((db.meta.rateEpoch || 0) < RATE_EPOCH) {
   if (users.length) console.log('rate reset (epoch ' + RATE_EPOCH + '):', users.length, 'accounts back to', SIM.RATE_START);
   db.meta.rateEpoch = RATE_EPOCH; dirty = true;
 }
+// 背景の番号を、ティアの時代の絵（0〜10）からランクの絵（0〜8）に直す（1回だけ）。使えない背景になったら、ふつう（届いたランク）に戻る
+if ((db.meta.bgVer || 1) < SIM.BG_VER) {
+  for (const u of Object.values(db.users)) {
+    const p = u.profile;
+    if (!p || (+p.bgVer || 1) >= SIM.BG_VER) continue;
+    if (typeof p.bg === 'number') p.bg = SIM.bgFromOld(p.bg);
+    p.bgVer = SIM.BG_VER; u.profileRev = (u.profileRev || 0) + 1;   // 端末にも新しい番号を配る
+  }
+  db.meta.bgVer = SIM.BG_VER; dirty = true;
+}
 // プロフィールのやり直し（段階ごとに1回だけ。中身は sim.js の upgradeProfile）。オンライン戦績とレートは消さない
 if ((db.meta.titleEpoch || 0) < SIM.PROFILE_EPOCH) {
   for (const u of Object.values(db.users)) {

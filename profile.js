@@ -33,7 +33,7 @@ const TIER_KEYS = SIM.TIER_KEYS;   // 段の記号（BR1〜EC3）。0 は「ラ�
 const MAX_TIER = TIER_KEYS.length - 1;
 // Discord に出すときのティアの色（ゲームのティアの色と同じ）
 // ランクごとの色（ブロンズ・アイアン・ゴールド・プラチナ・レジェンド・マスター・チャンピオン・エクリプス）。Ⅰ〜Ⅲは同じ色
-const RANK_COLORS = [0, 0xC9824C, 0xA3AAB4, 0xE2B13C, 0x8FD3F5, 0xB983FF, 0xE0314B, 0x4FAEFF, 0xFFE7A8];
+const RANK_COLORS = [0, 0xC9824C, 0xA3AAB4, 0xE2B13C, 0xC3D5E2, 0xB983FF, 0xE0314B, 0x3FD86A, 0xFFE7A8];
 const TIER_COLORS = {};
 TIER_KEYS.forEach((k, i) => { if (i) TIER_COLORS[k] = RANK_COLORS[SIM.rankOf(i).r]; });
 // ランクの名前（Discord などサーバーから出す文。ゲームの中は lang.js）
@@ -111,6 +111,11 @@ function cleanCandy(m) {
 }
 function cleanPass(m) { m = m && typeof m === 'object' ? m : {}; return { s: int(m.s, 0, 99999, 0), xp: int(m.xp, 0, 9999999, 0) }; }
 // ctx：称号の確認に使う本人の情報（オンライン戦績・フレンド数・開拓者か）。rtier=レートで決まる今のティア
+// 背景の絵の番号（0〜8＝ランク）。前の番号（0〜10、bgVer が古い記録）なら、ランクの絵に直してから確かめる
+function bgNum(v, best) {
+  const raw = (+v.bgVer || 1) < SIM.BG_VER ? SIM.bgFromOld(int(v.bg, 0, 10, -1)) : int(v.bg, 0, SIM.BG_UNLOCK.length - 1, -1);
+  return SIM.bgUnlocked(raw, best) ? raw : null;
+}
 function clean(v, ctx, rtier) {
   v = v && typeof v === 'object' ? v : {};
   // やり直しを通っていないプロフィール（古いページからの保存）は、ここで白紙に戻す
@@ -134,7 +139,7 @@ function clean(v, ctx, rtier) {
     : v.bg === 'champion' ? (champ ? 'champion' : null)
     : v.bg === 'dev' ? (ctx && ctx.dev ? 'dev' : null)   // 開発者だけの背景
     : v.bg === 'halloween' ? (SIM.cleanInv(v.inv).indexOf('bHW') >= 0 ? 'halloween' : null)   // ハロウィン限定（持ち物はサーバーの物で確かめ直す）
-    : v.bg == null ? null : (SIM.bgUnlocked(int(v.bg, 0, 10, -1), best) ? int(v.bg, 0, 10, null) : null);   // 背景の絵（0〜10）は、届いた段で使える物だけ
+    : v.bg == null ? null : bgNum(v, best);   // 背景の絵（ランク 0〜8）は、届いた段で使える物だけ
   return {
     name: SIM.badText(text(v.name, 12)) ? 'プレイヤー' : (text(v.name, 12) || 'プレイヤー'),   // 禁止ワードの入った名前・ひとことは使わない
     bio: SIM.badText(text(v.bio, 40)) ? '' : text(v.bio, 40),
@@ -155,7 +160,7 @@ function clean(v, ctx, rtier) {
     badge: SIM.cleanBadgeSel(v.badge, ctx && ctx.badges),   // 見せるシーズンバッジ（持っているものだけ）   // 開発者だけの見た目は、開発者のときだけ残す
     loadout: SIM.cleanLoadout(v.loadout, false),         // フレンドのカードに出す武器（3つ）
     bg,   // 解放していない背景は選べない
-    bestTier: best, tierVer: SIM.TIER_VER,   // 段の番号は24段のもの（ブラウザが前の10段だと思って直さないように）
+    bestTier: best, tierVer: SIM.TIER_VER, bgVer: SIM.BG_VER,   // bgVer：背景の番号がランクの番号（0〜8）になってからの記録   // 段の番号は24段のもの（ブラウザが前の10段だと思って直さないように）
     stats, tierProgress: prog,
     ach, emperor,
     epoch: SIM.PROFILE_EPOCH,
