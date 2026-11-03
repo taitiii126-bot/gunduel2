@@ -845,7 +845,8 @@ function watchShot(V, f) {
 }
 
 // ---- 試合の記録（称号・ミッション・経験値のもと）：CPU戦のやり直し計算・オンライン対戦・ブラウザで同じ数え方をする ----
-function newTally() { return { rounds: 0, roundsWon: 0, kills: {}, killList: [], nodmg: 0, closeCall: 0, pitDrop: 0, shots: 0, hits: 0, hitSids: {}, rolls: 0, rolldodges: 0, r: { dmg: 0, minHp: 100, fell: false } }; }
+// ws：武器ごとの [撃った数, 当てた数]（sidW：弾の番号→武器。当てた弾がどの武器かを知るため）
+function newTally() { return { rounds: 0, roundsWon: 0, kills: {}, killList: [], nodmg: 0, closeCall: 0, pitDrop: 0, shots: 0, hits: 0, hitSids: {}, rolls: 0, rolldodges: 0, ws: {}, sidW: {}, r: { dmg: 0, minHp: 100, fell: false } }; }
 function tallyRoundStart(T) { T.r = { dmg: 0, minHp: 100, fell: false }; }
 // me の目から見た、そのフレームの出来事を数える（1対1は相手が倒れたら自分のとどめ。2v2 は自分が倒した敵だけ）
 function tallyEvents(T, w, ev, me) {
@@ -856,8 +857,11 @@ function tallyEvents(T, w, ev, me) {
       if (e.fell) { T.r.fell = true; T.killList.push(0); continue; }
       var wid = weaponOf(w.chars[me]).id;
       T.kills[wid] = (T.kills[wid] || 0) + 1; T.killList.push(wid);
-    } else if (e.t === 'pull' && e.who === me) T.shots++;
-    else if (e.t === 'hit' && e.by === me && e.sid && !T.hitSids[e.sid]) { T.hitSids[e.sid] = 1; T.hits++; }
+    } else if (e.t === 'pull' && e.who === me) {
+      T.shots++;
+      if (WEAPONS[e.wid]) { (T.ws[e.wid] || (T.ws[e.wid] = [0, 0]))[0]++; if (e.sid) T.sidW[e.sid] = e.wid; }
+    }
+    else if (e.t === 'hit' && e.by === me && e.sid && !T.hitSids[e.sid]) { T.hitSids[e.sid] = 1; T.hits++; var hw = T.sidW[e.sid]; if (hw && T.ws[hw]) T.ws[hw][1]++; }
     else if (e.t === 'roll' && e.who === me) T.rolls++;
     else if (e.t === 'rolldodge' && e.who === me) T.rolldodges++;
   }

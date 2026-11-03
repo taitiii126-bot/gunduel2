@@ -1150,6 +1150,18 @@ function handleHttp(req, res) {
       json(res, 200, { result: r, player: cardOf(t.id) });
     });
   }
+  // 攻略ページのプレイヤー検索（ログイン不要）：?q=名前かフレンドID、または ?id=フレンドID（候補から選んだとき）
+  // 1人に決まれば詳しい戦績（player）、何人かいれば候補（list）。同じ名前の人が1人だけなら、その人の戦績と、ほかの候補（others）
+  if (url === '/api/lookup') {
+    if (!lookups.hit(ip)) return json(res, 429, { error: 'busy' });
+    const q = new URLSearchParams((req.url || '').split('?')[1] || '');
+    const withClan = d => { const c = clans.clanOf(d.uid); return c ? { tag: c.tag, name: c.name } : null; };
+    const full = u => Object.assign(auth.detail(u), { clan: withClan({ uid: u.id }), status: presence.statusOf(u.id) === 'offline' ? 'offline' : 'online' });
+    const found = auth.search(q.get('id') || q.get('q'), 12);
+    if (!found.list.length) return json(res, 404, { error: 'not_found' });
+    if (found.list.length === 1 || found.exact === 1) return json(res, 200, { player: full(found.list[0]), others: found.list.slice(1).map(u => auth.brief(u)) });
+    return json(res, 200, { list: found.list.map(u => auth.brief(u)) });
+  }
   // フレンドIDで他の人のカードを見る（ログイン中だけ）
   if (url === '/api/player') {
     const u = auth.verify(bearer(req));
