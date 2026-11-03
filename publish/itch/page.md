@@ -33,7 +33,7 @@ Pick three weapons, read your opponent, dodge-roll through bullets and take them
 **Features**
 - Online battles: Ranked 1v1, 2v2, and private rooms to play with friends
 - VS CPU with 5 difficulty levels (and a hidden boss)
-- 15 weapons: pistol, revolver, sniper, shotgun, SMG, assault rifle, railgun, grenade launcher, bouncing balls, knife, hammer and more
+- 15 weapons: pistol, revolver, sniper, shotgun, SMG, assault rifle, railgun, focus rifle, grenade launcher, knife, hammer and more
 - 6 stages with different layouts
 - Customize your gunslinger: hats, outfits, neckwear, emotes and victory poses
 - Daily missions, season pass, titles, clans and seasonal events

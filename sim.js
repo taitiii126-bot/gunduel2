@@ -41,17 +41,17 @@ var GRAVITY = 0.55, JUMP_F = -13, SPEED = 3.4;
 var REGEN_IDLE = 120, REGEN_INT = 120, REGEN_AMT = 20;   // 2秒のあいだ撃たず撃たれずなら、2秒ごとに20回復
 var SWAP_FRAMES = 10;      // 持ち替えてから撃てるまで
 var BUFFER_FRAMES = 6;     // 押した入力を少しだけ覚えておく（押し損ね・通信のゆらぎの吸収）
+var FOCUS_TOL = 2;         // オンライン：フォーカスライフルを離したとき、手元で数えた長さ（fc）がサーバーの数えた長さとこの差までなら、手元のほうを使う（通信のゆらぎでジャストを逃さないように）
 var LAND_LAG = 14;         // 空中で撃った（攻撃した）跳びの着地から、次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
 // 回避ロール：地上ですばやく転がる。最初の ROLL_IF フレームは弾・攻撃が当たらない。終わってから ROLL_CD フレームは次を出せない
 var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
 var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
-var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;
-var BALL_G = 0.16, BALL_BOUNCE = 0.72;   // バウンドボール：重力と、跳ねたときに残る速さ   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 12;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール、12＝ランク（8つ×Ⅰ〜Ⅲ・記号が変わった）
+var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
+var PROTO = 13;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール、12＝ランク（8つ×Ⅰ〜Ⅲ・記号が変わった）、13＝バウンドボールをやめてフォーカスライフル
 
 // ---- 武器 ----
-// kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム
+// kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム / focus=押して狙いを絞り、離した瞬間に撃つ
 // 近接の wind=振りかぶり（押してから当たるまでのフレーム）、rec=振ったあとの硬直（動けない）、
 // kb=当てたときに吹き飛ばす速さ、kbUp=上への浮き、kbT=吹き飛んでいる間の操作不能フレーム
 // グレネードの dmg=直撃、sdmg=爆風の最大（中心）、splash=爆風の半径
@@ -74,10 +74,12 @@ var WEAPONS = {
   12: { id: 12, key: 'knuckle',  kind: 'melee',   range: 34,  dmg: 13, rate: 9,  mag: 0,  reload: 0,   spd: 0,  wind: 0,  rec: 2,  auto: true, color: '#E5E7EB', band: [0, 24] },
   13: { id: 13, key: 'spear',    kind: 'melee',   range: 96,  dmg: 46, rate: 48, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, color: '#FCD34D', band: [36, 84] },
   14: { id: 14, key: 'hammer',   kind: 'melee',   range: 54,  dmg: 52, rate: 64, mag: 0,  reload: 0,   spd: 0,  wind: 12, rec: 18, kb: 11, kbUp: 5, kbT: 22, color: '#F87171', band: [0, 42] },
-  // バウンドボール：1回で小さな玉を3つ。弧を描いて落ち、床や壁で2回まで跳ねる（life=玉が消えるまでのフレーム）
-  15: { id: 15, key: 'bouncer',  kind: 'bounce',  range: 240, dmg: 4,  rate: 12, mag: 10, reload: 150, spd: 7.5, balls: 3, life: 80, bounces: 2, color: '#22D3EE', band: [60, 200], auto: true }
+  // フォーカスライフル：押している間に狙いを絞り（絞っている間は移動が slow 倍）、離した瞬間に撃つ。
+  // full フレームで絞りきって光り、そこから win フレームの間に離すと「ジャスト」：dmg の大ダメージで、弾も pspd と速い。
+  // 早く離すと lo〜hi（絞った長さに比例）、絞りきって遅れると late の弱い弾（ジャストを逃した）
+  16: { id: 16, key: 'focus',    kind: 'focus',   range: 460, dmg: 50, lo: 8, hi: 20, late: 14, rate: 16, mag: 4, reload: 140, spd: 13, pspd: 20, full: 40, win: 8, slow: 0.55, color: '#22D3EE', band: [200, 400] }
 };
-var WEAPON_IDS = [2, 3, 1, 12, 13, 14, 4, 5, 6, 7, 8, 9, 15, 10, 11];
+var WEAPON_IDS = [2, 3, 1, 12, 13, 14, 4, 5, 6, 7, 8, 9, 10, 11, 16];
 var DEFAULT_LOADOUT = [2, 3, 1];
 
 // ---- ステージの地形 ----
@@ -604,7 +606,7 @@ function newChar(side, x, y, dir, loadout) {
     side: side, x: x, y: y, vx: 0, vy: 0, dir: dir,
     hp: MAX_HP, hpFrac: MAX_HP, hit: 0, dead: false, onGround: false, ducking: false,
     load: load, slot: 0, ammo: load.map(function (id) { return WEAPONS[id].mag; }),
-    cool: 0, coolMax: 1, rl: 0, rlMax: 1, rlSlot: 0, burst: 0, burstT: 0, chg: 0,
+    cool: 0, coolMax: 1, rl: 0, rlMax: 1, rlSlot: 0, burst: 0, burstT: 0, chg: 0, foc: 0,
     swT: 0, recT: 0, kbT: 0, bx: 0, by: 0, bdir: 0,
     healUsed: false, idle: 0, regen: 0, groundSince: -1, airShot: false, lastShot: -999,
     inL: false, inR: false, inDuck: false, inFire: false, wantSlot: 0,
@@ -623,12 +625,13 @@ function setInput(c, i) {
   if (i.heal) c.healReq = true;
   if (i.reload) c.reloadReq = true;
   if (i.roll) c.rollBuf = BUFFER_FRAMES;
+  c.fcl = i.fc > 0 ? i.fc | 0 : 0;   // オンラインで離したときの、手元の絞った長さ（FOCUS_TOL）
 }
 // ロール中の無敵（転がり始めから ROLL_IF フレーム）
 function rollSafe(c) { return !!c && c.rollT > ROLL_T - ROLL_IF; }
 function canFire(c) {
   var W = weaponOf(c);
-  return !c.dead && c.cool <= 0 && c.rl <= 0 && c.burst <= 0 && c.chg <= 0 && c.swT <= 0 && c.recT <= 0 && c.kbT <= 0 && !(c.rollT > 0) &&
+  return !c.dead && c.cool <= 0 && c.rl <= 0 && c.burst <= 0 && c.chg <= 0 && !(c.foc > 0) && c.swT <= 0 && c.recT <= 0 && c.kbT <= 0 && !(c.rollT > 0) &&
     (W.mag === 0 || c.ammo[c.slot] > 0);
 }
 function muzzleY(c) { return c.y + (c.ducking ? CHAR_H - 18 : 22); }
@@ -715,7 +718,7 @@ function teamResult(w) {
 // 1フレームの計算が終わったときの値を控えておき、次のフレームの頭で違っていたら「外から触られた」と判断する。
 // ブラウザの開発者ツールで止めて値を入れ替えるチート（弾を増やす・リロードを飛ばす等）が、ここで分かる
 function guardSnap(c) {
-  return [c.ammo[0] | 0, c.ammo[1] | 0, c.ammo[2] | 0, c.cool | 0, c.rl | 0, c.chg | 0, c.burst | 0,
+  return [c.ammo[0] | 0, c.ammo[1] | 0, c.ammo[2] | 0, c.cool | 0, c.rl | 0, c.chg | 0, c.burst | 0, c.foc | 0,
     Math.round(c.hp * 8), Math.round(c.x * 8), Math.round(c.y * 8), c.slot | 0, c.dead ? 1 : 0];
 }
 function guardSave(w) {
@@ -794,7 +797,7 @@ function watchPost(V, w, ev, me, foe) {
   for (k in V.live) if (f - V.live[k].at > 60) delete V.live[k];
   for (i = 0; i < ev.length; i++) {
     e = ev[i];
-    if (e.t === 'pull' && e.edge && e.who === me) r = r || watchShot(V, f);
+    if ((e.t === 'pull' || e.t === 'focus') && e.edge && e.who === me) r = r || watchShot(V, f);   // フォーカスライフルは押した瞬間（構えた）を数える
     else if (e.t === 'fire' && !e.beam && e.who === foe) {
       var Wp = WEAPONS[e.wid];
       if ((Wp.kind === 'bullet' || Wp.kind === 'pellet') && V.foeAimed && V.meGround && !V.live[e.sid]) { V.live[e.sid] = { at: f, done: false }; V.threats++; }
@@ -957,8 +960,8 @@ function stepChar(w, c, t, ev, vis) {
   var busy = c.swT > 0 || c.recT > 0;
   if (c.recT > 0) c.recT--;
   if (c.swT > 0 && --c.swT === 0) { meleeHit(w, c, t, weaponOf(c), ev, vis); c.recT = weaponOf(c).rec || 0; shot = true; }
-  // 持ち替え（連射の途中や溜めている間・振っている間はできない）
-  if (c.wantSlot !== c.slot && c.burst <= 0 && c.chg <= 0 && !busy) {
+  // 持ち替え（連射の途中や溜めている間・絞っている間・振っている間はできない）
+  if (c.wantSlot !== c.slot && c.burst <= 0 && c.chg <= 0 && !(c.foc > 0) && !busy) {
     c.slot = c.wantSlot;
     if (c.cool < SWAP_FRAMES) { c.cool = SWAP_FRAMES; c.coolMax = SWAP_FRAMES; }
     ev.push({ t: 'swap', who: c.side, wid: c.load[c.slot] });
@@ -973,7 +976,7 @@ function stepChar(w, c, t, ev, vis) {
   var W = weaponOf(c);
   if (c.reloadReq) {
     c.reloadReq = false;
-    if (W.mag > 0 && c.ammo[c.slot] < W.mag && c.rl <= 0 && c.burst <= 0 && c.chg <= 0) startReload(c, ev);
+    if (W.mag > 0 && c.ammo[c.slot] < W.mag && c.rl <= 0 && c.burst <= 0 && c.chg <= 0 && !(c.foc > 0)) startReload(c, ev);
   }
   // 回避ロール：地上で、ほかの動作をしていないとき。着地の待ちの間は出せない（ジャンプと同じ）
   if (c.rollT > 0) { c.rollT--; busy = true; }
@@ -982,6 +985,7 @@ function stepChar(w, c, t, ev, vis) {
     var rWait = c.onGround && c.groundSince >= 0 && w.frame - c.groundSince < landLag(c);
     if (c.onGround && !busy && c.kbT <= 0 && c.chg <= 0 && c.burst <= 0 && !(c.rollCD > 0) && !rWait) {
       c.rollT = ROLL_T; c.rollCD = ROLL_CD; c.rollBuf = 0; c.rollDir = c.inL ? -1 : c.inR ? 1 : c.dir; busy = true;
+      if (c.foc > 0) { c.foc = 0; ev.push({ t: 'focusx', who: c.side }); }   // 転がると、絞っていた狙いは撃たずに解ける
       ev.push({ t: 'roll', who: c.side, dir: c.rollDir });
     } else c.rollBuf--;
   }
@@ -991,7 +995,7 @@ function stepChar(w, c, t, ev, vis) {
     else if (!landWait) c.jumpBuf--;   // 着地の待ちの間は、押したジャンプを覚えておき、待ちが明けたら跳ぶ
   }
   // 向きと移動（撃つより先に向きを決めるので、振り向きながら撃てる）
-  var sp = SPEED * (W.move || 1) * (c.chg > 0 ? 0.4 : 1);
+  var sp = SPEED * (W.move || 1) * (c.chg > 0 ? 0.4 : 1) * (c.foc > 0 ? W.slow || 1 : 1);
   if (c.kbT > 0) { c.kbT--; c.vx *= 0.9; }         // 吹き飛ばされている間は操作がきかない
   else if (c.rollT > 0) c.vx = c.rollDir * SPEED * ROLL_SPD * (c.rollT < 5 ? 0.5 : 1);   // 転がる（最後は少しゆるめる）
   else if (busy) c.vx *= 0.5;                       // 振りかぶり・硬直の間は止まる
@@ -1002,6 +1006,12 @@ function stepChar(w, c, t, ev, vis) {
   // 射撃
   if (c.burst > 0 && --c.burstT <= 0) { c.burst--; c.burstT = W.gap; fireRound(w, c, W, ev, t, vis); shot = true; }
   if (c.chg > 0 && --c.chg === 0) { fireBeam(w, c, t, W, ev, vis); shot = true; }
+  // フォーカスライフル：押している間は絞り続け、離したフレームに撃つ（絞りきった瞬間に 'focusok' で知らせる）
+  if (c.foc > 0) {
+    if (W.kind !== 'focus') c.foc = 0;
+    else if (c.inFire) { if (c.foc < 600) c.foc++; if (c.foc === W.full) ev.push({ t: 'focusok', who: c.side }); }
+    else { releaseFocus(w, c, t, W, ev, vis); shot = true; }
+  }
   if ((c.shootBuf > 0 || c.inFire) && canFire(c)) {
     var edge = c.shootBuf > 0;
     c.shootBuf = 0;
@@ -1029,6 +1039,11 @@ function startReload(c, ev) {
   ev.push({ t: 'reload', who: c.side, wid: c.load[c.slot], mag: W.mag });
 }
 function trigger(w, c, t, W, ev, vis, edge) {
+  if (W.kind === 'focus') {   // 構えて絞り始める（撃つのは離したとき。'pull' もそのときに出す）
+    c.foc = 1;
+    ev.push({ t: 'focus', who: c.side, wid: c.load[c.slot], edge: edge });
+    return;
+  }
   c.lastShot = w.frame;
   ev.push({ t: 'pull', who: c.side, wid: c.load[c.slot], edge: edge, sid: w.sid + 1 });
   if (W.kind === 'melee') {
@@ -1061,11 +1076,12 @@ function meleeHit(w, c, t, W, ev, vis) {
     damage(w, u, W.dmg, c.side, ev, vis, u.x + CHAR_W / 2 - c.dir * 6, c.y + 22, c.dir, sid);
     if (W.kb && !vis && !u.dead && !u.target && !rollSafe(u)) {      // 吹き飛ばす（しばらく操作できない）。射撃場の的は動かない
       u.vx = c.dir * W.kb; u.vy = Math.min(u.vy, -W.kbUp); u.kbT = W.kbT; u.onGround = false;
-      u.swT = 0; u.recT = 0; u.chg = 0; u.burst = 0;
+      u.swT = 0; u.recT = 0; u.chg = 0; u.burst = 0; u.foc = 0;
     }
   }
 }
-function fireRound(w, c, W, ev, t, vis) {
+// fo：フォーカスライフルの1発 { dmg, spd, pf（ジャストなら1） }
+function fireRound(w, c, W, ev, t, vis, fo) {
   var wid = c.load[c.slot], dir = c.dir, my = muzzleY(c), cx = c.x + CHAR_W / 2, mx = cx + dir * 22, sid = ++w.sid;
   // 銃口より手前（密着）にいる相手には、弾を出さずにその場で当てる（くっつくと撃てない、をなくす）
   var list = victims(w, t, c.side), close = null;
@@ -1074,24 +1090,37 @@ function fireRound(w, c, W, ev, t, vis) {
     if (!v0.dead && v0.x + CHAR_W + 6 > Math.min(cx, mx) && v0.x - 6 < Math.max(cx, mx) && inBoxY(my, v0)) close = v0;
   }
   if (close) {
-    ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid });
+    ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid, pf: fo ? fo.pf : 0 });
     if (W.kind === 'grenade') explode(w, { own: c.side, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, sid: sid }, close, ev, vis, close.x + CHAR_W / 2, my, true);
-    else damage(w, close, W.kind === 'pellet' ? W.dmg * W.pellets : W.kind === 'bounce' ? W.dmg * W.balls : W.dmg, c.side, ev, vis, close.x + CHAR_W / 2, my, dir, sid);
+    else damage(w, close, fo ? fo.dmg : W.kind === 'pellet' ? W.dmg * W.pellets : W.dmg, c.side, ev, vis, close.x + CHAR_W / 2, my, dir, sid);
+  } else if (fo) {
+    w.shots.push({ k: 'b', w: wid, x: mx, y: my, vx: fo.spd * dir, vy: 0, own: c.side, dist: 0, range: W.range, dmg: fo.dmg, age: 0, sid: sid, pf: fo.pf });
   } else if (W.kind === 'bullet') {
     w.shots.push({ k: 'b', w: wid, x: mx, y: my, vx: W.spd * dir, vy: 0, own: c.side, dist: 0, range: W.range, dmg: W.dmg, age: 0, sid: sid });
   } else if (W.kind === 'pellet') {
     for (var i = 0; i < W.pellets; i++) {
       w.shots.push({ k: 'p', w: wid, x: mx, y: my, vx: W.spd * dir, vy: (i - (W.pellets - 1) / 2) * 1.1, own: c.side, dist: 0, range: W.range, dmg: W.dmg, age: 0, sid: sid });
     }
-  } else if (W.kind === 'bounce') {
-    for (var j = 0; j < W.balls; j++) {
-      w.shots.push({ k: 'o', w: wid, x: mx, y: my, vx: W.spd * dir * (1 - j * 0.07), vy: -1.6 + j * 1.0, own: c.side, life: W.life, bn: 0, dmg: W.dmg, age: 0, sid: sid });
-    }
   } else if (W.kind === 'grenade') {
     w.shots.push({ k: 'g', w: wid, x: c.x + CHAR_W / 2 + dir * 14, y: my - 6, vx: W.spd * dir + c.vx * 0.5, vy: GREN_VY, own: c.side, life: GREN_LIFE, dmg: W.dmg, sdmg: W.sdmg, splash: W.splash, age: 0, sid: sid });
   }
-  if (!close) ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid });
+  if (!close) ev.push({ t: 'fire', who: c.side, wid: wid, x: mx, y: my, dir: dir, sid: sid, pf: fo ? fo.pf : 0 });
   if (--c.ammo[c.slot] <= 0) c.burst = 0;   // 弾が切れても自動ではリロードしない（R で）
+}
+// フォーカスライフルを離した：絞った長さ（c.foc フレーム）で威力と弾の速さが決まる
+function focusShot(W, n) {
+  if (n >= W.full && n < W.full + W.win) return { dmg: W.dmg, spd: W.pspd, pf: 1 };   // ジャスト
+  if (n >= W.full) return { dmg: W.late, spd: W.spd, pf: 0 };                          // 遅すぎた
+  return { dmg: Math.round(W.lo + (W.hi - W.lo) * n / W.full), spd: W.spd, pf: 0 };    // 早すぎた
+}
+function releaseFocus(w, c, t, W, ev, vis) {
+  var n = c.foc;
+  if (c.fcl > 0 && Math.abs(c.fcl - n) <= FOCUS_TOL) n = c.fcl;
+  var fo = focusShot(W, n);
+  c.foc = 0; c.lastShot = w.frame;
+  c.cool = c.coolMax = Math.max(1, W.rate);
+  ev.push({ t: 'pull', who: c.side, wid: c.load[c.slot], edge: false, sid: w.sid + 1 });
+  fireRound(w, c, W, ev, t, vis, fo);
 }
 function fireBeam(w, c, t, W, ev, vis) {
   var wid = c.load[c.slot], dir = c.bdir || c.dir, y = c.by || muzzleY(c), x1 = c.bx || (c.x + CHAR_W / 2 + dir * 22), sid = ++w.sid;
@@ -1138,12 +1167,9 @@ function stepShots(w, ev, vis, only) {
     var t = w.targets || w.teams ? null : w.chars[other(b.own)];
     b.age++;
     if (b.k === 'g') { if (stepGrenade(w, b, t, ev, vis)) out.push(b); continue; }
-    if (b.k === 'o') { if (!moveBall(w, b, ev)) continue; }
-    else {
-      b.x += b.vx; b.y += b.vy; b.dist += Math.abs(b.vx);
-      if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20 || b.y < -60 || b.y > VH + 20) continue;
-      if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
-    }
+    b.x += b.vx; b.y += b.vy; b.dist += Math.abs(b.vx);
+    if (b.dist > b.range || b.x < -20 || b.x > WORLD_W + 20 || b.y < -60 || b.y > VH + 20) continue;
+    if (blockAt(w, b.x, b.y)) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); continue; }
     if (w.targets || w.teams) {                        // 射撃場・チーム戦：いちばん先に触れた相手に当たる（味方はすり抜ける）
       var fl = foes(w, b.own);
       for (var k = 0; k < fl.length && !t; k++) if (!fl[k].dead && hits(b, fl[k]) && !(rollSafe(fl[k]) && b.rd)) t = fl[k];
@@ -1163,29 +1189,6 @@ function stepShots(w, ev, vis, only) {
     out.push(b);
   }
   w.shots = out;
-}
-// バウンドボールを1フレーム進める。床・足場の上・遮蔽物・端の壁で跳ね、跳ねる回数をこえたら消える。返り値＝まだ飛んでいるか
-function moveBall(w, b, ev) {
-  var px = b.x, py = b.y, i, p;
-  b.vy += BALL_G; b.x += b.vx; b.y += b.vy;
-  if (--b.life <= 0 || b.y > VH + 20) return false;
-  var bounce = function () { if (++b.bn > WEAPONS[15].bounces) { ev.push({ t: 'spark', x: b.x, y: b.y, own: b.own }); return false; } ev.push({ t: 'bounce', x: b.x, y: b.y, own: b.own }); return true; };
-  if (b.x < 0 || b.x > WORLD_W) { b.x = clamp(b.x, 0, WORLD_W); b.vx = -b.vx; if (!bounce()) return false; }
-  if (b.vy > 0) {
-    for (i = 0; i < w.plats.length; i++) {
-      p = w.plats[i];
-      if (b.x >= p.x && b.x <= p.x + p.w && py <= p.y && b.y >= p.y) { b.y = p.y - 0.5; b.vy = -Math.max(2.2, b.vy * BALL_BOUNCE); return bounce(); }
-    }
-  }
-  for (i = 0; i < w.solids.length; i++) {
-    p = w.solids[i];
-    if (b.x >= p.x && b.x <= p.x + p.w && b.y >= p.y && b.y <= p.y + p.h) {
-      if (py < p.y) { b.y = p.y - 0.5; b.vy = -Math.max(2.2, Math.abs(b.vy) * BALL_BOUNCE); }   // 上から当たった：上へ跳ねる
-      else { b.x = px; b.vx = -b.vx; }                                                       // 横から当たった：はね返る
-      return bounce();
-    }
-  }
-  return true;
 }
 function stepGrenade(w, b, t, ev, vis) {
   var py = b.y;
@@ -1263,11 +1266,11 @@ function physics(w, c, ev) {
 function packChar(c) {
   return { x: r1(c.x), y: r1(c.y), vx: r1(c.vx), vy: r1(c.vy), dir: c.dir, hp: c.hp, hit: c.hit, dead: c.dead,
     ducking: c.ducking, onGround: c.onGround, slot: c.slot, wid: c.load[c.slot], am: c.ammo.slice(),
-    cool: c.cool, coolMax: c.coolMax, rl: c.rl, rlMax: c.rlMax, chg: c.chg, heal: c.healUsed,
+    cool: c.cool, coolMax: c.coolMax, rl: c.rl, rlMax: c.rlMax, chg: c.chg, fo: c.foc, heal: c.healUsed,
     sw: c.swT, rc: c.recT, kb: c.kbT, bx: r1(c.bx), by: r1(c.by), bd: c.bdir, ro: c.rollT, rcd: c.rollCD, rd: c.rollDir };
 }
 function packShots(w) {
-  return w.shots.map(function (b) { return { k: b.k, w: b.w, x: r1(b.x), y: r1(b.y), vx: r1(b.vx), vy: r1(b.vy), own: b.own }; });
+  return w.shots.map(function (b) { var o = { k: b.k, w: b.w, x: r1(b.x), y: r1(b.y), vx: r1(b.vx), vy: r1(b.vy), own: b.own }; if (b.pf) o.pf = 1; return o; });
 }
 
 // ============================================================
@@ -1315,7 +1318,7 @@ function aiForRate(rate) {
   return cfg;
 }
 var CPU_LOADOUTS = [[2, 3, 1], [4, 6, 3], [5, 8, 11], [7, 4, 10], [9, 2, 1], [6, 5, 3], [8, 11, 4], [7, 10, 5], [2, 6, 1], [3, 8, 5],
-  [6, 3, 12], [7, 2, 13], [4, 8, 14], [9, 11, 12], [2, 5, 13], [3, 6, 14]];
+  [6, 3, 12], [7, 2, 13], [4, 8, 14], [9, 11, 12], [2, 5, 13], [3, 6, 14], [16, 4, 1], [16, 8, 12]];
 function cpuLoadout(rnd) { var r = rnd || Math.random; return CPU_LOADOUTS[Math.floor(r() * CPU_LOADOUTS.length)].slice(); }
 // 鬼帝の武器：どの相手にも強かった組み合わせ（リボルバー・SMG・ナイフ／SMG・ナイフ・レールガン／ピストル・AR・ナイフ）から選ぶ
 var EMPEROR_LOADOUTS = [[8, 4, 1], [4, 1, 11], [2, 6, 1]];
@@ -1425,7 +1428,7 @@ function navPath(nav, from, isGoal) {
 
 // 空中で、これから d の向き（-1/0/1）に押し続けたら、どの足場に着地するか（physics と同じ当たり方）。null＝穴に落ちる
 function landing(w, c, d) {
-  var sp = SPEED * (weaponOf(c).move || 1) * (c.chg > 0 ? 0.4 : 1), x = c.x, y = c.y, vx = c.vx, vy = c.vy, i, s;
+  var Wl = weaponOf(c), sp = SPEED * (Wl.move || 1) * (c.chg > 0 ? 0.4 : 1) * (c.foc > 0 ? Wl.slow || 1 : 1), x = c.x, y = c.y, vx = c.vx, vy = c.vy, i, s;
   for (var k = 0; k < 120; k++) {
     if (c.kbT - k > 0) vx *= 0.9; else if (d) vx = sp * d; else vx *= 0.5;
     vy += GRAVITY; x = clamp(x + vx, 0, WORLD_W - CHAR_W);
@@ -1839,8 +1842,8 @@ function aimOk(b, w, me, op, W, dist, dy, toOp) {
     var bt = predictTopY(w, op, W.charge), btop = bt + (op.ducking ? CHAR_H - DUCK_H : 0), by0 = muzzleY(me);
     if (by0 < btop - 4 || by0 > bt + CHAR_H + 4) return false;
   } else if (cfg.smart >= 0.85 && W.kind !== 'beam' && W.spd > 0) {
-    // 読み撃ち：弾が届くまでの間に相手がどこへ動くか（ジャンプの落ち先）を読んで、届く高さなら撃つ
-    var tt = Math.round(dist / W.spd), py = predictTopY(w, op, tt), top = py + (op.ducking ? CHAR_H - DUCK_H : 0);
+    // 読み撃ち：弾が届くまでの間に相手がどこへ動くか（ジャンプの落ち先）を読んで、届く高さなら撃つ（フォーカスライフルは絞り終えてから飛ぶ）
+    var tt = W.kind === 'focus' ? (me.foc > 0 ? 0 : W.full) + Math.round(dist / W.pspd) : Math.round(dist / W.spd), py = predictTopY(w, op, tt), top = py + (op.ducking ? CHAR_H - DUCK_H : 0);
     var myY = muzzleY(me);
     if (myY < top - 4 || myY > py + CHAR_H + 4) return false;
   } else if (dy > cfg.hTol) return false;
@@ -1859,6 +1862,12 @@ function pickFoe(b, w, side, me) {
   }
   b.foe = best ? best.side : null;
   return best;
+}
+// フォーカスライフルを離すフレームを決める。ジャストに離せる率は、そのCPUの回避の上手さ（dodge）と同じにする（鬼帝は必ずジャスト）
+function focusRelease(b, W) {
+  var R = b.rnd, p = b.cfg.boss ? 1 : b.cfg.dodge;
+  if (R() < p) return W.full + 1 + Math.floor(R() * (W.win - 2));                                 // ジャスト（窓の端は避ける）
+  return R() < 0.5 ? W.full - 4 - Math.floor(R() * 14) : W.full + W.win + Math.floor(R() * 12);   // 早すぎ・遅すぎ
 }
 function mine(w, side, own) { return own === side || (w.teams && teamOf(own) === teamOf(side)); }   // 自分か味方の弾
 function think(b, w, side) {
@@ -1886,7 +1895,7 @@ function think(b, w, side) {
   if (!me.healUsed && me.hp <= cfg.hpT && R() < 1 - Math.pow(1 - cfg.hCh, 1 / 60)) inp.heal = true;
 
   // 武器：距離に合うものへ持ち替える
-  if (--b.weaponT <= 0 && me.burst <= 0 && me.chg <= 0 && b.spray <= 0) {
+  if (--b.weaponT <= 0 && me.burst <= 0 && me.chg <= 0 && !(me.foc > 0) && b.spray <= 0) {
     b.weaponT = 18 + Math.floor(R() * 24);
     b.meleeOk = R() < cfg.melee || (cfg.boss && WEAPONS[op.load[op.slot]].kind === 'melee');   // 鬼帝：近接で来る相手には、届く距離で先に斬る
     if (R() < cfg.smart) {
@@ -1908,7 +1917,7 @@ function think(b, w, side) {
   // 戦術を決め直す（決めたらしばらく続ける）
   if (--b.tacT <= 0) decideTactic(b, w, me, op, dist, dy);
   // リロード：弾が切れたら（撃てないので）すぐ。残りが少ないときは、安全なうちに（賢いCPUほど）
-  if (W.mag > 0 && me.ammo[me.slot] < W.mag && me.rl <= 0 && me.burst <= 0 && me.chg <= 0 && b.spray <= 0) {
+  if (W.mag > 0 && me.ammo[me.slot] < W.mag && me.rl <= 0 && me.burst <= 0 && me.chg <= 0 && !(me.foc > 0) && b.spray <= 0) {
     var threat = (opW.kind === 'melee' || opW.kind === 'pellet') ? 360 : opW.range + 80;   // 突っ込んでくる武器は遠くても危ない
     var safe = dy > 40 || dist > threat || b.tac === 'reload';
     if (me.ammo[me.slot] <= 0) inp.reload = true;
@@ -2029,8 +2038,15 @@ function think(b, w, side) {
 
   // 射撃
   var ready = canFire(me) && !b.evadeGren, faceOp = false, press = false;   // 爆風から逃げている間は撃たない（撃つと足が止まる）
-  if (!ready) { if (me.cool > 0 || me.rl > 0 || me.chg > 0) b.wait = -1; }
+  if (!ready) { if (me.cool > 0 || me.rl > 0 || me.chg > 0 || me.foc > 0) b.wait = -1; }
   else if (b.wait < 0) b.wait = Math.round((cfg.wMin + Math.floor(R() * (cfg.wMax - cfg.wMin))) * (b.tac === 'push' || b.aggr ? 0.55 : 1));   // 詰めるとき・相手が撃てないときは、撃つまでの迷いが少ない
+  if (me.foc > 0 && W.kind === 'focus') {          // フォーカスライフル：決めたフレームまで押し続けて、離す
+    var holdF = me.foc < b.focRel;
+    // 狙いが外れていたら、合うまで待つ（人と同じく、合った瞬間に離す。待ちすぎたら離す）。待てるかは構えたときに決めておく
+    if (!holdF && b.focWait && me.foc < W.full + W.win + 40 && !aimOk(b, w, me, op, W, dist, dy, toOp)) holdF = true;
+    if (holdF) inp.fire = true;
+    faceOp = true;
+  }
   if (b.spray > 0) {                                // 連射武器は少しのあいだ押し続ける
     if (me.rl <= 0 && !b.evadeGren && dy <= cfg.hTol && dist <= W.range) { b.spray--; inp.fire = true; faceOp = true; }
     else b.spray = 0;
@@ -2041,11 +2057,12 @@ function think(b, w, side) {
     if (b.wait > 0) b.wait--;
     else {
       var ok = aimOk(b, w, me, op, W, dist, dy, toOp);
-      if (ok && (W.wind || W.rec || W.charge) && !canCommit(w, me)) ok = false;
+      if (ok && (W.wind || W.rec || W.charge || W.full) && !canCommit(w, me)) ok = false;
       if (ok) {
         inp.shoot = true; b.wait = -1; faceOp = true; press = ok === 'press'; b.holdT = 12 + Math.floor(R() * 14);
         if (W.kind === 'melee' && R() < cfg.whiff) { inp.shoot = false; b.wait = 6 + Math.floor(R() * 10); }   // 振るタイミングを迷う
         if (W.auto) b.spray = 10 + Math.floor(R() * 26);
+        if (W.kind === 'focus') { b.focRel = focusRelease(b, W); b.focWait = R() < cfg.smart; inp.fire = true; }
       }
     }
   }
@@ -2409,7 +2426,7 @@ var api = {
   guardSnap: guardSnap, guardCheck: guardCheck, guardSave: guardSave,
   WATCH: deepFreeze(WATCH), newWatch: newWatch, watchRound: watchRound, watchPre: watchPre, watchPost: watchPost,
   newTally: newTally, tallyRoundStart: tallyRoundStart, tallyEvents: tallyEvents, tallyRoundEnd: tallyRoundEnd, matchXp: matchXp,
-  BALL_G: BALL_G, rng: rng, cpuSeedLoad: cpuSeedLoad, roundRng: roundRng, packInput: packInput, unpackInput: unpackInput, logAdd: logAdd, logEncode: logEncode, logDecode: logDecode, replayCpu: replayCpu, REPLAY_MAX_FRAMES: REPLAY_MAX_FRAMES,
+  focusShot: focusShot, rng: rng, cpuSeedLoad: cpuSeedLoad, roundRng: roundRng, packInput: packInput, unpackInput: unpackInput, logAdd: logAdd, logEncode: logEncode, logDecode: logDecode, replayCpu: replayCpu, REPLAY_MAX_FRAMES: REPLAY_MAX_FRAMES,
   SEASON_TZ_MIN: SEASON_TZ_MIN, SEASON_DROP: SEASON_DROP, seasonNo: seasonNo, seasonStart: seasonStart, seasonEnd: seasonEnd,
   seasonLeftMs: seasonLeftMs, seasonLeftDays: seasonLeftDays, seasonNextRate: seasonNextRate,
   PROFILE_EPOCH: PROFILE_EPOCH, resetCpuTitles: resetCpuTitles, upgradeProfile: upgradeProfile,

@@ -35,16 +35,21 @@ function settled(stage, la, lb) {
   for (let i = 0; i < 30; i++) { SIM.setInput(w.chars.a, {}); SIM.setInput(w.chars.b, {}); SIM.step(w, []); }
   return w;
 }
+// 撃つ入力。フォーカスライフルは、絞りきってから少し待って離す（いつもジャスト）
+function shootInput(W, a) {
+  const empty = W.mag > 0 && a.ammo[a.slot] <= 0 && a.rl <= 0;
+  if (W.kind === 'focus') { const hold = !empty && !(a.foc >= W.full + 2); return { fire: hold, shoot: hold && !(a.foc > 0), reload: empty }; }
+  return { fire: !empty, shoot: !empty, reload: empty };
+}
 // 撃ち続けて（弾が切れたら R）、相手が倒れるまでのフレーム。dist＝2人の横の距離（px）
 function killTime(wid, dist, limit) {
   const w = settled('flat', [wid, 2, 3]), a = w.chars.a, b = w.chars.b, W = SIM.WEAPONS[wid];
   a.x = 400; a.dir = 1; b.x = a.x + dist; b.dir = -1;
   let first = -1, hits = 0;
   for (let f = 0; f < (limit || 1800); f++) {
-    const empty = W.mag > 0 && a.ammo[a.slot] <= 0 && a.rl <= 0;
-    SIM.setInput(a, { fire: !empty, shoot: !empty, reload: empty }); SIM.setInput(b, {});
+    SIM.setInput(a, shootInput(W, a)); SIM.setInput(b, {});
     const ev = []; SIM.step(w, ev); b.x = a.x + dist;
-    for (const e of ev) { if (e.t === 'pull' && e.who === 'a' && first < 0) first = w.frame; if (e.t === 'hit' && e.by === 'a') hits++; }
+    for (const e of ev) { if ((e.t === 'pull' || e.t === 'focus') && e.who === 'a' && first < 0) first = w.frame; if (e.t === 'hit' && e.by === 'a') hits++; }
     if (b.dead) return { frames: w.frame - first + 1, hits };
   }
   return null;
@@ -54,8 +59,7 @@ function reaches(wid, dist) {
   const w = settled('flat', [wid, 2, 3]), a = w.chars.a, b = w.chars.b, W = SIM.WEAPONS[wid];
   a.x = 300; a.dir = 1; b.x = a.x + dist; b.dir = -1;
   for (let f = 0; f < 180; f++) {
-    const empty = W.mag > 0 && a.ammo[a.slot] <= 0 && a.rl <= 0;
-    SIM.setInput(a, { fire: !empty, shoot: !empty, reload: empty }); SIM.setInput(b, {});
+    SIM.setInput(a, shootInput(W, a)); SIM.setInput(b, {});
     const ev = []; SIM.step(w, ev); b.x = a.x + dist;
     if (ev.some(e => e.t === 'hit' && e.by === 'a')) return true;
   }
@@ -114,7 +118,7 @@ const G = (() => {
     rollS: fix1(sec(SIM.ROLL_T)), rollIfS: sec(SIM.ROLL_IF), rollEveryS: fix1(sec(SIM.ROLL_T + SIM.ROLL_CD)),
     swapS: sec(SIM.SWAP_FRAMES), landLagS: sec(SIM.LAND_LAG), landSoftS: fix1(sec(SIM.LAND_LAG_SOFT)),
     winRounds: srcConst('game.js', 'WIN_ROUNDS'),
-    pellets: SIM.WEAPONS[5].pellets, balls: SIM.WEAPONS[15].balls, pointBlank: SIM.WEAPONS[5].dmg * SIM.WEAPONS[5].pellets,
+    pellets: SIM.WEAPONS[5].pellets, pointBlank: SIM.WEAPONS[5].dmg * SIM.WEAPONS[5].pellets,
     windS: sec(SIM.WEAPONS[14].wind), kbM: m1(knockDist()), kbS: sec(SIM.WEAPONS[14].kbT),
     chargeMoveP: chargeMove(), monthStartJst: (24 - SIM.SEASON_TZ_MIN / 60 + 9) % 24
   };
@@ -125,7 +129,7 @@ const G = (() => {
 
 function hitsText(W) {
   if (W.kind === 'pellet') return { n: Math.ceil(G.maxHp / (W.dmg * W.pellets)), u: '発', note: '密着' };
-  if (W.kind === 'bounce') return { n: Math.ceil(G.maxHp / W.dmg), u: '玉', note: '約' + Math.ceil(G.maxHp / (W.dmg * W.balls)) + '回' };
+  if (W.kind === 'focus') return { n: Math.ceil(G.maxHp / W.dmg), u: '発', note: 'ジャスト' };
   if (W.burst) return { n: Math.ceil(G.maxHp / W.dmg), u: '発', note: Math.ceil(Math.ceil(G.maxHp / W.dmg) / W.burst) + '回' };
   return { n: Math.ceil(G.maxHp / W.dmg), u: W.kind === 'melee' ? '回' : '発' };
 }
@@ -139,7 +143,8 @@ const WEP = W_IDS.map(id => {
     dmg: W.dmg, sdmg: W.sdmg, mag: W.mag, rateS: sec(W.rate), reloadS: fix1(sec(W.reload)), reachM: m1(far),
     perSec: W.rate ? fix1(60 / W.rate) : null, windS: sec(W.wind || 0), recS: sec(W.rec || 0),
     hits: ht.n, hitsU: ht.u, hitsNote: ht.note || '', ttk: kt ? fix1(sec(kt.frames)) : null, bandM: m1(band),
-    burstN: W.burst || 0, bounces: W.bounces || 0, moveP: Math.round((W.move || 1) * 100),
+    burstN: W.burst || 0, moveP: Math.round((W.move || 1) * 100),
+    fullS: sec(W.full || 0), winS: sec(W.win || 0), lo: W.lo, hi: W.hi, late: W.late, slowP: Math.round((W.slow || 1) * 100),
     chargeS: sec(W.charge || 0), splashM: m1(W.splash || 0),
     row: DISTS.map(d => { const r = killTime(id, d); return r ? sec(r.frames) : null; })
   });
@@ -220,9 +225,9 @@ function secRules() {
 
 function statCells(m) {
   const W = m.W;
-  const pow = W.kind === 'pellet' ? `${W.dmg}<small>×${W.pellets}粒</small>` : W.kind === 'bounce' ? `${W.dmg}<small>×${W.balls}玉</small>` : W.burst ? `${W.dmg}<small>×${W.burst}連射</small>` : W.kind === 'grenade' ? `${W.dmg}<small>爆風${W.sdmg}</small>` : String(W.dmg);
-  const gap = W.kind === 'beam' ? `<small>溜め</small>${m.chargeS}<small>秒</small>` : W.rate ? `${m.rateS}<small>秒</small>` : '<small>1発ずつ</small>';
-  const mag = W.mag === 0 ? '∞' : W.burst ? `${W.mag}<small>（${W.mag / W.burst}回）</small>` : W.kind === 'bounce' ? `${W.mag}<small>回分</small>` : String(W.mag);
+  const pow = W.kind === 'pellet' ? `${W.dmg}<small>×${W.pellets}粒</small>` : W.kind === 'focus' ? `${W.dmg}<small>ジャスト（ほか${W.lo}〜${W.hi}）</small>` : W.burst ? `${W.dmg}<small>×${W.burst}連射</small>` : W.kind === 'grenade' ? `${W.dmg}<small>爆風${W.sdmg}</small>` : String(W.dmg);
+  const gap = W.kind === 'beam' ? `<small>溜め</small>${m.chargeS}<small>秒</small>` : W.kind === 'focus' ? `<small>絞り</small>${m.fullS}<small>秒</small>` : W.rate ? `${m.rateS}<small>秒</small>` : '<small>1発ずつ</small>';
+  const mag = W.mag === 0 ? '∞' : W.burst ? `${W.mag}<small>（${W.mag / W.burst}回）</small>` : String(W.mag);
   const rl = W.reload ? `${m.reloadS}<small>秒</small>` : '<small>なし</small>';
   const reach = W.kind === 'grenade' ? `${m.gMax}<small>m</small>` : `${m.reachM}<small>m</small>`;
   return [['威力', pow], ['撃つ間隔', gap], ['弾数', mag], ['リロード', rl], ['届く距離', reach]]
@@ -236,7 +241,7 @@ function traits(m) {
   if (W.kind === 'pellet') out.push('遠いほど1粒の威力が下がる（届く距離のぎりぎりで半分）');
   if (W.kind === 'beam') out.push(`遮蔽物を貫通。溜め中は移動${m.chargeMoveP}%・向き固定`);
   if (W.move) out.push(`持っている間は移動${m.moveP}%`);
-  if (W.kind === 'bounce') out.push(`床や壁で${W.bounces}回まで跳ねる`);
+  if (W.kind === 'focus') out.push(`離して撃つ。絞りきってから${m.winS}秒以内に離すとジャスト`, `絞っている間は移動${m.slowP}%（向きは変えられる）`);
   if (W.kind === 'grenade') out.push(`爆風は半径約${m.splashM}m`, `約${m.gGapLo}〜${m.gGapHi}mの相手には当たらない（頭の上を越える）`);
   if (W.mag === 1) out.push('撃つたびに R でリロード');
   return out;
