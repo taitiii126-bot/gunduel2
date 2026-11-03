@@ -369,6 +369,7 @@ class TeamRoom {
     const left = !!i.left, right = !!i.right, duck = !!i.duck;
     if (this.phase === 'playing' && (left || right || duck || i.jump || i.shoot || i.heal || i.reload || i.roll)) p.acts++;
     p.input.left = left; p.input.right = right; p.input.duck = duck; p.input.fire = !!i.fire;
+    if (!i.fire && typeof i.fc === 'number' && i.fc > 0) p.focClaim = Math.min(600, i.fc | 0);   // フォーカスライフルを離したときの手元の長さ（SIM.FOCUS_TOL まで使う）
     if (i.slot === 0 || i.slot === 1 || i.slot === 2) p.input.slot = i.slot;
     if (i.jump) p.jumpReq = true;
     if (i.shoot) p.shootReq = true;
@@ -425,8 +426,8 @@ class TeamRoom {
         if (p.bot) this.botInput(p, s);
         const inp = p.input;
         SIM.setInput(c, { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
-          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq });
-        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
+          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq, fc: p.focClaim || 0 });
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false; p.focClaim = 0;
       } else SIM.setInput(c, { left: false, right: false, duck: false, fire: false });
     }
     const ev = [];

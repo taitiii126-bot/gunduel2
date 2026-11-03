@@ -130,10 +130,11 @@ function packFx(ev) {
   const out = [];
   for (const e of ev) {
     switch (e.t) {
-      case 'fire': out.push(e.beam ? { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, x2: r1(e.x2), beam: true } : { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir }); break;
+      case 'fire': out.push(e.beam ? { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, x2: r1(e.x2), beam: true } : e.pf ? { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, pf: 1 } : { t: 'fire', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir }); break;   // pf：フォーカスライフルのジャスト
       case 'melee': out.push({ t: 'melee', who: e.who, wid: e.wid, x: r1(e.x), y: r1(e.y), dir: e.dir, hit: !!e.hit, reach: e.reach }); break;
       case 'windup': out.push({ t: 'windup', who: e.who, wid: e.wid }); break;
       case 'charge': out.push({ t: 'charge', who: e.who, wid: e.wid }); break;
+      case 'focus': case 'focusok': case 'focusx': out.push({ t: e.t, who: e.who }); break;   // フォーカスライフル：構えた・絞りきった・ロールで解いた
       case 'hit': out.push({ t: 'hit', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), sid: e.sid, dmg: Math.round(e.dmg || 0) }); break;   // dmg：画面のダメージ数字用
       case 'dead': out.push({ t: 'dead', who: e.who, by: e.by, x: r1(e.x), y: r1(e.y), dir: e.dir, duck: !!e.duck }); break;   // by：とどめを刺した人（2v2 の称号の数え方に使う）
       case 'boom': out.push({ t: 'boom', who: e.who, x: r1(e.x), y: r1(e.y), r: e.r }); break;
@@ -456,6 +457,7 @@ class Room {
       }
     }
     p.input.left = left; p.input.right = right; p.input.duck = duck; p.input.fire = !!i.fire;
+    if (!i.fire && typeof i.fc === 'number' && i.fc > 0) p.focClaim = Math.min(600, i.fc | 0);   // フォーカスライフルを離したときの手元の長さ（SIM.FOCUS_TOL まで使う）
     if (i.slot === 0 || i.slot === 1 || i.slot === 2) p.input.slot = i.slot;
     else if (typeof i.weapon === 'number' && p.loadout.indexOf(i.weapon) >= 0) p.input.slot = p.loadout.indexOf(i.weapon);
     if (i.jump) p.jumpReq = true;
@@ -506,9 +508,9 @@ class Room {
         if (p.bot) this.botInput(p, s);
         const inp = p.input;
         const i = { left: inp.left, right: inp.right, duck: inp.duck, fire: inp.fire, slot: inp.slot,
-          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq };
+          jump: p.jumpReq, shoot: p.shootReq, heal: p.healReq, reload: p.reloadReq, roll: p.rollReq, fc: p.focClaim || 0 };
         SIM.setInput(c, i);
-        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false;
+        p.jumpReq = false; p.shootReq = false; p.healReq = false; p.reloadReq = false; p.rollReq = false; p.focClaim = 0;
         // 自動操作の見張り（CPU戦と同じ SIM.watch*。基準は sim.js の WATCH）
         if (!p.bot && p.watch) this.watchHit(p, SIM.watchPre(p.watch, w, s, other(s), i));
       } else SIM.setInput(c, { left: false, right: false, duck: false, fire: false });
