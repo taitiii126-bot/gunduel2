@@ -11840,7 +11840,7 @@ var TIER_BG=[
   {c:['#94502A','#3E1D0C','#0A0402'],glow:'#FFB478',acc:'#FFD7BD',pat:'strata', par:'dust',    flat:'pop1',pop:1,   em:'shield'},    // ブロンズ：荒野の夕日・青銅の盾
   {c:['#56606D','#23282F','#07080A'],glow:'#D3DCE8',acc:'#DCE2EA',pat:'rivets', par:'sparks',  flat:'pop2',pop:1,    em:'gear'},      // アイアン：鉄の歯車・火花
   {c:['#B07A14','#452C06','#0B0602'],glow:'#FFD65C',acc:'#FFF1B8',pat:'sheriff',par:'coins',   flat:'pop3',pop:1,  em:'sheriff'},   // ゴールド：金の保安官の星
-  {c:['#C4D3DF','#5A6B7C','#0E151E'],glow:'#E8F4FF',acc:'#FFFFFF',pat:'snow',   par:'motes',   flat:'pop4',pop:1, em:'ingot'},   // プラチナ：白銀の結晶
+  {c:['#C4D3DF','#5A6B7C','#0E151E'],glow:'#E8F4FF',acc:'#FFFFFF',pat:'snow',   par:'motes',   flat:'pop4',pop:1, em:'ingot'},   // プラチナ：白金の摩天楼
   {c:['#6E2FA6','#2A1044','#07030E'],glow:'#DCAEFF',acc:'#F4E4FF',pat:'suits',  par:'shards',  flat:'pop5',pop:1,   em:'retrosun'},    // レジェンド：紫の宇宙・輪のある惑星
   {c:['#A3172D','#3F0812','#0A0103'],glow:'#FF7182',acc:'#FFD6DC',pat:'roses',  par:'petals',  flat:'pop6',pop:1,   em:'reticle'},    // マスター：深紅の炎
   {c:['#178A3E','#08391A','#010A04'],glow:'#7CF29A',acc:'#DFFFE6',pat:'flames', par:'embers',  flat:'pop7',pop:1,em:'bolt'},      // チャンピオン：緑の稲妻
@@ -12828,40 +12828,39 @@ function popBg3(g,w,h,tm,lw){
   spikes(['#FFD23F','#FFE68C'],0,.58,37);
   popStars(g,w,h,tm,8,['#FFF7CF','#FFD23F'],7,.6);
 }
-// プラチナ：アールデコ調の高級感。下から広がる白金の扇、キャラの後ろに彫りの入った大きな白金のメダル（光が回る）、舞い落ちる白金のコイン
-function popCoin(g,cx,cy,r,spin,ink,L){   // 回る白金のコイン（横から見ると細くなる）
-  var sx=Math.max(.12,Math.abs(Math.cos(spin)));g.save();g.translate(cx,cy);g.scale(sx,1);
-  g.beginPath();g.arc(0,0,r,0,Math.PI*2);var cg=g.createLinearGradient(-r,-r,r,r);cg.addColorStop(0,'#FFFFFF');cg.addColorStop(.5,'#C4D3DF');cg.addColorStop(1,'#7B8EA2');g.fillStyle=cg;g.fill();g.lineWidth=L/sx*.7;g.strokeStyle=ink;g.stroke();
-  g.beginPath();g.arc(0,0,r*.66,0,Math.PI*2);g.lineWidth=L/sx*.45;g.strokeStyle='rgba(20,30,42,.45)';g.stroke();
-  flatStar4(g,0,0,r*.42);g.fillStyle='#FFFFFF';g.fill();g.restore();
-}
+// プラチナ：白金の摩天楼。夜空を行き来するサーチライト、真ん中にアールデコの尖塔（先の星が光る）、
+// 奥は窓が水色に灯る鋼のビル、手前は鏡のようなクロームのビル
+function chromeGrad(g,x0,y0,x1,y1){var cg=g.createLinearGradient(x0,y0,x1,y1);cg.addColorStop(0,'#FFFFFF');cg.addColorStop(.4,'#CFDCE7');cg.addColorStop(.49,'#3A4E66');cg.addColorStop(.6,'#7890AA');cg.addColorStop(1,'#EAF4FC');return cg;}
 function popBg4(g,w,h,tm,lw){
-  var C=POP[4],L=lw*1.8,i,cx=w*.47,cy=h*.35;
-  g.fillStyle=popGrad(g,h,'#334457','#0B1219');g.fillRect(0,0,w,h);
-  // 下から広がる扇（白金と影の色を交互に）。細い水色の線
-  g.save();g.translate(w*.5,h*1.05);
-  for(i=0;i<14;i++){var a0=-Math.PI+i*Math.PI/14,a1=a0+Math.PI/14;g.beginPath();g.moveTo(0,0);g.arc(0,0,h*1.25,a0,a1);g.closePath();g.fillStyle=i%2?'#2A3A4C':'#3E5266';g.fill();}
-  for(i=1;i<14;i++){var aa=-Math.PI+i*Math.PI/14;g.beginPath();g.moveTo(0,0);g.lineTo(Math.cos(aa)*h*1.25,Math.sin(aa)*h*1.25);g.lineWidth=Math.max(1,lw*.8);g.strokeStyle='rgba(160,240,255,.28)';g.stroke();}
-  [.42,.62,.82].forEach(function(k){g.beginPath();g.arc(0,0,h*k,-Math.PI,0);g.lineWidth=Math.max(1,lw*.9);g.strokeStyle='rgba(220,235,245,.22)';g.stroke();});
+  var C=POP[4],L=lw*1.8,i,k=C.k,hz=h*.62;
+  var sky=g.createLinearGradient(0,0,0,hz);sky.addColorStop(0,'#060B18');sky.addColorStop(.7,'#1C3450');sky.addColorStop(1,'#4C7394');g.fillStyle=sky;g.fillRect(0,0,w,h);
+  popStars(g,w,h*.45,tm,12,['#FFFFFF','#C8F7FF'],17,1);
+  flatSpot(g,w*.5,h*.5,w*.8,'rgba(143,243,255,.14)');   // 街の明かりで地平線がほんのり明るい
+  // サーチライト（ビルの後ろから、ゆっくり左右に振れる）
+  g.save();g.globalCompositeOperation='lighter';
+  [[.12,.0,1.1],[.38,1.6,.9],[.66,3.1,1.2],[.9,4.4,1]].forEach(function(s){var a=-Math.PI/2+Math.sin(tm*.5*s[2]+s[1])*.55,bx=w*s[0],by=hz+h*.05,ln=h*1.1,sp=.07;
+    var lg=g.createLinearGradient(bx,by,bx+Math.cos(a)*ln,by+Math.sin(a)*ln);lg.addColorStop(0,'rgba(220,245,255,.55)');lg.addColorStop(1,'rgba(220,245,255,0)');
+    g.beginPath();g.moveTo(bx,by);g.lineTo(bx+Math.cos(a-sp)*ln,by+Math.sin(a-sp)*ln);g.lineTo(bx+Math.cos(a+sp)*ln,by+Math.sin(a+sp)*ln);g.closePath();g.fillStyle=lg;g.fill();});
   g.restore();
-  // 大きな白金のメダル（ぎざぎざのふち・彫りの輪・真ん中の星）
-  var R=w*.3;
-  flatSpot(g,cx,cy,R*1.7,'rgba(220,245,255,.30)');
-  g.save();g.translate(cx,cy);
-  g.beginPath();for(i=0;i<=96;i++){var ma=i/96*Math.PI*2,mr=R*(1+.035*Math.cos(ma*32));g.lineTo(Math.cos(ma)*mr,Math.sin(ma)*mr);}g.closePath();
-  var mg=g.createLinearGradient(-R,-R,R,R);mg.addColorStop(0,'#FFFFFF');mg.addColorStop(.35,'#D2DEE8');mg.addColorStop(.7,'#8FA2B6');mg.addColorStop(1,'#CBD8E3');g.fillStyle=mg;g.fill();g.lineWidth=L;g.strokeStyle=C.k;g.stroke();
-  g.beginPath();g.arc(0,0,R*.86,0,Math.PI*2);var ig=g.createLinearGradient(0,-R,0,R);ig.addColorStop(0,'#93A7B9');ig.addColorStop(1,'#DCE6EE');g.fillStyle=ig;g.fill();g.lineWidth=L*.8;g.strokeStyle=C.k;g.stroke();
-  g.save();g.rotate(-tm*.1);for(i=0;i<36;i++){var da=i*Math.PI/18;g.beginPath();g.moveTo(Math.cos(da)*R*.74,Math.sin(da)*R*.74);g.lineTo(Math.cos(da)*R*.82,Math.sin(da)*R*.82);g.lineWidth=Math.max(1,lw*(i%3?.8:1.6));g.strokeStyle='rgba(30,44,60,.55)';g.stroke();}g.restore();
-  g.beginPath();g.arc(0,0,R*.7,0,Math.PI*2);g.lineWidth=L*.6;g.strokeStyle='rgba(30,44,60,.5)';g.stroke();
-  flatStar4(g,0,0,R*.58);var sg2=g.createLinearGradient(0,-R*.6,0,R*.6);sg2.addColorStop(0,'#FFFFFF');sg2.addColorStop(1,'#B9CBD9');g.fillStyle=sg2;g.fill();g.lineWidth=L*.8;g.strokeStyle=C.k;g.stroke();
-  g.save();g.beginPath();g.arc(0,0,R*1.04,0,Math.PI*2);g.clip();   // メダルの面を走る光
-  var sp=((tm*.28)%1.5)/1.5;if(sp<.55){var sx=-R*1.4+sp/.55*R*2.8,lg=g.createLinearGradient(sx-R*.3,-R,sx+R*.3,R);lg.addColorStop(0,'rgba(255,255,255,0)');lg.addColorStop(.5,'rgba(255,255,255,.8)');lg.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=lg;g.fillRect(-R*1.2,-R*1.2,R*2.4,R*2.4);}
-  g.restore();
-  g.restore();
-  // 舞い落ちる白金のコイン
-  for(i=0;i<7;i++){var t=(tm*.12+i/7)%1,px=w*((i*.37+.07)%1)+Math.sin(tm+i)*w*.03,py=h*(-.1+t*1.0);popCoin(g,px,py,w*(.035+.012*(i%3)),tm*2.2+i,C.k,L);}
-  // きらめき（白と水色）
-  [[.12,.18],[.86,.24],[.8,.62],[.1,.6],[.6,.08]].forEach(function(q,j){var tw=Math.max(0,Math.sin(tm*1.9+j*1.7));g.fillStyle=j%2?'#C8F7FF':'#FFFFFF';flatStar4(g,w*q[0],h*q[1],w*.055*tw);g.fill();});
+  var bld=function(x,top,bw,fill,seed){g.beginPath();g.rect(x,top,bw,h-top+L);g.fillStyle=fill;g.fill();g.lineWidth=L;g.strokeStyle=k;g.stroke();
+    if(seed==null)return;
+    for(var yy=top+bw*.18;yy<h;yy+=bw*.2)for(var xx=x+bw*.18;xx<x+bw-bw*.2;xx+=bw*.24){var on=prand(xx*.37+yy*.11+seed)>.45;g.fillStyle=on?(prand(xx+yy)>.8?'#FFFFFF':'#8FF3FF'):'rgba(10,20,30,.55)';g.fillRect(xx,yy,bw*.1,bw*.09);}};
+  // 奥のビル（暗い鋼）。いくつかは屋上のアンテナに赤い灯が点滅する
+  [[-.02,.42,.14],[.13,.5,.1],[.24,.38,.12],[.62,.4,.13],[.76,.47,.1],[.86,.34,.16]].forEach(function(q,j){var x=w*q[0],top=h*q[1],bw=w*q[2];
+    if(j%2===0){var ax=x+bw*.5;g.beginPath();g.moveTo(ax,top);g.lineTo(ax,top-h*.05);g.lineWidth=Math.max(1,lw);g.strokeStyle=k;g.stroke();
+      if(Math.sin(tm*3+j*1.3)>0){g.save();g.globalCompositeOperation='lighter';flatSpot(g,ax,top-h*.05,w*.03,'rgba(255,90,110,.9)');g.restore();}
+      g.fillStyle='#FF5A6E';g.beginPath();g.arc(ax,top-h*.05,Math.max(1,w*.006),0,Math.PI*2);g.fill();}
+    bld(x,top,bw,'#22344A',j*7);});
+  // 真ん中の尖塔：段々の肩と、光の筋の入った針
+  var cx=w*.5,sw=w*.2,tip=h*.17;
+  var tower=[[cx-sw/2,h],[cx-sw/2,h*.5],[cx-sw*.36,h*.5],[cx-sw*.36,h*.4],[cx-sw*.24,h*.4],[cx-sw*.24,h*.31],[cx-sw*.1,h*.27],[cx,tip],[cx+sw*.1,h*.27],[cx+sw*.24,h*.31],[cx+sw*.24,h*.4],[cx+sw*.36,h*.4],[cx+sw*.36,h*.5],[cx+sw/2,h*.5],[cx+sw/2,h]];
+  g.beginPath();tower.forEach(function(p,j){j?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]);});g.closePath();g.fillStyle=chromeGrad(g,cx-sw/2,0,cx+sw/2,0);g.fill();g.lineJoin='round';g.lineWidth=L;g.strokeStyle=k;g.stroke();
+  for(i=0;i<5;i++){var ay=h*.29+i*h*.012;g.beginPath();g.moveTo(cx-sw*.08+i*sw*.004,ay);g.lineTo(cx,ay-h*.03);g.lineTo(cx+sw*.08-i*sw*.004,ay);g.lineWidth=Math.max(1,lw*.8);g.strokeStyle='rgba(20,30,42,.55)';g.stroke();}
+  var tw=.6+.4*Math.sin(tm*2.4);g.save();g.globalCompositeOperation='lighter';flatSpot(g,cx,tip,w*.18*tw,'rgba(200,247,255,.8)');g.restore();g.fillStyle='#FFFFFF';flatStar4(g,cx,tip,w*.07*tw);g.fill();
+  // 手前のビル（クローム）
+  [[-.05,.56,.17],[.12,.64,.12],[.74,.6,.13],[.86,.52,.2]].forEach(function(q){var x=w*q[0],bw=w*q[2],top=h*q[1];bld(x,top,bw,chromeGrad(g,x,0,x+bw,0));
+    for(var yy=top+bw*.2;yy<h;yy+=bw*.22){g.fillStyle='rgba(20,34,50,.75)';g.fillRect(x+bw*.15,yy,bw*.7,bw*.08);}});
+  g.fillStyle='rgba(143,243,255,.9)';g.fillRect(0,h*.985,w,h*.015);
 }
 // レジェンド：ネオンのシンセウェーブ。しま模様の夕日、光る格子の地面（手前へ流れる）、ネオンのふちの山
 function popBg5(g,w,h,tm,lw){
