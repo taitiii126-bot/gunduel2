@@ -174,6 +174,22 @@ function keyName(k) {
   if (/^arrow/.test(k)) return { arrowleft: '←', arrowright: '→', arrowup: '↑', arrowdown: '↓' }[k];
   return k.length === 1 ? k.toUpperCase() : k[0].toUpperCase() + k.slice(1);
 }
+// ゲームのサーバー（index.html の接続先の初期値）。プレイヤー検索はここに聞く
+function serverHttp() {
+  const src = fs.readFileSync(path.join(root, 'index.html'), 'utf8'), m = /id="server-url" value="([^"]+)"/.exec(src);
+  if (!m) throw new Error('index.html にサーバーの URL が見つかりません');
+  return m[1].replace(/^ws/, 'http').replace(/\/+$/, '');
+}
+// プレイヤー検索（guide/player.js）が使う、表示用の文字とゲームのデータ
+function playerData() {
+  const P = require('../profile.js');
+  const tiers = SIM.TIER_MIN.map((min, i) => { const k = SIM.rankOf(i); return { n: rankLabel(i), r: SIM.RANK_ART[k.r] || 0, d: k.d, min }; });
+  const weapons = {}; SIM.WEAPON_IDS.forEach(id => { weapons[id] = { n: t('w.' + id + '.name'), key: SIM.WEAPONS[id].key }; });
+  const titles = {}; SIM.TITLES.forEach(x => { titles[x.id] = { n: t('title.' + x.id), rare: x.rare ? 1 : 0 }; });
+  const stages = {}; Object.keys(SIM.STAGES).forEach(id => { stages[id] = t('stage.' + id + '.name'); });
+  return { api: serverHttp(), tiers, ranks: RANK_JA, weapons, order: SIM.WEAPON_IDS, titles, stages,
+    diffs: P.DIFFS.map(d => [d, t('diff.' + d)]), emperor: t('diff.emperor') };
+}
 function defaultKeys() {
   const src = fs.readFileSync(path.join(root, 'index.html'), 'utf8'), m = /var DEFAULT_KB=(\{[^}]*\});/.exec(src);
   if (!m) throw new Error('index.html に DEFAULT_KB が見つかりません');
@@ -368,7 +384,7 @@ function secRewards() {
 <p class="note">11月はセール。11月11日は全部半額で、特別なギフトもある。</p></div>
 <div class="card"><h3>バッジ（アイテムの入手）</h3><p><b>${esc(t('eco.lucky'))}</b>　${esc(t('eco.odds'))}。${SIM.PITY_AT}回以内にレジェンダリー以上のアイテムが確定。</p><p><b>${esc(t('eco.chaos'))}</b>　${esc(t('eco.oddsChaos'))}。${esc(t('eco.chaosNote'))}。</p>
 <p>先にレアリティが決まり、そのあと中身（アイテム・コイン・経験値）が決まる。</p>
-<table class="tbl mini"><thead><tr><th></th><th>アイテム</th><th>コイン</th><th>経験値</th></tr></thead><tbody>${SIM.CRATE_MIX.map((m, r) => `<tr><th scope="row">${esc(rar(r))}</th><td>${m[0]}%</td><td>${m[1] ? m[1] + '%（' + SIM.CRATE_COINS[r] + '）' : '—'}</td><td>${m[2] ? m[2] + '%（' + SIM.CRATE_XP[r] + ' XP）' : '—'}</td></tr>`).join('')}</tbody></table>
+<div class="tscroll"><table class="tbl mini"><thead><tr><th></th><th>アイテム</th><th>コイン</th><th>経験値</th></tr></thead><tbody>${SIM.CRATE_MIX.map((m, r) => `<tr><th scope="row">${esc(rar(r))}</th><td>${m[0]}%</td><td>${m[1] ? m[1] + '%（' + SIM.CRATE_COINS[r] + '）' : '—'}</td><td>${m[2] ? m[2] + '%（' + SIM.CRATE_XP[r] + ' XP）' : '—'}</td></tr>`).join('')}</tbody></table></div>
 <p>持っているアイテムがかぶったときは、ジェム・経験値・コインに変わる（${rar(0)} ジェム${SIM.DUP_GEMS[0]}・${SIM.DUP_XP[0]} XP・コイン${SIM.DUP_COINS[0]} 〜 ${rar(4)} ジェム${SIM.DUP_GEMS[4]}・${SIM.DUP_XP[4]} XP・コイン${SIM.DUP_COINS[4]}）。</p></div>
 <div class="card"><h3>ジェム交換所</h3><p>ショップの「ジェム交換所」で、ジェムを好きなアイテムと交換できる（シーズンパスとイベントの限定品は除く）。ジェムは、バッジでかぶったとき・デイリーミッション（1つ${SIM.MIS_GEMS}）・シーズンミッション（1つ${SIM.SEA_GEMS}）でもらえる。</p>
 <table class="tbl mini"><tbody>${SIM.GEM_PRICE.map((p, r) => `<tr><th scope="row">${esc(rar(r))}</th><td>ジェム ${p}</td></tr>`).join('')}</tbody></table></div>
@@ -429,12 +445,16 @@ function secFaq() {
 // ============================================================
 // ページ全体
 // ============================================================
-const NAV = [['start', 'はじめに'], ['controls', '操作'], ['rules', 'ルール'], ['weapons', '武器'], ['ttk', '距離別'], ['tactics', '立ち回り'], ['stages', 'ステージ'], ['cpu', 'CPU戦'], ['online', 'オンライン'], ['rewards', '報酬'], ['titles', '称号'], ['events', 'イベント'], ['faq', 'Q&A']];
+const NAV = [['find', 'プレイヤー検索'], ['start', 'はじめに'], ['controls', '操作'], ['rules', 'ルール'], ['weapons', '武器'], ['ttk', '距離別'], ['tactics', '立ち回り'], ['stages', 'ステージ'], ['cpu', 'CPU戦'], ['online', 'オンライン'], ['rewards', '報酬'], ['titles', '称号'], ['events', 'イベント'], ['faq', 'Q&A']];
 const SCRIPT = `
 (function(){
   // 見ている場所の目次を光らせる
   var links={};document.querySelectorAll('.nav a').forEach(function(a){links[a.getAttribute('href').slice(1)]=a;});
-  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var a=links[e.target.id];if(!a)return;document.querySelectorAll('.nav a.on').forEach(function(x){x.classList.remove('on');});a.classList.add('on');try{a.scrollIntoView({block:'nearest',inline:'center'});}catch(_){}}});},{rootMargin:'-45% 0px -50% 0px'});
+  // 目次は横にだけ動かす（scrollIntoView だとページ自体も動いて、スクロールが引き戻されて重く感じる）
+  var nw=document.querySelector('.nav .wrap'),curA=null;
+  function mark(a){if(a===curA)return;if(curA)curA.classList.remove('on');curA=a;a.classList.add('on');
+    if(nw&&nw.scrollWidth>nw.clientWidth){var r=a.getBoundingClientRect(),R=nw.getBoundingClientRect();nw.scrollLeft+=(r.left+r.width/2)-(R.left+R.width/2);}}
+  if('IntersectionObserver' in window){var io=new IntersectionObserver(function(es){es.forEach(function(e){if(e.isIntersecting){var a=links[e.target.id];if(a)mark(a);}});},{rootMargin:'-45% 0px -50% 0px'});
     Object.keys(links).forEach(function(id){var s=document.getElementById(id);if(s)io.observe(s);});}
   // 武器を種類でしぼりこむ
   document.querySelectorAll('.chips .chip').forEach(function(b){b.addEventListener('click',function(){
@@ -461,6 +481,7 @@ const SCRIPT = `
   document.querySelectorAll('.event').forEach(function(e){if(+e.getAttribute('data-month')===m){var l=e.querySelector('.live');if(l)l.hidden=false;e.classList.add('now');}});
 })();`;
 
+const PLAYER_V = require('crypto').createHash('md5').update(fs.readFileSync(path.join(root, 'guide', 'player.js'))).digest('hex').slice(0, 8);   // 書き換えたら読み込み直してもらう
 function page() {
   const built = new Date(Date.now() + 9 * 3600000).toISOString().slice(0, 10);
   const desc = 'GUN DUEL の攻略ガイド。全' + WEP.length + '武器の性能と距離ごとの倒すまでの時間、ステージの特ちょう、立ち回りのコツ、ランクと報酬のしくみ。数字はゲームの計算そのまま。';
@@ -487,8 +508,11 @@ function page() {
 <header class="top"><div class="wrap bar"><a class="logo" href="#top" aria-label="ページの先頭へ"><span>GUN DUEL</span><small>攻略ガイド</small></a><a class="play" href="../">ゲームで遊ぶ</a></div>
 <nav class="nav" aria-label="目次"><div class="wrap">${NAV.map(n => `<a href="#${n[0]}">${esc(n[1])}</a>`).join('')}</div></nav></header>
 <main id="top">
-<div class="hero"><div class="wrap"><p class="kicker">STRATEGY GUIDE</p><h1><span class="lg-logo">GUN DUEL</span><br><span class="lg-sub">攻略ガイド</span></h1><p>武器の性能・ステージ・立ち回り。数字はすべて、ゲームの中の計算からそのまま作っています。</p></div></div>
+<div class="hero"><div class="wrap"><p class="kicker">STRATEGY GUIDE</p><h1><span class="lg-logo">GUN DUEL</span><br><span class="lg-sub">攻略ガイド</span></h1><p>武器の性能・ステージ・立ち回り。数字はすべて、ゲームの中の計算からそのまま作っています。</p>
+<form class="find" id="find" role="search" aria-label="プレイヤー検索"><div class="find-in" id="find-form-wrap"><label class="find-lb" for="find-q">プレイヤー検索</label><input id="find-q" name="q" type="search" maxlength="24" autocomplete="off" enterkeyhint="search" placeholder="プレイヤー名 または フレンドID"><button type="submit">検索</button></div>
+<p class="find-msg" id="find-msg" role="status" hidden></p><p class="find-hint">ランク・レートの動き・連勝・武器ごとの勝率・シーズンの記録などが見られます</p></form></div></div>
 <div class="wrap">
+<section id="player" class="pl" aria-live="polite" hidden></section>
 ${secStart()}
 ${secControls()}
 ${secRules()}
@@ -506,6 +530,8 @@ ${secFaq()}
 </div></main>
 <footer class="foot"><div class="wrap"><a class="play" href="../">ゲームで遊ぶ</a><p>このページは、ゲームが更新されるたびに自動で作り直されます（最終更新：${built}）。</p></div></footer>
 <script>${SCRIPT}</script>
+<script>window.GD=${JSON.stringify(playerData()).replace(/</g, '\\u003c')};GD.tierOf=function(r){var t=0;for(var i=1;i<GD.tiers.length;i++)if(r>=GD.tiers[i].min)t=i;return t;};</script>
+<script src="player.js?v=${PLAYER_V}" defer></script>
 </body>
 </html>
 `;
@@ -516,6 +542,7 @@ function build(outRoot) {
   fs.mkdirSync(path.join(out, 'img'), { recursive: true });
   fs.writeFileSync(path.join(out, 'index.html'), page());
   fs.copyFileSync(path.join(src, 'style.css'), path.join(out, 'style.css'));
+  fs.copyFileSync(path.join(src, 'player.js'), path.join(out, 'player.js'));
   for (const f of fs.readdirSync(path.join(src, 'img'))) fs.copyFileSync(path.join(src, 'img', f), path.join(out, 'img', f));
   return out;
 }

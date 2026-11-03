@@ -92,6 +92,31 @@ const list = (u, k) => (Array.isArray(u[k]) ? u[k] : (u[k] = []));
 const drop = (a, v) => { const i = a.indexOf(v); if (i < 0) return false; a.splice(i, 1); return true; };
 const normFid = v => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8);
 
+// ---- 詳しい戦績（攻略ページのプレイヤー検索で見せる。この仕組みを入れてから数え始める）----
+// u.st = { w: { 武器id: { o: [試合, 勝ち, とどめ, 撃った, 当てた], c: [...] } }（o＝オンライン、c＝CPU戦）,
+//          g: { ステージ: { o: [試合, 勝ち], c: [...] } }, os: [オンラインの今の連勝, 最大], rb: ランクの最大連勝（1v1）, rb2: 2v2,
+//          rh: [[秒, レート], ...] 1v1 のレートの動き（新しい RH_MAX 件）, rh2: 2v2, ss: [終わったシーズンの記録], lm: 最後に試合をした時刻 }
+const RH_MAX = 300, SS_MAX = 36;
+function stOf(u) {
+  let s = u.st;
+  if (!s || typeof s !== 'object') s = u.st = {};
+  if (!s.w || typeof s.w !== 'object') s.w = {};
+  if (!s.g || typeof s.g !== 'object') s.g = {};
+  if (!Array.isArray(s.os)) s.os = [0, 0];
+  if (!Array.isArray(s.rh)) s.rh = [];
+  if (!Array.isArray(s.rh2)) s.rh2 = [];
+  if (!Array.isArray(s.ss)) s.ss = [];
+  s.rb = s.rb | 0; s.rb2 = s.rb2 | 0; s.lm = +s.lm || 0;
+  return s;
+}
+// レートの動きを1点足す（はじめての1点のときは、試合前の値も置いて線にする）
+function pushRate(list, before, rate) {
+  const t = Math.floor(Date.now() / 1000);
+  if (!list.length && typeof before === 'number') list.push([t - 1, Math.round(before)]);
+  list.push([t, Math.round(rate)]);
+  if (list.length > RH_MAX) list.splice(0, list.length - RH_MAX);
+}
+
 let dirty = false;
 const touch = () => { dirty = true; };
 for (const u of Object.values(db.users)) giveFid(u);   // 前からいる人にも配る
@@ -237,11 +262,19 @@ function rollSeason(now) {
   }
   for (const u of Object.values(db.users)) {
     const r = rateState(u), r2 = rateState2(u);
+    // 終わったシーズンの記録（ランクを1試合でもした人だけ）。プレイヤー検索の「前シーズン」「シーズンの記録」に出す
+    if (r.w + r.l + r2.w + r2.l > 0) {
+      const s = stOf(u);
+      s.ss.push({ s: db.meta.season, r: r.rate, p: Math.max(r.peak, r.rate), w: r.w, l: r.l, r2: r2.rate, p2: Math.max(r2.peak, r2.rate), w2: r2.w, l2: r2.l });
+      if (s.ss.length > SS_MAX) s.ss.splice(0, s.ss.length - SS_MAX);
+    }
     // ランクブースト：前のシーズンの最高の段を覚えておく（そこまで、勝ちが1割増し）
     u.rboost = SIM.tierOfRate(Math.max(u.rpeak || 0, r.rate)); u.rboost2 = SIM.tierOfRate(Math.max(u.rpeak2 || 0, r2.rate));
     u.rate = SIM.seasonNextRate(r.rate); u.rtier = SIM.tierOfRate(u.rate);
     u.rgames = 0; u.rstreak = 0; u.rwstreak = 0; u.rpeak = u.rate; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
     u.rate2 = SIM.seasonNextRate(r2.rate); u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0; u.rpeak2 = u.rate2; u.ranked2 = { w: 0, l: 0 };
+    if (u.st && u.st.rh && u.st.rh.length) pushRate(u.st.rh, null, u.rate);       // シーズンの切り替えでレートが下がった所も線に残す
+    if (u.st && u.st.rh2 && u.st.rh2.length) pushRate(u.st.rh2, null, u.rate2);
     out.players++;
   }
   db.meta.season = cur; dirty = true;
@@ -463,6 +496,7 @@ function rateState2(u) {
     w: u.ranked2.w, l: u.ranked2.l, peak: u.rpeak2 || u.rate2, boostTo: u.rboost2 || 0 };
 }
 function writeRate2(u, r, win) {
+  const s = stOf(u); pushRate(s.rh2, r.before, r.rate); s.rb2 = Math.max(s.rb2, r.wstreak | 0, u.rwstreak2 | 0);
   u.rate2 = r.rate; u.rgames2 = r.games; u.rstreak2 = r.streak; u.rwstreak2 = r.wstreak;
   u.rpeak2 = Math.max(u.rpeak2 || 0, r.rate);
   if (!u.ranked2) u.ranked2 = { w: 0, l: 0 };
@@ -471,6 +505,7 @@ function writeRate2(u, r, win) {
   touch();
 }
 function writeRate(u, r, win) {
+  const s = stOf(u); pushRate(s.rh, r.before, r.rate); s.rb = Math.max(s.rb, r.wstreak | 0, u.rwstreak | 0);
   u.rate = r.rate; u.rtier = r.tier; u.rgames = r.games; u.rstreak = r.streak; u.rwstreak = r.wstreak;
   u.rpeak = Math.max(u.rpeak || 0, r.rate);
   if (!u.ranked) u.ranked = { w: 0, l: 0 };
@@ -800,6 +835,17 @@ const auth = {
     const evt = id => { A.evt[id] = (A.evt[id] || 0) + 1; };
     let kills = 0;
     for (const k of Object.keys(T.kills || {})) if (A.kills[k] != null) { const n = Math.max(0, T.kills[k] | 0); A.kills[k] += n; kills += n; trackMission(pr, 'killw', n, +k); }
+    // 武器ごと・ステージごとの戦績（使った武器＝1発でも撃った・振った武器、または とどめを刺した武器）
+    const S = stOf(u), md = cpu ? 'c' : 'o', used = {};
+    for (const k of Object.keys(T.ws || {})) if (SIM.WEAPONS[k]) used[k] = 1;
+    for (const k of Object.keys(T.kills || {})) if (SIM.WEAPONS[k]) used[k] = 1;
+    for (const k of Object.keys(used)) {
+      const rec = S.w[k] || (S.w[k] = {}), a = rec[md] || (rec[md] = [0, 0, 0, 0, 0]), sh = (T.ws && T.ws[k]) || [0, 0];
+      a[0]++; if (win) a[1]++; a[2] += Math.max(0, T.kills[k] | 0); a[3] += Math.max(0, sh[0] | 0); a[4] += Math.max(0, sh[1] | 0);
+    }
+    if (typeof m.stage === 'string' && /^[a-z]{2,16}$/.test(m.stage)) { const g = S.g[m.stage] || (S.g[m.stage] = {}), b = g[md] || (g[md] = [0, 0]); b[0]++; if (win) b[1]++; }
+    if (!cpu) { if (win) { S.os[0]++; S.os[1] = Math.max(S.os[1], S.os[0]); } else S.os[0] = 0; }
+    S.lm = Date.now(); touch();
     if (T.nodmg > 0) evt('untouched');
     if (T.closeCall > 0) evt('close_call');
     if (cpu && T.pitDrop > 0) evt('pit_drop');
@@ -1083,6 +1129,53 @@ const auth = {
       online: { w: u.online.w, l: u.online.l }, cpu: P.cpuTotals(p), rate: rs.rate, ranked: { w: rs.w, l: rs.l },
       rate2: r2.rate, tier2: r2.tier, ranked2: { w: r2.w, l: r2.l },
       status, lastSeen: status === 'offline' ? (u.lastSeen || 0) : 0,
+    };
+  },
+  // ---- 攻略ページのプレイヤー検索（ログインなしで見られる。DiscordのIDと名前・IP などは出さない）----
+  // q：フレンドID（完全一致）か、名前（大文字小文字は区別しない。同じ名前 → 前方一致 → 部分一致の順で、最大 n 人）
+  search(q, n) {
+    q = String(q == null ? '' : q).trim().slice(0, 24);
+    if (!q) return { exact: 0, list: [] };
+    const hidden = u => BANNED_IDS.has(String(u.id)) || tempBanned(u);
+    const byId = this.byFid(q);
+    if (byId && !hidden(byId)) return { exact: 1, list: [byId] };
+    const k = q.toLowerCase(), exact = [], pre = [], part = [];
+    for (const u of Object.values(db.users)) {
+      const nm = u.profile && typeof u.profile.name === 'string' ? u.profile.name.toLowerCase() : '';
+      if (!nm || hidden(u)) continue;
+      if (nm === k) exact.push(u); else if (nm.startsWith(k)) pre.push(u); else if (k.length >= 2 && nm.includes(k)) part.push(u);
+    }
+    const byRate = a => a.sort((x, y) => Math.max(rateState(y).rate, rateState2(y).rate) - Math.max(rateState(x).rate, rateState2(x).rate));
+    return { exact: exact.length, list: byRate(exact).concat(byRate(pre), byRate(part)).slice(0, n || 12) };
+  },
+  // 候補の一覧に出す1人ぶん
+  brief(u) {
+    const p = u.profile || {}, r = rateState(u), r2 = rateState2(u);
+    return { fid: u.fid, name: p.name || 'プレイヤー', title: P.validTitle(p.title, titleCtx(u), p), tier: r.tier, rate: r.rate, tier2: r2.tier, rate2: r2.rate,
+      best: bestTierOf(u), w: u.online.w, l: u.online.l };
+  },
+  // 詳しい戦績（全部）
+  detail(u) {
+    const p = u.profile || {}, A = p.ach || {}, r = rateState(u), r2 = rateState2(u), S = stOf(u), ctx = titleCtx(u);
+    const cur = SIM.seasonNo(Date.now()), last = S.ss.length ? S.ss[S.ss.length - 1] : null;
+    const num = v => Math.max(0, +v || 0) | 0, wl = o => ({ w: num(o && o.w), l: num(o && o.l) });
+    const stats = {}; for (const d of P.DIFFS) stats[d] = wl(p.stats && p.stats[d]);
+    const kills = {}; for (const wid of SIM.WEAPON_IDS) kills[wid] = num(A.kills && A.kills[wid]);
+    return {
+      fid: u.fid, name: p.name || 'プレイヤー', title: P.validTitle(p.title, ctx, p),   // 名前がなければ Discord の名前ではなく「プレイヤー」 bio: p.bio && !SIM.badText(p.bio) ? p.bio : '',
+      badge: SIM.badgeShown(u.badges, p.badge), badges: SIM.cleanBadges(u.badges), loadout: Array.isArray(p.loadout) ? SIM.cleanLoadout(p.loadout, false) : null,
+      since: u.created || 0, lastMatch: S.lm || 0, level: SIM.levelOf(p.xp || 0).lv, xp: num(p.xp),
+      titles: Object.keys(A.got || {}).filter(id => SIM.TITLES.some(t => t.id === id)).length, titlesAll: SIM.TITLES.length,
+      flags: { dev: !!u.dev, pioneer: !!u.pioneer, pioneer10: !!u.pioneer10, champion: !!u.champion, champSeason: u.champSeason || 0, champion2: !!u.champion2, champ2Season: u.champ2Season || 0, hwking: !!u.hwking, snowking: !!u.snowking },
+      online: { w: num(u.online.w), l: num(u.online.l) },
+      ranked: { rate: r.rate, tier: r.tier, peak: Math.max(r.peak, r.rate), w: r.w, l: r.l, games: r.games, streak: r.wstreak, best: Math.max(S.rb, r.wstreak) },
+      ranked2: { rate: r2.rate, tier: r2.tier, peak: Math.max(r2.peak, r2.rate), w: r2.w, l: r2.l, games: r2.games, streak: r2.wstreak, best: Math.max(S.rb2, r2.wstreak) },
+      bestTier: bestTierOf(u), season: cur,
+      prev: last && last.s === cur - 1 ? last : (u.rboost ? { s: cur - 1, tierOnly: u.rboost } : null),
+      seasons: S.ss.slice(),
+      streak: { cur: num(A.streak), best: num(A.best), online: num(S.os[0]), onlineBest: num(S.os[1]) },
+      kills, weapons: S.w, stages: S.g, cpuStageWins: A.stages || {}, cpu: stats, emperor: { w: num(p.emperor && p.emperor.w), l: num(p.emperor && p.emperor.l), beat: !!(p.emperor && p.emperor.beat) },
+      rh: S.rh.slice(), rh2: S.rh2.slice(),
     };
   },
   stats() { return { users: Object.keys(db.users).length, tokens: Object.keys(db.tokens).length }; },
