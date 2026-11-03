@@ -1178,14 +1178,14 @@ function handleHttp(req, res) {
     const q = new URLSearchParams((req.url || '').split('?')[1] || '');
     const by = q.get('by') === 'total' ? 'total' : 'week';
     const memCard = id => { const k = cardOf(id); return k ? { fid: k.fid, name: k.name, status: k.status, lastSeen: k.lastSeen, tier: k.tier, rate: k.rate, look: k.look, title: k.title } : null; };
-    const mine = () => { const c = u && clans.clanOf(u.id); return c ? clans.view(c, memCard, c.owner === u.id) : null; };
+    const mine = () => { const c = u && clans.clanOf(u.id); return c ? clans.view(c, memCard, u.id) : null; };
     const myReq = () => (u ? clans.reqsOf(u.id) : []);
     if (req.method === 'GET') {
       if (q.has('view')) {   // ほかのクランの中身（メンバーなど）
         if (!lookups.hit(ip)) return json(res, 429, { error: 'too_many' });
         const c = clans.byId(q.get('view'));
         if (!c) return json(res, 404, { error: 'not_found' });
-        return json(res, 200, { clan: clans.view(c, memCard, !!u && c.owner === u.id), myReq: myReq() });
+        return json(res, 200, { clan: clans.view(c, memCard, u ? u.id : null), myReq: myReq() });
       }
       if (q.has('q')) {   // 探す
         if (!lookups.hit(ip)) return json(res, 429, { error: 'too_many' });
@@ -1207,13 +1207,15 @@ function handleHttp(req, res) {
       else if (op === 'accept') { const t = who(); r = t ? clans.accept(u.id, t) : { error: 'no_req' }; if (r.ok) pushTo(t, { type: 'clan_in', name: r.clan.name, tag: r.clan.tag }); }
       else if (op === 'decline') { const t = who(); r = t ? clans.decline(u.id, t) : { error: 'no_req' }; }
       else if (op === 'leave') r = clans.leave(u.id);
-      else if (op === 'kick') { const t = auth.byFid(m.fid); r = t ? clans.kick(u.id, t.id) : { error: 'not_member' }; }
+      else if (op === 'kick') { const t = auth.byFid(m.fid), c0 = clans.clanOf(u.id); r = t ? clans.kick(u.id, t.id) : { error: 'not_member' }; if (r.ok) pushTo(t.id, { type: 'clan_out', name: c0.name, tag: c0.tag }); }
+      else if (op === 'role') { const t = auth.byFid(m.fid); r = t ? clans.setRole(u.id, t.id, m.role) : { error: 'not_member' }; if (r.ok) pushTo(t.id, { type: 'clan_role', role: r.to, up: r.to > r.from, name: r.clan.name }); }
+      else if (op === 'transfer') { const t = auth.byFid(m.fid); r = t ? clans.transfer(u.id, t.id) : { error: 'not_member' }; if (r.ok) pushTo(t.id, { type: 'clan_role', role: clans.ROLE.leader, up: true, name: r.clan.name }); }
       else return json(res, 400, { error: 'bad' });
-      if (op === 'join' && r.requested) pushTo(r.clan.owner, { type: 'clan_req' });   // リーダーに「参加の申請が来た」と知らせる
+      if (op === 'join' && r.requested) for (const id of clans.managers(r.clan)) pushTo(id, { type: 'clan_req' });   // 幹部から上に「参加の申請が来た」と知らせる
       if (r.ok) log('clan', op, 'discord=' + u.id, r.clan ? r.clan.id + ' [' + r.clan.tag + ']' : '');
       const c = r.clan && op !== 'leave' ? r.clan : null;
       json(res, r.ok ? 200 : 400, { ok: !!r.ok, error: r.error || null, requested: !!r.requested, mine: mine(), myReq: myReq(), top: clans.top(by, 50), by,
-        clan: c ? clans.view(c, memCard, c.owner === u.id) : null });
+        clan: c ? clans.view(c, memCard, u.id) : null });
     });
   }
   if (url === '/api/logout' && req.method === 'POST') { auth.logout(bearer(req)); return json(res, 200, { ok: true }); }

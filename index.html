@@ -496,6 +496,27 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 .cl-who b{font-size:14px;font-weight:900;color:var(--tx);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cl-who small{font-size:11px;font-weight:800;color:var(--tx-3);}
 .cl-who small.lead{color:var(--gold);}
+/* 格の札：リーダー＝金・副リーダー＝橙・幹部＝水色・メンバー＝灰・新人＝緑 */
+.cl-role{display:inline-block;width:max-content;padding:0 7px;border-radius:999px;font-size:10.5px;font-weight:900;line-height:1.6;border:1px solid currentColor;}
+.cl-who small.cl-role{font-size:10.5px;}
+.cl-role.r4{color:#FFC53D;background:rgba(255,197,61,.12);}
+.cl-role.r3{color:#FF9F5A;background:rgba(255,159,90,.1);}
+.cl-role.r2{color:#7CC8FF;background:rgba(124,200,255,.1);}
+.cl-role.r1{color:#A9ADB8;border-color:rgba(169,173,184,.45);}
+.cl-role.r0{color:#6EE7A8;background:rgba(110,231,168,.08);}
+.cl-myrole{display:flex;align-items:center;justify-content:center;gap:8px;margin:2px 0 8px;font-size:12px;font-weight:800;color:var(--tx-3);}
+.cl-myrole .cl-role{font-size:12px;padding:1px 10px;}
+.cl-kick.cl-mgr{border-color:rgba(255,255,255,.24);color:var(--tx-2);}
+.cl-mrow.open{border-color:rgba(124,200,255,.55);}
+.cl-mrow.open .cl-kick.cl-mgr{background:rgba(124,200,255,.14);border-color:rgba(124,200,255,.6);color:#CFEAFF;}
+.cl-menu{margin:-2px 0 4px;padding:10px 12px;border-radius:12px;border:1px solid rgba(124,200,255,.35);background:rgba(20,32,48,.75);}
+.cl-menu-h{display:block;font-size:11.5px;font-weight:800;color:var(--tx-3);margin-bottom:8px;}
+.cl-menu-b{display:flex;flex-wrap:wrap;gap:6px;}
+.cl-menu-b button{min-height:0;padding:7px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.14);background:rgba(255,255,255,.06);box-shadow:none;color:var(--tx);font-size:12.5px;font-weight:900;}
+.cl-menu-b button.up{border-color:rgba(110,231,168,.5);color:#8FF0BE;}
+.cl-menu-b button.down{border-color:rgba(255,159,90,.45);color:#FFB98A;}
+.cl-menu-b button.lead{border-color:rgba(255,197,61,.55);color:var(--gold);}
+.cl-menu-b button.kick{border-color:rgba(255,77,94,.5);color:#FF8A96;}
 .cl-av{flex:none;width:40px;height:40px;border-radius:10px;}
 .cl-st{display:flex;flex-direction:column;font-size:12px;font-weight:700;color:var(--tx-2);min-width:0;}
 .cl-st small{display:none;}
@@ -3185,7 +3206,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=62"></script>
-<script src="lang.js?v=80"></script>
+<script src="lang.js?v=81"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -6551,6 +6572,8 @@ function handlePresenceMsg(m){
   else if(m.type==='friend_status')onFriendStatus(m);
   else if(m.type==='gift')giftsLoad(true,true);   // 運営からプレゼントが届いた
   else if(m.type==='clan_req'){note(t('cl.reqIn'));loadClan();}   // 自分のクランに参加の申請が来た
+  else if(m.type==='clan_role'){note(t(m.role===4?'cl.youLeader':m.up?'cl.youUp':'cl.youDown',{role:clanRoleName(+m.role||0),name:String(m.name||'')}));if(m.up)SFX.coin();loadClan();}   // 格が変わった
+  else if(m.type==='clan_out'){note(t('cl.youOut',{name:String(m.name||'')}));CLAN.mine=null;CLAN.menu='';if(CLAN.view==='home'||CLAN.view==='clan'){CLAN.view='home';CLAN.cur=null;}loadClan();}   // 追放された
   else if(m.type==='clan_in'){note(t('cl.joined',{name:String(m.name||'')}));SFX.coin();CLAN.myReq=[];CLAN.msg='';if(CLAN.view==='clan'||CLAN.view==='search'){CLAN.view='home';CLAN.cur=null;}loadClan();}   // 申請が受けられた
   else if(m.type==='friend_event')onFriendEvent(m);
   else if(m.type==='invite')onInvite(m);
@@ -6726,7 +6749,7 @@ function renderRanking(failed){
 }
 // ---- クラン：仲間で集まって、オンライン対戦のポイント（勝ち3・負け1）を合計で競う ----
 // 画面：自分のクラン（左に情報、右にメンバー）／クランを探す／ほかのクランを見る／作る・設定を変える
-var CLAN={mine:null,top:[],by:'week',loaded:false,busy:false,msg:'',err:false,leaveAt:0,kickAt:{},view:'home',cur:null,results:null,q:'',region:'',joinable:false,myReq:[],tier:0,mby:'week',form:null};
+var CLAN={mine:null,top:[],by:'week',loaded:false,busy:false,msg:'',err:false,leaveAt:0,kickAt:{},menu:'',actAt:{},view:'home',cur:null,results:null,q:'',region:'',joinable:false,myReq:[],tier:0,mby:'week',form:null};
 var CL_TYPES=['open','approval','closed'];
 var TROPHY_SVG='<svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 5H4v2a3 3 0 0 0 3.5 3M17 5h3v2a3 3 0 0 1-3.5 3M12 13v4M8 20h8"/></svg>';
 var SEARCH_SVG='<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
@@ -6791,7 +6814,23 @@ function clanUnrequest(id){clanOp('unrequest',{id:id});}
 function clanAccept(fid){clanOp('accept',{fid:fid});}
 function clanDecline(fid){clanOp('decline',{fid:fid});}
 function clanLeave(){if(Date.now()-CLAN.leaveAt>4000){CLAN.leaveAt=Date.now();CLAN.msg=t('cl.leaveSure');CLAN.err=true;renderClan();return;}CLAN.leaveAt=0;clanOp('leave',null,function(){CLAN.view='home';CLAN.results=null;clanSearch(true);});}
-function clanKick(fid){if(Date.now()-(CLAN.kickAt[fid]||0)>4000){CLAN.kickAt[fid]=Date.now();CLAN.msg=t('cl.kickSure');CLAN.err=true;renderClan();return;}CLAN.kickAt[fid]=0;clanOp('kick',{fid:fid});}
+function clanKick(fid){if(Date.now()-(CLAN.kickAt[fid]||0)>4000){CLAN.kickAt[fid]=Date.now();CLAN.msg=t('cl.kickSure');CLAN.err=true;renderClan();return;}CLAN.kickAt[fid]=0;CLAN.menu='';clanOp('kick',{fid:fid});}
+// 格（0 新人・1 メンバー・2 幹部・3 副リーダー・4 リーダー）。自分より下の人だけ、自分の1つ下の格まで動かせる（サーバーも同じ決まりで確かめる）
+var CL_ROLES=['recruit','member','officer','coleader','leader'];
+function clanRoleName(r){return t('cl.role.'+(CL_ROLES[r]||'member'));}
+function clanMyRole(C){if(C&&typeof C.myRole==='number')return C.myRole;var me=AUTH.user&&AUTH.user.fid;return C&&C.members&&C.members.some(function(m){return m.owner&&m.fid===me;})?4:1;}
+function clanMenu(fid){CLAN.menu=CLAN.menu===fid?'':fid;CLAN.msg='';renderClan();}
+function clanRole(fid,r){CLAN.menu='';clanOp('role',{fid:fid,role:r});}
+function clanTransfer(fid){if(Date.now()-(CLAN.actAt[fid]||0)>4000){CLAN.actAt[fid]=Date.now();CLAN.msg=t('cl.transferSure');CLAN.err=true;renderClan();return;}CLAN.actAt[fid]=0;CLAN.menu='';clanOp('transfer',{fid:fid});}
+// そのメンバーに対してできること（格の一覧・追放・リーダーを譲る）
+function clanMenuHtml(m,my){
+  var h='<div class="cl-menu"><span class="cl-menu-h">'+esc(t('cl.menuFor',{name:m.name}))+'</span><div class="cl-menu-b">';
+  for(var r=my-1;r>=0;r--){if(r===m.role)continue;var up=r>m.role;
+    h+='<button class="'+(up?'up':'down')+'" onclick="clanRole(\''+safeFid(m.fid)+'\','+r+')">'+(up?'▲ ':'▼ ')+esc(t(up?'cl.promoteTo':'cl.demoteTo',{role:clanRoleName(r)}))+'</button>';}
+  if(my===4)h+='<button class="lead" onclick="clanTransfer(\''+safeFid(m.fid)+'\')">'+esc(t('cl.transfer'))+'</button>';
+  h+='<button class="kick" onclick="clanKick(\''+safeFid(m.fid)+'\')">'+esc(t('cl.kick'))+'</button>';
+  return h+'</div></div>';
+}
 function clanBy(b){CLAN.by=b==='total'?'total':'week';loadClan();if(currentScreen==='rank-screen')renderRanking();}
 function clanMby(b){CLAN.mby=b==='total'?'total':'week';renderClan();}
 function clanCopy(btn){var C=CLAN.mine;if(!C)return;var tx=t('cl.inviteText',{name:C.name,id:C.id});try{navigator.clipboard.writeText(tx);}catch(e){}btn.querySelector('span').textContent=t('pf.copied');setTimeout(function(){var s=btn.querySelector('span');if(s)s.textContent=t('cl.invite');},1500);}
@@ -6848,7 +6887,7 @@ function clanAv(p){CLAN.avs.push({tier:+p.tier||0,look:p.look});return'<canvas c
 function clanStatus(m){var st=m.status||'offline';return st!=='offline'?'<b class="on '+esc(st)+'">'+esc(t('fst.'+st))+'</b>':m.lastSeen?esc(t('cl.lastSeen',{ago:agoText(m.lastSeen)})):esc(t('fst.offline'));}
 // クランの中身：左に情報、右にメンバー（own＝自分のクラン）
 function clanDetailHtml(C,own){
-  var me=AUTH.user&&AUTH.user.fid,leader=own&&C.members.some(function(m){return m.owner&&m.fid===me;}),h='<div class="cl-wrap">';
+  var me=AUTH.user&&AUTH.user.fid,my=own?clanMyRole(C):-1,leader=my>=2,h='<div class="cl-wrap">';   // leader＝申請を受けられる（幹部から上）
   h+='<aside class="cl-info">';
   if(own)h+='<div class="cl-acts"><button onclick="clanGo(\'search\')">'+SEARCH_SVG+'<span>'+esc(t('cl.search'))+'</span></button><button onclick="clanCopy(this)"><svg class="i" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span>'+esc(t('cl.invite'))+'</span></button></div>';
   h+='<div class="cl-card"><canvas class="cl-emb" data-emb="'+esc(C.tag)+'" width="150" height="160"></canvas><h3 class="cl-cn">'+esc(C.name)+'</h3>'+
@@ -6859,7 +6898,8 @@ function clanDetailHtml(C,own){
     '<div><small>'+esc(t('cl.minTier'))+'</small><b>'+(C.minTier>0?'<canvas class="cl-tri" data-tr="'+C.minTier+'" width="44" height="44"></canvas>':'')+esc(tierReqText(C.minTier))+'</b></div>'+
     '<div><small>'+esc(t('cl.region'))+'</small><b>'+esc(regionLabel(C.region))+'</b></div></div>';
   if(own){
-    if(leader)h+='<button class="cl-btn" onclick="clanForm(\'edit\')">'+esc(t('cl.edit'))+'</button>';
+    h+='<p class="cl-myrole">'+esc(t('cl.myRole'))+'<b class="cl-role r'+my+'">'+esc(clanRoleName(my))+'</b></p>';
+    if(my>=3)h+='<button class="cl-btn" onclick="clanForm(\'edit\')">'+esc(t('cl.edit'))+'</button>';
     h+='<button class="cl-btn bad" onclick="clanLeave()">'+esc(t('cl.leave'))+'</button>';
   }else if(!AUTH.user)h+='<button class="cl-btn main" onclick="discordLogin()">'+esc(t('login.discord'))+'</button>';
   else if(CLAN.mine)h+='<p class="cl-why">'+esc(t('cl.why.inClan'))+'</p>';
@@ -6881,11 +6921,13 @@ function clanDetailHtml(C,own){
   }
   h+='<div class="cl-mrow cl-mhead"><span>#</span><span>'+esc(t('cl.colName'))+'</span><span class="cl-hst">'+esc(t('cl.colStatus'))+'</span><span>'+esc(t('cl.colTier'))+'</span><span>'+esc(t(k==='week'?'cl.week':'cl.total'))+'</span><span></span></div><div class="cl-list">';
   ms.forEach(function(m,i){
-    h+='<div class="cl-mrow'+(m.fid===me?' me':'')+'"><span class="cl-no">'+(i+1)+'</span><span class="cl-who">'+clanAv(m)+'<span><b>'+esc(m.name)+'</b><small class="'+(m.owner?'lead':'')+'">'+esc(t(m.owner?'cl.leader':'cl.member'))+'</small></span></span>'+
+    var rl=typeof m.role==='number'?m.role:(m.owner?4:1),can=own&&m.fid!==me&&my>=2&&rl<my;m.role=rl;
+    h+='<div class="cl-mrow'+(m.fid===me?' me':'')+(CLAN.menu===m.fid&&can?' open':'')+'"><span class="cl-no">'+(i+1)+'</span><span class="cl-who">'+clanAv(m)+'<span><b>'+esc(m.name)+'</b><small class="cl-role r'+rl+'">'+esc(clanRoleName(rl))+'</small></span></span>'+
       '<span class="cl-st"><small>'+esc(t('cl.colStatus'))+'</small>'+clanStatus(m)+'</span>'+
       '<span class="cl-tr"><canvas data-tr="'+(+m.tier||0)+'" width="40" height="40"></canvas>'+esc(tierName(+m.tier||0))+'</span>'+
       '<span class="cl-pt">'+TROPHY_SVG+m[k]+'</span>'+
-      (leader&&m.fid!==me?'<button class="cl-kick" onclick="clanKick(\''+safeFid(m.fid)+'\')">'+esc(t('cl.kick'))+'</button>':'<span></span>')+'</div>';
+      (can?'<button class="cl-kick cl-mgr" aria-expanded="'+(CLAN.menu===m.fid)+'" onclick="clanMenu(\''+safeFid(m.fid)+'\')">'+esc(t('cl.manage'))+'</button>':'<span></span>')+'</div>';
+    if(can&&CLAN.menu===m.fid)h+=clanMenuHtml(m,my);
   });
   return h+'</div></section></div>';
 }
@@ -15954,7 +15996,7 @@ function drawBgFx(tm){
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,rangePanelToggle,navBack,gameBack,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
- showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,doChat,setQc,showClanScreen,clanLeave,clanKick,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
+ showEventScreen,evBuy,mpFocus,openTouchEditor,closeTouchEditor,resetTouchEditor,setTlSize,setTpOp,startReplay,tlSetRule,doChat,setQc,showClanScreen,clanLeave,clanKick,clanMenu,clanRole,clanTransfer,clanBy,clanCopy].forEach(function(f){window[f.name]=AC_GUARD[f.name]?acGuard(f):f;});
 initBgFx();initTosGate();initAuth();applyI18n();updateMuteBtn();
 migrateProfile();   // CPUの強さを変えたぶんのやり直し（1回だけ）
 checkTitles();   // 前から条件を満たしていた称号をまとめて獲得
