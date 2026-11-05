@@ -1201,6 +1201,18 @@ const auth = {
     delete db.users[uid]; touch();
     return true;
   },
+  // 住人の今のシーズンのランクの記録を、はじめ（1000）に戻す（1v1・2v2 のレート・勝敗・連勝・レートの動き・届いたランク）
+  npcResetRanked(uid) {
+    const u = db.users[uid];
+    if (!u || !u.npc) return false;
+    u.rate = SIM.RATE_START; u.rtier = SIM.tierOfRate(u.rate); u.rgames = 0; u.rstreak = 0; u.rwstreak = 0; u.rpeak = u.rate; u.ranked = { w: 0, l: 0 }; u.tierBest = 0;
+    u.rate2 = SIM.RATE_START; u.rgames2 = 0; u.rstreak2 = 0; u.rwstreak2 = 0; u.rpeak2 = u.rate2; u.ranked2 = { w: 0, l: 0 };
+    u.bestEver = 0; delete u.rboost; delete u.rboost2;
+    const s = stOf(u); s.rh = []; s.rh2 = []; s.rb = 0; s.rb2 = 0;
+    if (u.profile) { u.profile.bestTier = 0; if (typeof u.profile.bg === 'number') u.profile.bg = null; u.profileRev = (u.profileRev || 0) + 1; }
+    touch();
+    return true;
+  },
   // 住人のプロフィールを、ほかの人と同じ決まりで整えて保存する（持っていない宝箱の物・裏づけのない称号は外れる）
   npcProfile(uid, raw) {
     const u = db.users[uid];
@@ -1213,7 +1225,7 @@ const auth = {
     const u = db.users[uid];
     if (!u || !u.npc || !m) return null;
     const win = !!m.win, out = { rate: null };
-    if (m.mode !== 'cpu') { if (win) u.online.w++; else u.online.l++; touch(); }
+    if (m.mode !== 'cpu' && !m.rateOnly) { if (win) u.online.w++; else u.online.l++; touch(); }   // rateOnly：レートだけ（記録の作り直し）
     if (m.mode !== 'cpu' && m.ranked) {
       const st = m.two ? rateState2(u) : rateState(u);
       const r = SIM.applyRate(st, { mine: m.two ? (m.mine != null ? m.mine : st.rate) : undefined, theirs: m.theirs, win,
@@ -1222,7 +1234,7 @@ const auth = {
       if (m.two) writeRate2(u, r, win); else writeRate(u, r, win);
       out.rate = r;
     }
-    if (m.tally) out.prog = auth.applyMatch(uid, { mode: m.mode === 'cpu' ? 'cpu' : 'online', diff: m.diff, stage: m.stage, win, straight: !!m.straight, tally: m.tally, emotes: m.emotes | 0 });
+    if (m.tally && !m.rateOnly) out.prog = auth.applyMatch(uid, { mode: m.mode === 'cpu' ? 'cpu' : 'online', diff: m.diff, stage: m.stage, win, straight: !!m.straight, tally: m.tally, emotes: m.emotes | 0 });
     return out;
   },
   touch,

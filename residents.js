@@ -154,7 +154,8 @@ function fakeTally(pl, u, o, r) {
   return T;
 }
 // オンラインの1試合を終える（ランクかどうか・勝ち負けは、今のレートと強さで決める）
-function playOnline(u, pl, act, t, r) {
+// rateOnly：ランクのレートだけを動かす（今のシーズンのランクの記録を作り直すとき。ほかの記録は足さない）
+function playOnline(u, pl, act, t, r, rateOnly) {
   const two = !!act.two, st = two ? auth.rating2(u.id) : auth.rating(u.id), R = st.rate, S = skillAt(pl, u, t) - (two ? 40 : 0);
   // 強さに届いていないうちは、ランクマッチを多く。届いたら、たまにだけ（少しずつ上がる）。名簿のランクのいちばん上の近くまで来たら、ランクはしない
   let pr = R < S - 30 ? 0.8 : R < S + 20 ? 0.4 : 0.06;
@@ -164,7 +165,9 @@ function playOnline(u, pl, act, t, r) {
   const win = r() < clamp(pl.wr + (ranked ? 0.12 * (S - R) / 100 : 0), 0.1, 0.82);
   const lost = pickW(r, [[0, 0.4], [1, 0.35], [2, 0.25]]), N = G.WIN_ROUNDS;
   const rw = win ? N : lost, rl = win ? lost : N;
-  const res = auth.npcMatch(u.id, { mode: 'online', win, two, ranked, mine: R, theirs: Math.round(R + U(r, -45, 45)), rw, rl, max: RATE_MAX,
+  const theirs = Math.round(R + U(r, -45, 45));
+  if (rateOnly) return ranked ? auth.npcMatch(u.id, { mode: 'online', rateOnly: true, win, two, ranked, mine: R, theirs, rw, rl, max: RATE_MAX }) : null;
+  const res = auth.npcMatch(u.id, { mode: 'online', win, two, ranked, mine: R, theirs, rw, rl, max: RATE_MAX,
     stage: pick(r, STAGE_IDS), tally: fakeTally(pl, u, { win, rw, rl, two }, r) });
   if (seeding) seeding.push([u.id, win, t]); else clans.addMatch(u.id, win);
   return res;
@@ -250,26 +253,28 @@ function createUser(spec, pl, now, minAge) {
   let dn = discordName(spec.name, r);
   const used = new Set(auth.npcUsers().map(x => String(x.name).toLowerCase()));
   while (used.has(dn.toLowerCase())) dn = dn.replace(/[0-9_]+$/, '').slice(0, 9) + Math.floor(U(r, 10, 999));   // 同じ名前の住人がいたら、数字を足す
-  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
+  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now, cl: spec.climb ? 1 : 0 }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
   if (!u) return null;
   const preDays = Math.max(0, (SIM.seasonStart(now) - created) / DAY);
   profileFor(u, spec, pl, preDays, r);
   return u;
 }
 // 今のシーズンの試合を、はじめから今まで順に行う（ほかの人と同じ形の記録・レートの動き・クランの週のポイントになる）
-function seedSeason(users, now) {
-  const evs = [], start = SIM.seasonStart(now);
-  for (const u of users) {
-    const pl = plans.get(u.id), r = rng(hash('seed:' + u.id)), from = Math.max(u.created, start);
-    for (let d = jstDay(from) - 1; d <= jstDay(now); d++) for (const s of sessionsOn(pl, d)) {
-      let t = Math.max(s[0], from) + Math.round(U(r, 5, 60) * 1000);
-      while (t < Math.min(s[1], now) - 2 * MIN) {
-        const act = newAct(pl, t, r);
-        if (act.end > now) break;
-        evs.push({ u, pl, act, r }); t = act.end + gap(r);
-      }
+// その人が from から now までに遊んだ試合（予定どおり）
+function actsOf(u, pl, from, now, r, out) {
+  for (let d = jstDay(from) - 1; d <= jstDay(now); d++) for (const s of sessionsOn(pl, d)) {
+    let t = Math.max(s[0], from) + Math.round(U(r, 5, 60) * 1000);
+    while (t < Math.min(s[1], now) - 2 * MIN) {
+      const act = newAct(pl, t, r);
+      if (act.end > now) break;
+      out.push({ u, pl, act, r }); t = act.end + gap(r);
     }
   }
+  return out;
+}
+function seedSeason(users, now) {
+  const evs = [], start = SIM.seasonStart(now);
+  for (const u of users) actsOf(u, plans.get(u.id), Math.max(u.created, start), now, rng(hash('seed:' + u.id)), evs);
   evs.sort((a, b) => a.act.end - b.act.end);
   const real = Date.now;
   seeding = [];
@@ -279,6 +284,16 @@ function seedSeason(users, now) {
   // クランのポイント：今週の分は今週にも、前の週の分は合計にだけ（ほかの人の今週のポイントを消さないように）
   const wk = clans.weekKey(now), pts = seeding; seeding = null;
   for (const [uid, win, t] of pts) { if (clans.weekKey(t) === wk) clans.addMatch(uid, win); else clans.npcPts(uid, win ? clans.PTS_WIN : clans.PTS_PLAY); }
+  return evs.length;
+}
+
+// あとから climb にした人：今のシーズンのランクの記録（1v1・2v2 のレートと、その動き）だけを作り直す。
+// 今日まではゴールドのあたりで遊んでいたことにして、今日から少しずつ上がる。オンラインの戦績・称号・クランのポイントはそのまま
+function replayRanked(u, pl, now) {
+  u.npc.t0 = now; auth.npcResetRanked(u.id);
+  const evs = actsOf(u, pl, Math.max(u.created, SIM.seasonStart(now)), now, rng(hash('replay:' + u.id + ':' + now)), []).filter(e => e.act.kind === 'online');
+  const real = Date.now;
+  try { for (const e of evs) { const t = e.act.end; Date.now = () => t; playOnline(u, pl, e.act, t, e.r, true); } } finally { Date.now = real; }
   return evs.length;
 }
 
@@ -308,7 +323,7 @@ function init(h) {
   let gone = 0;
   for (const u of auth.npcUsers()) if (!keys.has(u.npc.k)) { purge(u); gone++; }
   // 住人を作る（もういる人は名前だけ名簿に合わせる）
-  const made = [], clanAge = {};
+  const made = [], redo = [], clanAge = {};
   for (const c of R.clans) clanAge[c.key] = +c.age || 0;
   for (const spec of R.people) {
     const uid = 'npc_' + spec.key, pl = planOf(spec);
@@ -316,6 +331,9 @@ function init(h) {
     let u = auth.user(uid);
     if (!u) { u = createUser(spec, pl, now, spec.role === 'leader' ? (clanAge[spec.clan] || 0) + 2 : 0); if (u) made.push(u); continue; }
     if (u.profile && u.profile.name !== spec.name) auth.npcProfile(uid, Object.assign({}, u.profile, { name: spec.name }));
+    // 名簿で climb にした人（前は climb でなかった人）：今のシーズンのランクの記録を作り直して、今日から上がり始める
+    if (spec.climb && u.npc.cl !== 1) { const n = replayRanked(u, pl, now); u.npc.cl = 1; auth.touch(); redo.push(spec.name + '（' + n + '）'); }
+    else if (!spec.climb && u.npc.cl) { u.npc.cl = 0; auth.touch(); }
   }
   // 住人のクラン（まだなければ作る）と、はじめのメンバー
   meta.clans = meta.clans && typeof meta.clans === 'object' ? meta.clans : {};
@@ -344,7 +362,8 @@ function init(h) {
   }
   for (const u of auth.npcUsers()) if (!live.has(u.id)) live.set(u.id, { on: false, act: null, next: 0, extra: 0 });
   if (!timer) { timer = setInterval(() => { try { tick(Date.now()); } catch (e) { hooks.log('residents: ERROR', e && e.stack ? e.stack : e); } }, TICK_MS); timer.unref(); }
-  hooks.log('residents:', auth.npcUsers().length, '人', made.length ? '（新しく ' + made.length + ' 人・' + n + ' 試合）' : '', gone ? '（名簿にない ' + gone + ' 人を消しました）' : '');
+  hooks.log('residents:', auth.npcUsers().length, '人', made.length ? '（新しく ' + made.length + ' 人・' + n + ' 試合）' : '', gone ? '（名簿にない ' + gone + ' 人を消しました）' : '',
+    redo.length ? '（今日から上がる人のランクの記録を作り直しました：' + redo.join('、') + '）' : '');
   tick(now);
   return { on: true, made: made.length, matches: n };
 }
