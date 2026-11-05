@@ -4,7 +4,7 @@
 //   ・毎日、その人の時間帯（日本時間の夕方〜夜が多い）にオンラインになり、ランクマッチ・カジュアル・2v2・CPU戦をする（結果はサーバーの中で決める）
 //   ・列で待っている人の相手がいないときは、名前のないBOTの代わりに、近いレートの住人が相手になる（結果は住人の記録にも残る）
 //   ・フレンド申請は、しばらくしてから受ける（受けない人もいる）。住人のクランへの参加の申請も、しばらくしてから受ける・断る
-//   ・ときどき、人が作ったクランに入る（めったに抜けない）
+//   ・ときどき、人が作ったクランに入る（めったに抜けない）。住人のクランは、ときどき抜けたり入ったりする。新人は数日でメンバーに
 //   ・レートはチャンピオンⅠ（1990）の手前まで。シーズン1位の「天下無双」と、開拓者（最初の100人）には数えない
 // 環境変数 RESIDENT_BOTS=0 で、全員を消す（アカウント・クラン・フレンドから）。名簿から消した人も、次に起動したときに消える
 const fs = require('fs');
@@ -26,9 +26,15 @@ const RANGE = { bronze: [1030, 1085], iron: [1095, 1170], gold: [1190, 1350], pl
 const RANK_TOP = { bronze: SIM.TIER_MIN[4] - 1, iron: SIM.TIER_MIN[7] - 1, gold: SIM.TIER_MIN[10] - 1, platinum: SIM.TIER_MIN[13] - 1, legend: SIM.TIER_MIN[16] - 1, master: RATE_MAX };   // 名簿のランクより上には行かない
 const CLIMB_FROM = [1190, 1290], CLIMB_DAYS = 10;   // climb の人：はじめて動いた日はこのあたり（ゴールド）から、10日かけて上がる
 const ROLE_OF = { coleader: 3, officer: 2, member: 1, recruit: 0 };
+// ふだんの勝率（ランクごと。人ごとに ±3%）。WR_VER を上げると、前の勝率で作った住人の戦績を、次の起動で1回だけ合わせ直す
+const WR = { bronze: 0.47, iron: 0.50, gold: 0.54, platinum: 0.57, legend: 0.60, master: 0.64 }, WR_VER = 2;
 const FRIEND_YES = 0.85, CLAN_YES = 0.8;            // フレンド申請を受ける割合・クランの申請を受ける割合
 const JOIN_HUMAN_EVERY = 2.5 * DAY;                 // 人のクランに入る（住人みんなで、だいたいこの間に1人）
 const LEAVE_HUMAN_PER_DAY = 0.007;                  // 人のクランから抜ける（1人・1日あたり）
+// 住人のクランの出入り：1日1回、その日はじめてオンラインになったときに決める（その日に抜ける・入る割合）。
+// 住人は2日に1日くらい遊ぶので、全体で1日に1〜2人ずつ抜けて・入る。新人の昇格は、クランごとに1日1回（幹部から上の住人がオンラインのとき）
+const NPC_LEAVE_PER_DAY = 0.025, NPC_JOIN_PER_DAY = 0.12, PROMOTE_PER_DAY = 0.5, NPC_CLAN_MAX = 18;   // 住人が入るのは18人まで（人が入る分を残す）
+const promoDay = new Map();   // クランID → 昇格を決めた日
 // 遊ぶ量：その日に遊ぶ割合・1回の長さ（分）・1日に2回遊ぶ割合
 const ACT = {
   heavy: { pDay: 0.88, len: [60, 170], multi: 0.55 },
@@ -91,7 +97,7 @@ function planOf(spec) {
   return {
     key: spec.key, rank, skill, play, time, A: ACT[play], T: TIME[time],
     climb: !!spec.climb, from: Math.round(U(r, CLIMB_FROM[0], CLIMB_FROM[1])),
-    wr: 0.42 + 0.14 * (skill - 1000) / 1000 + U(r, -0.03, 0.03),   // ふだんの勝率
+    wr: WR[rank] + U(r, -0.03, 0.03),                               // ふだんの勝率
     p2: U(r, 0.05, 0.3),                                            // 2v2 をする割合
     cpu: U(r, 0.04, 0.18),                                          // 合間に CPU 戦をする割合
     sk: clamp((skill - 1000) / 900, 0, 1),
@@ -163,7 +169,7 @@ function playOnline(u, pl, act, t, r, rateOnly) {
   if (SIM.RATE_LOSS[SIM.tierOfRate(R)] === 0 && R >= S) pr = 0.06;           // 負けても減らない段では、届いたらたまにだけ
   if (R >= RANK_TOP[pl.rank] - 18) pr = 0;
   const ranked = r() < pr;
-  const win = r() < clamp(pl.wr + (ranked ? 0.12 * (S - R) / 100 : 0), 0.1, 0.82);
+  const win = r() < clamp(pl.wr + (ranked ? 0.12 * (S - R) / 100 : 0), 0.1, 0.85);
   const lost = pickW(r, [[0, 0.4], [1, 0.35], [2, 0.25]]), N = G.WIN_ROUNDS;
   const rw = win ? N : lost, rl = win ? lost : N;
   const theirs = Math.round(R + U(r, -45, 45));
@@ -254,7 +260,7 @@ function createUser(spec, pl, now, minAge) {
   let dn = discordName(spec.name, r);
   const used = new Set(auth.npcUsers().map(x => String(x.name).toLowerCase()));
   while (used.has(dn.toLowerCase())) dn = dn.replace(/[0-9_]+$/, '').slice(0, 9) + Math.floor(U(r, 10, 999));   // 同じ名前の住人がいたら、数字を足す
-  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now, cl: spec.climb ? 1 : 0 }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
+  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now, cl: spec.climb ? 1 : 0, wv: WR_VER }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
   if (!u) return null;
   const preDays = Math.max(0, (SIM.seasonStart(now) - created) / DAY);
   profileFor(u, spec, pl, preDays, r);
@@ -278,10 +284,10 @@ function seedSeason(users, now) {
   for (const u of users) actsOf(u, plans.get(u.id), Math.max(u.created, start), now, rng(hash('seed:' + u.id)), evs);
   evs.sort((a, b) => a.act.end - b.act.end);
   const real = Date.now;
-  seeding = [];
+  seeding = []; auth.npcQuiet(true);   // 前の試合のランクアップは、クランのできごとに出さない
   try {
     for (const e of evs) { const t = e.act.end; Date.now = () => t; finish(e.u, e.pl, e.act, t, e.r); }   // 記録の時刻を、その試合の時刻にする
-  } finally { Date.now = real; }
+  } finally { Date.now = real; auth.npcQuiet(false); }
   // クランのポイント：今週の分は今週にも、前の週の分は合計にだけ（ほかの人の今週のポイントを消さないように）
   const wk = clans.weekKey(now), pts = seeding; seeding = null;
   for (const [uid, win, t] of pts) { if (clans.weekKey(t) === wk) clans.addMatch(uid, win); else clans.npcPts(uid, win ? clans.PTS_WIN : clans.PTS_PLAY); }
@@ -290,12 +296,31 @@ function seedSeason(users, now) {
 
 // あとから climb にした人：今のシーズンのランクの記録（1v1・2v2 のレートと、その動き）だけを作り直す。
 // 今日まではゴールドのあたりで遊んでいたことにして、今日から少しずつ上がる。オンラインの戦績・称号・クランのポイントはそのまま
-function replayRanked(u, pl, now) {
-  u.npc.t0 = now; auth.npcResetRanked(u.id);
+// keepT0：上がり始めた日はそのまま（勝率の見直しで作り直すとき）
+function replayRanked(u, pl, now, keepT0) {
+  if (!keepT0) u.npc.t0 = now;
+  auth.npcResetRanked(u.id);
   const evs = actsOf(u, pl, Math.max(u.created, SIM.seasonStart(now)), now, rng(hash('replay:' + u.id + ':' + now)), []).filter(e => e.act.kind === 'online');
   const real = Date.now;
-  try { for (const e of evs) { const t = e.act.end; Date.now = () => t; playOnline(u, pl, e.act, t, e.r, true); } } finally { Date.now = real; }
+  auth.npcQuiet(true);   // 作り直しのランクアップは、クランのできごとに出さない
+  try { for (const e of evs) { const t = e.act.end; Date.now = () => t; playOnline(u, pl, e.act, t, e.r, true); } } finally { Date.now = real; auth.npcQuiet(false); }
   return evs.length;
+}
+// 勝率の見直し（1回だけ）：これまでのオンラインの勝ち負けを、今の勝率に合わせる（試合の数はそのまま、負けを勝ちに。勝ちは減らさない）。
+// 増えた勝ちの分だけ、倒した数とクランのポイントも足す。今シーズンのランクの記録は作り直す（skipReplay：もう作り直したとき）
+function rebalanceWins(u, pl, now, skipReplay) {
+  const r = rng(hash('wr:' + u.id)), tot = u.online.w + u.online.l;
+  const d = Math.max(0, Math.min(u.online.l, Math.round(tot * clamp(pl.wr + U(r, -0.02, 0.02), 0.2, 0.85)) - u.online.w));
+  if (d && u.profile) {
+    u.online.w += d; u.online.l -= d;
+    const p = u.profile, load = loadoutOf(u), kills = Object.assign({}, p.ach && p.ach.kills);
+    for (let i = 0; i < d * 2; i++) { const w = load[pickW(r, [[0, 0.55], [1, 0.3], [2, 0.15]])]; kills[w] = (kills[w] || 0) + 1; }
+    auth.npcProfile(u.id, Object.assign({}, p, { ach: Object.assign({}, p.ach, { kills }) }));
+    if (clans.clanOf(u.id)) clans.npcPts(u.id, d * (clans.PTS_WIN - clans.PTS_PLAY));
+  }
+  if (!skipReplay) replayRanked(u, pl, now, true);
+  u.npc.wv = WR_VER; auth.touch();
+  return d;
 }
 
 // ---- 住人を消す（クランから抜けて、アカウントを消す）----
@@ -324,7 +349,7 @@ function init(h) {
   let gone = 0;
   for (const u of auth.npcUsers()) if (!keys.has(u.npc.k)) { purge(u); gone++; }
   // 住人を作る（もういる人は名前だけ名簿に合わせる）
-  const made = [], redo = [], clanAge = {};
+  const made = [], redo = [], clanAge = {}, wins = { n: 0, d: 0 };
   for (const c of R.clans) clanAge[c.key] = +c.age || 0;
   for (const spec of R.people) {
     const uid = 'npc_' + spec.key, pl = planOf(spec);
@@ -333,8 +358,10 @@ function init(h) {
     if (!u) { u = createUser(spec, pl, now, spec.role === 'leader' ? (clanAge[spec.clan] || 0) + 2 : 0); if (u) made.push(u); continue; }
     if (u.profile && u.profile.name !== spec.name) auth.npcProfile(uid, Object.assign({}, u.profile, { name: spec.name }));
     // 名簿で climb にした人（前は climb でなかった人）：今のシーズンのランクの記録を作り直して、今日から上がり始める
-    if (spec.climb && u.npc.cl !== 1) { const n = replayRanked(u, pl, now); u.npc.cl = 1; auth.touch(); redo.push(spec.name + '（' + n + '）'); }
+    let replayed = false;
+    if (spec.climb && u.npc.cl !== 1) { const n = replayRanked(u, pl, now); u.npc.cl = 1; auth.touch(); redo.push(spec.name + '（' + n + '）'); replayed = true; }
     else if (!spec.climb && u.npc.cl) { u.npc.cl = 0; auth.touch(); }
+    if ((u.npc.wv || 1) < WR_VER) { wins.d += rebalanceWins(u, pl, now, replayed); wins.n++; }   // 前の勝率で作った人
   }
   // 住人のクラン（まだなければ作る）と、はじめのメンバー
   meta.clans = meta.clans && typeof meta.clans === 'object' ? meta.clans : {};
@@ -351,7 +378,7 @@ function init(h) {
   }
   for (const spec of R.people) {
     const u = auth.user('npc_' + spec.key), cid = meta.clans[spec.clan];
-    if (!u || u.npc.ci || !cid) continue;
+    if (!u || u.npc.ci || !cid || !fresh.has(cid)) continue;   // 前からある住人のクランには、起動してから少しずつ入る（social）
     u.npc.ci = 1; auth.touch();
     if (!clans.clanOf(u.id) && clans.npcAdd(u.id, cid, spec.role in ROLE_OF ? ROLE_OF[spec.role] : 1, fresh.has(cid)).ok) clans.npcPts(u.id, u.npc.pre || 0);   // 作ったばかりのクランのはじめのメンバーは、できごとに残さない
   }
@@ -365,7 +392,8 @@ function init(h) {
   for (const u of auth.npcUsers()) if (!live.has(u.id)) live.set(u.id, { on: false, act: null, next: 0, extra: 0 });
   if (!timer) { timer = setInterval(() => { try { tick(Date.now()); } catch (e) { hooks.log('residents: ERROR', e && e.stack ? e.stack : e); } }, TICK_MS); timer.unref(); }
   hooks.log('residents:', auth.npcUsers().length, '人', made.length ? '（新しく ' + made.length + ' 人・' + n + ' 試合）' : '', gone ? '（名簿にない ' + gone + ' 人を消しました）' : '',
-    redo.length ? '（今日から上がる人のランクの記録を作り直しました：' + redo.join('、') + '）' : '');
+    redo.length ? '（今日から上がる人のランクの記録を作り直しました：' + redo.join('、') + '）' : '',
+    wins.n ? '（勝率の見直し：' + wins.n + ' 人の勝ちを合わせて ' + wins.d + ' 増やし、今シーズンのランクの記録を作り直しました）' : '');
   tick(now);
   return { on: true, made: made.length, matches: n };
 }
@@ -413,7 +441,7 @@ function social(now, r) {
   // 住人がリーダーのクランへの参加の申請：幹部から上の住人がオンラインのときに、しばらくしてから受ける・断る
   for (const c of clans.all()) {
     if (!auth.isNpc(c.owner)) continue;
-    const reqs = clans.reqs(c).filter(q => !auth.isNpc(q.uid));
+    const reqs = clans.reqs(c).slice();   // 人の申請も、住人の申請も
     if (!reqs.length) continue;
     const m = clans.managers(c).find(id => auth.isNpc(id) && live.get(id) && live.get(id).on);
     if (!m) continue;
@@ -421,38 +449,83 @@ function social(now, r) {
       if (now - q.at < (10 + unit('cw' + c.id + q.uid + q.at) * 50) * MIN) continue;
       const yes = unit('cy' + c.id + q.uid + q.at) < CLAN_YES;
       const res = yes ? clans.accept(m, q.uid) : clans.decline(m, q.uid);
-      if (yes && res.ok) hooks.pushTo(q.uid, { type: 'clan_in', name: c.name, tag: c.tag });
+      if (yes && res.ok) { if (auth.isNpc(q.uid)) { auth.user(q.uid).npc.jAt = now; auth.touch(); } else hooks.pushTo(q.uid, { type: 'clan_in', name: c.name, tag: c.tag }); }
       else if (yes) clans.decline(m, q.uid);
       hooks.log('residents: clan request', c.id, '[' + c.tag + ']', 'discord=' + q.uid, yes && res.ok ? 'accepted' : 'declined');
     }
   }
-  // 名簿で決めた、今あるクラン（#クランID）に入る。サーバーが起動してから2〜30分のあいだに1人ずつ。
-  // オフラインの人は、そのときにログインして入る（一度入ったら、外されても入り直さない）
+  // 名簿で決めたクランに入る：今ある人のクラン（#クランID）と、前からある住人のクランにあとから足した人。
+  // サーバーが起動してから2〜30分のあいだに1人ずつ。オフラインの人は、そのときにログインして入る（一度入ったら、外されても入り直さない）
+  const nclans = auth.npcMeta().clans || {};
   for (const u of npcs) {
     const spec = specs.get(u.npc.k), L = live.get(u.id);
-    if (!spec || !/^#\d{6}$/.test(String(spec.clan || '')) || u.npc.cj || !L) continue;
-    if (clans.clanOf(u.id)) { u.npc.cj = 1; auth.touch(); continue; }
+    if (!spec || !spec.clan || !L) continue;
+    const human = /^#\d{6}$/.test(String(spec.clan)), id = human ? spec.clan.slice(1) : nclans[spec.clan], flag = human ? 'cj' : 'ci';
+    if (!id || u.npc[flag]) continue;
+    if (clans.clanOf(u.id)) { u.npc[flag] = 1; auth.touch(); continue; }
     if (!u.npc.cjAt || u.npc.cjAt > now + 30 * MIN) { u.npc.cjAt = now + Math.round(U(r, 2, 30) * MIN); auth.touch(); }   // 前の決まり（8時間まで待つ）で決めた時刻も、30分以内に直す
     if (now < u.npc.cjAt || busy.has(u.id)) continue;
-    const id = spec.clan.slice(1), c = clans.byId(id);
+    const c = clans.byId(id);
     if (!c || c.members.length >= clans.MAX_MEMBERS) {   // クランがない・いっぱい：入れるようになるまで待つ（理由は起動ごとに1回だけ記録に出す）
       const why = !c ? 'クランが見つかりません' : 'クランがいっぱいです（' + clans.MAX_MEMBERS + '人）';
-      if (!warned.has(id + why)) { warned.add(id + why); hooks.log('residents: ' + spec.clan + ' に入れません：' + why); }
+      if (!warned.has(id + why)) { warned.add(id + why); hooks.log('residents: ' + (human ? spec.clan : spec.clan + '（#' + id + '）') + ' に入れません：' + why); }
       continue;
     }
     if (!L.on) { L.on = true; L.act = null; L.next = now + Math.round(U(r, 30, 120) * 1000); L.extra = Math.max(L.extra, now + Math.round(U(r, 10, 30) * MIN)); }   // ログインして入る
     const res = clans.npcAdd(u.id, id, spec.role in ROLE_OF ? ROLE_OF[spec.role] : 1);
-    if (res.ok) { u.npc.cj = 1; auth.touch(); presence.changed(u.id); hooks.log('residents: joined clan', spec.clan, u.id); }
+    if (res.ok) {
+      u.npc[flag] = 1; auth.touch(); presence.changed(u.id); hooks.log('residents: joined clan', spec.clan, u.id);
+      if (!human) clans.npcPts(u.id, u.npc.pre || 0);   // 住人のクラン：それまでのポイントも
+    }
+  }
+  // 住人のクランの出入り：メンバーがときどき抜け、クランのない住人がときどき入る（承認制なら申請。幹部の住人が答える）
+  // リーダーは抜けない。副リーダーはまれ。入ってから2日は抜けない。抜けたクランには3日入り直さない。あなたのクラン（名簿の #ID）の人は動かない
+  const today = jstDay(now);
+  for (const u of npcs) {
+    const L = live.get(u.id), sp = specs.get(u.npc.k) || {};
+    if (!L || !L.on || busy.has(u.id) || /^#/.test(String(sp.clan || '')) || u.npc.cd === today) continue;
+    u.npc.cd = today; auth.touch();   // その日はじめてオンライン：今日、抜ける・入るかを決める
+    const c = clans.clanOf(u.id);
+    if (c) {
+      if (!auth.isNpc(c.owner) || c.owner === u.id || (u.npc.jAt && now - u.npc.jAt < 2 * DAY)) continue;
+      if (r() < (clans.roleOf(c, u.id) >= 3 ? NPC_LEAVE_PER_DAY / 4 : NPC_LEAVE_PER_DAY)) {
+        const id = c.id, tag = c.tag; clans.leave(u.id); u.npc.left = { c: id, at: now }; auth.touch();
+        hooks.log('residents: left resident clan', id, '[' + tag + ']', u.id);
+      }
+      continue;
+    }
+    if ((sp.clan && !u.npc.ci) || clans.reqsOf(u.id).length || r() >= NPC_JOIN_PER_DAY) continue;   // 名簿のクランに入るのを待っている人は、まだ
+    const tier = auth.peakTier(u.id), left = u.npc.left;
+    const cs = clans.all().filter(k => auth.isNpc(k.owner) && k.type !== 'closed' && k.members.length < NPC_CLAN_MAX && (k.minTier || 0) <= tier && !(left && left.c === k.id && now - left.at < 3 * DAY));
+    if (!cs.length) continue;
+    const k = pickW(r, cs.map(x => [x, NPC_CLAN_MAX - x.members.length])), res = clans.join(u.id, k.id, tier);   // 人の少ないクランに入りやすく
+    if (res.ok && !res.requested) { u.npc.jAt = now; auth.touch(); }
+    if (res.ok) hooks.log('residents: resident clan', res.requested ? 'request' : 'join', k.id, '[' + k.tag + ']', u.id);
+  }
+  // 新人を、入って2日たったらメンバーに（幹部から上の住人がオンラインのとき。人の新人も）
+  for (const c of clans.all()) {
+    if (!auth.isNpc(c.owner) || promoDay.get(c.id) === today) continue;
+    const m = clans.managers(c).find(id => auth.isNpc(id) && live.get(id) && live.get(id).on && !busy.has(id));
+    if (!m) continue;
+    promoDay.set(c.id, today);
+    if (r() >= PROMOTE_PER_DAY) continue;
+    const joinAt = id => { const L = c.log || []; for (let i = L.length - 1; i >= 0; i--) if (L[i].t === 'join' && L[i].uid === id) return L[i].at; return 0; };
+    const rec = c.members.filter(id => clans.roleOf(c, id) === 0 && now - joinAt(id) > 2 * DAY);
+    if (!rec.length) continue;
+    const t = pick(r, rec), res = clans.setRole(m, t, 1);
+    if (res.ok && !auth.isNpc(t)) hooks.pushTo(t, { type: 'clan_role', role: 1, up: true, name: c.name });
+    if (res.ok) hooks.log('residents: promoted recruit', c.id, '[' + c.tag + ']', t);
   }
   // ときどき、人が作ったクランに入る（承認制なら申請）
   const meta = auth.npcMeta();
   if (!meta.nextJoin) { meta.nextJoin = now + Math.round(U(r, 0.3, 1.2) * JOIN_HUMAN_EVERY); auth.touch(); }
   if (now >= meta.nextJoin) {
     meta.nextJoin = now + Math.round(U(r, 0.5, 1.5) * JOIN_HUMAN_EVERY); auth.touch();
-    const who = npcs.filter(u => { const L = live.get(u.id), sp = specs.get(u.npc.k); return L && L.on && !busy.has(u.id) && !clans.clanOf(u.id) && !clans.reqsOf(u.id).length && !(sp && sp.clan); });
+    const who = npcs.filter(u => { const L = live.get(u.id), sp = specs.get(u.npc.k) || {}; return L && L.on && !busy.has(u.id) && !clans.clanOf(u.id) && !clans.reqsOf(u.id).length && !(sp.clan && (sp.clan[0] === '#' || !u.npc.ci)); });
     if (who.length) {
       const u = pick(r, who), tier = auth.peakTier(u.id);
-      const cs = clans.all().filter(c => !auth.isNpc(c.owner) && c.type !== 'closed' && c.members.length < clans.MAX_MEMBERS && (c.minTier || 0) <= tier);
+      const fixed = new Set([...specs.values()].filter(p => /^#\d{6}$/.test(String(p.clan || ''))).map(p => p.clan.slice(1)));   // 名簿で決めた人のクラン（#ID）には、ほかの住人は入らない
+      const cs = clans.all().filter(c => !auth.isNpc(c.owner) && !fixed.has(c.id) && c.type !== 'closed' && c.members.length < clans.MAX_MEMBERS && (c.minTier || 0) <= tier);
       if (cs.length) {
         const c = pick(r, cs), res = clans.join(u.id, c.id, tier);
         if (res.requested) for (const id of clans.managers(res.clan)) hooks.pushTo(id, { type: 'clan_req' });
@@ -460,10 +533,10 @@ function social(now, r) {
       }
     }
   }
-  // 人のクランから、まれに抜ける（名簿でクランを決めた人は抜けない）
+  // 人のクランから、まれに抜ける（名簿で人のクランに決めた人は抜けない）
   for (const u of npcs) {
-    const c = clans.clanOf(u.id), L = live.get(u.id), sp = specs.get(u.npc.k);
-    if (!c || auth.isNpc(c.owner) || (sp && sp.clan) || !L || !L.on || busy.has(u.id)) continue;
+    const c = clans.clanOf(u.id), L = live.get(u.id), sp = specs.get(u.npc.k) || {};
+    if (!c || auth.isNpc(c.owner) || /^#/.test(String(sp.clan || '')) || !L || !L.on || busy.has(u.id)) continue;
     if (r() < LEAVE_HUMAN_PER_DAY * TICK_MS / DAY) { clans.leave(u.id); hooks.log('residents: left human clan', c.id, u.id); }
   }
 }

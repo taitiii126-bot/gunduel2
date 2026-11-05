@@ -498,9 +498,9 @@ function rateState2(u) {
 }
 // ランクアップ：今シーズンでいちばん高い段を更新したとき（server.js がクランのできごとに残す）。
 // ゴールドⅠから上は段ごと、ブロンズ・アイアンはアイアンⅠ・ゴールドⅠに上がったときだけ（2勝ごとに段が上がるので）
-let rankHook = null;
+let rankHook = null, rankQuiet = false;   // rankQuiet：住人の前の試合を作っている間は知らせない
 function rankUp(u, prevPeak, t, two) {
-  if (!rankHook || !(t > prevPeak) || !(t >= 7 || (t > 1 && t % 3 === 1))) return;
+  if (!rankHook || rankQuiet || !(t > prevPeak) || !(t >= 7 || (t > 1 && t % 3 === 1))) return;
   try { rankHook(u.id, t, two); } catch (e) { console.error('rank hook:', e.message); }
 }
 function writeRate2(u, r, win) {
@@ -1250,6 +1250,7 @@ const auth = {
   },
   touch,
   onRankUp(fn) { rankHook = typeof fn === 'function' ? fn : null; },   // ランクアップを知らせる先（server.js）
+  npcQuiet(v) { rankQuiet = !!v; },
   stats() { const n = humans().length; return { users: n, residents: Object.keys(db.users).length - n, tokens: Object.keys(db.tokens).length }; },
   _flush: flush,
 };
