@@ -40,6 +40,7 @@ try { bots = require('./bots'); } catch (e) { console.error('bots.js を読み�
 // 住人（サーバーの中で暮らすプレイヤー）。無くても動くようにする
 let residents = null;
 try { residents = require('./residents'); } catch (e) { console.error('residents.js を読み込めませんでした。住人は出ません:', e.message); }
+auth.onRankUp((uid, tier, two) => clans.rankUp(uid, tier, two));   // ランクアップを、クランのできごとに残す
 const interactions = require('./interactions');
 const { TIER_COLORS, TIER_KEYS, tierLabel } = require('./profile');
 

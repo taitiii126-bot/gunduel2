@@ -496,7 +496,15 @@ function rateState2(u) {
   return { rate: u.rate2, tier: SIM.tierOfRate(u.rate2), games: u.rgames2 || 0, streak: u.rstreak2 || 0, wstreak: u.rwstreak2 || 0,
     w: u.ranked2.w, l: u.ranked2.l, peak: u.rpeak2 || u.rate2, boostTo: u.rboost2 || 0 };
 }
+// ランクアップ：今シーズンでいちばん高い段を更新したとき（server.js がクランのできごとに残す）。
+// ゴールドⅠから上は段ごと、ブロンズ・アイアンはアイアンⅠ・ゴールドⅠに上がったときだけ（2勝ごとに段が上がるので）
+let rankHook = null;
+function rankUp(u, prevPeak, t, two) {
+  if (!rankHook || !(t > prevPeak) || !(t >= 7 || (t > 1 && t % 3 === 1))) return;
+  try { rankHook(u.id, t, two); } catch (e) { console.error('rank hook:', e.message); }
+}
 function writeRate2(u, r, win) {
+  const peak0 = SIM.tierOfRate(Math.max(u.rpeak2 || 0, typeof r.before === 'number' ? r.before : 0));
   const s = stOf(u); pushRate(s.rh2, r.before, r.rate); s.rb2 = Math.max(s.rb2, r.wstreak | 0, u.rwstreak2 | 0);
   u.rate2 = r.rate; u.rgames2 = r.games; u.rstreak2 = r.streak; u.rwstreak2 = r.wstreak;
   u.rpeak2 = Math.max(u.rpeak2 || 0, r.rate);
@@ -504,8 +512,10 @@ function writeRate2(u, r, win) {
   if (win) u.ranked2.w++; else u.ranked2.l++;
   bestTierOf(u);
   touch();
+  rankUp(u, peak0, SIM.tierOfRate(r.rate), true);
 }
 function writeRate(u, r, win) {
+  const peak0 = SIM.tierOfRate(Math.max(u.rpeak || 0, typeof r.before === 'number' ? r.before : 0));
   const s = stOf(u); pushRate(s.rh, r.before, r.rate); s.rb = Math.max(s.rb, r.wstreak | 0, u.rwstreak | 0);
   u.rate = r.rate; u.rtier = r.tier; u.rgames = r.games; u.rstreak = r.streak; u.rwstreak = r.wstreak;
   u.rpeak = Math.max(u.rpeak || 0, r.rate);
@@ -513,6 +523,7 @@ function writeRate(u, r, win) {
   if (win) u.ranked.w++; else u.ranked.l++;
   bestTierOf(u);
   touch();
+  rankUp(u, peak0, r.tier, false);
 }
 function flush() {
   if (!dirty) return;
@@ -1238,6 +1249,7 @@ const auth = {
     return out;
   },
   touch,
+  onRankUp(fn) { rankHook = typeof fn === 'function' ? fn : null; },   // ランクアップを知らせる先（server.js）
   stats() { const n = humans().length; return { users: n, residents: Object.keys(db.users).length - n, tokens: Object.keys(db.tokens).length }; },
   _flush: flush,
 };
