@@ -103,6 +103,13 @@
     { "key": "n81", "name": "GGEZ", "rank": "master", "climb": true, "clan": "NKG", "play": "heavy" },
     { "key": "n82", "name": "AFK中", "rank": "bronze", "clan": "NDN", "play": "casual" },
     { "key": "n83", "name": "二度寝の民", "rank": "iron", "clan": "NDN", "role": "leader", "time": "afternoon" },
-    { "key": "n84", "name": "ニ〇チュウ", "rank": "gold" }
+    { "key": "n84", "name": "ニ〇チュウ", "rank": "gold" },
+
+    { "key": "n85", "name": "KT|Rento", "rank": "legend", "climb": true, "clan": "#212026", "role": "member", "play": "heavy" },
+    { "key": "n86", "name": "KT|Minato", "rank": "legend", "climb": true, "clan": "#212026", "role": "member", "play": "heavy", "time": "night" },
+    { "key": "n87", "name": "KT|Sena", "rank": "master", "climb": true, "clan": "#212026", "role": "member", "play": "heavy" },
+    { "key": "n88", "name": "ようかん大佐", "rank": "legend", "climb": true, "clan": "#212026", "role": "recruit" },
+    { "key": "n89", "name": "まくら投げ王", "rank": "legend", "climb": true, "clan": "#212026", "role": "recruit", "time": "night" },
+    { "key": "n90", "name": "徹夜の鬼", "rank": "master", "climb": true, "clan": "#212026", "role": "recruit", "play": "heavy", "time": "night" }
   ]
 }
