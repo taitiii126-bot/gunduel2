@@ -308,7 +308,7 @@ body.mland #game-screen.range.rp-open #gm-weps{display:none;}
 .dev-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .dev-btns .room-btn{min-height:52px;font-size:14px;}
 .dev-btns .dev-cheat{background:linear-gradient(180deg,#FF6B7A,#D92D42);color:#fff;}
-.fr-sheet{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:center;width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:20px;border:1px solid var(--line-2);border-radius:18px;background:var(--panel-solid);box-shadow:0 30px 70px -20px rgba(0,0,0,.9);animation:frm-in .3s var(--ease) both;}
+.fr-sheet{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:center;width:min(640px,100%);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:20px;border:1px solid var(--line-2);border-radius:18px;background:var(--panel-solid);box-shadow:0 30px 70px -20px rgba(0,0,0,.9);animation:frm-in .3s var(--ease) both;}
 .fr-card{display:block;width:100%;height:auto;aspect-ratio:380/500;}
 .fr-stats{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 14px;margin:14px 0 18px;font-size:13px;}
 .fr-stats dt{color:var(--tx-3);font-weight:700;}
@@ -576,6 +576,11 @@ button.hs-who:hover .hs-pn b,button.hs-who:focus-visible .hs-pn b{text-decoratio
 .cl-list{display:flex;flex-direction:column;gap:6px;}
 .cl-no{display:grid;place-items:center;width:28px;height:28px;border-radius:8px;background:rgba(255,255,255,.08);font-family:var(--f-ui);font-size:14px;font-weight:800;color:var(--tx-2);}
 .cl-who{display:flex;align-items:center;gap:9px;min-width:0;}
+.cl-mrow.tap,.hs-p.tap{cursor:pointer;-webkit-tap-highlight-color:rgba(124,200,255,.12);}
+.cl-mrow.tap:hover{border-color:rgba(124,200,255,.35);}
+.hs-p.tap:hover{background:rgba(255,255,255,.07);}
+.cl-mrow.tap:active,.hs-p.tap:active{background:linear-gradient(180deg,#283048,#1E2333);}
+.cl-tapnote{margin:2px 2px 0;font-size:11.5px;font-weight:700;color:var(--tx-3);}
 .cl-whob{padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;cursor:pointer;border-radius:10px;}
 .cl-whob:hover b,.cl-whob:focus-visible b{text-decoration:underline;text-underline-offset:3px;}
 .pm-chips{display:flex;flex-wrap:wrap;gap:6px;}
@@ -583,6 +588,18 @@ button.hs-who:hover .hs-pn b,button.hs-who:focus-visible .hs-pn b{text-decoratio
 .room-btn.pm-inv{background:rgba(255,197,61,.12);color:var(--gold);border:1px solid rgba(255,197,61,.55);box-shadow:none;}
 .room-btn.pm-inv:hover{background:rgba(255,197,61,.2);}
 .pm-close{margin-top:8px;}
+/* スマホ：カードを小さくし、フレンド申請・招待のボタンをカードのすぐ下に（画面の下にはみ出して押せない、をなくす） */
+@media (max-width:560px){
+  #pm-modal .fr-sheet{gap:8px;padding:14px;}
+  #pm-modal .fr-card{width:min(150px,42vw);}
+  #pm-modal .pm-body{display:flex;flex-direction:column;gap:8px;}
+  #pm-st{order:0;text-align:center;}
+  #pm-msg{order:1;margin:0;}
+  #pm-acts{order:2;}
+  #pm-modal .fr-stats{order:3;margin:4px 0 0;gap:6px 12px;font-size:12.5px;}
+  #pm-modal .pm-close{order:4;margin-top:4px;}
+  #pm-acts .room-btn{padding:12px;}
+}
 #pm-acts:empty{display:none;}
 #pm-acts .ol-note{margin:0;font-size:12px;color:var(--tx-3);}
 .cl-who>span{display:flex;flex-direction:column;min-width:0;}
@@ -3282,7 +3299,7 @@ body.mland .home-hero{height:72vh;}
 <div id="pm-modal" class="fr-modal" onclick="if(event.target===this)closePlayer()">
   <div class="fr-sheet" role="dialog" aria-modal="true">
     <canvas id="pm-card" class="fr-card" width="380" height="500"></canvas>
-    <div>
+    <div class="pm-body">
       <span class="fr-st" id="pm-st"></span>
       <dl class="fr-stats" id="pm-stats"></dl>
       <p class="fr-msg" id="pm-msg" hidden></p>
@@ -3322,7 +3339,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=63"></script>
-<script src="lang.js?v=85"></script>
+<script src="lang.js?v=86"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -7035,15 +7052,17 @@ function clanDetailHtml(C,own){
     '<div class="cl-seg">'+['week','total'].map(function(b){return'<button class="'+(k===b?'sel':'')+'" onclick="clanMby(\''+b+'\')">'+esc(t('cl.'+b))+'</button>';}).join('')+'</div></div>';
   if(leader&&C.req&&C.req.length){
     h+='<div class="cl-reqs"><h4>'+esc(t('cl.reqs',{n:C.req.length}))+'</h4>'+C.req.map(function(q){
-      return'<div class="cl-mrow req"><button class="cl-who cl-whob" onclick="openPlayer(\''+safeFid(q.fid)+'\')">'+clanAv(q)+'<span><b>'+esc(q.name)+'</b><small>'+esc(agoText(q.at))+'</small></span></button>'+
+      return'<div class="cl-mrow req tap" onclick="pmRowTap(event,\''+safeFid(q.fid)+'\')"><button class="cl-who cl-whob" onclick="openPlayer(\''+safeFid(q.fid)+'\')">'+clanAv(q)+'<span><b>'+esc(q.name)+'</b><small>'+esc(agoText(q.at))+'</small></span></button>'+
         '<span class="cl-tr"><canvas data-tr="'+(+q.tier||0)+'" width="40" height="40"></canvas>'+esc(tierName(+q.tier||0))+'</span>'+
         '<span class="cl-rq"><button class="cl-ok" onclick="clanAccept(\''+safeFid(q.fid)+'\')">'+esc(t('cl.accept'))+'</button><button class="cl-ng" onclick="clanDecline(\''+safeFid(q.fid)+'\')">'+esc(t('cl.decline'))+'</button></span></div>';}).join('')+'</div>';
   }
+  h+='<p class="cl-tapnote">'+esc(t('cl.tapHint'))+'</p>';
   h+='<div class="cl-mrow cl-mhead"><span>#</span><span>'+esc(t('cl.colName'))+'</span><span class="cl-hst">'+esc(t('cl.colStatus'))+'</span><span>'+esc(t('cl.colTier'))+'</span><span>'+esc(t(k==='week'?'cl.week':'cl.total'))+'</span><span></span></div><div class="cl-list">';
   ms.forEach(function(m,i){
     var rl=typeof m.role==='number'?m.role:(m.owner?4:1),can=own&&m.fid!==me&&my>=2&&rl<my;m.role=rl;
     var who=clanAv(m)+'<span><b>'+esc(m.name)+'</b><small class="cl-role r'+rl+'">'+esc(clanRoleName(rl))+'</small></span>';   // 押すとプロフィール（自分は除く）
-    h+='<div class="cl-mrow'+(m.fid===me?' me':'')+(CLAN.menu===m.fid&&can?' open':'')+'"><span class="cl-no">'+(i+1)+'</span>'+
+    var tap=m.fid&&m.fid!==me;
+    h+='<div class="cl-mrow'+(m.fid===me?' me':'')+(tap?' tap':'')+(CLAN.menu===m.fid&&can?' open':'')+'"'+(tap?' onclick="pmRowTap(event,\''+safeFid(m.fid)+'\')"':'')+'><span class="cl-no">'+(i+1)+'</span>'+
       (m.fid&&m.fid!==me?'<button class="cl-who cl-whob" onclick="openPlayer(\''+safeFid(m.fid)+'\')" aria-label="'+esc(t('pm.open',{name:m.name}))+'">'+who+'</button>':'<span class="cl-who">'+who+'</span>')+
       '<span class="cl-st"><small>'+esc(t('cl.colStatus'))+'</small>'+clanStatus(m)+'</span>'+
       '<span class="cl-tr"><canvas data-tr="'+(+m.tier||0)+'" width="40" height="40"></canvas>'+esc(tierName(+m.tier||0))+'</span>'+
@@ -7455,7 +7474,7 @@ function histPerson(p){
   }
   var who='<canvas data-hav="'+i+'" width="80" height="80"></canvas><span class="hs-pn"><b>'+(p.clan?'<span class="cl-tag sm">'+esc(p.clan)+'</span>':'')+esc(p.name||'?')+'</b>'+
     '<small>'+esc(tierName(+p.tier||0))+(p.rate?' · '+(+p.rate):'')+(p.status==='online'?' · <i class="hs-on">'+esc(t('fst.online'))+'</i>':'')+'</small></span>';
-  return'<div class="hs-p">'+(f&&!p.guest?'<button class="hs-who" onclick="openPlayer(\''+f+'\')">'+who+'</button>':'<span class="hs-who">'+who+'</span>')+'<span class="hs-pa">'+acts+'</span></div>';
+  return'<div class="hs-p'+(f&&!p.guest?' tap" onclick="pmRowTap(event,\''+f+'\')':'')+'">'+(f&&!p.guest?'<button class="hs-who" onclick="openPlayer(\''+f+'\')">'+who+'</button>':'<span class="hs-who">'+who+'</span>')+'<span class="hs-pa">'+acts+'</span></div>';
 }
 function histCard(e){
   var me=e.me||{},acc=me.sh?Math.round(me.hi/me.sh*100)+'%':'-',ping=me.ping?me.ping+'ms':'-',sc=e.sc||[0,0];
@@ -7507,6 +7526,8 @@ function openPlayer(fid){
   document.getElementById('pm-modal').classList.add('show');
   renderPlayer();loadPlayer();
 }
+// 行を押したとき：中のボタン（名前・管理・申請・招待など）を押したときは、そのボタンだけが動く
+function pmRowTap(e,fid){var x=e&&e.target;if(x&&x.closest&&x.closest('button,a,input,select,textarea'))return;openPlayer(fid);}
 function closePlayer(){PM.fid=null;PM.d=null;PM.seq++;var m=document.getElementById('pm-modal');if(m)m.classList.remove('show');}
 function loadPlayer(){
   var fid=PM.fid,n=++PM.seq,h={};if(!fid)return;
@@ -16310,7 +16331,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,clanInvAnswer,showHistory,histFriend,histInvite,openPlayer,closePlayer,pmFriend,pmInvite,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,clanInvAnswer,showHistory,histFriend,histInvite,openPlayer,closePlayer,pmFriend,pmInvite,pmRowTap,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
