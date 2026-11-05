@@ -37,6 +37,9 @@ const clans = require('./clans');   // クラン
 // bots.js が無くても動くようにする（上げ忘れてもサーバー全体が止まらないように）
 let bots = null;
 try { bots = require('./bots'); } catch (e) { console.error('bots.js を読み込めませんでした。BOTの相手は出ません:', e.message); }
+// 住人（サーバーの中で暮らすプレイヤー）。無くても動くようにする
+let residents = null;
+try { residents = require('./residents'); } catch (e) { console.error('residents.js を読み込めませんでした。住人は出ません:', e.message); }
 const interactions = require('./interactions');
 const { TIER_COLORS, TIER_KEYS, tierLabel } = require('./profile');
 
@@ -192,14 +195,18 @@ function recordBotResult(room, winner, loser, reason) {
 
   const p = winner.bot ? loser : winner, bot = winner.bot ? winner : loser, win = !winner.bot;
   if (!p || p.bot) return;
+  // 住人（アカウントのある BOT）の側の記録。人の側が記録される試合だけ（ゲストのカジュアルも）
+  const hRate = p.rate, npcRec = () => { if (bot.npc && residents) residents.record(bot.npc, { win: !win, ranked: room.ranked && !!p.uid, theirs: hRate,
+    rw: roundsOf(room, bot), rl: roundsOf(room, p), forfeit: false, stage: room.stage, tally: bot.tally }); };
   // カジュアル：勝てば次のBOTが強くなる（負ければ弱くなる）。本物のレートは動かさないので、ゲストでも効く
   if (!room.ranked && !p.suspect && p.acts >= ACTIVE_MIN_INPUTS && p.ws) {
     const lv = setBotLevel(p.ws, botLevelFor(p.ws, bot.rate) + (win ? BOT_UP : -BOT_DOWN));
     log(tag, 'bot level:', lv, win ? '(勝ち)' : '(負け)');
   }
-  if (!p.uid) return;                                      // ここから先は戦績の記録（ログインした人だけ）
+  if (!p.uid) { if (!p.suspect && p.acts >= ACTIVE_MIN_INPUTS) npcRec(); return; }   // ここから先は戦績の記録（ログインした人だけ）
   if (p.suspect) return log(tag, 'not recorded: suspicious play');
   if (p.acts < ACTIVE_MIN_INPUTS) return log(tag, 'not recorded: a player was idle');
+  npcRec();
   auth.recordOnlineResult(p.uid, win);
   if (p.ws.account) { if (win) p.ws.account.wins = (p.ws.account.wins || 0) + 1; else p.ws.account.losses = (p.ws.account.losses || 0) + 1; }
   p.rec[win ? 'w' : 'l']++;
@@ -352,7 +359,7 @@ function openRoom() {
     onClose: r => {
       rooms.delete(r.id); log('room closed', r.id, `(rooms: ${rooms.size})`);
       cancelInvites(r.id);
-      for (const k of ['a', 'b']) if (r.players[k]) presence.changed(r.players[k].uid);
+      for (const k of ['a', 'b']) if (r.players[k]) { if (r.players[k].npc && residents) residents.release(r.players[k].npc); presence.changed(r.players[k].uid); }
     },
     onResult: (w, l, reason) => {
       progressOnline(w, true, room.stage); if (reason !== 'forfeit') progressOnline(l, false, room.stage);   // 称号・ミッション・経験値（途中で抜けた人には付けない）
@@ -372,7 +379,7 @@ function openTeamRoom(opt) {
     onClose: r => {
       rooms.delete(r.id); log('room closed', r.id, '(2v2)', `(rooms: ${rooms.size})`);
       cancelInvites(r.id);
-      for (const p of r.allPlayers()) if (p.uid || p.uidLeft) presence.changed(p.uid || p.uidLeft);
+      for (const p of r.allPlayers()) { if (p.npc && residents) residents.release(p.npc); if (p.uid || p.uidLeft) presence.changed(p.uid || p.uidLeft); }
     },
     onResult: (r, winTeam) => {
       for (const k of TEAM_SLOTS) { const p = r.players[k]; if (p && !p.done) progressOnline(p, teamOf(k) === winTeam, r.stage); }
@@ -396,6 +403,14 @@ function sendRate2(p, r, win) {
 // 2v2 の結果：人だけ記録する（BOT と、先に抜けて負けを記録した人は除く）。ランクなら 2v2 のレートを動かす
 function recordTeamResult(room, winTeam) {
   const tag = 'room ' + room.id + ' (2v2)', avg = [teamAvg(room, 0), teamAvg(room, 1)], withBots = room.hasBots();
+  // 住人（アカウントのある BOT）の記録
+  if (residents) for (const k of TEAM_SLOTS) {
+    const p = room.players[k];
+    if (!p || !p.bot || !p.npc || p.done) continue;
+    p.done = true;
+    const t = teamOf(k), wins = room.wins || [0, 0];
+    residents.record(p.npc, { two: true, win: t === winTeam, ranked: room.ranked, mine: avg[t], theirs: avg[1 - t], rw: wins[t] || 0, rl: wins[1 - t] || 0, stage: room.stage, tally: p.tally });
+  }
   for (const k of TEAM_SLOTS) {
     const p = room.players[k];
     if (!p || p.done || p.bot) continue;
@@ -553,8 +568,12 @@ function startBotMatch(ws, q) {
   // ランクは本人のレート、カジュアルは「その場の強さ」（勝つほど上がる）を基準にする
   const level = q.mode === 'ranked' ? q.rate : botLevelFor(ws, q.rate);
   const rate = Math.max(SIM.RATE_FLOOR, Math.min(3000, Math.round(level + (Math.random() * 60 - 30))));
-  const bot = bots.makeBot(rate, null, rate + botBoost(q.mode === 'ranked'));   // 見せるレートはそのまま、思考だけ底上げ
+  // 近いレートの住人がいれば、その人が相手（ランクは住人のレート、カジュアルは「その場の強さ」で考える）。いなければ名前のない BOT
+  const nid = residents && residents.pick({ rate: level, ranked: q.mode === 'ranked', range: 120 + Math.min(150, queueSec(q) * 3) });
+  const bot = (nid && residents.botFor(nid, (q.mode === 'ranked' ? auth.rating(nid).rate : rate) + botBoost(q.mode === 'ranked')))
+    || bots.makeBot(rate, null, rate + botBoost(q.mode === 'ranked'));   // 見せるレートはそのまま、思考だけ底上げ
   if (room.joinBot(bot) == null) { room.close(); return false; }
+  if (bot.npc) residents.take(bot.npc, room.id);
   send(ws, { type: 'match_found', roomId: room.id, slot: ws.slot, mode: q.mode, ranked: room.ranked });
   log('match', room.id, q.mode, q.rate + ' vs bot ' + bot.rate + (q.mode === 'ranked' ? '' : ' (lv ' + Math.round(level) + ')'), '(' + bot.name + ', waited ' + queueSec(q) + 's)');
   room.start();
@@ -649,9 +668,16 @@ function startTeamMatch(mode, A, B) {
   const jitter = r => Math.max(SIM.RATE_FLOOR, Math.min(3000, Math.round(r + (Math.random() * 60 - 30))));
   A.forEach((x, i) => { if (x) room.join(x.ws, x.q.info, ['a', 'c'][i]); });
   B.forEach((x, i) => { if (x) room.join(x.ws, x.q.info, ['b', 'd'][i]); });
-  const mk = r => { const v = jitter(r); return bots.makeBot(v, null, v + botBoost(room.ranked)); };
-  A.forEach((x, i) => { if (!x) room.joinBot(mk(hasA ? ra : rb), ['a', 'c'][i]); });
-  B.forEach((x, i) => { if (!x) room.joinBot(mk(hasB ? rb : ra), ['b', 'd'][i]); });
+  const used = new Set();   // 空いている場所は、近いレートの住人（いなければ名前のない BOT）
+  const mk = r => {
+    const v = jitter(r), nid = residents && residents.pick({ rate: r, ranked: room.ranked, two: true, exclude: used });
+    const b = nid && residents.botFor(nid, (room.ranked ? auth.rating2(nid).rate : v) + botBoost(room.ranked), true);
+    if (b) { used.add(nid); return b; }
+    return bots.makeBot(v, null, v + botBoost(room.ranked));
+  };
+  const addBot = (b, slot) => { if (room.joinBot(b, slot) != null && b.npc) residents.take(b.npc, room.id); };
+  A.forEach((x, i) => { if (!x) addBot(mk(hasA ? ra : rb), ['a', 'c'][i]); });
+  B.forEach((x, i) => { if (!x) addBot(mk(hasB ? rb : ra), ['b', 'd'][i]); });
   for (const x of humans) send(x.ws, { type: 'match_found', roomId: room.id, slot: x.ws.slot, mode, ranked: room.ranked, team: true });
   log('match2', room.id, mode, Math.round(ra) + ' vs ' + Math.round(rb), 'humans ' + humans.length + ' / bots ' + (4 - humans.length));
   room.start();
@@ -686,6 +712,39 @@ function cancelInvites(roomId) {
   for (const [id, iv] of invites) if (iv.roomId === roomId) { invites.delete(id); pushTo(iv.to, { type: 'invite_cancel', id }); }
 }
 
+// ---- 住人への招待・パーティーの誘い：数秒考えてから返事をする ----
+// 対戦の招待は、手があいていれば6割ほど受けて、BOT として部屋に入る（1v1 の部屋だけ）。パーティーは受けない
+function npcInviteReply(id) {
+  setTimeout(() => guard('npc invite', () => {
+    const iv = invites.get(id);
+    if (!iv) return;
+    invites.delete(id);
+    const room = rooms.get(iv.roomId), u = auth.user(iv.to);
+    const ok = !!(room && u && room.kind !== 'team' && room.phase === 'waiting' && room.players.a && room.players.a.uid === iv.from && !room.players.b
+      && rooms.size <= MAX_ROOMS && residents.answerInvite(iv.to, 'invite'));
+    const bot = ok && residents.botFor(iv.to, auth.rating(iv.to).rate + BOT_SKILL_BOOST);
+    if (!bot || room.joinBot(bot) == null) {
+      pushTo(iv.from, { type: 'invite_declined', fid: u ? u.fid : '', name: u && u.profile ? u.profile.name : '', timeout: false });
+      return;
+    }
+    residents.take(iv.to, room.id);
+    pushTo(iv.from, { type: 'invite_accepted', fid: u.fid, name: u.profile.name });
+    log('invite accepted (resident)', room.id, 'discord=' + iv.from, '->', iv.to);
+    room.start();
+    cancelInvites(room.id);
+    presence.changed(iv.from);
+  }), 4000 + Math.floor(Math.random() * 8000)).unref();
+}
+function npcPartyReply(id) {
+  setTimeout(() => guard('npc party', () => {
+    const iv = partyInvites.get(id);
+    if (!iv) return;
+    partyInvites.delete(id);
+    const u = auth.user(iv.to);
+    if (u) pushTo(iv.from, { type: 'party_declined', fid: u.fid, name: u.profile ? u.profile.name : u.name, timeout: false });
+  }), 3000 + Math.floor(Math.random() * 6000)).unref();
+}
+
 // オンライン状態：部屋にいる人は「対戦中」（相手待ちはオンライン扱い）
 presence.configure({
   roomOf(uid) {
@@ -705,6 +764,8 @@ presence.configure({
     for (const f of auth.friendIds(uid)) pushTo(f, msg);
   },
 });
+// 住人を起こす（はじめての起動では、住人を作って、今のシーズンの試合をしてから）
+if (residents) guard('residents init', () => residents.init({ pushTo, cardOf, log }));
 
 function onMessage(ws, raw) {
   if (++ws.msgs > MSG_PER_SEC) { if (ws.msgs > MSG_KICK_PER_SEC) ws.destroy(); return; }
@@ -843,6 +904,7 @@ function onMessage(ws, raw) {
       partyInvites.set(id, { id, from: uid, to: t.id, at: Date.now() });
       pushTo(t.id, { type: 'party_invite', id, from: cardOf(uid) });
       send(ws, { type: 'party_sent', fid: t.fid });
+      if (residents && auth.isNpc(t.id)) npcPartyReply(id);   // 住人：少し考えてから返事
       log('party invite', 'discord=' + uid, '->', 'discord=' + t.id);
       break;
     }
@@ -942,6 +1004,7 @@ function onMessage(ws, raw) {
       invites.set(id, { id, from: uid, to: t.id, roomId: room.id });
       pushTo(t.id, { type: 'invite', id, roomId: room.id, from: cardOf(uid) });
       send(ws, { type: 'invite_sent', fid: t.fid, status: st });
+      if (residents && auth.isNpc(t.id)) { residents.hold(t.id, 20000); npcInviteReply(id); }   // 住人：少し考えてから返事
       log('invite', room.id, 'discord=' + uid, '->', 'discord=' + t.id, '(' + st + ')');
       break;
     }
@@ -1001,7 +1064,7 @@ function handleHttp(req, res) {
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   if (BANNED_IPS.has(ip)) return json(res, 403, { error: '利用停止されています' });
   // yourIp はサーバーから見えている自分のIP（Railwayで正しく判定できているかの確認用）
-  if (url === '/health') return json(res, 200, { ok: true, rooms: rooms.size, connections: sockets.size, online: presence.count(), uptime: Math.round(process.uptime()), accounts: auth.stats().users, yourIp: ip });
+  if (url === '/health') return json(res, 200, { ok: true, rooms: rooms.size, connections: sockets.size, online: presence.count(), uptime: Math.round(process.uptime()), accounts: auth.stats().users, residents: auth.stats().residents, yourIp: ip });
   // Discord のスラッシュコマンド（/info）。署名を確かめてから答える
   if (url === '/discord/interactions' && req.method === 'POST') return interactions.handle(req, res, log);
   if (url === '/api/config') return json(res, 200, { login: auth.enabled(), clientId: auth.clientId(), requireLogin: REQUIRE_LOGIN, proto: SIM.PROTO });

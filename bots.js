@@ -140,4 +140,4 @@ function makeBot(rate, rnd, cfgRate) {
   };
 }
 
-module.exports = { makeBot };
+module.exports = { makeBot, botLook, botLoadout, BIOS, ROMA, NUMS };   // 住人（residents.js）も同じ作り方を使う

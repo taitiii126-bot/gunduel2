@@ -209,7 +209,8 @@ class Room {
     // そのぶんの遅れ（約0.1〜0.15秒）を反応に足して、人と同じ条件にする
     const lag = 6 + Math.floor(Math.random() * 4);
     p.bot = true; p.brain = SIM.newBrain(Object.assign({}, bot.cfg, { react: bot.cfg.react + lag })); p.rate = bot.rate; p.tier = bot.tierKey;
-    p.title = bot.title; p.bg = bot.bg; p.discord = bot.name; p.verified = true;
+    p.title = bot.title; p.bg = bot.bg; p.discord = bot.discord || bot.name; p.verified = true;
+    p.npc = bot.npc || null;   // 住人（アカウントのある BOT）なら、その ID（試合の記録を残す）
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     p.srtt = 16 + Math.floor(Math.random() * 46);   // 通信の速さ（人と同じように相手の画面に出る）
     require('./botchat').init(p);   // チャットの性格
@@ -394,7 +395,7 @@ class Room {
     this.phase = 'roundOver';
     this.roundsDone++;
     if (winner) this.wins[winner]++;
-    for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyRoundEnd(p.tally, winner === s, this.stage); }
+    for (const s of SLOTS) { const p = this.players[s]; if (p && (!p.bot || p.npc) && p.tally) SIM.tallyRoundEnd(p.tally, winner === s, this.stage); }
     this.broadcast({ type: 'round_end', winner, wins: { ...this.wins }, state: this.state(), fx: fx || [] });
     const over = !!(winner && this.wins[winner] >= WIN_ROUNDS), BC = require('./botchat');
     for (const s of SLOTS) { const c = this.world.chars[s]; if (over) BC.onEnd(this, s, winner === s, this.canRematch()); else BC.onRound(this, s, winner === s, c && !c.dead ? c.hp : 0); }
@@ -520,7 +521,7 @@ class Room {
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p && !p.bot && p.watch) this.watchHit(p, SIM.watchPost(p.watch, w, ev, s, other(s)));
-      if (p && !p.bot && p.tally) SIM.tallyEvents(p.tally, w, ev, s);   // 称号・ミッションの記録（サーバーが数える）
+      if (p && (!p.bot || p.npc) && p.tally) SIM.tallyEvents(p.tally, w, ev, s);   // 称号・ミッションの記録（サーバーが数える）
     }
     const fx = packFx(ev);
     const ad = w.chars.a.dead, bd = w.chars.b.dead;

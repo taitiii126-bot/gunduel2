@@ -137,7 +137,7 @@ function embedFor(u, lang) {
       { name: T(lang, 'bot.status'), value: status, inline: true },
       { name: T(lang, 'bot.online'), value: rec(c.online), inline: true },
       { name: T(lang, 'bot.cpu'), value: rec(c.cpu), inline: true },
-      { name: 'Discord', value: '<@' + u.id + '>', inline: true },
+      { name: 'Discord', value: auth.isNpc(u.id) ? '@' + md(u.name) : '<@' + u.id + '>', inline: true },   // 住人は Discord のアカウントがないので、名前だけ
     ],
     footer: { text: 'GUN DUEL · ' + T(lang, 'bot.fid') + ' ' + c.fid },
   };

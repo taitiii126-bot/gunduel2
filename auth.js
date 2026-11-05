@@ -229,7 +229,7 @@ if (!db.meta.bestEpoch) {
 function seasonTop() {
   let best = null;
   for (const u of Object.values(db.users)) {
-    if (BANNED_IDS.has(String(u.id))) continue;
+    if (BANNED_IDS.has(String(u.id)) || u.npc) continue;   // 住人は「天下無双」をもらわない
     const r = rateState(u);
     if (r.games < 1) continue;                                  // ランクマッチをしていない人は対象外
     if (!best || r.rate > best.rate || (r.rate === best.rate && r.games > best.games)) best = { u, rate: r.rate, games: r.games };
@@ -240,7 +240,7 @@ function seasonTop() {
 function seasonTop2() {
   let best = null;
   for (const u of Object.values(db.users)) {
-    if (BANNED_IDS.has(String(u.id))) continue;
+    if (BANNED_IDS.has(String(u.id)) || u.npc) continue;
     const r = rateState2(u);
     if (r.games < 1) continue;
     if (!best || r.rate > best.rate || (r.rate === best.rate && r.games > best.games)) best = { u, rate: r.rate, games: r.games };
@@ -291,11 +291,12 @@ setInterval(() => logSeason(rollSeason()), 60 * 1000).unref();   // 月が変わ
 
 // 開拓者：最初の100人のアカウント（あとから外れることはない）
 const PIONEERS = 100;
-Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, PIONEERS)
+const humans = () => Object.values(db.users).filter(u => !u.npc);   // 住人（residents.js）は数えない
+humans().sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, PIONEERS)
   .forEach(u => { if (!u.pioneer) { u.pioneer = true; dirty = true; } });
 // 超古参プレイヤー：いちばん最初の10人のアカウント（あとから外れることはない）
 const FIRST_TEN = 10;
-Object.values(db.users).sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, FIRST_TEN)
+humans().sort((a, b) => (a.created || 0) - (b.created || 0)).slice(0, FIRST_TEN)
   .forEach(u => { if (!u.pioneer10) { u.pioneer10 = true; dirty = true; } });
 // 称号の確認に使う本人の情報
 // サーバーが決める値（持ち物・開けた数・ミッションの宝箱・天井）は、前にサーバーが保存した値を使う
@@ -625,8 +626,9 @@ const auth = {
     if (!u) {
       u = db.users[uid] = { id: uid, name: '', created: Date.now(), online: { w: 0, l: 0 } };
       giveFid(u);
-      if (Object.keys(db.users).length <= PIONEERS) u.pioneer = true;
-      if (Object.keys(db.users).length <= FIRST_TEN) u.pioneer10 = true;
+      const n = humans().length;   // 住人は数えない
+      if (n <= PIONEERS) u.pioneer = true;
+      if (n <= FIRST_TEN) u.pioneer10 = true;
     }
     u.name = cleanName(info.name);
     setGift(u); setTears(u); setDev(u);                // 配った称号は、入り直すたびに環境変数と合わせる
@@ -1178,7 +1180,53 @@ const auth = {
       rh: S.rh.slice(), rh2: S.rh2.slice(),
     };
   },
-  stats() { return { users: Object.keys(db.users).length, tokens: Object.keys(db.tokens).length }; },
+  // ---- 住人（サーバーの中で暮らすプレイヤー。動かすのは residents.js）----
+  // ほかの人と同じアカウントの形で持つ（u.npc に住人の印と、覚えておくこと）。DiscordのIDはないので id は 'npc_' から始まる
+  isNpc(uid) { const u = db.users[uid]; return !!(u && u.npc); },
+  npcMeta() { if (!db.meta.npc || typeof db.meta.npc !== 'object') { db.meta.npc = {}; touch(); } return db.meta.npc; },   // 住人のクランの番号など
+  npcMetaClear() { delete db.meta.npc; touch(); },
+  npcUsers() { return Object.values(db.users).filter(u => u.npc); },
+  npcAdd(u) {
+    if (!u || !u.npc || !/^npc_/.test(String(u.id))) return null;
+    if (db.users[u.id]) return db.users[u.id];
+    db.users[u.id] = u; giveFid(u); touch();
+    return u;
+  },
+  // 住人を消す（フレンド・申請からも外す。クランは residents.js が先に抜ける）
+  npcDrop(uid) {
+    const u = db.users[uid];
+    if (!u || !u.npc) return false;
+    for (const o of Object.values(db.users)) for (const k of ['friends', 'fin', 'fout']) if (Array.isArray(o[k])) drop(o[k], uid);
+    if (u.fid && fids.get(u.fid) === uid) fids.delete(u.fid);
+    delete db.users[uid]; touch();
+    return true;
+  },
+  // 住人のプロフィールを、ほかの人と同じ決まりで整えて保存する（持っていない宝箱の物・裏づけのない称号は外れる）
+  npcProfile(uid, raw) {
+    const u = db.users[uid];
+    if (!u || !u.npc) return null;
+    return saveServerProfile(u, P.clean(raw, titleCtx(u), rateState(u).tier)).profile;
+  },
+  // 住人の1試合：オンライン戦績・レート（ranked のとき。max より上には上げない）・称号やミッションの記録
+  // m = { mode: 'online'|'cpu', win, two（2v2）, ranked, mine（2v2のチームの平均）, theirs, rw, rl, forfeit, max, stage, diff, straight, tally }
+  npcMatch(uid, m) {
+    const u = db.users[uid];
+    if (!u || !u.npc || !m) return null;
+    const win = !!m.win, out = { rate: null };
+    if (m.mode !== 'cpu') { if (win) u.online.w++; else u.online.l++; touch(); }
+    if (m.mode !== 'cpu' && m.ranked) {
+      const st = m.two ? rateState2(u) : rateState(u);
+      const r = SIM.applyRate(st, { mine: m.two ? (m.mine != null ? m.mine : st.rate) : undefined, theirs: m.theirs, win,
+        rw: m.forfeit ? null : m.rw, rl: m.forfeit ? null : m.rl, forfeit: !win && !!m.forfeit });
+      if (m.max && r.delta > 0 && r.rate > m.max) { r.rate = Math.max(r.before, m.max); r.delta = r.rate - r.before; r.tier = SIM.tierOfRate(r.rate); }
+      if (m.two) writeRate2(u, r, win); else writeRate(u, r, win);
+      out.rate = r;
+    }
+    if (m.tally) out.prog = auth.applyMatch(uid, { mode: m.mode === 'cpu' ? 'cpu' : 'online', diff: m.diff, stage: m.stage, win, straight: !!m.straight, tally: m.tally, emotes: m.emotes | 0 });
+    return out;
+  },
+  touch,
+  stats() { const n = humans().length; return { users: n, residents: Object.keys(db.users).length - n, tokens: Object.keys(db.tokens).length }; },
   _flush: flush,
 };
 

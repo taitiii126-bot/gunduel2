@@ -31,7 +31,7 @@ if (!keep.length) throw new Error('外に出す関数の一覧が見つかりま
 html = html.replace(/<script>([\s\S]*?)<\/script>/g, (m, code) => '<script>' + ob(code, { reservedNames: keep.map(n => '^' + n + '$') }).replace(/<\/script/gi, '<\\/script') + '</script>');
 html = html.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');   // HTML のコメントも消す
 fs.writeFileSync(path.join(out, 'index.html'), html);
-for (const f of fs.readdirSync(root)) if (/\.(png|jpg|jpeg|gif|svg|ico|webp|mp3|ogg|wav|woff2?|json|txt|webmanifest)$/i.test(f) && f !== 'users.json' && f !== 'package.json') fs.copyFileSync(path.join(root, f), path.join(out, f));
+for (const f of fs.readdirSync(root)) if (/\.(png|jpg|jpeg|gif|svg|ico|webp|mp3|ogg|wav|woff2?|json|txt|webmanifest)$/i.test(f) && f !== 'users.json' && f !== 'package.json' && f !== 'residents.json') fs.copyFileSync(path.join(root, f), path.join(out, f));
 // 攻略ガイド（dist/guide/）。読みにくくはしない（ゲームの数字は sim.js から作り直すので、いつも今のゲームと同じ）
 require('./guide.js').build(out);
 console.log('dist/ を作りました（' + seed + '）：', fs.readdirSync(out).join(', '));

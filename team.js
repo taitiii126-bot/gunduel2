@@ -103,7 +103,8 @@ class TeamRoom {
     this.phase = phase;
     const p = this.players[s];
     this.makeBot(p, bot.cfg);
-    p.rate = bot.rate; p.tier = bot.tierKey; p.title = bot.title; p.bg = bot.bg; p.discord = bot.name; p.verified = true;
+    p.rate = bot.rate; p.tier = bot.tierKey; p.title = bot.title; p.bg = bot.bg; p.discord = bot.discord || bot.name; p.verified = true;
+    p.npc = bot.npc || null;   // 住人（アカウントのある BOT）なら、その ID（試合の記録を残す）
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     require('./botchat').init(p);   // チャットの性格
     p.srtt = 16 + Math.floor(Math.random() * 46);
@@ -299,7 +300,7 @@ class TeamRoom {
   startRound() {
     if (!this.matchLive) {
       this.matchLive = true; this.roundsDone = 0;
-      for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot) { p.tally = SIM.newTally(); p.emotes = 0; } }   // 称号・ミッションの記録（試合ごと）
+      for (const s of SLOTS) { const p = this.players[s]; if (p && (!p.bot || p.npc)) { p.tally = SIM.newTally(); p.emotes = 0; } }   // 称号・ミッションの記録（試合ごと）
       for (const s of SLOTS) require('./botchat').onStart(this, s);   // BOTのあいさつ
     }
     const loads = {};
@@ -321,7 +322,7 @@ class TeamRoom {
     this.phase = 'roundOver';
     this.roundsDone++;
     if (winTeam === 0 || winTeam === 1) this.wins[winTeam]++;
-    for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyRoundEnd(p.tally, SIM.teamOf(s) === winTeam, this.stage); }
+    for (const s of SLOTS) { const p = this.players[s]; if (p && (!p.bot || p.npc) && p.tally) SIM.tallyRoundEnd(p.tally, SIM.teamOf(s) === winTeam, this.stage); }
     this.broadcast({ type: 'round_end', winTeam: winTeam === 'draw' ? null : winTeam, wins: this.wins.slice(), state: this.state(), fx: fx || [] });
     const done = (winTeam === 0 || winTeam === 1) && this.wins[winTeam] >= G.WIN_ROUNDS, BC = require('./botchat');
     for (const s of SLOTS) { const c = this.world.chars[s], won = SIM.teamOf(s) === winTeam; if (done) BC.onEnd(this, s, won, this.canRematch()); else BC.onRound(this, s, won, c && !c.dead ? c.hp : 0); }
@@ -432,7 +433,7 @@ class TeamRoom {
     }
     const ev = [];
     SIM.stepTeam(w, ev);
-    for (const s of SLOTS) { const p = this.players[s]; if (p && !p.bot && p.tally) SIM.tallyEvents(p.tally, w, ev, s); }
+    for (const s of SLOTS) { const p = this.players[s]; if (p && (!p.bot || p.npc) && p.tally) SIM.tallyEvents(p.tally, w, ev, s); }
     const fx = G.packFx(ev);
     const res = SIM.teamResult(w);
     if (res !== null) return this.endRound(res, fx);
