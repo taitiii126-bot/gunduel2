@@ -337,6 +337,7 @@ function init(h) {
   }
   // 住人のクラン（まだなければ作る）と、はじめのメンバー
   meta.clans = meta.clans && typeof meta.clans === 'object' ? meta.clans : {};
+  const fresh = new Set();   // この起動で作った住人のクラン
   for (const cs of R.clans) {
     if (meta.clans[cs.key] && clans.byId(meta.clans[cs.key])) continue;
     const mem = R.people.filter(p => p.clan === cs.key), lead = mem.find(p => p.role === 'leader') || mem[0];
@@ -345,13 +346,13 @@ function init(h) {
     if (!owner || clans.clanOf(owner.id)) continue;
     const res = clans.npcCreate(owner.id, { name: cs.name, tag: cs.tag, type: cs.type, region: cs.region, minTier: cs.minTier, desc: cs.desc, created: now - (+cs.age || 1) * DAY });
     if (!res.ok) { hooks.log('residents: クランを作れませんでした', cs.key, res.error); continue; }
-    meta.clans[cs.key] = res.clan.id; owner.npc.ci = 1; clans.npcPts(owner.id, owner.npc.pre || 0); auth.touch();
+    meta.clans[cs.key] = res.clan.id; fresh.add(res.clan.id); owner.npc.ci = 1; clans.npcPts(owner.id, owner.npc.pre || 0); auth.touch();
   }
   for (const spec of R.people) {
     const u = auth.user('npc_' + spec.key), cid = meta.clans[spec.clan];
     if (!u || u.npc.ci || !cid) continue;
     u.npc.ci = 1; auth.touch();
-    if (!clans.clanOf(u.id) && clans.npcAdd(u.id, cid, spec.role in ROLE_OF ? ROLE_OF[spec.role] : 1).ok) clans.npcPts(u.id, u.npc.pre || 0);
+    if (!clans.clanOf(u.id) && clans.npcAdd(u.id, cid, spec.role in ROLE_OF ? ROLE_OF[spec.role] : 1, fresh.has(cid)).ok) clans.npcPts(u.id, u.npc.pre || 0);   // 作ったばかりのクランのはじめのメンバーは、できごとに残さない
   }
   // 新しく作った人は、今のシーズンの試合をしてから、称号を選ぶ
   const n = made.length ? seedSeason(made, now) : 0;

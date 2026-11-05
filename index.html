@@ -478,6 +478,24 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 .cl-why{margin:0;align-self:stretch;padding:9px 11px;border-radius:10px;background:rgba(255,255,255,.06);font-size:12.5px;line-height:1.5;color:var(--tx-2);text-align:center;}
 .cl-why.ok{background:rgba(52,211,153,.12);color:#8EF0C2;}
 .cl-mems{display:flex;flex-direction:column;gap:8px;min-width:0;padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(8,10,20,.65);}
+.cl-col{display:flex;flex-direction:column;gap:14px;min-width:0;}
+/* クランのできごと（入った・抜けた・追放・昇格・降格・リーダーの交代） */
+.cl-log{display:flex;flex-direction:column;gap:6px;min-width:0;padding:12px;border-radius:16px;border:1px solid var(--line);background:rgba(8,10,20,.65);}
+.cl-llist{display:flex;flex-direction:column;}
+.cl-lrow{display:grid;grid-template-columns:24px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 4px;border-top:1px solid rgba(255,255,255,.06);font-size:13px;font-weight:700;line-height:1.55;color:var(--tx-2);}
+.cl-lrow:first-child{border-top:0;}
+.cl-lrow i{display:grid;place-items:center;width:24px;height:24px;border-radius:50%;font-style:normal;font-size:12px;font-weight:900;line-height:1;color:var(--tx-2);background:rgba(255,255,255,.07);}
+.cl-lrow.join i{color:#6EE7A8;background:rgba(110,231,168,.13);}
+.cl-lrow.kick i{color:#FF6B7A;background:rgba(255,77,94,.14);}
+.cl-lrow.up i,.cl-lrow.lead i,.cl-lrow.create i{color:#FFC53D;background:rgba(255,197,61,.14);}
+.cl-lrow.down i{color:#7CC8FF;background:rgba(124,200,255,.13);}
+.cl-lrow b{color:var(--tx);font-weight:900;overflow-wrap:anywhere;}
+.cl-lrow .cl-role{margin:0 2px;vertical-align:1px;}
+.cl-lrow small{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-size:10.5px;font-weight:700;line-height:1.35;color:var(--tx-3);white-space:nowrap;text-align:right;}
+.cl-lrow small b{font-family:var(--f-ui);font-size:12px;font-weight:800;color:var(--tx-2);}
+.cl-lempty{margin:2px 0 0;font-size:12.5px;font-weight:700;line-height:1.6;color:var(--tx-3);}
+.cl-lmore{align-self:center;margin-top:2px;padding:7px 16px;border-radius:999px;border:1px solid var(--line-2);background:rgba(255,255,255,.05);color:var(--tx-2);font-size:12.5px;font-weight:900;cursor:pointer;}
+.cl-lmore:hover{color:var(--tx);background:rgba(255,255,255,.09);}
 .cl-mh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
 .cl-mh>b{display:inline-flex;align-items:baseline;gap:8px;font-size:16px;font-weight:900;}
 .cl-mh>b span{font-family:var(--f-ui);font-size:13px;color:var(--tx-3);}
@@ -3206,7 +3224,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=63"></script>
-<script src="lang.js?v=81"></script>
+<script src="lang.js?v=82"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -6833,6 +6851,7 @@ function clanMenuHtml(m,my){
 }
 function clanBy(b){CLAN.by=b==='total'?'total':'week';loadClan();if(currentScreen==='rank-screen')renderRanking();}
 function clanMby(b){CLAN.mby=b==='total'?'total':'week';renderClan();}
+function clanLogMore(){CLAN.logAll=true;renderClan();}
 function clanCopy(btn){var C=CLAN.mine;if(!C)return;var tx=t('cl.inviteText',{name:C.name,id:C.id});try{navigator.clipboard.writeText(tx);}catch(e){}btn.querySelector('span').textContent=t('pf.copied');setTimeout(function(){var s=btn.querySelector('span');if(s)s.textContent=t('cl.invite');},1500);}
 // ---- 作る・設定のフォーム ----
 function clanForm(mode){
@@ -6911,7 +6930,7 @@ function clanDetailHtml(C,own){
   h+='</div></aside>';
   // メンバー
   var k=CLAN.mby,ms=C.members.slice().sort(function(a,b){return b[k]-a[k]||(k==='week'?b.pts-a.pts:b.week-a.week);});
-  h+='<section class="cl-mems"><div class="cl-mh"><b>'+esc(t('cl.members'))+'<span>'+C.members.length+'/'+C.max+'</span></b>'+
+  h+='<div class="cl-col"><section class="cl-mems"><div class="cl-mh"><b>'+esc(t('cl.members'))+'<span>'+C.members.length+'/'+C.max+'</span></b>'+
     '<div class="cl-seg">'+['week','total'].map(function(b){return'<button class="'+(k===b?'sel':'')+'" onclick="clanMby(\''+b+'\')">'+esc(t('cl.'+b))+'</button>';}).join('')+'</div></div>';
   if(leader&&C.req&&C.req.length){
     h+='<div class="cl-reqs"><h4>'+esc(t('cl.reqs',{n:C.req.length}))+'</h4>'+C.req.map(function(q){
@@ -6929,7 +6948,31 @@ function clanDetailHtml(C,own){
       (can?'<button class="cl-kick cl-mgr" aria-expanded="'+(CLAN.menu===m.fid)+'" onclick="clanMenu(\''+safeFid(m.fid)+'\')">'+esc(t('cl.manage'))+'</button>':'<span></span>')+'</div>';
     if(can&&CLAN.menu===m.fid)h+=clanMenuHtml(m,my);
   });
-  return h+'</div></section></div>';
+  return h+'</div></section>'+(Array.isArray(C.log)?clanLogHtml(C):'')+'</div></div>';   // できごとはメンバーにだけ届く
+}
+// クランのできごと：新しい順に、はじめは CL_LOG_N 件（「もっと見る」で全部）
+var CL_LOG_N=8,CL_LOG_IC={create:'\u2691',join:'+',leave:'\u2212',kick:'\u00D7',up:'\u25B2',down:'\u25BC',lead:'\u2605'};
+function clanLogText(e){
+  var by=!!e.by&&(e.t==='join'||e.t==='lead'),r=Math.max(0,Math.min(4,+e.r||0));
+  return esc(t('cl.log.'+e.t+(by?'By':''),{name:'\u0001',by:'\u0002',role:'\u0003'}))
+    .replace('\u0001','<b>'+esc(e.name)+'</b>').replace('\u0002','<b>'+esc(e.by||'')+'</b>').replace('\u0003','<span class="cl-role r'+r+'">'+esc(clanRoleName(r))+'</span>');
+}
+// できごとの時刻（見ている人の端末の時刻）：今日 21:34 ／ 昨日 18:02 ／ 11/3 20:15 ／ 2025/12/31 20:15
+function clanLogWhen(ms){
+  var d=new Date(ms),n=new Date(),p=function(v){return(v<10?'0':'')+v;},hm=d.getHours()+':'+p(d.getMinutes());
+  var day=function(x){return new Date(x.getFullYear(),x.getMonth(),x.getDate()).getTime();},diff=Math.round((day(n)-day(d))/864e5);
+  if(diff===0)return t('cl.logToday',{t:hm});
+  if(diff===1)return t('cl.logYday',{t:hm});
+  return(d.getFullYear()!==n.getFullYear()?d.getFullYear()+'/':'')+(d.getMonth()+1)+'/'+d.getDate()+' '+hm;
+}
+function clanLogHtml(C){
+  var L=C.log.filter(function(e){return CL_LOG_IC[e.t];}),n=CLAN.logAll?L.length:Math.min(L.length,CL_LOG_N);
+  var h='<section class="cl-log"><div class="cl-mh"><b>'+esc(t('cl.log'))+'</b></div>';
+  if(!L.length)return h+'<p class="cl-lempty">'+esc(t('cl.logEmpty'))+'</p></section>';
+  h+='<div class="cl-llist">'+L.slice(0,n).map(function(e){
+    return'<div class="cl-lrow '+esc(e.t)+'"><i aria-hidden="true">'+CL_LOG_IC[e.t]+'</i><span>'+clanLogText(e)+'</span><small><b>'+esc(clanLogWhen(e.at))+'</b>'+esc(agoText(e.at))+'</small></div>';}).join('')+'</div>';
+  if(L.length>n)h+='<button class="cl-lmore" onclick="clanLogMore()">'+esc(t('cl.logMore',{n:L.length-n}))+'</button>';
+  return h+'</section>';
 }
 // 探す画面
 function clanResultHtml(c){
@@ -15990,7 +16033,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
