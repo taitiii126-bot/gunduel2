@@ -97,6 +97,7 @@ const normFid = v => String(v == null ? '' : v).toUpperCase().replace(/[^A-Z0-9]
 //          g: { ステージ: { o: [試合, 勝ち], c: [...] } }, os: [オンラインの今の連勝, 最大], rb: ランクの最大連勝（1v1）, rb2: 2v2,
 //          rh: [[秒, レート], ...] 1v1 のレートの動き（新しい RH_MAX 件）, rh2: 2v2, ss: [終わったシーズンの記録], lm: 最後に試合をした時刻 }
 const RH_MAX = 300, SS_MAX = 36;
+const HIST_MAX = 10;   // バトル履歴：オンライン対戦の新しい10試合（u.hist。画面には5試合）
 function stOf(u) {
   let s = u.st;
   if (!s || typeof s !== 'object') s = u.st = {};
@@ -1248,6 +1249,16 @@ const auth = {
     if (m.tally && !m.rateOnly) out.prog = auth.applyMatch(uid, { mode: m.mode === 'cpu' ? 'cpu' : 'online', diff: m.diff, stage: m.stage, win, straight: !!m.straight, tally: m.tally, emotes: m.emotes | 0 });
     return out;
   },
+  // ---- バトル履歴（オンライン対戦。ログイン中の人だけ。住人は残さない）----
+  addHistory(uid, e) {
+    const u = db.users[uid];
+    if (!u || u.npc || !e) return;
+    if (!Array.isArray(u.hist)) u.hist = [];
+    u.hist.push(e);
+    if (u.hist.length > HIST_MAX) u.hist.splice(0, u.hist.length - HIST_MAX);
+    touch();
+  },
+  history(uid, n) { const u = db.users[uid]; return u && Array.isArray(u.hist) ? u.hist.slice(-(n || HIST_MAX)).reverse() : []; },   // 新しい順
   touch,
   onRankUp(fn) { rankHook = typeof fn === 'function' ? fn : null; },   // ランクアップを知らせる先（server.js）
   npcQuiet(v) { rankQuiet = !!v; },

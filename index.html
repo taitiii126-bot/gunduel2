@@ -499,6 +499,65 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 .cl-lempty{margin:2px 0 0;font-size:12.5px;font-weight:700;line-height:1.6;color:var(--tx-3);}
 .cl-lmore{align-self:center;margin-top:2px;padding:7px 16px;border-radius:999px;border:1px solid var(--line-2);background:rgba(255,255,255,.05);color:var(--tx-2);font-size:12.5px;font-weight:900;cursor:pointer;}
 .cl-lmore:hover{color:var(--tx);background:rgba(255,255,255,.09);}
+/* 届いたクランへの招待 */
+.cl-invs{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;padding:12px;border-radius:14px;border:1px solid rgba(124,200,255,.45);background:rgba(124,200,255,.07);}
+.cl-invs h4{margin:0;font-size:14px;font-weight:900;color:#BFE6FF;}
+.cl-invs .cl-why{margin:0;}
+.cl-inv{display:grid;grid-template-columns:44px minmax(0,1fr) auto;gap:10px;align-items:center;padding:8px 10px;border-radius:12px;background:rgba(8,10,20,.55);}
+.cl-inv canvas{width:44px;height:47px;}
+.cl-invn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:0;padding:0;border:0;background:none;color:var(--tx);text-align:left;cursor:pointer;}
+.cl-invn b{display:flex;align-items:center;gap:6px;font-size:14px;font-weight:900;overflow-wrap:anywhere;}
+.cl-invn small{font-size:11.5px;font-weight:700;color:var(--tx-3);}
+.cl-inv .cl-ok[disabled]{opacity:.4;cursor:default;}
+/* バトル履歴 */
+.hs-list{display:flex;flex-direction:column;gap:12px;max-width:1020px;margin:0 auto;}
+.hs-card{min-width:0;border-radius:16px;border:1px solid var(--line);background:rgba(8,10,20,.72);overflow:hidden;}
+.hs-card.win{border-color:rgba(110,231,168,.38);}
+.hs-card.lose{border-color:rgba(255,107,122,.32);}
+.hs-top{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(255,255,255,.035);}
+.hs-res{padding:2px 12px;border-radius:8px;font-size:14px;font-weight:900;letter-spacing:.06em;}
+.hs-card.win .hs-res{color:#07160E;background:#6EE7A8;}
+.hs-card.lose .hs-res{color:#fff;background:#E5484D;}
+.hs-score{font-family:var(--f-ui);font-size:19px;font-weight:900;color:var(--tx);}
+.hs-chip{padding:2px 9px;border-radius:999px;border:1px solid var(--line-2);font-size:11.5px;font-weight:800;color:var(--tx-2);}
+.hs-chip.rk{color:var(--gold);border-color:rgba(255,197,61,.45);}
+.hs-chip.ff{color:#FF9F5A;border-color:rgba(255,159,90,.45);}
+.hs-rate{font-family:var(--f-ui);font-size:15px;font-weight:900;}
+.hs-rate.up{color:#6EE7A8;}.hs-rate.down{color:#FF6B7A;}.hs-rate.zero{color:var(--tx-3);}
+.hs-when{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--tx-3);}
+.hs-body{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:14px;padding:12px 14px 14px;}
+.hs-h{margin:0 0 6px;font-size:12px;font-weight:900;letter-spacing:.04em;color:var(--tx-3);}
+.hs-ppl .hs-h:not(:first-child){margin-top:6px;}
+.hs-ws{display:flex;flex-direction:column;gap:5px;}
+.hs-w{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:10px;padding:7px 10px;border-radius:10px;background:rgba(255,255,255,.045);font-size:13px;font-weight:900;color:var(--tx);}
+.hs-w small{font-size:11.5px;font-weight:700;color:var(--tx-2);white-space:nowrap;}
+.hs-w.unused{opacity:.45;}
+.hs-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-top:8px;}
+.hs-stats span{display:flex;flex-direction:column;align-items:center;gap:2px;padding:7px 4px;border-radius:10px;background:rgba(255,255,255,.045);font-size:11px;font-weight:800;color:var(--tx-3);}
+.hs-stats b{font-family:var(--f-ui);font-size:17px;font-weight:900;color:var(--tx);}
+.hs-stats b.bad{color:#FF9F5A;}
+.hs-ppl{display:flex;flex-direction:column;gap:6px;min-width:0;}
+.hs-p{display:grid;grid-template-columns:40px minmax(0,1fr) auto;align-items:center;gap:10px;padding:6px 8px;border-radius:12px;background:rgba(255,255,255,.045);}
+.hs-p canvas{width:40px;height:40px;}
+.hs-pn{display:flex;flex-direction:column;gap:1px;min-width:0;}
+.hs-pn b{display:flex;align-items:center;gap:6px;min-width:0;font-size:13.5px;font-weight:900;color:var(--tx);overflow-wrap:anywhere;}
+.hs-pn small{font-size:11px;font-weight:700;color:var(--tx-3);}
+.hs-pn .hs-on{font-style:normal;color:#6EE7A8;}
+.hs-pa{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:6px;}
+.hs-btn{padding:6px 11px;border-radius:9px;border:1px solid var(--line-2);background:rgba(255,255,255,.07);color:var(--tx);font-size:11.5px;font-weight:900;white-space:nowrap;cursor:pointer;}
+.hs-btn:hover{background:rgba(255,255,255,.12);}
+.hs-btn.fr{border-color:rgba(124,200,255,.55);color:#BFE6FF;}
+.hs-btn.inv{border-color:rgba(255,197,61,.55);color:var(--gold);}
+.hs-tagc{padding:4px 9px;border-radius:999px;border:1px solid var(--line);font-size:11px;font-weight:800;color:var(--tx-3);white-space:nowrap;}
+.hs-tagc.ok{color:#6EE7A8;border-color:rgba(110,231,168,.4);}
+.hs-foot{text-align:center;}
+@media (max-width:760px){
+  .hs-body{grid-template-columns:minmax(0,1fr);}
+  .hs-when{width:100%;margin-left:0;}
+  .hs-p{grid-template-columns:36px minmax(0,1fr);}
+  .hs-p canvas{width:36px;height:36px;}
+  .hs-pa{grid-column:1 / -1;justify-content:flex-start;}
+}
 .cl-mh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;}
 .cl-mh>b{display:inline-flex;align-items:baseline;gap:8px;font-size:16px;font-weight:900;}
 .cl-mh>b span{font-family:var(--f-ui);font-size:13px;color:var(--tx-3);}
@@ -2800,6 +2859,7 @@ body.mland .home-hero{height:72vh;}
       <span class="kicker" data-i18n="room.kicker"></span>
       <h1 class="scr-title" data-i18n="room.title"></h1>
       <p class="pill" id="room-loadout-note"></p><button class="pill-btn" onclick="olLoadout()"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4L19 9l-4-4L4 16z"/></svg><span data-i18n="cpu.change"></span></button>
+      <button class="pill-btn" onclick="showHistory()"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><span data-i18n="hist.btn"></span></button>
     </div>
     <section class="ol-sec"><h3 class="ol-h"><i>1</i><span data-i18n="ol.stepFormat"></span></h3><div class="ol-fmts" id="ol-fmts"></div></section>
     <section class="ol-sec" id="ol-mode-sec"><h3 class="ol-h"><i>2</i><span data-i18n="ol.stepMode"></span></h3><div class="ol-modes" id="ol-modes"></div></section>
@@ -2837,6 +2897,15 @@ body.mland .home-hero{height:72vh;}
       </div>
       <div id="room-status"></div>
     </section>
+  </div>
+
+  <div id="history-screen" class="screen menu wide" style="display:none;">
+    <div class="scr-head">
+      <span class="kicker">BATTLE LOG</span>
+      <h2 class="scr-title" data-i18n="hist.title"></h2>
+      <p class="pill" data-i18n="hist.note"></p>
+    </div>
+    <div id="hist-body"></div>
   </div>
 
   <div id="rank-screen" class="screen menu" style="display:none;">
@@ -3227,7 +3296,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=63"></script>
-<script src="lang.js?v=83"></script>
+<script src="lang.js?v=84"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -6593,6 +6662,8 @@ function handlePresenceMsg(m){
   else if(m.type==='friend_status')onFriendStatus(m);
   else if(m.type==='gift')giftsLoad(true,true);   // 運営からプレゼントが届いた
   else if(m.type==='clan_req'){note(t('cl.reqIn'));loadClan();}   // 自分のクランに参加の申請が来た
+  else if(m.type==='clan_invite'){note(t('cl.invIn',{from:String(m.from||''),name:String(m.name||'')}));playTone(880,.12,'triangle',.14);loadClan();}   // クランに招待された
+  else if(m.type==='clan_inv_ok'){note(t('cl.invOk',{name:String(m.name||''),clan:String(m.clan||'')}));loadClan();if(currentScreen==='history-screen')loadHistory();}   // 招待した人が入った
   else if(m.type==='clan_role'){note(t(m.role===4?'cl.youLeader':m.up?'cl.youUp':'cl.youDown',{role:clanRoleName(+m.role||0),name:String(m.name||'')}));if(m.up)SFX.coin();loadClan();}   // 格が変わった
   else if(m.type==='clan_out'){note(t('cl.youOut',{name:String(m.name||'')}));CLAN.mine=null;CLAN.menu='';if(CLAN.view==='home'||CLAN.view==='clan'){CLAN.view='home';CLAN.cur=null;}loadClan();}   // 追放された
   else if(m.type==='clan_in'){note(t('cl.joined',{name:String(m.name||'')}));SFX.coin();CLAN.myReq=[];CLAN.msg='';if(CLAN.view==='clan'||CLAN.view==='search'){CLAN.view='home';CLAN.cur=null;}loadClan();}   // 申請が受けられた
@@ -6788,6 +6859,7 @@ function clanApi(method,body,qs){
 }
 function clanAdopt(d){
   if(!d)return;if('mine' in d)CLAN.mine=d.mine||null;if(d.top)CLAN.top=d.top;if(Array.isArray(d.myReq))CLAN.myReq=d.myReq;if(d.tier!=null)CLAN.tier=+d.tier||0;
+  if(Array.isArray(d.invites))CLAN.invites=d.invites;   // 届いているクランへの招待
   if(d.clan&&CLAN.cur&&d.clan.id===CLAN.cur.id)CLAN.cur=d.clan;
   CLAN.loaded=true;if(d.pts)CLAN.pts=d.pts;
 }
@@ -6960,7 +7032,7 @@ function clanLogText(e){
     return esc(t(e.m===2?'cl.log.rank2':'cl.log.rank',{name:'\u0001',tier:'\u0004'})).replace('\u0001','<b>'+esc(e.name)+'</b>')
       .replace('\u0004','<b class="cl-ltier rk'+SIM.rankOf(tr).r+'">'+esc(tierName(tr))+'</b>');}
   var by=!!e.by&&(e.t==='join'||e.t==='lead'),r=Math.max(0,Math.min(4,+e.r||0));
-  return esc(t('cl.log.'+e.t+(by?'By':''),{name:'\u0001',by:'\u0002',role:'\u0003'}))
+  return esc(t('cl.log.'+e.t+(by?(e.t==='join'&&e.m==='inv'?'Inv':'By'):''),{name:'\u0001',by:'\u0002',role:'\u0003'}))
     .replace('\u0001','<b>'+esc(e.name)+'</b>').replace('\u0002','<b>'+esc(e.by||'')+'</b>').replace('\u0003','<span class="cl-role r'+r+'">'+esc(clanRoleName(r))+'</span>');
 }
 // できごとの時刻（見ている人の端末の時刻）：今日 21:34 ／ 昨日 18:02 ／ 11/3 20:15 ／ 2025/12/31 20:15
@@ -6980,6 +7052,22 @@ function clanLogHtml(C){
     return'<div class="cl-lrow '+esc(e.t)+'">'+ic+'<span>'+clanLogText(e)+'</span><small><b>'+esc(clanLogWhen(e.at))+'</b>'+esc(agoText(e.at))+'</small></div>';}).join('')+'</div>';
   if(L.length>n)h+='<button class="cl-lmore" onclick="clanLogMore()">'+esc(t('cl.logMore',{n:L.length-n}))+'</button>';
   return h+'</section>';
+}
+// 届いているクランへの招待：受ける・断る（クランに入っているあいだは、受けるには今のクランを抜ける）
+function clanInvitesHtml(){
+  var L=CLAN.invites||[];
+  return'<div class="cl-invs"><h4>'+esc(t('cl.invites',{n:L.length}))+'</h4>'+(CLAN.mine?'<p class="cl-why">'+esc(t('cl.invNeedLeave'))+'</p>':'')+L.map(function(c){
+    return'<div class="cl-inv"><canvas data-emb="'+esc(c.tag)+'" width="88" height="94"></canvas>'+
+      '<button class="cl-invn" onclick="clanOpen(\''+esc(c.id)+'\')"><b>'+esc(c.name)+'<span class="cl-tag sm">'+esc(c.tag)+'</span></b><small>'+esc(t('cl.invFrom',{name:c.by||'?'}))+' · '+esc(t('cl.membersN',{n:c.n,m:c.max}))+' · '+esc(agoText(c.at))+'</small></button>'+
+      '<span class="cl-rq"><button class="cl-ok"'+(CLAN.mine?' disabled':'')+' onclick="clanInvAnswer(\''+esc(c.id)+'\',1)">'+esc(t('cl.accept'))+'</button><button class="cl-ng" onclick="clanInvAnswer(\''+esc(c.id)+'\',0)">'+esc(t('cl.decline'))+'</button></span></div>';}).join('')+'</div>';
+}
+function clanInvAnswer(id,yes){
+  if(!AUTH.user||CLAN.busy)return;CLAN.busy=true;
+  clanApi('POST',{op:'invans',id:String(id),yes:!!yes}).then(function(r){CLAN.busy=false;clanAdopt(r.d);
+    var e=r.status===429?'too_many':r.d.error;CLAN.msg=e?t('cl.err.'+e):t(r.d.joined?'cl.ok.invYes':'cl.ok.invNo');CLAN.err=!!e;
+    if(r.d.joined){SFX.coin();CLAN.view='home';CLAN.cur=null;}
+    renderClan();
+  }).catch(function(){CLAN.busy=false;CLAN.msg=t('cl.err.net');CLAN.err=true;renderClan();});
 }
 // 探す画面
 function clanResultHtml(c){
@@ -7029,6 +7117,7 @@ function renderClan(){
     '<button class="'+(v==='search'||(v==='home'&&!CLAN.mine)?'sel':'')+'" onclick="clanGo(\'search\')">'+SEARCH_SVG+esc(t('cl.search'))+'</button>'+
     '<button onclick="showRankScreen(\'clan\')"><svg class="i" viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg>'+esc(t('cl.rank'))+'</button></div>';
   if(CLAN.msg)h+='<p class="fr-msg '+(CLAN.err?'err':'ok')+'">'+esc(CLAN.msg)+'</p>';
+  if(AUTH.user&&v!=='form'&&CLAN.invites&&CLAN.invites.length)h+=clanInvitesHtml();
   if(!AUTH.user&&v!=='clan'&&v!=='search')h+='<div class="settings-section fr-login"><p>'+esc(t('cl.needLogin'))+'</p><button class="login-btn" onclick="discordLogin()"><span>'+esc(t('login.discord'))+'</span></button></div>';
   if(v==='form')h+=clanFormHtml();
   else if(v==='clan'){
@@ -7214,7 +7303,7 @@ function renderPresDot(){
 // ============================================================
 // 画面遷移
 // ============================================================
-var SCREENS=['event-screen','tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen','shop-screen','clan-screen'];
+var SCREENS=['event-screen','tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen','shop-screen','clan-screen','history-screen'];
 var currentScreen='';
 function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
@@ -7302,6 +7391,85 @@ function initAuth(){
   handleOAuthReturn();
   loadAuthConfig();
 }
+// ---- バトル履歴：オンライン対戦の最後の5試合（使った武器・キル・命中・いちばん遅かった通信・ステージ・スコア・相手と味方）----
+// 相手・味方には、フレンド申請とクランへの招待のボタン（アカウントのない相手は「ゲスト」）
+var HIST={list:null,clan:null,loading:false,msg:'',err:false,busy:false,avs:[]};
+function histApi(){
+  return fetch(httpBase()+'/api/history',{headers:{Authorization:'Bearer '+AUTH.token}})
+    .then(function(r){return r.json().catch(function(){return{};}).then(function(d){return{status:r.status,d:d||{}};});});
+}
+function showHistory(){HIST.msg='';HIST.err=false;showScreen('history-screen');renderHistory();loadHistory();}
+function histBack(){showScreen('room-screen');renderOnline();}   // 対戦をさがしている途中でも、そのまま戻る
+function loadHistory(){
+  if(!AUTH.user||!AUTH.token||HIST.loading){renderHistory();return;}
+  HIST.loading=true;
+  histApi().then(function(r){HIST.loading=false;
+    if(r.status===200){HIST.list=r.d.list||[];HIST.clan=r.d.clan||null;}else if(HIST.list==null){HIST.list=[];HIST.msg=t('hist.errLoad');HIST.err=true;}
+    if(currentScreen==='history-screen')renderHistory();
+  }).catch(function(){HIST.loading=false;if(HIST.list==null)HIST.list=[];HIST.msg=t('hist.errLoad');HIST.err=true;if(currentScreen==='history-screen')renderHistory();});
+}
+function histWeapons(me){
+  var ids=[],add=function(id){id=+id;if(SIM.WEAPONS[id]&&ids.indexOf(id)<0)ids.push(id);};
+  (me.load||[]).forEach(add);Object.keys(me.ws||{}).forEach(add);Object.keys(me.kl||{}).forEach(add);   // 持っていった3つと、途中で持ちかえた武器
+  return ids.map(function(id){
+    var w=(me.ws||{})[id]||[0,0],k=+((me.kl||{})[id])||0,used=w[0]>0||k>0;
+    return'<div class="hs-w'+(used?'':' unused')+'"><span>'+esc(wName(id))+'</span><small>'+(used?esc(t('hist.killsN',{n:k})):'')+'</small><small>'+
+      (!used?esc(t('hist.notUsed')):w[0]?esc(t('hist.hits',{h:w[1],s:w[0],p:Math.round(w[1]/w[0]*100)})):'')+'</small></div>';}).join('');
+}
+function histPerson(p){
+  var i=HIST.avs.push({look:p.look,tier:+p.tier||0})-1,acts='',f=safeFid(p.fid||'');
+  if(p.guest)acts='<span class="hs-tagc">'+esc(t('hist.guest'))+'</span>';
+  else if(f){
+    acts+=p.fr==='friend'?'<span class="hs-tagc ok">'+esc(t('hist.friend'))+'</span>':p.fr==='out'?'<span class="hs-tagc">'+esc(t('hist.pending'))+'</span>'
+      :p.fr==='in'?'<button class="hs-btn fr" onclick="histFriend(\''+f+'\',1)">'+esc(t('hist.acceptFr'))+'</button>':'<button class="hs-btn fr" onclick="histFriend(\''+f+'\',0)">'+esc(t('hist.addFriend'))+'</button>';
+    acts+=p.inv==='member'?'<span class="hs-tagc ok">'+esc(t('hist.sameClan'))+'</span>':p.inv==='sent'?'<span class="hs-tagc">'+esc(t('hist.invited'))+'</span>'
+      :p.inv==='can'?'<button class="hs-btn inv" onclick="histInvite(\''+f+'\')">'+esc(t('hist.invite'))+'</button>':'';
+  }
+  return'<div class="hs-p"><canvas data-hav="'+i+'" width="80" height="80"></canvas><span class="hs-pn"><b>'+(p.clan?'<span class="cl-tag sm">'+esc(p.clan)+'</span>':'')+esc(p.name||'?')+'</b>'+
+    '<small>'+esc(tierName(+p.tier||0))+(p.rate?' · '+(+p.rate):'')+(p.status==='online'?' · <i class="hs-on">'+esc(t('fst.online'))+'</i>':'')+'</small></span><span class="hs-pa">'+acts+'</span></div>';
+}
+function histCard(e){
+  var me=e.me||{},acc=me.sh?Math.round(me.hi/me.sh*100)+'%':'-',ping=me.ping?me.ping+'ms':'-',sc=e.sc||[0,0];
+  var d=e.d==null?'':'<span class="hs-rate '+(e.d>0?'up':e.d<0?'down':'zero')+'">'+(e.d>0?'+':e.d<0?'\u2212':'\u00B1')+Math.abs(+e.d)+'</span>';
+  var h='<article class="hs-card '+(e.win?'win':'lose')+'"><header class="hs-top"><b class="hs-res">'+esc(t(e.win?'hist.win':'hist.lose'))+'</b><span class="hs-score">'+(+sc[0])+' - '+(+sc[1])+'</span>'+
+    '<span class="hs-chip'+(e.rk?' rk':'')+'">'+esc(t(e.rk?'hist.ranked':'hist.casual'))+'</span><span class="hs-chip">'+(e.m==='2v2'?'2v2':'1v1')+'</span>'+
+    (e.st?'<span class="hs-chip">'+esc(stageName(e.st))+'</span>':'')+(e.ff?'<span class="hs-chip ff">'+esc(t(e.ff==='me'?'hist.left':'hist.oppLeft'))+'</span>':'')+d+
+    '<small class="hs-when">'+esc(clanLogWhen(e.at))+' · '+esc(agoText(e.at))+'</small></header>';
+  h+='<div class="hs-body"><section><h4 class="hs-h">'+esc(t('hist.weapons'))+'</h4><div class="hs-ws">'+histWeapons(me)+'</div>'+
+    '<div class="hs-stats"><span>'+esc(t('hist.kills'))+'<b>'+(+me.k||0)+'</b></span><span>'+esc(t('hist.acc'))+'<b>'+acc+'</b></span><span>'+esc(t('hist.ping'))+'<b class="'+(me.ping>=150?'bad':'')+'">'+ping+'</b></span></div></section>'+
+    '<section class="hs-ppl"><h4 class="hs-h">'+esc(t('hist.opp'))+'</h4>'+(e.op||[]).map(histPerson).join('')+
+    ((e.tm||[]).length?'<h4 class="hs-h">'+esc(t('hist.mate'))+'</h4>'+e.tm.map(histPerson).join(''):'')+'</section></div></article>';
+  return h;
+}
+function renderHistory(){
+  var el=document.getElementById('hist-body');if(!el)return;
+  HIST.avs=[];var h='';
+  if(!AUTH.user)h='<div class="settings-section fr-login"><p>'+esc(t('hist.needLogin'))+'</p><button class="login-btn" onclick="discordLogin()"><span>'+esc(t('login.discord'))+'</span></button></div>';
+  else{
+    if(HIST.msg)h+='<p class="fr-msg '+(HIST.err?'err':'ok')+'">'+esc(HIST.msg)+'</p>';
+    if(HIST.list==null)h+='<div class="rk-empty">'+esc(t('rank.loading'))+'</div>';
+    else if(!HIST.list.length)h+='<div class="rk-empty">'+esc(t('hist.empty'))+'</div>';
+    else h+='<div class="hs-list">'+HIST.list.map(histCard).join('')+'</div>'+(HIST.clan&&!HIST.clan.canInvite?'<p class="ol-note hs-foot">'+esc(t('hist.noPerm'))+'</p>':'');
+  }
+  el.innerHTML=h;
+  el.querySelectorAll('canvas[data-hav]').forEach(function(cv){var p=HIST.avs[+cv.getAttribute('data-hav')];if(p)drawMiniAvatar(cv,p);});
+}
+// フレンド申請（accept：相手から申請が来ていれば受ける）
+function histFriend(fid,accept){
+  if(!AUTH.user||HIST.busy)return;HIST.busy=true;
+  friendsApi('POST',{op:accept?'accept':'request',fid:safeFid(fid)}).then(function(res){HIST.busy=false;
+    var r=res.status===429?'too_many':res.d.result||'error',ok=r==='sent'||r==='accepted';
+    HIST.msg=t('fr.r.'+r,{name:(res.d.player&&res.d.player.name)||''});HIST.err=!ok;renderHistory();loadHistory();
+  }).catch(function(){HIST.busy=false;HIST.msg=t('fr.r.error');HIST.err=true;renderHistory();});
+}
+// 自分のクランに招待する（幹部から上）
+function histInvite(fid){
+  if(!AUTH.user||HIST.busy)return;HIST.busy=true;
+  clanApi('POST',{op:'invite',fid:safeFid(fid)}).then(function(r){HIST.busy=false;clanAdopt(r.d);
+    var e=r.status===429?'too_many':r.d.error;HIST.msg=e?t('cl.err.'+e):t('hist.okInvite');HIST.err=!!e;renderHistory();loadHistory();
+  }).catch(function(){HIST.busy=false;HIST.msg=t('cl.err.net');HIST.err=true;renderHistory();});
+}
+
 // ---- オンライン対戦の画面：①形式 → ②モード → ③対戦 ----
 // OL.fmt＝'1v1'/'2v2'、OL.mode＝'ranked'/'casual'/'friend'。opt で最初から選んだ状態にできる（招待など）
 var OL={fmt:null,mode:null};
@@ -7462,6 +7630,7 @@ function navBackFn(id){
     case 'settings-screen':return closeSettings;
     case 'loadout-screen':return closeLoadout;
     case 'clan-screen':return clanBack;
+    case 'history-screen':return histBack;
   }
   return null;
 }
@@ -16040,7 +16209,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,clanInvAnswer,showHistory,histFriend,histInvite,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,

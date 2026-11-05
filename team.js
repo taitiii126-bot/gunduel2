@@ -258,7 +258,7 @@ class TeamRoom {
   }
   spong(slot, msg) {
     const p = this.players[slot];
-    if (p && p.spingT && msg.t === p.spingT) { p.srtt = Math.max(0, Date.now() - p.spingT); p.spingT = 0; }
+    if (p && p.spingT && msg.t === p.spingT) { p.srtt = Math.max(0, Date.now() - p.spingT); p.spingT = 0; p.pmax = Math.max(p.pmax || 0, p.srtt); }   // pmax：その試合でいちばん遅かった通信（バトル履歴）
   }
   ping(slot, msg) {
     const p = this.players[slot]; if (!p) return;
@@ -300,7 +300,7 @@ class TeamRoom {
   startRound() {
     if (!this.matchLive) {
       this.matchLive = true; this.roundsDone = 0;
-      for (const s of SLOTS) { const p = this.players[s]; if (p && (!p.bot || p.npc)) { p.tally = SIM.newTally(); p.emotes = 0; } }   // 称号・ミッションの記録（試合ごと）
+      for (const s of SLOTS) { const p = this.players[s]; if (p && (!p.bot || p.npc)) { p.tally = SIM.newTally(); p.emotes = 0; } if (p) p.pmax = 0; }   // 称号・ミッションの記録（試合ごと）・いちばん遅かった通信
       for (const s of SLOTS) require('./botchat').onStart(this, s);   // BOTのあいさつ
     }
     const loads = {};

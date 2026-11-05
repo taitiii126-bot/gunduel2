@@ -21,6 +21,8 @@ const TYPES = ['open', 'approval', 'closed'], TIER_MAX = SIM.TIER_MIN.length - 1
 const REQ_PER_CLAN = 30, REQ_PER_USER = 5, REQ_DAYS = 7;   // 申請：1つのクランに30件まで・1人5件まで・7日で消える
 const PTS_WIN = 3, PTS_PLAY = 1;
 const LOG_MAX = 100;
+// 招待：幹部から上が、ほかの人をクランに招待できる（7日で消える）。招待された人は、クランに入っていなければ、承認なしで入れる
+const INV_DAYS = 7, INV_PER_CLAN = 30;
 // 格の番号（大きいほど上）。リーダーは c.owner。ほかの人の格は c.roles[ユーザーID]（書いていない人はメンバー）
 const ROLE = { recruit: 0, member: 1, officer: 2, coleader: 3, leader: 4 }, ROLE_KEYS = ['recruit', 'member', 'officer', 'coleader', 'leader'];
 const CAN_ACCEPT = ROLE.officer, CAN_EDIT = ROLE.coleader, CAN_MANAGE = ROLE.officer;
@@ -41,6 +43,7 @@ for (const c of Object.values(db.clans)) {
   if (!Array.isArray(c.req)) c.req = [];
   if (!c.roles || typeof c.roles !== 'object') c.roles = {};   // 格を入れる前からいる人は、みんなメンバー
   if (!Array.isArray(c.log)) c.log = [];                       // できごと（入れる前のことは残っていない）
+  if (!Array.isArray(c.inv)) c.inv = [];                       // 招待
 }
 
 let dirty = migrated;   // 直した所があれば、すぐ保存する
@@ -247,6 +250,46 @@ function transfer(uid, target) {
   note(c, 'lead', target, uid);
   return { ok: true, clan: c };
 }
+// ---- 招待 ----
+// c.inv = [{ uid: 招待した相手, by: 招待した人, at }]
+function freshInv(c) {
+  if (!Array.isArray(c.inv)) c.inv = [];
+  const now = Date.now(), n = c.inv.length;
+  c.inv = c.inv.filter(q => now - q.at < INV_DAYS * 864e5 && !c.members.includes(q.uid));
+  if (c.inv.length !== n) dirty = true;
+  return c.inv;
+}
+function invited(c, uid) { return !!c && freshInv(c).some(q => q.uid === uid); }
+// 招待する（幹部から上）。相手がほかのクランにいても招待できる（受けるには、今のクランを抜ける）
+function invite(uid, target) {
+  const c = clanOf(uid);
+  if (!c) return { error: 'no_clan' };
+  if (roleOf(c, uid) < CAN_ACCEPT) return { error: 'no_perm' };
+  if (!target || target === uid || c.members.includes(target)) return { error: 'already' };
+  if (c.members.length >= MAX_MEMBERS) return { error: 'full' };
+  if (invited(c, target)) return { ok: true, already: true, clan: c };
+  if (c.inv.length >= INV_PER_CLAN) return { error: 'inv_full' };
+  c.inv.push({ uid: target, by: uid, at: Date.now() }); dirty = true;
+  return { ok: true, clan: c };
+}
+// 届いている招待（新しい順）
+function invitesOf(uid) {
+  return Object.values(db.clans).map(c => ({ c, q: freshInv(c).find(q => q.uid === uid) })).filter(x => x.q).sort((a, b) => b.q.at - a.q.at);
+}
+// 招待に答える。受けると新人で入る（できごとには「◯◯ の招待」）。クランに入っているあいだは受けられない
+function inviteAnswer(uid, id, yes) {
+  const c = byId(id);
+  if (!c) return { error: 'not_found' };
+  const q = freshInv(c).find(x => x.uid === uid);
+  if (!q) return { error: 'no_inv' };
+  if (yes && clanOf(uid)) return { error: 'in_clan' };
+  if (yes && c.members.length >= MAX_MEMBERS) return { error: 'full' };
+  c.inv = c.inv.filter(x => x.uid !== uid); dirty = true;
+  if (!yes) return { ok: true, declined: true, clan: c, by: q.by };
+  c.members.push(uid); c.roles[uid] = ROLE.recruit; db.member[uid] = c.id; dropReqs(uid);
+  note(c, 'join', uid, q.by, null, null, 'inv');
+  return { ok: true, joined: true, clan: c, by: q.by };
+}
 // オンライン対戦の結果（サーバーが数えた試合だけ）
 function addMatch(uid, win) {
   const c = clanOf(uid);
@@ -333,5 +376,5 @@ function npcPts(uid, n) {
 }
 function all() { return Object.values(db.clans); }
 
-module.exports = { npcCreate, npcAdd, npcPts, all, reqs: freshReq, rankUp, clanOf, tagOf, roleOf, managers, create, update, join, unrequest, accept, decline, reqsOf, leave, kick, setRole, transfer, addMatch, view, summary, search, byId, top, weekKey,
+module.exports = { npcCreate, npcAdd, npcPts, all, reqs: freshReq, rankUp, invite, invited, invitesOf, inviteAnswer, clanOf, tagOf, roleOf, managers, create, update, join, unrequest, accept, decline, reqsOf, leave, kick, setRole, transfer, addMatch, view, summary, search, byId, top, weekKey,
   MAX_MEMBERS, PTS_WIN, PTS_PLAY, TYPES, DESC_MAX, ROLE, ROLE_KEYS };

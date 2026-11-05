@@ -37,6 +37,10 @@ const LEAVE_HUMAN_PER_DAY = 0.007;                  // 人のクランから抜�
 // 住人は2日に1日くらい遊ぶので、全体で1日に1〜2人ずつ抜けて・入る。新人の昇格は、クランごとに1日1回（幹部から上の住人がオンラインのとき）
 const NPC_LEAVE_PER_DAY = 0.025, NPC_JOIN_PER_DAY = 0.12, PROMOTE_PER_DAY = 0.5, NPC_CLAN_MAX = 18;   // 住人が入るのは18人まで（人が入る分を残す）
 const promoDay = new Map();   // クランID → 昇格を決めた日
+// 人と試合をしたあと：たまにフレンド申請（1v1 10%・2v2 の味方 18%・相手 10%）と、住人のクランへの招待（住人が幹部から上のとき。クランのない人 7%・ある人 2%）。
+// 1人の人に送るのは、1日にフレンド申請2回・招待1回まで
+const MET_FR = 0.1, MET_FR_MATE = 0.18, MET_INV = 0.07, MET_INV_INCLAN = 0.02;
+const metCap = new Map();     // 人のID → { day, fr, inv }
 // 遊ぶ量：その日に遊ぶ割合・1回の長さ（分）・1日に2回遊ぶ割合
 const ACT = {
   heavy: { pDay: 0.88, len: [60, 170], multi: 0.55 },
@@ -495,6 +499,27 @@ function social(now, r) {
       if (!human) clans.npcPts(u.id, u.npc.pre || 0);   // 住人のクラン：それまでのポイントも
     }
   }
+  // 届いたクランへの招待：オンラインのときに、3〜30分たってから答える（1回に1つ）。クランがなければ受けやすい。
+  // 住人のクランにいる人は、ときどき移る（リーダー・副リーダー・名簿で人のクランに決めた人・招待で人のクランに入った人は移らない）
+  for (const u of npcs) {
+    const L = live.get(u.id);
+    if (!L || !L.on || busy.has(u.id)) continue;
+    const x = clans.invitesOf(u.id).find(v => now - v.q.at >= (3 + unit('iw' + v.c.id + u.id + v.q.at) * 27) * MIN);
+    if (!x) continue;
+    const sp = specs.get(u.npc.k) || {}, cur = clans.clanOf(u.id), role = cur ? clans.roleOf(cur, u.id) : -1;
+    const stuck = /^#/.test(String(sp.clan || '')) || (cur && (role >= 3 || u.npc.stay === cur.id || !auth.isNpc(cur.owner)));   // 名簿で人のクランに決めた人は、まだ入る前でも受けない
+    const room = x.c.members.length < clans.MAX_MEMBERS;   // 満員のクランの招待は断る（今のクランを抜けてから入れない、とならないように）
+    const yes = !stuck && room && unit('iy' + x.c.id + u.id + x.q.at) < (cur ? 0.35 : 0.75);
+    if (yes && cur) clans.leave(u.id);
+    let res = clans.inviteAnswer(u.id, x.c.id, yes);
+    if (!res.ok) res = clans.inviteAnswer(u.id, x.c.id, false);   // 受けられなかった招待は消す（同じ招待に何度も答えない）
+    if (yes && res.ok && res.joined) {
+      if (!auth.isNpc(x.c.owner)) u.npc.stay = x.c.id;   // 人のクランに招待で入った：抜けない
+      u.npc.jAt = now; auth.touch(); presence.changed(u.id);
+      if (!auth.isNpc(x.q.by)) hooks.pushTo(x.q.by, { type: 'clan_inv_ok', name: u.profile.name, clan: x.c.name });
+    }
+    hooks.log('residents: clan invite', x.c.id, '[' + x.c.tag + ']', u.id, yes && res.ok ? 'accepted' : 'declined');
+  }
   // 住人のクランの出入り：メンバーがときどき抜け、クランのない住人がときどき入る（承認制なら申請。幹部の住人が答える）
   // リーダーは抜けない。副リーダーはまれ。入ってから2日は抜けない。抜けたクランには3日入り直さない。あなたのクラン（名簿の #ID）の人は動かない
   const today = jstDay(now);
@@ -553,7 +578,7 @@ function social(now, r) {
   // 人のクランから、まれに抜ける（名簿で人のクランに決めた人は抜けない）
   for (const u of npcs) {
     const c = clans.clanOf(u.id), L = live.get(u.id), sp = specs.get(u.npc.k) || {};
-    if (!c || auth.isNpc(c.owner) || /^#/.test(String(sp.clan || '')) || !L || !L.on || busy.has(u.id)) continue;
+    if (!c || auth.isNpc(c.owner) || /^#/.test(String(sp.clan || '')) || u.npc.stay === c.id || !L || !L.on || busy.has(u.id)) continue;   // 招待で入った人のクランも抜けない
     if (r() < LEAVE_HUMAN_PER_DAY * TICK_MS / DAY) { clans.leave(u.id); hooks.log('residents: left human clan', c.id, u.id); }
   }
 }
@@ -616,6 +641,27 @@ function record(uid, o) {
   clans.addMatch(uid, !!o.win);
   return r;
 }
+// 人と試合をしたあと（20〜90秒たってから）：たまにフレンド申請、住人のクランへの招待。o.mate＝2v2 の味方
+function met(npcUid, humanUid, o) {
+  if (!ON || !humanUid || auth.isNpc(humanUid) || !auth.isNpc(npcUid)) return;
+  setTimeout(() => { try { afterMatch(npcUid, humanUid, o || {}); } catch (e) { hooks.log('residents: ERROR after match', e && e.message); } }, Math.round(U(Math.random, 20, 90) * 1000)).unref();
+}
+function afterMatch(npcUid, humanUid, o) {
+  const u = auth.user(npcUid), h = auth.user(humanUid);
+  if (!u || !h || !u.profile) return;
+  const day = jstDay(Date.now()), r = Math.random;
+  let cap = metCap.get(humanUid);
+  if (!cap || cap.day !== day) metCap.set(humanUid, cap = { day, fr: 0, inv: 0 });
+  const L = auth.friendLists(npcUid);
+  if (cap.fr < 2 && !L.friends.includes(humanUid) && !L.outgoing.includes(humanUid) && !L.incoming.includes(humanUid) && r() < (o.mate ? MET_FR_MATE : MET_FR)) {
+    if (auth.friendRequest(npcUid, humanUid) === 'sent') { cap.fr++; hooks.pushTo(humanUid, { type: 'friend_event', kind: 'request', from: hooks.cardOf(npcUid) }); hooks.log('residents: friend request', npcUid, '->', 'discord=' + humanUid); }
+  }
+  const c = clans.clanOf(npcUid), hc = clans.clanOf(humanUid);
+  if (cap.inv < 1 && c && auth.isNpc(c.owner) && hc !== c && clans.roleOf(c, npcUid) >= clans.ROLE.officer && c.members.length < clans.MAX_MEMBERS && !clans.invited(c, humanUid) && r() < (hc ? MET_INV_INCLAN : MET_INV)) {
+    const res = clans.invite(npcUid, humanUid);
+    if (res.ok && !res.already) { cap.inv++; hooks.pushTo(humanUid, { type: 'clan_invite', name: c.name, tag: c.tag, from: u.profile.name }); hooks.log('residents: clan invite', c.id, '[' + c.tag + ']', npcUid, '->', 'discord=' + humanUid); }
+  }
+}
 // 招待を考えている間は、次の試合を始めない
 function hold(uid, ms) { const L = live.get(uid); if (L && L.on && !L.act) L.next = Math.max(L.next, Date.now() + ms); }
 // 招待・パーティーに誘われたとき：オンラインで手があいていれば、少し考えてから答える（true＝受ける）
@@ -626,6 +672,6 @@ function answerInvite(uid, kind) {
 }
 
 module.exports = {
-  init, tick, statusOf, isOn: () => ON, pick: pick1, take, release, botFor, record, answerInvite, hold,
+  init, tick, statusOf, isOn: () => ON, pick: pick1, take, release, botFor, record, answerInvite, hold, met, _afterMatch: afterMatch,
   RATE_MAX, _plans: plans, _live: live, _busy: busy, _sessionAt: sessionAt, _skillAt: skillAt, _hash: hash,
 };

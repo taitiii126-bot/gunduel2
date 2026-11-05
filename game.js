@@ -229,7 +229,7 @@ class Room {
   }
   resetStats(p) {
     Object.assign(p, { acts: 0, shots: 0, alignedShots: 0, instantShots: 0, togSec: 0, togN: 0, fastSecs: 0,
-      threats: 0, instantDodges: 0, suspect: '', reacts: [], lastPull: -1, gaps: [], watch: SIM.newWatch(), tally: SIM.newTally(), emotes: 0 });
+      threats: 0, instantDodges: 0, suspect: '', reacts: [], lastPull: -1, gaps: [], watch: SIM.newWatch(), tally: SIM.newTally(), emotes: 0, pmax: 0 });
   }
   hostIp() { return this.players.a ? this.players.a.ip : ''; }
 
@@ -336,7 +336,7 @@ class Room {
   }
   spong(slot, msg) {
     const p = this.players[slot];
-    if (p && p.spingT && msg.t === p.spingT) { p.srtt = Math.max(0, Date.now() - p.spingT); p.spingT = 0; }
+    if (p && p.spingT && msg.t === p.spingT) { p.srtt = Math.max(0, Date.now() - p.spingT); p.spingT = 0; p.pmax = Math.max(p.pmax || 0, p.srtt); }   // pmax：その試合でいちばん遅かった通信（バトル履歴）
   }
   ping(slot, msg) {
     const p = this.players[slot]; if (!p) return;
