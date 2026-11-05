@@ -18,16 +18,18 @@ const clans = require('./clans');
 const presence = require('./presence');
 
 const ON = process.env.RESIDENT_BOTS !== '0';
-const RATE_MAX = SIM.TIER_MIN[19] - 1;          // チャンピオンⅠ（1990）の手前まで
+const RATE_MAX = SIM.TIER_MIN[20] - 1;          // チャンピオンⅠまで（チャンピオンⅡ 2110 の手前。それより上には行かない）
 const TICK_MS = 15000;
 const MIN = 60e3, DAY = 864e5, JST = 9 * 3600e3;
 // 落ち着くレート（ランクごとの範囲から、人ごとに決まる）
-const RANGE = { bronze: [1030, 1085], iron: [1095, 1170], gold: [1190, 1350], platinum: [1370, 1530], legend: [1555, 1680], master: [1730, 1960] };
-const RANK_TOP = { bronze: SIM.TIER_MIN[4] - 1, iron: SIM.TIER_MIN[7] - 1, gold: SIM.TIER_MIN[10] - 1, platinum: SIM.TIER_MIN[13] - 1, legend: SIM.TIER_MIN[16] - 1, master: RATE_MAX };   // 名簿のランクより上には行かない
+// 名簿の div（1〜3）があれば、その段（例：master + 2 ＝ マスターⅡ）が最高。なければランクの中のどこか
+const RANGE = { bronze: [1030, 1085], iron: [1095, 1170], gold: [1190, 1350], platinum: [1370, 1530], legend: [1555, 1680], master: [1730, 1960], champion: [2000, 2095] };
+const RANK_TOP = { bronze: SIM.TIER_MIN[4] - 1, iron: SIM.TIER_MIN[7] - 1, gold: SIM.TIER_MIN[10] - 1, platinum: SIM.TIER_MIN[13] - 1, legend: SIM.TIER_MIN[16] - 1, master: SIM.TIER_MIN[19] - 1, champion: RATE_MAX };   // 名簿のランクより上には行かない
+const RANK_ORDER = ['', 'bronze', 'iron', 'gold', 'platinum', 'legend', 'master', 'champion'];
 const CLIMB_FROM = [1190, 1290], CLIMB_DAYS = 10;   // climb の人：はじめて動いた日はこのあたり（ゴールド）から、10日かけて上がる
 const ROLE_OF = { coleader: 3, officer: 2, member: 1, recruit: 0 };
 // ふだんの勝率（ランクごと。人ごとに ±3%）。WR_VER を上げると、前の勝率で作った住人の戦績を、次の起動で1回だけ合わせ直す
-const WR = { bronze: 0.47, iron: 0.50, gold: 0.54, platinum: 0.57, legend: 0.60, master: 0.64 }, WR_VER = 2;
+const WR = { bronze: 0.47, iron: 0.50, gold: 0.54, platinum: 0.57, legend: 0.60, master: 0.64, champion: 0.66 }, WR_VER = 2;
 const FRIEND_YES = 0.85, CLAN_YES = 0.8;            // フレンド申請を受ける割合・クランの申請を受ける割合
 const JOIN_HUMAN_EVERY = 2.5 * DAY;                 // 人のクランに入る（住人みんなで、だいたいこの間に1人）
 const LEAVE_HUMAN_PER_DAY = 0.007;                  // 人のクランから抜ける（1人・1日あたり）
@@ -89,13 +91,17 @@ function loadRoster() {
 // ---- その人の決まり（名簿と key から決まる。保存しない）----
 function planOf(spec) {
   const r = rng(hash('plan:' + spec.key));
-  const rank = RANGE[spec.rank] ? spec.rank : 'gold', rg = RANGE[rank];
+  const rank = RANGE[spec.rank] ? spec.rank : 'gold', div = spec.div >= 1 && spec.div <= 3 ? Math.floor(spec.div) : 0;
+  const tier = div ? Math.min(19, (RANK_ORDER.indexOf(rank) - 1) * 3 + div) : 0, w = tier ? SIM.TIER_MIN[tier + 1] - SIM.TIER_MIN[tier] : 0;
+  const rg = tier ? [SIM.TIER_MIN[tier] + Math.min(12, w / 4), SIM.TIER_MIN[tier + 1] - Math.min(28, w / 3)] : RANGE[rank];
+  const top = Math.min(RATE_MAX, tier ? SIM.TIER_MIN[tier + 1] - 1 : RANK_TOP[rank]);   // 最高でここまで
   const skill = Math.round(U(r, rg[0], rg[1]));
-  const play = ACT[spec.play] ? spec.play : pickW(r, rank === 'master' || rank === 'legend' ? [['heavy', 6], ['regular', 3]]
+  let play = ACT[spec.play] ? spec.play : pickW(r, rank === 'master' || rank === 'legend' || rank === 'champion' ? [['heavy', 6], ['regular', 3]]
     : rank === 'platinum' ? [['heavy', 3], ['regular', 5], ['casual', 1]] : rank === 'gold' ? [['heavy', 2], ['regular', 5], ['casual', 3]] : [['regular', 4], ['casual', 6]]);
+  if (!ACT[spec.play] && (rank === 'master' || rank === 'champion')) play = 'heavy';   // マスターから上をめざす人は、毎日よく遊ぶ（名簿で決めていなければ）
   const time = TIME[spec.time] ? spec.time : pickW(r, [['evening', 6], ['night', 3], ['student', 2]]);
   return {
-    key: spec.key, rank, skill, play, time, A: ACT[play], T: TIME[time],
+    key: spec.key, rank, top, skill, play, time, A: ACT[play], T: TIME[time],
     climb: !!spec.climb, from: Math.round(U(r, CLIMB_FROM[0], CLIMB_FROM[1])),
     wr: WR[rank] + U(r, -0.03, 0.03),                               // ふだんの勝率
     p2: U(r, 0.05, 0.3),                                            // 2v2 をする割合
@@ -103,8 +109,10 @@ function planOf(spec) {
     sk: clamp((skill - 1000) / 900, 0, 1),
   };
 }
-// 今の強さ（climb の人は、はじめて動いた日から少しずつ上がる）
+// 今の強さ（climb の人は、はじめて動いた日から少しずつ上がる。名簿で目標が上がった人も、上がった日から10日かけて）
 function skillAt(pl, u, t) {
+  const rs = u.npc && u.npc.rs;
+  if (!pl.climb && rs && rs.to === pl.skill) return Math.round(rs.from + (pl.skill - rs.from) * clamp((t - rs.at) / (CLIMB_DAYS * DAY), 0, 1));
   if (!pl.climb) return pl.skill;
   const t0 = (u.npc && u.npc.t0) || t, f = clamp((t - t0) / (CLIMB_DAYS * DAY), 0, 1);
   return Math.round(pl.from + (pl.skill - pl.from) * f);
@@ -165,16 +173,16 @@ function fakeTally(pl, u, o, r) {
 function playOnline(u, pl, act, t, r, rateOnly) {
   const two = !!act.two, st = two ? auth.rating2(u.id) : auth.rating(u.id), R = st.rate, S = skillAt(pl, u, t) - (two ? 40 : 0);
   // 強さに届いていないうちは、ランクマッチを多く。届いたら、たまにだけ（少しずつ上がる）。名簿のランクのいちばん上の近くまで来たら、ランクはしない
-  let pr = R < S - 30 ? 0.8 : R < S + 20 ? 0.4 : 0.06;
+  let pr = R < S - 150 ? 0.9 : R < S - 30 ? 0.8 : R < S + 20 ? 0.4 : 0.06;
   if (SIM.RATE_LOSS[SIM.tierOfRate(R)] === 0 && R >= S) pr = 0.06;           // 負けても減らない段では、届いたらたまにだけ
-  if (R >= RANK_TOP[pl.rank] - 18) pr = 0;
+  if (R >= pl.top - 18) pr = 0;
   const ranked = r() < pr;
   const win = r() < clamp(pl.wr + (ranked ? 0.12 * (S - R) / 100 : 0), 0.1, 0.85);
   const lost = pickW(r, [[0, 0.4], [1, 0.35], [2, 0.25]]), N = G.WIN_ROUNDS;
   const rw = win ? N : lost, rl = win ? lost : N;
   const theirs = Math.round(R + U(r, -45, 45));
-  if (rateOnly) return ranked ? auth.npcMatch(u.id, { mode: 'online', rateOnly: true, win, two, ranked, mine: R, theirs, rw, rl, max: RATE_MAX }) : null;
-  const res = auth.npcMatch(u.id, { mode: 'online', win, two, ranked, mine: R, theirs, rw, rl, max: RATE_MAX,
+  if (rateOnly) return ranked ? auth.npcMatch(u.id, { mode: 'online', rateOnly: true, win, two, ranked, mine: R, theirs, rw, rl, max: pl.top }) : null;
+  const res = auth.npcMatch(u.id, { mode: 'online', win, two, ranked, mine: R, theirs, rw, rl, max: pl.top,
     stage: pick(r, STAGE_IDS), tally: fakeTally(pl, u, { win, rw, rl, two }, r) });
   if (seeding) seeding.push([u.id, win, t]); else clans.addMatch(u.id, win);
   return res;
@@ -260,7 +268,7 @@ function createUser(spec, pl, now, minAge) {
   let dn = discordName(spec.name, r);
   const used = new Set(auth.npcUsers().map(x => String(x.name).toLowerCase()));
   while (used.has(dn.toLowerCase())) dn = dn.replace(/[0-9_]+$/, '').slice(0, 9) + Math.floor(U(r, 10, 999));   // 同じ名前の住人がいたら、数字を足す
-  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now, cl: spec.climb ? 1 : 0, wv: WR_VER }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
+  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now, cl: spec.climb ? 1 : 0, wv: WR_VER, sk: pl.skill }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
   if (!u) return null;
   const preDays = Math.max(0, (SIM.seasonStart(now) - created) / DAY);
   profileFor(u, spec, pl, preDays, r);
@@ -349,7 +357,7 @@ function init(h) {
   let gone = 0;
   for (const u of auth.npcUsers()) if (!keys.has(u.npc.k)) { purge(u); gone++; }
   // 住人を作る（もういる人は名前だけ名簿に合わせる）
-  const made = [], redo = [], clanAge = {}, wins = { n: 0, d: 0 };
+  const made = [], redo = [], raised = [], clanAge = {}, wins = { n: 0, d: 0 };
   for (const c of R.clans) clanAge[c.key] = +c.age || 0;
   for (const spec of R.people) {
     const uid = 'npc_' + spec.key, pl = planOf(spec);
@@ -362,6 +370,14 @@ function init(h) {
     if (spec.climb && u.npc.cl !== 1) { const n = replayRanked(u, pl, now); u.npc.cl = 1; auth.touch(); redo.push(spec.name + '（' + n + '）'); replayed = true; }
     else if (!spec.climb && u.npc.cl) { u.npc.cl = 0; auth.touch(); }
     if ((u.npc.wv || 1) < WR_VER) { wins.d += rebalanceWins(u, pl, now, replayed); wins.n++; }   // 前の勝率で作った人
+    // 名簿で目標が上がった人（climb の人を除く）：今のレートから、今日から10日かけて上がる
+    if (!pl.climb && !(u.npc.rs && u.npc.rs.to === pl.skill)) {
+      // 前の目標（sk）を覚えていない人：レジェンドから上の目標なら、今回上がった人として扱う（この仕組みを入れたときに上げたのは、レジェンドから上だけ）
+      const cur = auth.rating(uid).rate, prev = u.npc.sk != null ? u.npc.sk : (pl.skill >= SIM.TIER_MIN[13] ? 0 : pl.skill);
+      if (pl.skill > Math.max(cur, prev) + 40) { u.npc.rs = { from: cur, at: now, to: pl.skill }; raised.push(spec.name); }
+      else if (u.npc.rs) delete u.npc.rs;
+    }
+    if (u.npc.sk !== pl.skill) { u.npc.sk = pl.skill; auth.touch(); }
   }
   // 住人のクラン（まだなければ作る）と、はじめのメンバー
   meta.clans = meta.clans && typeof meta.clans === 'object' ? meta.clans : {};
@@ -393,7 +409,8 @@ function init(h) {
   if (!timer) { timer = setInterval(() => { try { tick(Date.now()); } catch (e) { hooks.log('residents: ERROR', e && e.stack ? e.stack : e); } }, TICK_MS); timer.unref(); }
   hooks.log('residents:', auth.npcUsers().length, '人', made.length ? '（新しく ' + made.length + ' 人・' + n + ' 試合）' : '', gone ? '（名簿にない ' + gone + ' 人を消しました）' : '',
     redo.length ? '（今日から上がる人のランクの記録を作り直しました：' + redo.join('、') + '）' : '',
-    wins.n ? '（勝率の見直し：' + wins.n + ' 人の勝ちを合わせて ' + wins.d + ' 増やし、今シーズンのランクの記録を作り直しました）' : '');
+    wins.n ? '（勝率の見直し：' + wins.n + ' 人の勝ちを合わせて ' + wins.d + ' 増やし、今シーズンのランクの記録を作り直しました）' : '',
+    raised.length ? '（目標が上がった ' + raised.length + ' 人は、今日から10日かけて上がります）' : '');
   tick(now);
   return { on: true, made: made.length, matches: n };
 }
@@ -595,7 +612,7 @@ function botFor(uid, cfgRate, two) {
 // 人との試合の結果（住人の側）。o = { win, two, ranked, mine, theirs, rw, rl, forfeit, stage, tally }
 function record(uid, o) {
   if (!auth.isNpc(uid)) return null;
-  const r = auth.npcMatch(uid, Object.assign({ mode: 'online', max: RATE_MAX }, o));
+  const pl = plans.get(uid), r = auth.npcMatch(uid, Object.assign({ mode: 'online', max: pl ? pl.top : RATE_MAX }, o));
   clans.addMatch(uid, !!o.win);
   return r;
 }
