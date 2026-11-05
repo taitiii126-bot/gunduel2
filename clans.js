@@ -7,6 +7,7 @@
 // 名前とタグは作ったときに決めて、あとから変えられない。紹介文・タイプ・必要な最高ティア・地域は、リーダーがあとから変えられる
 // タイプ：open＝参加自由、approval＝承認制（参加の申請をリーダーが受ける）、closed＝非公開（新しく入れない）
 // ポイント：オンライン対戦で勝つと 3、負けても 1（遊んだ分）。合計と、今週（月曜はじまり・シンガポール時間）の2つを数える
+// できごと：入った・抜けた・追放・昇格・降格・リーダーの交代・作った、を新しい LOG_MAX 件まで残す（メンバーだけが見られる）
 // 記録は clans.json（users.json と同じ場所）
 const fs = require('fs');
 const path = require('path');
@@ -19,6 +20,7 @@ const MAX_MEMBERS = 20, NAME_MAX = 16, TAG_MIN = 2, TAG_MAX = 4, DESC_MAX = 200;
 const TYPES = ['open', 'approval', 'closed'], TIER_MAX = SIM.TIER_MIN.length - 1;   // 必要な最高ランク：0（なし）〜24
 const REQ_PER_CLAN = 30, REQ_PER_USER = 5, REQ_DAYS = 7;   // 申請：1つのクランに30件まで・1人5件まで・7日で消える
 const PTS_WIN = 3, PTS_PLAY = 1;
+const LOG_MAX = 60;
 // 格の番号（大きいほど上）。リーダーは c.owner。ほかの人の格は c.roles[ユーザーID]（書いていない人はメンバー）
 const ROLE = { recruit: 0, member: 1, officer: 2, coleader: 3, leader: 4 }, ROLE_KEYS = ['recruit', 'member', 'officer', 'coleader', 'leader'];
 const CAN_ACCEPT = ROLE.officer, CAN_EDIT = ROLE.coleader, CAN_MANAGE = ROLE.officer;
@@ -38,6 +40,7 @@ for (const c of Object.values(db.clans)) {
   if (typeof c.region !== 'string') c.region = '';
   if (!Array.isArray(c.req)) c.req = [];
   if (!c.roles || typeof c.roles !== 'object') c.roles = {};   // 格を入れる前からいる人は、みんなメンバー
+  if (!Array.isArray(c.log)) c.log = [];                       // できごと（入れる前のことは残っていない）
 }
 
 let dirty = migrated;   // 直した所があれば、すぐ保存する
@@ -86,6 +89,13 @@ function newId() {
 }
 function freshWeek(c) { const wk = weekKey(); if (!c.wk || c.wk.key !== wk) { c.wk = { key: wk, pts: 0, mp: {} }; dirty = true; } return c.wk; }
 
+// できごとを1つ残す。t：'create' | 'join' | 'leave' | 'kick' | 'up' | 'down' | 'lead'。uid＝された人、by＝した人、r＝新しい格
+function note(c, t, uid, by, r, at) {
+  if (!Array.isArray(c.log)) c.log = [];
+  c.log.push({ t, uid, by: by || null, r: r == null ? null : r, at: at || Date.now() });
+  if (c.log.length > LOG_MAX) c.log.splice(0, c.log.length - LOG_MAX);
+  dirty = true;
+}
 function clanOf(uid) { const id = db.member[uid]; return id ? db.clans[id] || null : null; }
 // その人の格（クランにいなければ -1）
 function roleOf(c, uid) {
@@ -108,8 +118,9 @@ function create(uid, name, tag, opts) {
   const st = cleanSettings(opts);
   if (st.error) return st;
   const id = newId();
-  db.clans[id] = Object.assign({ id, name: n, tag: tg, owner: uid, members: [uid], roles: {}, pts: 0, mp: {}, created: Date.now(), wk: { key: weekKey(), pts: 0, mp: {} }, req: [], tierVer: SIM.TIER_VER }, st);
+  db.clans[id] = Object.assign({ id, name: n, tag: tg, owner: uid, members: [uid], roles: {}, pts: 0, mp: {}, created: Date.now(), wk: { key: weekKey(), pts: 0, mp: {} }, req: [], log: [], tierVer: SIM.TIER_VER }, st);
   db.member[uid] = id; dropReqs(uid); dirty = true;
+  note(db.clans[id], 'create', uid);
   return { ok: true, clan: db.clans[id] };
 }
 // 設定を変える（副リーダーから上。名前とタグは変えられない）
@@ -140,6 +151,7 @@ function join(uid, id, tier) {
     return { ok: true, requested: true, clan: c };
   }
   c.members.push(uid); c.roles[uid] = ROLE.recruit; db.member[uid] = c.id; dropReqs(uid); dirty = true;
+  note(c, 'join', uid);
   return { ok: true, clan: c };
 }
 // 出した申請を取り消す
@@ -160,6 +172,7 @@ function accept(uid, target) {
   if (clanOf(target)) { c.req = c.req.filter(q => q.uid !== target); dirty = true; return { error: 'in_clan' }; }
   if (c.members.length >= MAX_MEMBERS) return { error: 'full' };
   c.members.push(target); c.roles[target] = ROLE.recruit; db.member[target] = c.id; dropReqs(target); dirty = true;
+  note(c, 'join', target, uid);
   return { ok: true, clan: c };
 }
 function decline(uid, target) {
@@ -178,10 +191,14 @@ function leave(uid) {
   const wasOwner = c.owner === uid;
   c.members = c.members.filter(m => m !== uid); delete db.member[uid]; delete c.roles[uid];
   if (!c.members.length) delete db.clans[c.id];
-  else if (wasOwner) {
-    let next = c.members[0];
-    for (const m of c.members) if (roleOf(c, m) > roleOf(c, next)) next = m;
-    c.owner = next; delete c.roles[next];
+  else {
+    note(c, 'leave', uid);
+    if (wasOwner) {
+      let next = c.members[0];
+      for (const m of c.members) if (roleOf(c, m) > roleOf(c, next)) next = m;
+      c.owner = next; delete c.roles[next];
+      note(c, 'lead', next);   // した人なし＝前のリーダーが抜けたので
+    }
   }
   dirty = true;
   return { ok: true };
@@ -194,6 +211,7 @@ function kick(uid, target) {
   const me = roleOf(c, uid);
   if (me < CAN_MANAGE || roleOf(c, target) >= me) return { error: 'no_perm' };
   c.members = c.members.filter(m => m !== target); delete db.member[target]; delete c.roles[target]; dirty = true;
+  note(c, 'kick', target, uid);
   return { ok: true, clan: c };
 }
 // 昇格・降格：自分より下の格の人を、自分の1つ下の格までの好きな格にする（role＝0 新人〜3 副リーダー）
@@ -207,6 +225,7 @@ function setRole(uid, target, role) {
   if (me < CAN_MANAGE || from >= me || role >= me) return { error: 'no_perm' };
   if (role === from) return { error: 'same_role' };
   c.roles[target] = role; dirty = true;
+  note(c, role > from ? 'up' : 'down', target, uid, role);
   return { ok: true, clan: c, from, to: role };
 }
 // リーダーを譲る（リーダーだけ）。前のリーダーは副リーダーになる
@@ -216,6 +235,7 @@ function transfer(uid, target) {
   if (c.owner !== uid) return { error: 'no_perm' };
   if (!target || target === uid || !c.members.includes(target)) return { error: 'not_member' };
   c.owner = target; delete c.roles[target]; c.roles[uid] = ROLE.coleader; dirty = true;
+  note(c, 'lead', target, uid);
   return { ok: true, clan: c };
 }
 // オンライン対戦の結果（サーバーが数えた試合だけ）
@@ -239,6 +259,11 @@ function view(c, card, viewer) {
   const o = Object.assign(summary(c), { created: c.created, myRole: my,
     members: c.members.map(uid => Object.assign({ owner: uid === c.owner, role: roleOf(c, uid), pts: c.mp[uid] || 0, week: w.mp[uid] || 0 }, card(uid) || { name: '?' })) });
   if (my >= CAN_ACCEPT) o.req = freshReq(c).map(q => Object.assign({ at: q.at }, card(q.uid) || { name: '?' }));
+  // できごと（メンバーだけ。新しい順。もういないアカウントの分は出さない）
+  if (my >= 0) {
+    const names = new Map(), nm = id => { if (!id) return ''; if (!names.has(id)) { const k = card(id); names.set(id, k && k.name ? k.name : ''); } return names.get(id); };
+    o.log = (c.log || []).slice().reverse().map(e => ({ t: e.t, at: e.at, r: e.r, name: nm(e.uid), by: e.by ? nm(e.by) : '' })).filter(e => e.name && (!e.by || e.by.length));
+  }
   return o;
 }
 // 探す：名前（一部でよい）・タグ・ID。q が空ならおすすめ（今週のポイント順）。
@@ -274,18 +299,20 @@ function npcCreate(uid, o) {
   if (!n || tg.length < TAG_MIN || st.error) return { error: 'bad' };
   for (let i = 2; Object.values(db.clans).some(c => c.tag === tg) && i < 99; i++) tg = (cleanTag(o.tag).slice(0, TAG_MAX - String(i).length) + i);
   const id = newId(), at = Math.min(Date.now(), +o.created || Date.now());
-  db.clans[id] = Object.assign({ id, name: n, tag: tg, owner: uid, members: [uid], roles: {}, pts: 0, mp: {}, created: at, wk: { key: weekKey(), pts: 0, mp: {} }, req: [], tierVer: SIM.TIER_VER }, st);
+  db.clans[id] = Object.assign({ id, name: n, tag: tg, owner: uid, members: [uid], roles: {}, pts: 0, mp: {}, created: at, wk: { key: weekKey(), pts: 0, mp: {} }, req: [], log: [], tierVer: SIM.TIER_VER }, st);
   db.member[uid] = id; dropReqs(uid); dirty = true;
+  note(db.clans[id], 'create', uid, null, null, at);
   return { ok: true, clan: db.clans[id] };
 }
-// 住人をクランに入れる（申請なし。role＝格。いっぱいなら入れない）
-function npcAdd(uid, id, role) {
+// 住人をクランに入れる（申請なし。role＝格。いっぱいなら入れない。quiet＝できごとに残さない：作ったときのはじめのメンバー）
+function npcAdd(uid, id, role, quiet) {
   const c = byId(id);
   if (!c) return { error: 'not_found' };
   if (clanOf(uid)) return { error: 'in_clan' };
   if (c.members.length >= MAX_MEMBERS) return { error: 'full' };
   c.members.push(uid); c.roles[uid] = role >= ROLE.recruit && role < ROLE.leader ? role | 0 : ROLE.member;
   db.member[uid] = c.id; dropReqs(uid); dirty = true;
+  if (!quiet) note(c, 'join', uid);
   return { ok: true, clan: c };
 }
 // 前の試合のポイントを、合計にだけ足す（住人を作ったときの、それまでの分）
