@@ -1268,6 +1268,24 @@ function handleHttp(req, res) {
     const list = auth.history(u.id, 5).map(e => Object.assign({}, e, { op: (e.op || []).map(who), tm: (e.tm || []).map(who) }));
     return json(res, 200, { list, clan: mc ? { tag: mc.tag, name: mc.name, canInvite: canInv } : null });
   }
+  // 1人のプロフィール（クランのメンバーなどから開く）：?fid=フレンドID。ログイン中なら、フレンドの状態とクランに招待できるかも付ける。
+  // Discord の名前はフレンドにだけ見せる
+  if (url === '/api/player') {
+    if (!lookups.hit(ip)) return json(res, 429, { error: 'busy' });
+    const t = auth.byFid(String(new URLSearchParams((req.url || '').split('?')[1] || '').get('fid') || '').slice(0, 16));
+    const card = t && cardOf(t.id);
+    if (!card) return json(res, 404, { error: 'not_found' });
+    const u = auth.verify(bearer(req)), c = clans.clanOf(t.id);
+    const o = { player: card, clan: c ? { id: c.id, tag: c.tag, name: c.name } : null, me: !!u && u.id === t.id, fr: null, inv: null, myClan: null };
+    if (u && u.id !== t.id) {
+      const L = auth.friendLists(u.id), mc = clans.clanOf(u.id), canInv = !!(mc && clans.roleOf(mc, u.id) >= clans.ROLE.officer);
+      o.fr = L.friends.includes(t.id) ? 'friend' : L.outgoing.includes(t.id) ? 'out' : L.incoming.includes(t.id) ? 'in' : 'none';
+      o.inv = !mc ? 'noclan' : c === mc ? 'member' : !canInv ? 'noperm' : clans.invited(mc, t.id) ? 'sent' : 'can';
+      o.myClan = mc ? { tag: mc.tag, name: mc.name } : null;
+    }
+    if (o.fr !== 'friend' && !o.me) delete card.discord;
+    return json(res, 200, o);
+  }
   // 攻略ページのプレイヤー検索（ログイン不要）：?q=名前かフレンドID、または ?id=フレンドID（候補から選んだとき）
   // 1人に決まれば詳しい戦績（player）、何人かいれば候補（list）。同じ名前の人が1人だけなら、その人の戦績と、ほかの候補（others）
   if (url === '/api/lookup') {
