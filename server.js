@@ -197,8 +197,8 @@ function recordBotResult(room, winner, loser, reason) {
   const p = winner.bot ? loser : winner, bot = winner.bot ? winner : loser, win = !winner.bot;
   if (!p || p.bot) return;
   // 住人（アカウントのある BOT）の側の記録。人の側が記録される試合だけ（ゲストのカジュアルも）
-  const hRate = p.rate, npcRec = () => { if (bot.npc && residents) residents.record(bot.npc, { win: !win, ranked: room.ranked && !!p.uid, theirs: hRate,
-    rw: roundsOf(room, bot), rl: roundsOf(room, p), forfeit: false, stage: room.stage, tally: bot.tally }); };
+  const hRate = p.rate, npcRec = () => { if (bot.npc && residents) { residents.record(bot.npc, { win: !win, ranked: room.ranked && !!p.uid, theirs: hRate,
+    rw: roundsOf(room, bot), rl: roundsOf(room, p), forfeit: false, stage: room.stage, tally: bot.tally }); if (p.uid) residents.met(bot.npc, p.uid, {}); } };   // met：試合のあと、たまにフレンド申請・クランへの招待
   // カジュアル：勝てば次のBOTが強くなる（負ければ弱くなる）。本物のレートは動かさないので、ゲストでも効く
   if (!room.ranked && !p.suspect && p.acts >= ACTIVE_MIN_INPUTS && p.ws) {
     const lv = setBotLevel(p.ws, botLevelFor(p.ws, bot.rate) + (win ? BOT_UP : -BOT_DOWN));
@@ -363,8 +363,14 @@ function openRoom() {
       for (const k of ['a', 'b']) if (r.players[k]) { if (r.players[k].npc && residents) residents.release(r.players[k].npc); presence.changed(r.players[k].uid); }
     },
     onResult: (w, l, reason) => {
+      const r0 = new Map([[w, w && w.rate], [l, l && l.rate]]);   // バトル履歴のレートの増減（試合前の値）
       progressOnline(w, true, room.stage); if (reason !== 'forfeit') progressOnline(l, false, room.stage);   // 称号・ミッション・経験値（途中で抜けた人には付けない）
-      return ((w && w.bot) || (l && l.bot)) ? recordBotResult(room, w, l, reason) : recordResult(room, w, l, reason);
+      const out = ((w && w.bot) || (l && l.bot)) ? recordBotResult(room, w, l, reason) : recordResult(room, w, l, reason);
+      for (const [p, o, win] of [[w, l, true], [l, w, false]]) {
+        if (!p || !o) continue;
+        histAdd(p, room, { m: '1v1', win, sc: [roundsOf(room, p), roundsOf(room, o)], ff: reason === 'forfeit' ? (win ? 'opp' : 'me') : null, op: [o], d: room.ranked ? (p.rate | 0) - (r0.get(p) | 0) : null });
+      }
+      return out;
     },
     onSuspect,
   });
@@ -383,8 +389,17 @@ function openTeamRoom(opt) {
       for (const p of r.allPlayers()) { if (p.npc && residents) residents.release(p.npc); if (p.uid || p.uidLeft) presence.changed(p.uid || p.uidLeft); }
     },
     onResult: (r, winTeam) => {
+      const r0 = new Map(), live = [];   // バトル履歴：試合前のレートと、最後までいた人
+      for (const k of TEAM_SLOTS) { const p = r.players[k]; if (p) { r0.set(p, p.rate); if (!p.done) live.push(p); } }
       for (const k of TEAM_SLOTS) { const p = r.players[k]; if (p && !p.done) progressOnline(p, teamOf(k) === winTeam, r.stage); }
-      return recordTeamResult(r, winTeam);
+      const out = recordTeamResult(r, winTeam);
+      for (const p of live) {
+        if (p.bot || !p.uid) continue;
+        const t = teamOf(p.slot), wins = r.wins || [0, 0];
+        histAdd(p, r, { m: '2v2', win: t === winTeam, sc: [wins[t] | 0, wins[1 - t] | 0], d: r.ranked ? (p.rate | 0) - (r0.get(p) | 0) : null,
+          op: TEAM_SLOTS.filter(k => r.players[k] && teamOf(k) !== t).map(k => r.players[k]), tm: TEAM_SLOTS.filter(k => r.players[k] && teamOf(k) === t && r.players[k] !== p).map(k => r.players[k]) });
+      }
+      return out;
     },
     onLeave: (r, p) => recordTeamLeave(r, p),
   }, opt);
@@ -411,6 +426,7 @@ function recordTeamResult(room, winTeam) {
     p.done = true;
     const t = teamOf(k), wins = room.wins || [0, 0];
     residents.record(p.npc, { two: true, win: t === winTeam, ranked: room.ranked, mine: avg[t], theirs: avg[1 - t], rw: wins[t] || 0, rl: wins[1 - t] || 0, stage: room.stage, tally: p.tally });
+    for (const q of room.humans()) if (q.uid && !q.done) residents.met(p.npc, q.uid, { mate: teamOf(q.slot) === t });
   }
   for (const k of TEAM_SLOTS) {
     const p = room.players[k];
@@ -440,12 +456,33 @@ function recordTeamResult(room, winTeam) {
 function recordTeamLeave(room, p) {
   if (!room.matchLive || p.done || !p.uid) return;
   p.done = true;
-  const tag = 'room ' + room.id + ' (2v2)', team = teamOf(p.slot);
+  const tag = 'room ' + room.id + ' (2v2)', team = teamOf(p.slot), wins = room.wins || [0, 0];
   auth.recordOnlineResult(p.uid, false);
+  let d = null;
   if (room.ranked) {
     const r = auth.applyRanked2(p.uid, { mine: teamAvg(room, team), theirs: teamAvg(room, 1 - team), win: false, cap: null, forfeit: true });   // 抜けた負けは 0-3 と同じ
-    if (r) log(tag, 'left (lose):', p.name, r.before + '→' + r.rate);
+    if (r) { d = r.delta; log(tag, 'left (lose):', p.name, r.before + '→' + r.rate); }
   } else log(tag, 'left:', p.name);
+  histAdd(p, room, { m: '2v2', win: false, sc: [wins[team] | 0, wins[1 - team] | 0], ff: 'me', d: room.ranked ? (d | 0) : null,
+    op: TEAM_SLOTS.filter(k => room.players[k] && teamOf(k) !== team).map(k => room.players[k]), tm: TEAM_SLOTS.filter(k => room.players[k] && teamOf(k) === team && room.players[k] !== p).map(k => room.players[k]) });
+}
+
+// ---- バトル履歴（オンライン対戦の最後の数試合。ログイン中の人だけ。住人・BOT には残さない）----
+const tierIdx = k => Math.max(0, TIER_KEYS.indexOf(k || ''));
+// 相手・味方の1人ぶん。uid：アカウント（人・住人）。アカウントのない BOT とゲストは null（申請・招待はできない）
+function histPerson(p) { return { uid: p.npc || p.uid || p.uidLeft || null, name: p.name, tier: tierIdx(p.tier), rate: p.rate | 0, look: p.look, load: (p.loadout || []).slice(0, 3) }; }
+// 自分の記録：武器ごとの撃った数・当てた数・倒した数、命中、いちばん遅かった通信（ms）
+function histMine(p) {
+  const T = p.tally || {}, ws = {}, kl = {};
+  let kills = 0;
+  for (const k of Object.keys(T.ws || {})) if (SIM.WEAPONS[k]) ws[k] = [T.ws[k][0] | 0, T.ws[k][1] | 0];
+  for (const k of Object.keys(T.kills || {})) if (SIM.WEAPONS[k]) { kl[k] = T.kills[k] | 0; kills += kl[k]; }
+  return { load: (p.loadout || []).slice(0, 3), ws, kl, k: kills, sh: T.shots | 0, hi: T.hits | 0, ping: p.pmax | 0 };
+}
+function histAdd(p, room, o) {
+  if (!p || p.bot || !p.uid) return;
+  guard('history', () => auth.addHistory(p.uid, { at: Date.now(), m: o.m, rk: !!room.ranked, win: !!o.win, sc: o.sc, st: room.stage || '', d: o.d, ff: o.ff || null,
+    me: histMine(p), op: (o.op || []).map(histPerson), tm: (o.tm || []).map(histPerson) }));
 }
 
 // ---- ランキング（レート順）----
@@ -1214,6 +1251,41 @@ function handleHttp(req, res) {
       json(res, 200, { result: r, player: cardOf(t.id) });
     });
   }
+  // バトル履歴（ログイン中だけ）：最後の5試合。相手・味方には、今のフレンドの状態とクランに招待できるかを付ける
+  if (url === '/api/history') {
+    const u = auth.verify(bearer(req));
+    if (!u) return json(res, 401, { error: '未ログイン' });
+    if (!lookups.hit(ip)) return json(res, 429, { error: 'busy' });
+    const L = auth.friendLists(u.id), mc = clans.clanOf(u.id), canInv = !!(mc && clans.roleOf(mc, u.id) >= clans.ROLE.officer);
+    const who = x => {
+      const t = x.uid && auth.user(x.uid), o = { name: x.name, tier: x.tier, rate: x.rate, look: x.look, load: x.load };
+      if (!t || t.id === u.id) return Object.assign(o, { guest: !t });
+      const c = clans.clanOf(t.id);
+      return Object.assign(o, { fid: t.fid, clan: c ? c.tag : '', status: presence.statusOf(t.id) === 'offline' ? 'offline' : 'online',
+        fr: L.friends.includes(t.id) ? 'friend' : L.outgoing.includes(t.id) ? 'out' : L.incoming.includes(t.id) ? 'in' : 'none',
+        inv: !mc ? 'noclan' : c === mc ? 'member' : !canInv ? 'noperm' : clans.invited(mc, t.id) ? 'sent' : 'can' });
+    };
+    const list = auth.history(u.id, 5).map(e => Object.assign({}, e, { op: (e.op || []).map(who), tm: (e.tm || []).map(who) }));
+    return json(res, 200, { list, clan: mc ? { tag: mc.tag, name: mc.name, canInvite: canInv } : null });
+  }
+  // 1人のプロフィール（クランのメンバーなどから開く）：?fid=フレンドID。ログイン中なら、フレンドの状態とクランに招待できるかも付ける。
+  // Discord の名前はフレンドにだけ見せる
+  if (url === '/api/player') {
+    if (!lookups.hit(ip)) return json(res, 429, { error: 'busy' });
+    const t = auth.byFid(String(new URLSearchParams((req.url || '').split('?')[1] || '').get('fid') || '').slice(0, 16));
+    const card = t && cardOf(t.id);
+    if (!card) return json(res, 404, { error: 'not_found' });
+    const u = auth.verify(bearer(req)), c = clans.clanOf(t.id);
+    const o = { player: card, clan: c ? { id: c.id, tag: c.tag, name: c.name } : null, me: !!u && u.id === t.id, fr: null, inv: null, myClan: null };
+    if (u && u.id !== t.id) {
+      const L = auth.friendLists(u.id), mc = clans.clanOf(u.id), canInv = !!(mc && clans.roleOf(mc, u.id) >= clans.ROLE.officer);
+      o.fr = L.friends.includes(t.id) ? 'friend' : L.outgoing.includes(t.id) ? 'out' : L.incoming.includes(t.id) ? 'in' : 'none';
+      o.inv = !mc ? 'noclan' : c === mc ? 'member' : !canInv ? 'noperm' : clans.invited(mc, t.id) ? 'sent' : 'can';
+      o.myClan = mc ? { tag: mc.tag, name: mc.name } : null;
+    }
+    if (o.fr !== 'friend' && !o.me) delete card.discord;
+    return json(res, 200, o);
+  }
   // 攻略ページのプレイヤー検索（ログイン不要）：?q=名前かフレンドID、または ?id=フレンドID（候補から選んだとき）
   // 1人に決まれば詳しい戦績（player）、何人かいれば候補（list）。同じ名前の人が1人だけなら、その人の戦績と、ほかの候補（others）
   if (url === '/api/lookup') {
@@ -1244,6 +1316,8 @@ function handleHttp(req, res) {
     const memCard = id => { const k = cardOf(id); return k ? { fid: k.fid, name: k.name, status: k.status, lastSeen: k.lastSeen, tier: k.tier, rate: k.rate, look: k.look, title: k.title } : null; };
     const mine = () => { const c = u && clans.clanOf(u.id); return c ? clans.view(c, memCard, u.id) : null; };
     const myReq = () => (u ? clans.reqsOf(u.id) : []);
+    // 届いている招待（クランの短い形・招待した人の名前・時刻）
+    const myInv = () => (u ? clans.invitesOf(u.id).map(x => Object.assign(clans.summary(x.c), { by: (cardOf(x.q.by) || {}).name || '', at: x.q.at })) : []);
     if (req.method === 'GET') {
       if (q.has('view')) {   // ほかのクランの中身（メンバーなど）
         if (!lookups.hit(ip)) return json(res, 429, { error: 'too_many' });
@@ -1255,7 +1329,7 @@ function handleHttp(req, res) {
         if (!lookups.hit(ip)) return json(res, 429, { error: 'too_many' });
         return json(res, 200, { results: clans.search(q.get('q'), { region: q.get('region') || '', joinable: q.get('joinable') === '1', tier: u ? auth.peakTier(u.id) : 0 }), myReq: myReq() });
       }
-      return json(res, 200, { mine: mine(), top: clans.top(by, 50), by, myReq: myReq(), tier: u ? auth.peakTier(u.id) : 0, pts: { win: clans.PTS_WIN, play: clans.PTS_PLAY } });
+      return json(res, 200, { mine: mine(), top: clans.top(by, 50), by, myReq: myReq(), invites: myInv(), tier: u ? auth.peakTier(u.id) : 0, pts: { win: clans.PTS_WIN, play: clans.PTS_PLAY } });
     }
     if (req.method !== 'POST') return json(res, 405, { error: 'method' });
     if (!u) return json(res, 401, { error: '未ログイン' });
@@ -1274,11 +1348,19 @@ function handleHttp(req, res) {
       else if (op === 'kick') { const t = auth.byFid(m.fid), c0 = clans.clanOf(u.id); r = t ? clans.kick(u.id, t.id) : { error: 'not_member' }; if (r.ok) pushTo(t.id, { type: 'clan_out', name: c0.name, tag: c0.tag }); }
       else if (op === 'role') { const t = auth.byFid(m.fid); r = t ? clans.setRole(u.id, t.id, m.role) : { error: 'not_member' }; if (r.ok) pushTo(t.id, { type: 'clan_role', role: r.to, up: r.to > r.from, name: r.clan.name }); }
       else if (op === 'transfer') { const t = auth.byFid(m.fid); r = t ? clans.transfer(u.id, t.id) : { error: 'not_member' }; if (r.ok) pushTo(t.id, { type: 'clan_role', role: clans.ROLE.leader, up: true, name: r.clan.name }); }
+      else if (op === 'invite') {   // 招待する（幹部から上）。相手に知らせる（住人は、しばらくしてから答える）
+        const t = auth.byFid(m.fid); r = t ? clans.invite(u.id, t.id) : { error: 'not_found' };
+        if (r.ok && !r.already) pushTo(t.id, { type: 'clan_invite', name: r.clan.name, tag: r.clan.tag, from: (cardOf(u.id) || {}).name || '' });
+      }
+      else if (op === 'invans') {   // 届いた招待に答える
+        r = clans.inviteAnswer(u.id, m.id, !!m.yes);
+        if (r.ok && r.joined && r.by) pushTo(r.by, { type: 'clan_inv_ok', name: (cardOf(u.id) || {}).name || '', clan: r.clan.name });
+      }
       else return json(res, 400, { error: 'bad' });
       if (op === 'join' && r.requested) for (const id of clans.managers(r.clan)) pushTo(id, { type: 'clan_req' });   // 幹部から上に「参加の申請が来た」と知らせる
       if (r.ok) log('clan', op, 'discord=' + u.id, r.clan ? r.clan.id + ' [' + r.clan.tag + ']' : '');
       const c = r.clan && op !== 'leave' ? r.clan : null;
-      json(res, r.ok ? 200 : 400, { ok: !!r.ok, error: r.error || null, requested: !!r.requested, mine: mine(), myReq: myReq(), top: clans.top(by, 50), by,
+      json(res, r.ok ? 200 : 400, { ok: !!r.ok, error: r.error || null, requested: !!r.requested, joined: !!r.joined, already: !!r.already, mine: mine(), myReq: myReq(), invites: myInv(), top: clans.top(by, 50), by,
         clan: c ? clans.view(c, memCard, u.id) : null });
     });
   }
