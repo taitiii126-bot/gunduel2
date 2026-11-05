@@ -1661,6 +1661,34 @@ function railThreat(me, op) {
   if (op.chg > 0) return true;
   return (op.ammo[op.slot] > 0 || op.rl > 0) && op.rl < 70 && Math.abs(me.x - op.x) <= W.range;
 }
+// 今ジャンプを押す（press）かどうかで、k フレーム後の体のてっぺんの高さ（beamHitsAfter と同じたどり方）
+function bodyTopAfter(w, me, k, press) {
+  var y = me.y, vy = me.onGround ? 0 : me.vy, ground = me.onGround, since = me.groundSince, buf = press ? BUFFER_FRAMES : 0, floor = GND;
+  for (var i = 0; i < w.plats.length; i++) {
+    var p = w.plats[i];
+    if (me.x + CHAR_W > p.x && me.x < p.x + p.w && p.y >= me.y + CHAR_H - 2 && p.y < floor) floor = p.y;
+  }
+  for (var j = 1; j <= k; j++) {
+    var fr = w.frame + j;
+    if (buf > 0) {
+      var wait = ground && since >= 0 && fr - since < landLag(me);
+      if (ground && !wait) { vy = JUMP_F; ground = false; buf = 0; }
+      else if (!wait) buf--;
+    }
+    if (!ground) { vy += GRAVITY; y += vy; if (vy > 0 && y + CHAR_H >= floor) { y = floor - CHAR_H; vy = 0; ground = true; since = fr; } }
+  }
+  return y;
+}
+// フォーカスライフル：相手が絞っている。離すと読んだフレーム（rel フレーム後）に撃たれたら、ジャストの弾が届くまでのフレーム数。
+// こちらを向いていない・届かない・遮蔽物の向こう、なら -1
+function focusArrive(w, me, op, rel) {
+  var W = weaponOf(op);
+  if (W.kind !== 'focus' || !(op.foc > 0)) return -1;
+  var mx = op.x + CHAR_W / 2 + op.dir * 22, tc = me.x + CHAR_W / 2, d = (tc - mx) * op.dir;
+  if (d < -CHAR_W || d > W.range) return -1;
+  if (blockedLine(w, mx, tc, muzzleY(op))) return -1;
+  return rel + Math.max(0, Math.ceil((d - CHAR_W / 2) / W.pspd));
+}
 // 弾を見てから判断するまでに react フレームかかる（見えていない弾は計算に入れない）。
 // 何もしなければ当たるなら、跳ぶ・しゃがむのうち一番当たらない方を選ぶ。跳ぶのは「今跳ばないと間に合わない」瞬間まで待つ
 function bossDodge(b, w, me, op, side, inp) {
@@ -1983,6 +2011,28 @@ function think(b, w, side) {
     // 賢いCPU（鬼神）：着地の待ちも数えて、ジャンプが間に合う瞬間に跳ぶ（空中なら、着地して跳べるようになるのを待つ）
     if (b.seenChg && b.chgDodge && cfg.smart >= 1 && !cfg.boss && beamHitsAfter(w, me, op, false) && !beamHitsAfter(w, me, op, true)) inp.jump = true;
   } else { b.seenChg = false; b.chgDodge = false; }
+  // フォーカスライフルで狙われている：ジャストの弾は速く、見てからでは間に合わない。人と同じく、光る（絞りきる）頃に撃たれると読んで先によける。
+  // 絞り始めを見たときに、よけるか（dodge）・転がるか（roll）・合図を読むずれ（賢くないほど大きい）を1回決める。
+  // ジャストで撃たれうる間（光ってから win フレーム）に離されたら、弾は arrE〜arrL フレーム後に届く。その間ずっと体が射線の外にいられる瞬間に跳ぶ
+  // （近ければ、届く直前に転がって無敵ですり抜ける）。よけたあとも構えたままなら、着地してまた読む
+  if (op.foc > 0 && WEAPONS[op.load[op.slot]].kind === 'focus') {
+    var FW = WEAPONS[op.load[op.slot]];
+    if (!b.seenFoc) {
+      b.seenFoc = true; b.focDone = -999;
+      b.focDodge = R() < cfg.dodge;                       // よける率は、ほかの弾をよける上手さと同じ
+      b.focRoll = !!cfg.roll && R() < Math.min(1, cfg.roll * 1.5);
+      b.focErr = Math.round((R() - 0.5) * 2 * (1 - cfg.smart) * 12);
+    }
+    var arrE = b.focDodge && w.frame - b.focDone > 30 && op.dir === -toOp && op.foc >= FW.full - 2 + b.focErr - 14 ? focusArrive(w, me, op, Math.max(1, FW.full - op.foc)) : -1;
+    if (arrE >= 0) {
+      var arrL = arrE + FW.win, lineY = muzzleY(op), hitAt = function (k, press) { var y = bodyTopAfter(w, me, k, press); return lineY > y - 4 && lineY < y + CHAR_H + 4; };
+      var now = op.foc >= FW.full - 2 + b.focErr || arrE <= 8;   // 光る少し前（読みのずれつき）か、もうすぐ届くとき
+      if (now && hitAt(arrE, false)) {
+        if (b.focRoll && me.onGround && !(me.rollCD > 0) && !(me.rollT > 0) && landReady(w, me) && arrE <= 4 && arrL <= ROLL_IF - 1) { inp.roll = true; b.focDone = w.frame; }
+        else if (me.onGround && !hitAt(arrE, true) && !hitAt(arrL, true)) { inp.jump = true; b.focDone = w.frame; }
+      }
+    }
+  } else b.seenFoc = false;
   // レールガンで狙われている間は、よけ以外で跳ばない（着地の瞬間は跳べないので、そこを撃たれる）
   var railRisk = cfg.smart >= 1 && railThreat(me, op);
 

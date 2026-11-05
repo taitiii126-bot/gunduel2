@@ -31,12 +31,13 @@ const last = new Map();           // 最後にフレンドへ知らせた状態
 let roomOf = () => '';            // 部屋にいるか（'match'＝相手あり / 'room'＝相手待ち / ''）。server.js が教える
 let onOffline = () => {};         // 最後の接続が切れたとき
 let onChange = () => {};          // 状態が変わったとき（フレンドに知らせる）
+let virtual = () => '';           // 接続のない人の状態（住人：residents.js が教える。'online' / 'cpu' / 'match' / ''）
 
 function statusOf(uid) {
   const r = roomOf(uid);
   if (r === 'match') return 'match';
   const s = socks.get(uid);
-  if (!s || !s.size) return r ? 'online' : 'offline';
+  if (!s || !s.size) return r ? 'online' : (virtual(uid) || 'offline');
   for (const ws of s) if (ws.pstatus === 'cpu') return 'cpu';
   return 'online';
 }
@@ -81,5 +82,6 @@ module.exports = {
     if (o.roomOf) roomOf = o.roomOf;
     if (o.onOffline) onOffline = o.onOffline;
     if (o.onChange) onChange = o.onChange;
+    if (o.virtual) virtual = o.virtual;
   },
 };

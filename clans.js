@@ -265,5 +265,36 @@ function top(by, n) {
     .map((c, i) => ({ rank: i + 1, id: c.id, name: c.name, tag: c.tag, pts: k(c), n: c.members.length, max: MAX_MEMBERS, type: c.type, region: c.region }));
 }
 
-module.exports = { clanOf, tagOf, roleOf, managers, create, update, join, unrequest, accept, decline, reqsOf, leave, kick, setRole, transfer, addMatch, view, summary, search, byId, top, weekKey,
+// ---- 住人（residents.js）のためのもの ----
+// 住人のクランを作る（名前・タグの決まりは同じ。タグが使われていたら、後ろに数字を足す）。created：作った日（前の日付にできる）
+function npcCreate(uid, o) {
+  if (clanOf(uid)) return { error: 'in_clan' };
+  const n = cleanName(o.name), st = cleanSettings(o);
+  let tg = cleanTag(o.tag);
+  if (!n || tg.length < TAG_MIN || st.error) return { error: 'bad' };
+  for (let i = 2; Object.values(db.clans).some(c => c.tag === tg) && i < 99; i++) tg = (cleanTag(o.tag).slice(0, TAG_MAX - String(i).length) + i);
+  const id = newId(), at = Math.min(Date.now(), +o.created || Date.now());
+  db.clans[id] = Object.assign({ id, name: n, tag: tg, owner: uid, members: [uid], roles: {}, pts: 0, mp: {}, created: at, wk: { key: weekKey(), pts: 0, mp: {} }, req: [], tierVer: SIM.TIER_VER }, st);
+  db.member[uid] = id; dropReqs(uid); dirty = true;
+  return { ok: true, clan: db.clans[id] };
+}
+// 住人をクランに入れる（申請なし。role＝格。いっぱいなら入れない）
+function npcAdd(uid, id, role) {
+  const c = byId(id);
+  if (!c) return { error: 'not_found' };
+  if (clanOf(uid)) return { error: 'in_clan' };
+  if (c.members.length >= MAX_MEMBERS) return { error: 'full' };
+  c.members.push(uid); c.roles[uid] = role >= ROLE.recruit && role < ROLE.leader ? role | 0 : ROLE.member;
+  db.member[uid] = c.id; dropReqs(uid); dirty = true;
+  return { ok: true, clan: c };
+}
+// 前の試合のポイントを、合計にだけ足す（住人を作ったときの、それまでの分）
+function npcPts(uid, n) {
+  const c = clanOf(uid);
+  if (!c || !(n > 0)) return;
+  c.pts += n; c.mp[uid] = (c.mp[uid] || 0) + n; dirty = true;
+}
+function all() { return Object.values(db.clans); }
+
+module.exports = { npcCreate, npcAdd, npcPts, all, reqs: freshReq, clanOf, tagOf, roleOf, managers, create, update, join, unrequest, accept, decline, reqsOf, leave, kick, setRole, transfer, addMatch, view, summary, search, byId, top, weekKey,
   MAX_MEMBERS, PTS_WIN, PTS_PLAY, TYPES, DESC_MAX, ROLE, ROLE_KEYS };
