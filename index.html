@@ -308,7 +308,7 @@ body.mland #game-screen.range.rp-open #gm-weps{display:none;}
 .dev-btns{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
 .dev-btns .room-btn{min-height:52px;font-size:14px;}
 .dev-btns .dev-cheat{background:linear-gradient(180deg,#FF6B7A,#D92D42);color:#fff;}
-.fr-sheet{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:center;width:min(640px,100%);max-height:calc(100vh - 32px);overflow:auto;padding:20px;border:1px solid var(--line-2);border-radius:18px;background:var(--panel-solid);box-shadow:0 30px 70px -20px rgba(0,0,0,.9);animation:frm-in .3s var(--ease) both;}
+.fr-sheet{display:grid;grid-template-columns:240px minmax(0,1fr);gap:22px;align-items:center;width:min(640px,100%);max-height:calc(100vh - 32px);max-height:calc(100dvh - 32px);overflow:auto;overscroll-behavior:contain;padding:20px;border:1px solid var(--line-2);border-radius:18px;background:var(--panel-solid);box-shadow:0 30px 70px -20px rgba(0,0,0,.9);animation:frm-in .3s var(--ease) both;}
 .fr-card{display:block;width:100%;height:auto;aspect-ratio:380/500;}
 .fr-stats{display:grid;grid-template-columns:auto minmax(0,1fr);gap:9px 14px;margin:14px 0 18px;font-size:13px;}
 .fr-stats dt{color:var(--tx-3);font-weight:700;}
@@ -583,6 +583,18 @@ button.hs-who:hover .hs-pn b,button.hs-who:focus-visible .hs-pn b{text-decoratio
 .room-btn.pm-inv{background:rgba(255,197,61,.12);color:var(--gold);border:1px solid rgba(255,197,61,.55);box-shadow:none;}
 .room-btn.pm-inv:hover{background:rgba(255,197,61,.2);}
 .pm-close{margin-top:8px;}
+/* スマホ：カードを小さくし、フレンド申請・招待のボタンをカードのすぐ下に（画面の下にはみ出して押せない、をなくす） */
+@media (max-width:560px){
+  #pm-modal .fr-sheet{gap:8px;padding:14px;}
+  #pm-modal .fr-card{width:min(150px,42vw);}
+  #pm-modal .pm-body{display:flex;flex-direction:column;gap:8px;}
+  #pm-st{order:0;text-align:center;}
+  #pm-msg{order:1;margin:0;}
+  #pm-acts{order:2;}
+  #pm-modal .fr-stats{order:3;margin:4px 0 0;gap:6px 12px;font-size:12.5px;}
+  #pm-modal .pm-close{order:4;margin-top:4px;}
+  #pm-acts .room-btn{padding:12px;}
+}
 #pm-acts:empty{display:none;}
 #pm-acts .ol-note{margin:0;font-size:12px;color:var(--tx-3);}
 .cl-who>span{display:flex;flex-direction:column;min-width:0;}
@@ -3282,7 +3294,7 @@ body.mland .home-hero{height:72vh;}
 <div id="pm-modal" class="fr-modal" onclick="if(event.target===this)closePlayer()">
   <div class="fr-sheet" role="dialog" aria-modal="true">
     <canvas id="pm-card" class="fr-card" width="380" height="500"></canvas>
-    <div>
+    <div class="pm-body">
       <span class="fr-st" id="pm-st"></span>
       <dl class="fr-stats" id="pm-stats"></dl>
       <p class="fr-msg" id="pm-msg" hidden></p>
