@@ -489,6 +489,9 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 .cl-lrow.kick i{color:#FF6B7A;background:rgba(255,77,94,.14);}
 .cl-lrow.up i,.cl-lrow.lead i,.cl-lrow.create i{color:#FFC53D;background:rgba(255,197,61,.14);}
 .cl-lrow.down i{color:#7CC8FF;background:rgba(124,200,255,.13);}
+.cl-lrow canvas.cl-lic{width:26px;height:26px;margin:-1px;}
+.cl-ltier{font-weight:900;color:var(--tx);}
+.cl-ltier.rk3{color:#FFD45A;}.cl-ltier.rk4{color:#BFE6FF;}.cl-ltier.rk5{color:#C9A2FF;}.cl-ltier.rk6{color:#FF7A6B;}.cl-ltier.rk7{color:#5CF2A0;}.cl-ltier.rk8{color:#FFC53D;}
 .cl-lrow b{color:var(--tx);font-weight:900;overflow-wrap:anywhere;}
 .cl-lrow .cl-role{margin:0 2px;vertical-align:1px;}
 .cl-lrow small{display:flex;flex-direction:column;align-items:flex-end;gap:1px;font-size:10.5px;font-weight:700;line-height:1.35;color:var(--tx-3);white-space:nowrap;text-align:right;}
@@ -3224,7 +3227,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=63"></script>
-<script src="lang.js?v=82"></script>
+<script src="lang.js?v=83"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -6951,8 +6954,11 @@ function clanDetailHtml(C,own){
   return h+'</div></section>'+(Array.isArray(C.log)?clanLogHtml(C):'')+'</div></div>';   // できごとはメンバーにだけ届く
 }
 // クランのできごと：新しい順に、はじめは CL_LOG_N 件（「もっと見る」で全部）
-var CL_LOG_N=8,CL_LOG_IC={create:'\u2691',join:'+',leave:'\u2212',kick:'\u00D7',up:'\u25B2',down:'\u25BC',lead:'\u2605'};
+var CL_LOG_N=8,CL_LOG_IC={create:'\u2691',join:'+',leave:'\u2212',kick:'\u00D7',up:'\u25B2',down:'\u25BC',lead:'\u2605',rank:'\u2191'};
 function clanLogText(e){
+  if(e.t==='rank'){var tr=Math.max(0,Math.floor(+e.r)||0);   // ランクアップ：届いた段（m＝2 なら 2v2）
+    return esc(t(e.m===2?'cl.log.rank2':'cl.log.rank',{name:'\u0001',tier:'\u0004'})).replace('\u0001','<b>'+esc(e.name)+'</b>')
+      .replace('\u0004','<b class="cl-ltier rk'+SIM.rankOf(tr).r+'">'+esc(tierName(tr))+'</b>');}
   var by=!!e.by&&(e.t==='join'||e.t==='lead'),r=Math.max(0,Math.min(4,+e.r||0));
   return esc(t('cl.log.'+e.t+(by?'By':''),{name:'\u0001',by:'\u0002',role:'\u0003'}))
     .replace('\u0001','<b>'+esc(e.name)+'</b>').replace('\u0002','<b>'+esc(e.by||'')+'</b>').replace('\u0003','<span class="cl-role r'+r+'">'+esc(clanRoleName(r))+'</span>');
@@ -6970,7 +6976,8 @@ function clanLogHtml(C){
   var h='<section class="cl-log"><div class="cl-mh"><b>'+esc(t('cl.log'))+'</b></div>';
   if(!L.length)return h+'<p class="cl-lempty">'+esc(t('cl.logEmpty'))+'</p></section>';
   h+='<div class="cl-llist">'+L.slice(0,n).map(function(e){
-    return'<div class="cl-lrow '+esc(e.t)+'"><i aria-hidden="true">'+CL_LOG_IC[e.t]+'</i><span>'+clanLogText(e)+'</span><small><b>'+esc(clanLogWhen(e.at))+'</b>'+esc(agoText(e.at))+'</small></div>';}).join('')+'</div>';
+    var ic=e.t==='rank'?'<canvas class="cl-lic" data-tr="'+Math.max(0,Math.floor(+e.r)||0)+'" width="52" height="52" aria-hidden="true"></canvas>':'<i aria-hidden="true">'+CL_LOG_IC[e.t]+'</i>';
+    return'<div class="cl-lrow '+esc(e.t)+'">'+ic+'<span>'+clanLogText(e)+'</span><small><b>'+esc(clanLogWhen(e.at))+'</b>'+esc(agoText(e.at))+'</small></div>';}).join('')+'</div>';
   if(L.length>n)h+='<button class="cl-lmore" onclick="clanLogMore()">'+esc(t('cl.logMore',{n:L.length-n}))+'</button>';
   return h+'</section>';
 }
