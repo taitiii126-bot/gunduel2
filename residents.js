@@ -65,6 +65,7 @@ const live = new Map();      // uid → { on, act, next, extra }（今の様子�
 const busy = new Map();      // uid → 部屋の番号（人との試合中）
 let hooks = { pushTo() {}, cardOf() { return null; }, log() {} };
 let timer = null;
+const warned = new Set();   // 名簿のクランに入れない理由（起動ごとに1回だけ記録に出す）
 let seeding = null;          // 前の試合をまとめて行っている間：クランのポイントをためておく（[uid, 勝ち, 時刻]）
 
 function loadRoster() {
@@ -425,15 +426,23 @@ function social(now, r) {
       hooks.log('residents: clan request', c.id, '[' + c.tag + ']', 'discord=' + q.uid, yes && res.ok ? 'accepted' : 'declined');
     }
   }
-  // 名簿で決めた、今あるクラン（#クランID）に入る。来た日のうちに、オンラインのときに1人ずつ（一度入ったら、外されても入り直さない）
+  // 名簿で決めた、今あるクラン（#クランID）に入る。サーバーが起動してから2〜30分のあいだに1人ずつ。
+  // オフラインの人は、そのときにログインして入る（一度入ったら、外されても入り直さない）
   for (const u of npcs) {
     const spec = specs.get(u.npc.k), L = live.get(u.id);
-    if (!spec || !/^#\d{6}$/.test(String(spec.clan || '')) || u.npc.cj) continue;
+    if (!spec || !/^#\d{6}$/.test(String(spec.clan || '')) || u.npc.cj || !L) continue;
     if (clans.clanOf(u.id)) { u.npc.cj = 1; auth.touch(); continue; }
-    if (!u.npc.cjAt) { u.npc.cjAt = now + Math.round(U(r, 20, 480) * MIN); auth.touch(); }
-    if (now < u.npc.cjAt || !L || !L.on) continue;
-    const res = clans.npcAdd(u.id, spec.clan.slice(1), spec.role in ROLE_OF ? ROLE_OF[spec.role] : 1);
-    if (res.ok) { u.npc.cj = 1; auth.touch(); hooks.log('residents: joined clan', spec.clan, u.id); }
+    if (!u.npc.cjAt || u.npc.cjAt > now + 30 * MIN) { u.npc.cjAt = now + Math.round(U(r, 2, 30) * MIN); auth.touch(); }   // 前の決まり（8時間まで待つ）で決めた時刻も、30分以内に直す
+    if (now < u.npc.cjAt || busy.has(u.id)) continue;
+    const id = spec.clan.slice(1), c = clans.byId(id);
+    if (!c || c.members.length >= clans.MAX_MEMBERS) {   // クランがない・いっぱい：入れるようになるまで待つ（理由は起動ごとに1回だけ記録に出す）
+      const why = !c ? 'クランが見つかりません' : 'クランがいっぱいです（' + clans.MAX_MEMBERS + '人）';
+      if (!warned.has(id + why)) { warned.add(id + why); hooks.log('residents: ' + spec.clan + ' に入れません：' + why); }
+      continue;
+    }
+    if (!L.on) { L.on = true; L.act = null; L.next = now + Math.round(U(r, 30, 120) * 1000); L.extra = Math.max(L.extra, now + Math.round(U(r, 10, 30) * MIN)); }   // ログインして入る
+    const res = clans.npcAdd(u.id, id, spec.role in ROLE_OF ? ROLE_OF[spec.role] : 1);
+    if (res.ok) { u.npc.cj = 1; auth.touch(); presence.changed(u.id); hooks.log('residents: joined clan', spec.clan, u.id); }
   }
   // ときどき、人が作ったクランに入る（承認制なら申請）
   const meta = auth.npcMeta();
