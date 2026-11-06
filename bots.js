@@ -125,9 +125,55 @@ function botLoadout(rate, r) {
   return out;
 }
 
+// ---- 人と戦うときの強さ ----
+// レートで作る強さ（SIM.aiForRate）は BOT 同士で測った目盛りで、人が相手だと弱すぎた（人は BOT の癖を読む）。
+// 人のレート → 強さの段（SIM.aiAt の t：1=よわい 2=ふつう 3=むずかしい 4=プロ 5=鬼神 6=その上）。マスターで鬼神くらい
+// （強い武器・よける率・短い遅れを足したあとで、オフラインの鬼神と戦わせて合わせた：マスターⅠ 45%・Ⅱ 55%・Ⅲ 62%、レジェンドⅠ 36%、プラチナⅠ 28%）
+// 1000 より下は、カジュアルで負け続けた人のため（その場の強さが下がる）
+const HUMAN_T = [[800, 0.6], [900, 1.0], [1000, 1.4], [1180, 1.9], [1360, 2.4], [1540, 3.0], [1720, 3.9], [1810, 4.3], [1990, 4.8], [2350, 5.6]];
+function humanLevel(rate) {
+  const r = +rate || SIM.RATE_START;
+  if (r <= HUMAN_T[0][0]) return HUMAN_T[0][1];
+  for (let i = 1; i < HUMAN_T.length; i++) if (r <= HUMAN_T[i][0]) { const p = HUMAN_T[i - 1], q = HUMAN_T[i]; return p[1] + (q[1] - p[1]) * (r - p[0]) / (q[0] - p[0]); }
+  return HUMAN_T[HUMAN_T.length - 1][1];
+}
+// オンラインの BOT・住人の思考：弾をよくよけ（ロールも使う・撃たれそうな瞬間を読んで先に跳ぶ）、距離に合う武器へ迷わず持ち替える。
+// 近すぎる距離では弾をよけられないので、オフラインの CPU より前に出すぎない（攻め気は 4 割）
+function aiOnline(rate) {
+  const c = SIM.aiAt(humanLevel(rate));
+  c.dodge = Math.min(0.97, Math.round((c.dodge + 0.12) * 1000) / 1000);
+  c.roll = Math.min(0.6, Math.round(((c.roll || 0) + 0.15) * 1000) / 1000);
+  c.smart = Math.max(0.9, c.smart);
+  c.pre = 0.09;
+  c.atk = Math.round((c.atk || 0) * 0.4 * 1000) / 1000;
+  return c;
+}
+
+// ---- 武器の組み合わせ：BOT 同士の総当たりで強かった組み合わせ（botloads.json）から、相手の武器を見て選ぶ ----
+const LOADS = (() => { try { return require('./botloads.json'); } catch (e) { return null; } })();
+const loadKey = c => c.slice().sort((a, b) => a - b).join(',');
+const LOAD_IDX = new Map(LOADS ? LOADS.all.map((c, i) => [loadKey(c), i]) : []);
+function inPool(c) { return !!(LOADS && c && LOADS.pool.some(p => loadKey(p) === loadKey(c))); }
+// opp：相手（人）の武器。fav：その住人のいつもの武器（強い組み合わせなら少し選びやすい）
+// 強いBOTほど相手に強い組み合わせ（上位3つのどれか）を選び、弱いBOTは強い組み合わせの中から相手を見ずに選ぶことが多い
+function pickLoadout(opp, rate, r, fav) {
+  r = r || Math.random;
+  if (!LOADS) return botLoadout(rate, r);
+  const o = Array.isArray(opp) && opp.length === 3 ? SIM.cleanLoadout(opp, false) : null, h = o ? LOAD_IDX.get(loadKey(o)) : undefined;
+  const smart = Math.max(0.2, Math.min(1, (humanLevel(rate) - 1.4) / 3.3));
+  const sc = LOADS.pool.map((c, p) => {
+    let v = LOADS.base[p] / 100;
+    if (h != null) v = 0.5 * v + 0.5 * (+LOADS.m[p].substr(h * 2, 2) / 100);   // 相手との相性（1つの組み合わせの数は少ないので、全体の強さとならす）
+    if (fav && loadKey(fav) === loadKey(c)) v += 0.04;
+    return [v, p];
+  }).sort((a, b) => b[0] - a[0]);
+  const p = r() < smart ? sc[Math.floor(r() * 3)][1] : sc[Math.floor(r() * sc.length)][1];
+  return LOADS.pool[p].slice();
+}
+
 // レート帯に合った相手を1人作る
-// cfgRate：思考の強さだけ別のレートで作る（見せるレートは rate のまま）
-function makeBot(rate, rnd, cfgRate) {
+// cfgRate：思考の強さだけ別のレートで作る（見せるレートは rate のまま。人のレートで決める：aiOnline）。opp：相手の武器（武器の組み合わせを選ぶ）
+function makeBot(rate, rnd, cfgRate, opp) {
   const r = rnd || Math.random;
   const rt = Math.max(SIM.RATE_FLOOR, Math.round(rate));
   const name = botName(r, Math.max(0, Math.min(1, (rt - 1000) / 1100))) || 'プレイヤー';
@@ -135,9 +181,9 @@ function makeBot(rate, rnd, cfgRate) {
   const rec = botRecord(rt, r);
   return {
     name, rate: rt, tier, tierKey: TIER_KEYS[tier] || '',
-    look: botLook(rt, r), loadout: botLoadout(rt, r), title: botTitle(rt, r), bio: pick(BIOS, r),
-    bg: SIM.artOfTier(tier), rec, cfg: SIM.aiForRate(cfgRate == null ? rt : cfgRate),
+    look: botLook(rt, r), loadout: pickLoadout(opp, cfgRate == null ? rt : cfgRate, r), title: botTitle(rt, r), bio: pick(BIOS, r),
+    bg: SIM.artOfTier(tier), rec, cfg: aiOnline(cfgRate == null ? rt : cfgRate),
   };
 }
 
-module.exports = { makeBot, botLook, botLoadout, BIOS, ROMA, NUMS };   // 住人（residents.js）も同じ作り方を使う
+module.exports = { makeBot, botLook, botLoadout, pickLoadout, inPool, aiOnline, humanLevel, BIOS, ROMA, NUMS };   // 住人（residents.js）も同じ作り方を使う

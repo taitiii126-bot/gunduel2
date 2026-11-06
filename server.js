@@ -573,9 +573,7 @@ function botWaitFor(q) {
   return q.botWait;
 }
 // ---- BOTの強さ ----
-// 同じレートのBOTは、人が相手だと弱く感じる（人はAIの癖を読むため）。思考だけ底上げする
-const BOT_SKILL_BOOST = G.BOT_SKILL_BOOST;
-const botBoost = ranked => (ranked ? G.BOT_BOOST_RANKED : BOT_SKILL_BOOST);
+// 思考の強さは、相手の人のレート（カジュアルは「その場の強さ」）から bots.aiOnline で決める（マスターで鬼神くらい）
 // カジュアルは本物のレートが動かないので、その場の勝ち負けで「次のBOTの強さ」を上下させる
 const BOT_UP = +process.env.BOT_STEP_UP || 200, BOT_DOWN = +process.env.BOT_STEP_DOWN || 150;
 const BOT_MIN = SIM.RATE_FLOOR, BOT_MAX = 2900, BOT_MEM_MS = 6 * 60 * 60 * 1000;
@@ -608,8 +606,8 @@ function startBotMatch(ws, q) {
   const rate = Math.max(SIM.RATE_FLOOR, Math.min(3000, Math.round(level + (Math.random() * 60 - 30))));
   // 近いレートの住人がいれば、その人が相手（ランクは住人のレート、カジュアルは「その場の強さ」で考える）。いなければ名前のない BOT
   const nid = residents && residents.pick({ rate: level, ranked: q.mode === 'ranked', range: 120 + Math.min(150, queueSec(q) * 3) });
-  const bot = (nid && residents.botFor(nid, (q.mode === 'ranked' ? auth.rating(nid).rate : rate) + botBoost(q.mode === 'ranked')))
-    || bots.makeBot(rate, null, rate + botBoost(q.mode === 'ranked'));   // 見せるレートはそのまま、思考だけ底上げ
+  const opp = q.info && q.info.loadout;   // 相手（人）の武器：BOT はこれに強い組み合わせを持つ（ラウンド間にも選び直す）
+  const bot = (nid && residents.botFor(nid, level, false, opp)) || bots.makeBot(rate, null, level, opp);   // 見せるレートはそのまま、思考は人の強さで
   if (room.joinBot(bot) == null) { room.close(); return false; }
   if (bot.npc) residents.take(bot.npc, room.id);
   send(ws, { type: 'match_found', roomId: room.id, slot: ws.slot, mode: q.mode, ranked: room.ranked });
@@ -709,9 +707,9 @@ function startTeamMatch(mode, A, B) {
   const used = new Set();   // 空いている場所は、近いレートの住人（いなければ名前のない BOT）
   const mk = r => {
     const v = jitter(r), nid = residents && residents.pick({ rate: r, ranked: room.ranked, two: true, exclude: used });
-    const b = nid && residents.botFor(nid, (room.ranked ? auth.rating2(nid).rate : v) + botBoost(room.ranked), true);
+    const b = nid && residents.botFor(nid, r, true);   // 思考は人の強さ（チームの平均レート）で
     if (b) { used.add(nid); return b; }
-    return bots.makeBot(v, null, v + botBoost(room.ranked));
+    return bots.makeBot(v, null, r);
   };
   const addBot = (b, slot) => { if (room.joinBot(b, slot) != null && b.npc) residents.take(b.npc, room.id); };
   A.forEach((x, i) => { if (!x) addBot(mk(hasA ? ra : rb), ['a', 'c'][i]); });
@@ -760,7 +758,7 @@ function npcInviteReply(id) {
     const room = rooms.get(iv.roomId), u = auth.user(iv.to);
     const ok = !!(room && u && room.kind !== 'team' && room.phase === 'waiting' && room.players.a && room.players.a.uid === iv.from && !room.players.b
       && rooms.size <= MAX_ROOMS && residents.answerInvite(iv.to, 'invite'));
-    const bot = ok && residents.botFor(iv.to, auth.rating(iv.to).rate + BOT_SKILL_BOOST);
+    const bot = ok && residents.botFor(iv.to, auth.rating(iv.from).rate);   // 誘った人の強さに合わせる
     if (!bot || room.joinBot(bot) == null) {
       pushTo(iv.from, { type: 'invite_declined', fid: u ? u.fid : '', name: u && u.profile ? u.profile.name : '', timeout: false });
       return;
@@ -919,7 +917,7 @@ function onMessage(ws, raw) {
       if (!room || room.kind !== 'team' || room.phase !== 'waiting' || ws.slot !== room.hostSlot) return;
       if (!bots && !room.isFull()) return send(ws, { type: 'error', code: 'need_players', msg: '4人そろうと始められます' });
       const hs = room.humans(), r = hs.length ? hs.reduce((a, p) => a + (p.rate || SIM.RATE_START), 0) / hs.length : SIM.RATE_START;
-      for (const k of TEAM_SLOTS) if (!room.players[k]) { const v = Math.round(r + (Math.random() * 60 - 30)); room.joinBot(bots.makeBot(v, null, v + botBoost(room.ranked)), k); }
+      for (const k of TEAM_SLOTS) if (!room.players[k]) { const v = Math.round(r + (Math.random() * 60 - 30)); room.joinBot(bots.makeBot(v, null, r), k); }
       room.start();
       cancelInvites(room.id);
       for (const p of room.humans()) presence.changed(p.uid);

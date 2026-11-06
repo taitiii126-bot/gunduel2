@@ -216,7 +216,7 @@ function discordName(name, r) {
 }
 // 前のシーズンまでの記録（まとめて作る）と、プロフィール
 function profileFor(u, spec, pl, preDays, r) {
-  const look = bots.botLook(pl.skill, r), loadout = Array.isArray(spec.loadout) && spec.loadout.length === 3 ? SIM.cleanLoadout(spec.loadout, false) : bots.botLoadout(pl.skill, r);
+  const look = bots.botLook(pl.skill, r), loadout = Array.isArray(spec.loadout) && spec.loadout.length === 3 ? SIM.cleanLoadout(spec.loadout, false) : bots.pickLoadout(null, SIM.RATE_START, r);   // いつもの武器：強い組み合わせのどれか
   const inv = [];
   for (const k of ['hat', 'outfit', 'neck', 'win']) { const it = SIM.itemOf(k, look[k]); if (it && inv.indexOf(it.id) < 0) inv.push(it.id); }
   for (let i = Math.floor(U(r, 0, 4 + 10 * pl.sk)); i > 0; i--) { const it = pick(r, SIM.ITEMS); if (!it.ev && !it.pass && inv.indexOf(it.id) < 0) inv.push(it.id); }   // 着ていない物も少し
@@ -272,7 +272,7 @@ function createUser(spec, pl, now, minAge) {
   let dn = discordName(spec.name, r);
   const used = new Set(auth.npcUsers().map(x => String(x.name).toLowerCase()));
   while (used.has(dn.toLowerCase())) dn = dn.replace(/[0-9_]+$/, '').slice(0, 9) + Math.floor(U(r, 10, 999));   // 同じ名前の住人がいたら、数字を足す
-  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now, cl: spec.climb ? 1 : 0, wv: WR_VER, sk: pl.skill }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
+  const u = auth.npcAdd({ id: 'npc_' + spec.key, name: dn, created, online: { w: 0, l: 0 }, npc: { k: spec.key, t0: now, cl: spec.climb ? 1 : 0, wv: WR_VER, sk: pl.skill, lv: 1 }, badges: SIM.cleanBadges(badges), lastSeen: 0 });
   if (!u) return null;
   const preDays = Math.max(0, (SIM.seasonStart(now) - created) / DAY);
   profileFor(u, spec, pl, preDays, r);
@@ -382,6 +382,11 @@ function init(h) {
       else if (u.npc.rs) delete u.npc.rs;
     }
     if (u.npc.sk !== pl.skill) { u.npc.sk = pl.skill; auth.touch(); }
+    // いつもの武器を、強い組み合わせ（botloads.json）にする（1回だけ。名簿で武器を決めた人はそのまま）
+    if ((u.npc.lv || 0) < 1) {
+      if (!(Array.isArray(spec.loadout) && spec.loadout.length === 3) && !bots.inPool(loadoutOf(u))) auth.npcProfile(uid, Object.assign({}, u.profile, { loadout: bots.pickLoadout(null, SIM.RATE_START, rng(hash('load:' + spec.key))) }));
+      u.npc.lv = 1; auth.touch();
+    }
   }
   // 住人のクラン（まだなければ作る）と、はじめのメンバー
   meta.clans = meta.clans && typeof meta.clans === 'object' ? meta.clans : {};
@@ -626,13 +631,14 @@ function release(uid) {
   presence.changed(uid);
 }
 // 部屋に入れる BOT の形（名前・見た目・武器・称号・戦績はその人のもの。思考の強さは cfgRate）
-function botFor(uid, cfgRate, two) {
+// cfgRate：相手の人の強さ（思考は bots.aiOnline）。opp：相手の武器（いつもの武器を少し好みつつ、強い組み合わせから相手に強いものを持つ）
+function botFor(uid, cfgRate, two, opp) {
   const u = auth.user(uid);
   if (!u || !u.npc || !u.profile) return null;
-  const p = u.profile, st = two ? auth.rating2(uid) : auth.rating(uid), sh = auth.shown(uid);
-  return { name: p.name, discord: u.name, rate: st.rate, tier: st.tier, tierKey: P.TIER_KEYS[st.tier] || '', look: p.look, loadout: loadoutOf(u),
+  const p = u.profile, st = two ? auth.rating2(uid) : auth.rating(uid), sh = auth.shown(uid), aiRate = cfgRate == null ? st.rate : cfgRate, fav = loadoutOf(u);
+  return { name: p.name, discord: u.name, rate: st.rate, tier: st.tier, tierKey: P.TIER_KEYS[st.tier] || '', look: p.look, loadout: bots.pickLoadout(opp, aiRate, Math.random, fav),
     title: sh.title, bio: p.bio || '', bg: sh.bg == null ? SIM.artOfTier(p.bestTier || st.tier) : sh.bg, rec: { w: u.online.w, l: u.online.l },
-    cfg: SIM.aiForRate(cfgRate == null ? st.rate : cfgRate), npc: uid };
+    cfg: bots.aiOnline(aiRate), aiRate, fav, npc: uid };
 }
 // 人との試合の結果（住人の側）。o = { win, two, ranked, mine, theirs, rw, rl, forfeit, stage, tally }
 function record(uid, o) {
