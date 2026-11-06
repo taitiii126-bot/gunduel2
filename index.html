@@ -2510,16 +2510,7 @@ body[data-scr="pass-screen"] #bs-bg,body[data-scr="shop-screen"] #bs-bg{display:
 .sh-card.own .sh-face{opacity:.55;}
 .sh-owned{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:6px;padding:12px 0;border-top:1px solid var(--line);background:rgba(52,211,153,.08);font-family:var(--f-ui);font-weight:700;font-size:15px;letter-spacing:.1em;color:var(--ok);}
 .sh-owned .i{width:16px;height:16px;stroke:var(--ok);stroke-width:3;}
-.sh-badges{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
-.sh-bcard{--bc:var(--gd-sky);display:flex;align-items:center;gap:14px;padding:12px 16px;clip-path:var(--cut-l);
   background:radial-gradient(40% 90% at 12% 50%,color-mix(in srgb,var(--bc) 25%,transparent),transparent 80%),linear-gradient(180deg,#171B28,#0E1119);box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--bc) 40%,transparent);}
-.sh-bcard.chaos{--bc:var(--gd-rare2);}
-.sh-bcard canvas{width:76px;height:76px;flex:none;filter:drop-shadow(0 0 14px color-mix(in srgb,var(--bc) 55%,transparent));}
-.sh-btxt{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px;}
-.sh-btxt b{font-family:var(--f-disp);font-weight:400;font-size:19px;letter-spacing:.04em;color:var(--tx);white-space:nowrap;}
-.sh-bcard .sh-buy s{font-size:12px;}
-.sh-btxt small{font-size:11.5px;font-weight:700;color:var(--tx-3);line-height:1.45;}
-.sh-bcard .sh-buy{width:auto;flex:none;clip-path:var(--cut-s);padding:9px 12px;font-size:17px;}
 /* ---- ログインボーナス（連続記録）---- */
 .lb-sheet.v2{position:relative;width:min(700px,100%);padding:24px 24px 20px;border-radius:0;clip-path:var(--cut-l);border:0;
   background:radial-gradient(70% 40% at 20% 0%,rgba(255,170,60,.12),transparent 70%),linear-gradient(180deg,#151926,#0C0F17);box-shadow:inset 0 0 0 1px var(--line-2),inset 0 3px 0 var(--gold);}
@@ -2590,7 +2581,6 @@ body[data-scr="pass-screen"] #bs-bg,body[data-scr="shop-screen"] #bs-bg{display:
   .sh-stage{height:116px;}.sh-stage canvas{width:116px;height:116px;}
   .sh-head{font-size:10.5px;letter-spacing:.12em;height:34px;}
   .sh-nm{padding:0 10px 10px;}.sh-nm b{font-size:13.5px;}.sh-sale{top:42px;right:8px;font-size:11px;}.sh-buy{font-size:17px;padding:10px 0;}
-  .sh-badges{grid-template-columns:1fr;}
   .sh-gift{gap:10px;padding:10px 14px;}.sh-gift-art canvas{width:58px;height:58px;}.sh-gift-txt b{font-size:18px;}
   .v2-coins b{font-size:18px;}
   .v2-coins{gap:5px;padding:6px 10px 6px 8px;}.v2-coins b{font-size:15px;}.v2-coins .pi{width:19px;height:19px;}.v2-coins .pi.gem{margin-left:5px;}
@@ -2599,7 +2589,6 @@ body[data-scr="pass-screen"] #bs-bg,body[data-scr="shop-screen"] #bs-bg{display:
   .lb-sheet.v2 .lb-shields{position:absolute;top:56px;right:4px;margin:0;}.lb-sheet.v2 .lb-shield{width:20px;height:24px;}
   .lb-sheet.v2 .lb-head{gap:12px;padding-right:50px;}.lb-sheet.v2 .lb-head small{white-space:nowrap;}
   .ps-excl b{font-size:11px;white-space:nowrap;padding:3px 8px;}
-  .sh-bcard{flex-wrap:wrap;}.sh-bcard .sh-btxt b{font-size:17px;white-space:nowrap;}.sh-bcard .sh-buy{flex:1 1 100%;}
   .lb-sheet.v2 .lb-week{grid-template-columns:repeat(4,1fr);gap:14px 8px;}.lb-sheet.v2 .lb-d.big{grid-column:span 2;}
   .lb-sheet.v2 .lb-d canvas.rwc{width:40px;height:40px;}
 }
@@ -3338,8 +3327,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=63"></script>
-<script src="lang.js?v=86"></script>
+<script src="sim.js?v=64"></script>
+<script src="lang.js?v=87"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4709,10 +4698,6 @@ function renderShop(){
       (own?'<span class="sh-owned">'+CHECK_SVG+esc(t('shop.owned'))+'</span>':
         '<button class="sh-buy'+(cf?' confirm':'')+(poor?' poor':'')+'" onclick="shopBuy('+i+')">'+(cf?'<b>'+esc(t('shop.sure'))+'</b>':(o.price<SIM.SHOP_PRICE[o.r]?'<s>'+SIM.SHOP_PRICE[o.r]+'</s>':'')+'<i class="pi coin"></i><b>'+o.price+'</b>')+'</button>')+'</div></div>';
   });
-  h+='</div><div class="v2-sec"><h3>'+esc(t('shop.badges'))+'</h3></div><div class="sh-badges">';
-  ['lucky','chaos'].forEach(function(k){var pr=SIM.badgePrice(k,day),cf=SHOP.confirm===k;
-    h+='<div class="sh-bcard '+k+'"><canvas data-sb="'+k+'" width="160" height="160"></canvas><div class="sh-btxt"><b>'+esc(t('eco.'+k))+'</b><small>'+esc(t('shop.b.'+k))+'</small></div>'+
-      '<button class="sh-buy'+(cf?' confirm':'')+(profile.coins<pr?' poor':'')+'" onclick="shopBadge(\''+k+'\')">'+(cf?'<b>'+esc(t('shop.sure'))+'</b>':(pr<SIM.SHOP_BADGE[k]?'<s>'+SIM.SHOP_BADGE[k]+'</s>':'')+'<i class="pi coin"></i><b>'+pr+'</b>')+'</button></div>';});
   h+='</div><p class="v2-note">'+esc(t('shop.how'))+'</p>';
   body.innerHTML=h;
   drawShopArt(0);watchArt(body);
@@ -4732,7 +4717,7 @@ function giftLabel(gf){var a=[];if(gf.lucky)a.push(gf.lucky>1?t('eco.lucky')+' �
 function saleGoalText(g){return t('sale.g.'+g.k,{n:g.n})+' → '+(g.coins?t('pass.coins',{n:g.coins}):g.chaos?t('eco.chaos')+(g.chaos>1?' ×'+g.chaos:''):t('eco.lucky')+' ×'+g.lucky);}
 function saleBannerHtml(day,peak){
   var S=AUTH.user&&AUTH.user.sale&&AUTH.user.sale.m===day.slice(0,7)?AUTH.user.sale:null;
-  var h='<div class="sale-ban'+(peak?' peak':'')+'"><div class="sale-top"><b class="sale-11">11.11</b><span><strong>'+esc(t(peak?'sale.peakTitle':'sale.title'))+'</strong><small>'+esc(t(peak?'sale.peakSub':'sale.sub',{a:Math.round(SIM.SALE.itemOff*100),b:Math.round(SIM.SALE.badgeOff*100)}))+'</small></span></div>';
+  var h='<div class="sale-ban'+(peak?' peak':'')+'"><div class="sale-top"><b class="sale-11">11.11</b><span><strong>'+esc(t(peak?'sale.peakTitle':'sale.title'))+'</strong><small>'+esc(t(peak?'sale.peakSub':'sale.sub',{a:Math.round(SIM.SALE.itemOff*100)}))+'</small></span></div>';
   h+='<div class="sale-goals"><p>'+esc(t('sale.goals'))+'</p>';
   SIM.SALE.goals.forEach(function(g,i){var v=S?Math.min(g.n,S[g.k]||0):0,got=S&&S.got&&S.got[i];
     h+='<div class="sale-g'+(got?' got':'')+'"><span>'+esc(saleGoalText(g))+'</span><div class="v2-bar sm"><i style="width:'+Math.round(v/g.n*100)+'%"></i></div><small>'+(got?esc(t('sale.done')):v+' / '+g.n)+'</small></div>';});
@@ -4787,11 +4772,6 @@ function shopBuy(i){
   if(profile.coins<o.price){note(t('shop.poor'));SFX.dry();return;}
   if(!shopArm(i))return;
   shopDo({op:'buy',slot:i},function(){profile.coins-=o.price;profile.inv.push(o.item);},function(){ecoMarkNew(o.item);SFX.coin();shopReveal(o);});
-}
-function shopBadge(k){
-  var pr=SIM.badgePrice(k,SIM.dayKey());if(profile.coins<pr){note(t('shop.poor'));SFX.dry();return;}
-  if(!shopArm(k))return;
-  shopDo({op:'badge',kind:k},function(){profile.coins-=pr;if(k==='chaos')profile.misChaos++;else profile.misCrates++;},function(){SFX.coin();note(t('shop.gotBadge',{b:t('eco.'+k)}));renderShop();renderHomeEco();});
 }
 function shopGiftClaim(){
   if(!giftReady())return;var gf=SIM.shopGift(SIM.dayKey());
@@ -16331,7 +16311,7 @@ function drawBgFx(tm){
 
 // 画面のボタン（onclick など）から呼ばれる関数だけを外に出す
 [toggleMute,updateTosBtn,agreeTos,backToMenu,createRoom,joinRoom,startQueue,cancelQueue,showRankScreen,matchReady,pickMatchSlot,pickMatchWeapon,discordLogin,doLogout,
- doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopBadge,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,clanInvAnswer,showHistory,histFriend,histInvite,openPlayer,closePlayer,pmFriend,pmInvite,pmRowTap,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
+ doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,clanInvAnswer,showHistory,histFriend,histInvite,openPlayer,closePlayer,pmFriend,pmInvite,pmRowTap,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
