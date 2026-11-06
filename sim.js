@@ -1284,12 +1284,13 @@ function packShots(w) {
 // wMin,wMax=撃てるようになってから撃つまでの迷い / hTol=撃つのを許す高さのずれ / whiff=ナイフの空振り率
 // hpT=回復を使うHP / hCh=1秒あたりの実行率 / strafe=撃ち合い中に左右へ動く頻度 / cover=リロード中に隠れる率 / smart=距離に合う武器を選ぶ率
 // melee=近くの相手にナイフで斬りかかる率（空振りは whiff）
+// atk=攻め気：立つ距離を武器の届く範囲の近い側に寄せる・近づかれても近すぎるまで下がらない・詰める場面が増える・撃つ合間に前へ出る（0＝前のまま）
 var AI_LEVELS = {
-  easy:   { react: 20, see: 140, mvI: 20, dodge: 0.15, jumpF: 60,  wMin: 80, wMax: 160, hTol: 40, whiff: 0.42, hpT: 20, hCh: 0.50, strafe: 0.30, cover: 0.20, smart: 0.50, melee: 0.05, roll: 0 },
-  normal: { react: 16, see: 175, mvI: 16, dodge: 0.35, jumpF: 80,  wMin: 46, wMax: 96,   hTol: 32, whiff: 0.33, hpT: 40, hCh: 0.55, strafe: 0.50, cover: 0.40, smart: 0.70, melee: 0.12, roll: 0.12 },
-  hard:   { react: 12, see: 215, mvI: 12, dodge: 0.50, jumpF: 100, wMin: 32, wMax: 66,  hTol: 26, whiff: 0.22, hpT: 40, hCh: 0.70, strafe: 0.65, cover: 0.60, smart: 0.85, melee: 0.25, roll: 0.25 },
-  pro:    { react: 9,  see: 255, mvI: 10, dodge: 0.58, jumpF: 130, wMin: 22, wMax: 50,  hTol: 20, whiff: 0.10, hpT: 40, hCh: 0.85, strafe: 0.75, cover: 0.75, smart: 0.95, melee: 0.30, roll: 0.35 },
-  god:    { react: 7,  see: 300, mvI: 7,  dodge: 0.76, jumpF: 170, wMin: 10,  wMax: 24,  hTol: 14, whiff: 0.04, hpT: 40, hCh: 0.95, strafe: 0.85, cover: 0.90, smart: 1.00, melee: 0.45, roll: 0.45 },
+  easy:   { react: 20, see: 140, mvI: 20, dodge: 0.15, jumpF: 60,  wMin: 80, wMax: 160, hTol: 40, whiff: 0.42, hpT: 20, hCh: 0.50, strafe: 0.30, cover: 0.20, smart: 0.50, melee: 0.05, roll: 0, atk: 0.15 },
+  normal: { react: 16, see: 175, mvI: 16, dodge: 0.35, jumpF: 80,  wMin: 46, wMax: 96,   hTol: 32, whiff: 0.33, hpT: 40, hCh: 0.55, strafe: 0.50, cover: 0.40, smart: 0.70, melee: 0.12, roll: 0.12, atk: 0.35 },
+  hard:   { react: 12, see: 215, mvI: 12, dodge: 0.50, jumpF: 100, wMin: 32, wMax: 66,  hTol: 26, whiff: 0.22, hpT: 40, hCh: 0.70, strafe: 0.65, cover: 0.60, smart: 0.85, melee: 0.25, roll: 0.25, atk: 0.5 },
+  pro:    { react: 9,  see: 255, mvI: 10, dodge: 0.58, jumpF: 130, wMin: 22, wMax: 50,  hTol: 20, whiff: 0.10, hpT: 40, hCh: 0.85, strafe: 0.75, cover: 0.75, smart: 0.95, melee: 0.30, roll: 0.35, atk: 0.65 },
+  god:    { react: 7,  see: 300, mvI: 7,  dodge: 0.76, jumpF: 170, wMin: 10,  wMax: 24,  hTol: 14, whiff: 0.04, hpT: 40, hCh: 0.95, strafe: 0.85, cover: 0.90, smart: 1.00, melee: 0.45, roll: 0.45, atk: 0.8 },
   // 隠しボス「鬼帝」：反応・精度・回避・判断をすべて最高に。体力・無敵・壁抜けなどのルールは人と同じ。
   // boss：弾が届く瞬間を計算してよけ、相手の移動先を読んで撃つ。lapse：ごくまれに判断が遅れる（1フレームあたりの確率と長さ）
   emperor: { react: 3, see: 520, mvI: 5, dodge: 1.00, jumpF: 240, wMin: 2, wMax: 5, hTol: 8, whiff: 0, hpT: 45, hCh: 1.00, strafe: 0.90, cover: 1.00, smart: 1.00, melee: 0.50, boss: true, lapse: 1 / 5400, lapseLen: 36 }
@@ -1297,14 +1298,14 @@ var AI_LEVELS = {
 // ---- レートに合わせた強さ ----
 // 5段階のあいだを、レートで少しずつ変える。下は「よわい」より弱く、上は「鬼神」より強くできる
 var AI_ANCHORS = [
-  { react: 40, see: 70, mvI: 34, dodge: 0.00, jumpF: 40, wMin: 200, wMax: 340, hTol: 60, whiff: 0.80, hpT: 15, hCh: 0.15, strafe: 0.10, cover: 0.00, smart: 0.15, melee: 0.00 },
+  { react: 40, see: 70, mvI: 34, dodge: 0.00, jumpF: 40, wMin: 200, wMax: 340, hTol: 60, whiff: 0.80, hpT: 15, hCh: 0.15, strafe: 0.10, cover: 0.00, smart: 0.15, melee: 0.00, atk: 0 },
   AI_LEVELS.easy, AI_LEVELS.normal, AI_LEVELS.hard, AI_LEVELS.pro, AI_LEVELS.god,
-  { react: 5, see: 340, mvI: 6, dodge: 0.92, jumpF: 190, wMin: 6, wMax: 16, hTol: 11, whiff: 0.01, hpT: 40, hCh: 1.00, strafe: 0.90, cover: 0.95, smart: 1.00, melee: 0.50 }
+  { react: 5, see: 340, mvI: 6, dodge: 0.92, jumpF: 190, wMin: 6, wMax: 16, hTol: 11, whiff: 0.01, hpT: 40, hCh: 1.00, strafe: 0.90, cover: 0.95, smart: 1.00, melee: 0.50, atk: 0.85 }
 ];
 // レート → AI_ANCHORS のどこか（0=いちばん弱い … 6=いちばん強い）。
 // BOT同士を実際に戦わせて「レート差200＝勝率76%」になるように測った目盛り（scratchpad/calib-bot.js。第4弾Eの新しい思考で測り直し）
 var RATE_T = [[841, 0], [917, 0.5], [1200, 1], [1395, 1.5], [1536, 2], [1694, 2.5], [1977, 3], [2022, 3.5], [2281, 4], [2405, 4.5], [2600, 5], [2776, 5.5], [2791, 6]];
-var AI_KEYS = ['react', 'see', 'mvI', 'dodge', 'jumpF', 'wMin', 'wMax', 'hTol', 'whiff', 'hpT', 'hCh', 'strafe', 'cover', 'smart', 'melee'];
+var AI_KEYS = ['react', 'see', 'mvI', 'dodge', 'jumpF', 'wMin', 'wMax', 'hTol', 'whiff', 'hpT', 'hCh', 'strafe', 'cover', 'smart', 'melee', 'atk'];
 var AI_INT = { react: 1, see: 1, mvI: 1, jumpF: 1, wMin: 1, wMax: 1, hTol: 1 };   // フレーム数・距離は整数にする
 function aiForRate(rate) {
   var r = +rate || RATE_START, t = RATE_T[RATE_T.length - 1][1], i;
@@ -1471,7 +1472,8 @@ function newBrain(level, rnd) {
     wait: -1, spray: 0, seen: {}, seenN: 0, seenChg: false, dodgeCd: 0, railWait: 0, forceMv: null, swingDir: 0, meleeOk: false, wantSlot: 0, weaponT: 0,
     node: null, edge: null, air: null, goalX: null, strafeT: 0, strafeOff: 0, lastX: -1, stuckT: 0, evadeT: 0, evadeDir: 0, evadeGren: false, evadeJump: 0, mode: 'fight',
     prefer: 0, preferW: 0, preferUntil: 0, coverUntil: 0, rlSeen: false, lowSeen: false, walkDir: 0, holdT: 0,
-    tac: 'fight', tacT: 0, tacT0: 20, preferTac: '', blockedT: 0, aggr: false, lapseT: 0, lapses: 0, lastInp: null };
+    tac: 'fight', tacT: 0, tacT0: 20, preferTac: '', blockedT: 0, aggr: false, lapseT: 0, lapses: 0, lastInp: null,
+    creepT: 0, creepOn: false, tacDist: -1, tacOpX: 0 };
 }
 
 // その足場の上で、相手との距離が lo〜hi になる位置（prefer の距離に近いほどよい。自分のいる側を優先）
@@ -1549,15 +1551,18 @@ function plan(b, w, me, op, W) {
       goalX[n.id] = x; return true;
     };
   } else {
+    var atk = cfg.atk || 0;
     if (b.preferW !== W.id || b.preferTac !== b.tac || w.frame >= b.preferUntil) {   // 立ちたい距離は数秒ごと（か戦術が変わったとき）にだけ選び直す
-      b.prefer = band[0] + (band[1] - band[0]) * (0.3 + 0.4 * R());
+      b.prefer = band[0] + (band[1] - band[0]) * (0.3 + 0.4 * R()) * (1 - 0.7 * atk);   // 攻め気があるほど、届く範囲の近い側に立つ
       b.preferW = W.id; b.preferTac = b.tac; b.preferUntil = w.frame + 150 + Math.floor(R() * 150);
     }
     var prefer = b.prefer;
     var flank = b.tac === 'flank';
+    // 攻め気：近づかれても、近すぎる（keepLo より近い）までは下がらずに、今の場所で撃ち合う（相手の近距離武器から離れる kite のときは別）
+    var keepLo = b.tac === 'kite' ? band[0] : band[0] * (1 - 0.6 * atk), d0 = Math.abs(me.x - op.x);
     isGoal = function (n) {                         // 同じ高さで、武器に合う距離（回り込むときは、間に遮蔽物がない所）
       if (Math.abs(n.y - opNode.y) > 6) return false;
-      var x = standX(n, me, op, band[0], band[1], prefer);
+      var x = atk > 0 && !flank && n === b.node && me.onGround && d0 >= keepLo && d0 <= band[1] ? me.x : standX(n, me, op, band[0], band[1], prefer);
       if (x === null) return false;
       if (flank && coverBetween(w, n, x, op)) return false;
       goalX[n.id] = x; return true;
@@ -1777,6 +1782,18 @@ function decideTactic(b, w, me, op, dist, dy) {
   if (op.hp <= 30 && (shortMe || needClose) && !(opShort && !shortMe)) sc.push += 1.3;
   if ((opReloading || opEmpty) && (shortMe || needClose)) sc.push += 1.6;
   if (me.hp > op.hp + 30 && (shortMe || needClose) && !(opShort && !shortMe)) sc.push += 0.5;
+  // 攻め気：ふだんから少し前へ。体力で勝っている・相手が撃てない・弱っている・相手が下がったときは、武器にかかわらず詰める
+  var atk = cfg.atk || 0;
+  if (atk > 0) {
+    var opAway = b.tacDist >= 0 && dist > b.tacDist + 20 && Math.abs(op.x - b.tacOpX) > 12 && sign(op.x - b.tacOpX) === sign(op.x - me.x);
+    var safePush = !(opShort && !shortMe);   // 近距離武器の相手に、離れて戦える武器で自分から近づかない
+    sc.push += atk * 0.5;
+    if (safePush && me.hp >= op.hp + 20) sc.push += 0.4 + atk * 0.8;
+    if (safePush && (opReloading || opEmpty)) sc.push += 0.8 + atk * 0.8;
+    if (safePush && op.hp <= 30) sc.push += atk * 0.8;
+    if (safePush && opAway && dist > W.band[0]) sc.push += 0.6 + atk;
+  }
+  b.tacDist = dist; b.tacOpX = op.x;
   // 自分の体力が少ない → 下がって隠れる。ただし近距離武器で迫ってくる相手には、背を向けずに撃ち合う
   if (me.hp <= 35 && !(opShort && dist < 240)) sc.retreat += 1.2 + (op.hp > me.hp ? 0.6 : 0) + (me.healUsed ? 0 : 0.4);
   // 弾切れで、持ち替えられる武器もない → 安全な所でリロード。残りわずかで離れているときも
@@ -2064,6 +2081,15 @@ function think(b, w, side) {
     tx = clamp(b.goalX + (b.mode === 'fight' ? b.strafeOff : 0), b.node ? b.node.slo : 0, b.node ? b.node.shi : WORLD_W - CHAR_W);
     loose = true;
   }
+  // 攻め気：撃ち合いの距離では、相手の隙（リロード・撃った直後・よそ見）に少しずつ前へ出る（近すぎる所・相手の近距離武器が届く所までは行かない）。前へ出るかは1秒前後ごとに決める
+  var atkM = cfg.atk || 0;
+  if (atkM > 0 && b.mode === 'fight' && b.tac !== 'kite' && b.tac !== 'flank' && !b.air && !b.edge && me.onGround && dy < 26 && W.kind !== 'grenade' && me.foc <= 0 && me.chg <= 0) {
+    if (--b.creepT <= 0) { b.creepT = 40 + Math.floor(R() * 40); b.creepOn = R() < atkM; }
+    var minD = W.kind === 'melee' ? 0 : Math.max(40, W.band[0] * (1 - 0.6 * atkM));
+    if ((opW.kind === 'melee' || opW.kind === 'pellet') && W.kind !== 'melee' && W.kind !== 'pellet') minD = Math.max(minD, opW.range + 40);
+    var opGap = !canFire(op) || op.cool > 8 || op.rl > 0 || op.dir !== -toOp || dy > 30;   // 相手が今すぐこちらへ撃てない隙だけ（撃てる相手に歩いて寄ると、自分がよける間がなくなる）
+    if (b.creepOn && opGap && dist > minD + 16) { tx = me.x + toOp * 30; if (b.node) tx = clamp(tx, b.node.slo, b.node.shi); loose = true; }
+  }
   if (b.evadeT > 0) { if (--b.evadeT <= 0) b.evadeGren = false; tx = me.x + b.evadeDir * 40; if (b.node) tx = clamp(tx, b.node.lo, b.node.hi); loose = false; }
   // 撃った直後は少しその場で構える（撃つ→背を向けて離れる→また振り向く、の往復を防ぐ）
   if (b.holdT > 0) { b.holdT--; if (loose && tx !== null && Math.abs(tx - me.x) < 70) tx = null; }
@@ -2111,7 +2137,7 @@ function think(b, w, side) {
       var ok = aimOk(b, w, me, op, W, dist, dy, toOp);
       if (ok && (W.wind || W.rec || W.charge || W.full) && !canCommit(w, me)) ok = false;
       if (ok) {
-        inp.shoot = true; b.wait = -1; faceOp = true; press = ok === 'press'; b.holdT = 12 + Math.floor(R() * 14);
+        inp.shoot = true; b.wait = -1; faceOp = true; press = ok === 'press'; b.holdT = Math.round((12 + Math.floor(R() * 14)) * (1 - 0.6 * (cfg.atk || 0)));   // 攻め気があるほど、撃ったあとすぐ動く
         if (W.kind === 'melee' && R() < cfg.whiff) { inp.shoot = false; b.wait = 6 + Math.floor(R() * 10); }   // 振るタイミングを迷う
         if (W.auto) b.spray = 10 + Math.floor(R() * 26);
         if (W.kind === 'focus') { b.focRel = focusRelease(b, W); b.focWait = R() < cfg.smart; inp.fire = true; }
