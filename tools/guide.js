@@ -380,7 +380,7 @@ function secRewards() {
 <ul class="dots"><li>スキン：${skinTiers.join('・')}段目（${skinTiers[skinTiers.length - 1]}段目は${esc(t('eco.chaos'))}×${SIM.passReward(SIM.PASS_TIERS).chaos}つき）</li><li>${esc(t('eco.chaos'))}：${chaosTiers.join('・')}段目</li><li>ほかの段：奇数は${esc(t('eco.lucky'))}、偶数はコイン${SIM.passReward(2).coins}</li></ul></div>
 <div class="card"><h3>ログインボーナス</h3><p>7日で1周。</p><ul class="days">${login}</ul><p>連続ログインの記念：</p><ul class="days">${streak}</ul><p class="note">保安官の盾：7日連続ごとに1枚（最大${SIM.SHIELD_MAX}枚）。休んだ日に自動で使って、連続記録を守る。</p></div>
 <div class="card"><h3>ショップ</h3><p>毎日入れかわる。無料ギフト1つと、おすすめ${offers.length}つ（${offerTxt}）。おすすめのうち1つはセールで約${saleOff}%オフ。</p>
-<table class="tbl mini"><tbody>${[0, 1, 2, 3].map(r => `<tr><th scope="row">${esc(rar(r))}</th><td>コイン ${SIM.SHOP_PRICE[r]}</td></tr>`).join('')}<tr><th scope="row">${esc(t('eco.lucky'))}</th><td>コイン ${SIM.SHOP_BADGE.lucky}</td></tr><tr><th scope="row">${esc(t('eco.chaos'))}</th><td>コイン ${SIM.SHOP_BADGE.chaos}</td></tr></tbody></table>
+<table class="tbl mini"><tbody>${[0, 1, 2, 3].map(r => `<tr><th scope="row">${esc(rar(r))}</th><td>コイン ${SIM.SHOP_PRICE[r]}</td></tr>`).join('')}</tbody></table>
 <p class="note">11月はセール。11月11日は全部半額で、特別なギフトもある。</p></div>
 <div class="card"><h3>バッジ（アイテムの入手）</h3><p><b>${esc(t('eco.lucky'))}</b>　${esc(t('eco.odds'))}。${SIM.PITY_AT}回以内にレジェンダリー以上のアイテムが確定。</p><p><b>${esc(t('eco.chaos'))}</b>　${esc(t('eco.oddsChaos'))}。${esc(t('eco.chaosNote'))}。</p>
 <p>先にレアリティが決まり、そのあと中身（アイテム・コイン・経験値）が決まる。</p>
@@ -431,7 +431,7 @@ function secEvents() {
 <li>${esc(candy)}を集めるには Discord でのログインが必要。</li></ul></div>`];
   });
   const S = SIM.SALE;
-  evs.push([10, `<div class="card event" data-month="10"><p class="theme">11月</p><h3>11.11 セール <span class="live" hidden>開催中</span></h3><ul class="dots"><li>11月のあいだ、ショップのアイテムが約${Math.round(S.itemOff * 100)}%オフ、バッジが${Math.round(S.badgeOff * 100)}%オフ。</li><li>11月11日は全部半額で、特別なギフト（${esc(rewardText(S.peakGift))}）。</li><li>「11」のチャレンジ：${S.goals.map(g => g.k === 'w' ? g.n + '勝' : g.k === 'k' ? g.n + '回倒す' : g.n + '日遊ぶ').join('・')}。達成すると報酬がもらえる。</li></ul></div>`]);
+  evs.push([10, `<div class="card event" data-month="10"><p class="theme">11月</p><h3>11.11 セール <span class="live" hidden>開催中</span></h3><ul class="dots"><li>11月のあいだ、ショップのおすすめが約${Math.round(S.itemOff * 100)}%オフ。</li><li>11月11日は全部半額で、特別なギフト（${esc(rewardText(S.peakGift))}）。</li><li>「11」のチャレンジ：${S.goals.map(g => g.k === 'w' ? g.n + '勝' : g.k === 'k' ? g.n + '回倒す' : g.n + '日遊ぶ').join('・')}。達成すると報酬がもらえる。</li></ul></div>`]);
   evs.sort((a, b) => a[0] - b[0]);
   return `<section id="events">${sectionHead('events', 'イベント', `イベントはその月のあいだずっと開かれる（日本時間では毎月1日の午前${G.monthStartJst}時から）。`)}
 <div class="grid g-3">${evs.map(e => e[1]).join('')}</div></section>`;

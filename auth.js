@@ -968,13 +968,6 @@ const auth = {
       pr.gems -= price; pr.inv.push(id);
       return saveServerProfile(u, pr, { exchanged: id });
     }
-    if (m.op === 'badge') {
-      const kind = m.kind === 'chaos' ? 'chaos' : 'lucky', price = SIM.badgePrice(kind, day);
-      if (pr.coins < price) return { error: 'coins' };
-      pr.coins -= price;
-      if (kind === 'chaos') pr.misChaos = (pr.misChaos || 0) + 1; else pr.misCrates = (pr.misCrates || 0) + 1;
-      return saveServerProfile(u, pr, { badge: kind });
-    }
     return { error: 'bad' };
   },
   // 宝箱を1つ開ける：まだ開けていない宝箱があれば、サーバーの乱数で中身を決めて持ち物に足す
