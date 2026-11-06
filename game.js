@@ -41,6 +41,7 @@ const STAGE_MS = process.env.STAGE_MS != null ? +process.env.STAGE_MS : 8000;   
 const STAGE_SHOW_MS = process.env.STAGE_SHOW_MS != null ? +process.env.STAGE_SHOW_MS : 1800;
 // ラウンド間：倒れる演出（ROUND_GAP_MS）のあと、最大 PICK_MS の武器変更。両者が「決定」を押したらすぐ次へ
 const PICK_MS = process.env.PICK_MS != null ? +process.env.PICK_MS : 10000;
+const BOT_LAG = [2, 3];   // BOT の反応に足す遅れ（フレーム）：2〜4（約0.03〜0.07秒）
 const ROUND_GAP_MS = 2000, MATCH_END_MS = 1800;
 const WAIT_TIMEOUT_MS = 10 * 60 * 1000;            // 相手が来ないまま10分で部屋を閉じる
 // ランクマッチで再戦できるレート差。これを超えたら「新しい相手をさがす」しかできない
@@ -206,11 +207,12 @@ class Room {
     if (!slot) return null;
     const p = this.players[slot];
     // 人は、相手の弾が自分の画面に届くまで通信のぶん遅れる。BOTはサーバーの中で撃たれた瞬間に見えてしまうので、
-    // そのぶんの遅れ（約0.1〜0.15秒）を反応に足して、人と同じ条件にする
-    const lag = 6 + Math.floor(Math.random() * 4);
+    // そのぶんの遅れを反応に足す（BOT_LAG。前は約0.1〜0.15秒で、中くらいの距離の弾をほとんどよけられなかったので短くした）
+    const lag = BOT_LAG[0] + Math.floor(Math.random() * BOT_LAG[1]);
     p.bot = true; p.brain = SIM.newBrain(Object.assign({}, bot.cfg, { react: bot.cfg.react + lag })); p.rate = bot.rate; p.tier = bot.tierKey;
     p.title = bot.title; p.bg = bot.bg; p.discord = bot.discord || bot.name; p.verified = true;
     p.npc = bot.npc || null;   // 住人（アカウントのある BOT）なら、その ID（試合の記録を残す）
+    p.aiRate = bot.aiRate || bot.rate; p.fav = bot.fav || null;   // 武器の選び直しに使う（強さのもとのレート・住人のいつもの武器）
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     p.srtt = 16 + Math.floor(Math.random() * 46);   // 通信の速さ（人と同じように相手の画面に出る）
     require('./botchat').init(p);   // チャットの性格
@@ -257,9 +259,15 @@ class Room {
       const p = this.players[s];
       if (!p || !p.bot) continue;
       if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * this.stagePick.length)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
-      else this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
+      else this.later(() => { this.botPick(s, kind); this.setReady(s); }, (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
+  }
+  // BOT も、試合前とラウンド間に武器を選び直す：強い組み合わせから、相手（人）の今の武器に強いものを（bots.pickLoadout）
+  botPick(s, kind) {
+    const w = this.waitState, p = this.players[s], o = this.players[other(s)];
+    if (this.closed || !w || w.ready[s] || (kind !== 'prep' && kind !== 'pick') || !p || !p.bot || !o || o.bot) return;
+    p.loadout = require('./bots').pickLoadout(o.loadout, p.aiRate || p.rate, Math.random, p.fav);
   }
   sendWait() {
     const w = this.waitState;
@@ -540,4 +548,4 @@ class Room {
 
 // 2v2（team.js）でも同じ整え方・同じ時間を使う
 module.exports = { Room, TICK_MS, ACTIVE_MIN_INPUTS, WATCH_LABEL, SIM, cleanName, cleanTitle, cleanBio, cleanBg, cleanCount, cleanTier, packFx,
-  WIN_ROUNDS, VS_MS, PREP_MS, STAGE_MS, STAGE_SHOW_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, stageOptions, stageCounts, stageSplit, decideStage };
+  BOT_LAG, WIN_ROUNDS, VS_MS, PREP_MS, STAGE_MS, STAGE_SHOW_MS, PICK_MS, ROUND_GAP_MS, MATCH_END_MS, WAIT_TIMEOUT_MS, REMATCH_GAP, BOT_SKILL_BOOST, BOT_BOOST_RANKED, STAGE, FORCE_STAGE, stageOptions, stageCounts, stageSplit, decideStage };

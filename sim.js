@@ -1284,6 +1284,7 @@ function packShots(w) {
 // wMin,wMax=撃てるようになってから撃つまでの迷い / hTol=撃つのを許す高さのずれ / whiff=ナイフの空振り率
 // hpT=回復を使うHP / hCh=1秒あたりの実行率 / strafe=撃ち合い中に左右へ動く頻度 / cover=リロード中に隠れる率 / smart=距離に合う武器を選ぶ率
 // melee=近くの相手にナイフで斬りかかる率（空振りは whiff）
+// pre=相手がこちらを向いて撃てるとき、先に跳んで射線を外す率（1フレームあたり。なければ 0.035）
 // atk=攻め気：立つ距離を武器の届く範囲の近い側に寄せる・近づかれても近すぎるまで下がらない・詰める場面が増える・撃つ合間に前へ出る（0＝前のまま）
 var AI_LEVELS = {
   easy:   { react: 20, see: 140, mvI: 20, dodge: 0.15, jumpF: 60,  wMin: 80, wMax: 160, hTol: 40, whiff: 0.42, hpT: 20, hCh: 0.50, strafe: 0.30, cover: 0.20, smart: 0.50, melee: 0.05, roll: 0, atk: 0.15 },
@@ -1298,14 +1299,14 @@ var AI_LEVELS = {
 // ---- レートに合わせた強さ ----
 // 5段階のあいだを、レートで少しずつ変える。下は「よわい」より弱く、上は「鬼神」より強くできる
 var AI_ANCHORS = [
-  { react: 40, see: 70, mvI: 34, dodge: 0.00, jumpF: 40, wMin: 200, wMax: 340, hTol: 60, whiff: 0.80, hpT: 15, hCh: 0.15, strafe: 0.10, cover: 0.00, smart: 0.15, melee: 0.00, atk: 0 },
+  { react: 40, see: 70, mvI: 34, dodge: 0.00, jumpF: 40, wMin: 200, wMax: 340, hTol: 60, whiff: 0.80, hpT: 15, hCh: 0.15, strafe: 0.10, cover: 0.00, smart: 0.15, melee: 0.00, atk: 0, roll: 0 },
   AI_LEVELS.easy, AI_LEVELS.normal, AI_LEVELS.hard, AI_LEVELS.pro, AI_LEVELS.god,
-  { react: 5, see: 340, mvI: 6, dodge: 0.92, jumpF: 190, wMin: 6, wMax: 16, hTol: 11, whiff: 0.01, hpT: 40, hCh: 1.00, strafe: 0.90, cover: 0.95, smart: 1.00, melee: 0.50, atk: 0.85 }
+  { react: 5, see: 340, mvI: 6, dodge: 0.92, jumpF: 190, wMin: 6, wMax: 16, hTol: 11, whiff: 0.01, hpT: 40, hCh: 1.00, strafe: 0.90, cover: 0.95, smart: 1.00, melee: 0.50, atk: 0.85, roll: 0.5 }
 ];
 // レート → AI_ANCHORS のどこか（0=いちばん弱い … 6=いちばん強い）。
 // BOT同士を実際に戦わせて「レート差200＝勝率76%」になるように測った目盛り（scratchpad/calib-bot.js。第4弾Eの新しい思考で測り直し）
 var RATE_T = [[841, 0], [917, 0.5], [1200, 1], [1395, 1.5], [1536, 2], [1694, 2.5], [1977, 3], [2022, 3.5], [2281, 4], [2405, 4.5], [2600, 5], [2776, 5.5], [2791, 6]];
-var AI_KEYS = ['react', 'see', 'mvI', 'dodge', 'jumpF', 'wMin', 'wMax', 'hTol', 'whiff', 'hpT', 'hCh', 'strafe', 'cover', 'smart', 'melee', 'atk'];
+var AI_KEYS = ['react', 'see', 'mvI', 'dodge', 'jumpF', 'wMin', 'wMax', 'hTol', 'whiff', 'hpT', 'hCh', 'strafe', 'cover', 'smart', 'melee', 'atk', 'roll'];   // roll：ロールでよける率（前は入っておらず、レートで作る強さ＝オンラインのBOTはロールを使わなかった）
 var AI_INT = { react: 1, see: 1, mvI: 1, jumpF: 1, wMin: 1, wMax: 1, hTol: 1 };   // フレーム数・距離は整数にする
 function aiForRate(rate) {
   var r = +rate || RATE_START, t = RATE_T[RATE_T.length - 1][1], i;
@@ -1313,6 +1314,11 @@ function aiForRate(rate) {
   else for (i = 1; i < RATE_T.length; i++) {
     if (r <= RATE_T[i][0]) { var p = RATE_T[i - 1], q = RATE_T[i]; t = p[1] + (q[1] - p[1]) * (r - p[0]) / (q[0] - p[0]); break; }
   }
+  return aiAt(t);
+}
+// 強さの段 t（AI_ANCHORS の 0〜6。1=よわい 2=ふつう 3=むずかしい 4=プロ 5=鬼神 6=その上）の思考の数値
+function aiAt(t) {
+  t = clamp(+t || 0, 0, AI_ANCHORS.length - 1);
   var j = Math.min(Math.floor(t), AI_ANCHORS.length - 2), f = t - j, cfg = {};
   for (var k = 0; k < AI_KEYS.length; k++) {
     var key = AI_KEYS[k], v = AI_ANCHORS[j][key] + (AI_ANCHORS[j + 1][key] - AI_ANCHORS[j][key]) * f;
@@ -2016,7 +2022,7 @@ function think(b, w, side) {
   if (cfg.boss) bossDodge(b, w, me, op, side, inp);
   var opWn = WEAPONS[op.load[op.slot]];
   if (cfg.smart >= 0.85 && !cfg.boss && me.onGround && dy < 26 && op.dir === -toOp && canFire(op) && opWn.kind !== 'melee' && opWn.kind !== 'beam' &&
-      dist < opWn.range && dist > 60 && b.dodgeCd <= 0 && R() < 0.035 * cfg.dodge) { inp.jump = true; b.dodgeCd = cfg.react; }
+      dist < opWn.range && dist > 60 && b.dodgeCd <= 0 && R() < (cfg.pre || 0.035) * cfg.dodge) { inp.jump = true; b.dodgeCd = cfg.react; }   // pre：撃たれそうな瞬間を読んで先に跳ぶ率（オンラインの BOT は高め）
   if (op.chg > 0) {
     if (!b.seenChg && !cfg.boss && op.chg <= 14 && dy < 30 && op.dir === -toOp) {
       b.seenChg = true;
@@ -2494,7 +2500,7 @@ var api = {
   TEAM_SLOTS: deepFreeze(TEAM_SLOTS.slice()), teamOf: teamOf, newTeamWorld: newTeamWorld, stepTeam: stepTeam, teamResult: teamResult, foes: foes, newTarget: newTarget, stepRange: stepRange, newChar: newChar, setInput: setInput, step: step,
   stepChar: stepChar, stepShots: stepShots, physics: physics, canFire: canFire, weaponOf: weaponOf, muzzleY: muzzleY,
   packChar: packChar, packShots: packShots, blockAt: blockAt,
-  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, decideTactic: decideTactic,
+  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, aiAt: aiAt, decideTactic: decideTactic,
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
   RATE_WIN: RATE_WIN, RATE_LOSS: deepFreeze(RATE_LOSS), RATE_TOP: RATE_TOP, RATE_LOSS_MIN: deepFreeze(RATE_LOSS_MIN), RATE_FLOOR_FROM: RATE_FLOOR_FROM, RATE_FLOOR_TO: RATE_FLOOR_TO, RATE_BOOST_TO: RATE_BOOST_TO, RATE_BOOST: RATE_BOOST, SCORE_MULT: deepFreeze(SCORE_MULT), scoreMult: scoreMult, RATE_TOP_GAIN: deepFreeze(RATE_TOP_GAIN), RATE_TOP_LOSS: RATE_TOP_LOSS, SEASON_DROP_N: SEASON_DROP, SEASON_FLOOR_TIER: SEASON_FLOOR_TIER,
   RANKS: deepFreeze(RANKS), RANK_KEYS: deepFreeze(RANK_KEYS), TIER_KEYS: deepFreeze(TIER_KEYS), rankOf: rankOf, RANK_ART: deepFreeze(RANK_ART), artOfTier: artOfTier,

@@ -32,6 +32,7 @@ const { SIM } = G;
 const SLOTS = SIM.TEAM_SLOTS;             // ['a', 'b', 'c', 'd']
 const teamOf = SIM.teamOf;
 const ACTIVE_MIN_INPUTS = G.ACTIVE_MIN_INPUTS;
+const BOT_LAG = G.BOT_LAG;
 
 class TeamRoom {
   // hooks: { onClose(room), onResult(room, winTeam), onLeave(room, player) }
@@ -105,13 +106,14 @@ class TeamRoom {
     this.makeBot(p, bot.cfg);
     p.rate = bot.rate; p.tier = bot.tierKey; p.title = bot.title; p.bg = bot.bg; p.discord = bot.discord || bot.name; p.verified = true;
     p.npc = bot.npc || null;   // 住人（アカウントのある BOT）なら、その ID（試合の記録を残す）
+    p.aiRate = bot.aiRate || bot.rate; p.fav = bot.fav || null;   // 武器の選び直しに使う
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
     require('./botchat').init(p);   // チャットの性格
     p.srtt = 16 + Math.floor(Math.random() * 46);
     return s;
   }
   makeBot(p, cfg) {
-    const lag = 6 + Math.floor(Math.random() * 4);
+    const lag = BOT_LAG[0] + Math.floor(Math.random() * BOT_LAG[1]);
     p.bot = true; p.brain = SIM.newBrain(Object.assign({}, cfg, { react: cfg.react + lag }));
   }
   // 途中で抜けた人の場所を BOT が引き継ぐ（キャラクターと名前はそのまま、操作だけ BOT に）
@@ -120,7 +122,7 @@ class TeamRoom {
     if (!p || p.bot) return;
     if (p.ws) p.ws.room = null;
     p.ws = { send() {} }; p.left = true; p.uidLeft = p.uid;
-    this.makeBot(p, SIM.aiForRate((p.rate || SIM.RATE_START) + (this.ranked ? G.BOT_BOOST_RANKED : G.BOT_SKILL_BOOST)));
+    this.makeBot(p, require('./bots').aiOnline(p.rate || SIM.RATE_START));   // 人の強さに合わせた思考（bots.aiOnline）
     p.input = { left: false, right: false, duck: false, fire: false, slot: 0 };
     if (this.waitState) this.setReady(slot);
   }
@@ -183,9 +185,17 @@ class TeamRoom {
       const p = this.players[s];
       if (!p || !p.bot) continue;
       if (kind === 'stage' && this.stagePick) this.later(() => this.vote(s, this.stagePick[Math.floor(Math.random() * this.stagePick.length)]), (minMs || 0) + 400 + Math.floor(Math.random() * 1600));
-      else this.later(() => this.setReady(s), (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
+      else this.later(() => { this.botPick(s, kind); this.setReady(s); }, (minMs || 0) + 900 + Math.floor(Math.random() * 2200));
     }
     this.sendWait();
+  }
+  // BOT も、試合前とラウンド間に武器を選び直す：相手チームの人のうち1人の武器に強い組み合わせ（武器が決まっているルールのときは選ばない）
+  botPick(s, kind) {
+    const w = this.waitState, p = this.players[s];
+    if (this.closed || !w || w.ready[s] || (kind !== 'prep' && kind !== 'pick') || !p || !p.bot || this.rules.load) return;
+    const opp = SLOTS.map(k => this.players[k]).filter(q => q && !q.bot && teamOf(q.slot) !== teamOf(s));
+    const o = opp.length ? opp[Math.floor(Math.random() * opp.length)] : null;
+    p.loadout = require('./bots').pickLoadout(o ? o.loadout : null, p.aiRate || p.rate, Math.random, p.fav);
   }
   sendWait() {
     const w = this.waitState;
