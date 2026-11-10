@@ -2046,6 +2046,10 @@ function decoyView(op, d) {
   o.x = d.x; o.y = d.y; o.vx = d.vx; o.vy = d.vy; o.onGround = d.onGround; o.ducking = false; o.rollT = 0; o.parryT = 0;
   return o;
 }
+// CPU の反射：その弾に合わせられるか。合わせられる率は PARRY_ACC（よける上手さで上がる）
+// （前は毎回ぴったり合わせていて、撃った弾がほとんど全部はね返されていた）
+var PARRY_ACC = [0.15, 0.45];   // 合わせられる率 = [0] + [1] × dodge（鬼神 約0.49・ふつう 約0.31）
+function parryHits(cfg, R) { return R() < PARRY_ACC[0] + PARRY_ACC[1] * (cfg.dodge || 0); }
 // CPU のスキル：貫通弾は壁の向こうの相手に、巻き戻しは2秒で大きく削られたとき、分身は狙われながらリロード中・体力が少ないとき
 function aiSkill(b, w, me, op, W, dist, dy, toOp, inp) {
   var cfg = b.cfg, R = b.rnd, k = me.skill;
@@ -2162,6 +2166,8 @@ function think(b, w, side) {
       if (me.onGround && !(me.rollCD > 0) && me.rollT <= 0) inp.roll = true; else if (me.onGround) inp.jump = true;
     }
   }
+  // 反射に遅れた（parryLate）：弾が当たってから構えて、空振りする（待ちも使ってしまう）
+  if (b.parryLate && w.frame >= b.parryLate) { b.parryLate = 0; if (!(me.skCD > 0)) inp.skill = true; }
   // 反射すると決めた弾：届く直前（構えの時間に収まるところ）で構える。使えなければ跳ぶ
   if (b.parrySid) {
     var ps = null;
@@ -2193,7 +2199,10 @@ function think(b, w, side) {
     if (Math.abs(sh.y - (me.y + CHAR_H / 2)) < 30 && Math.abs(sh.x - mx) < cfg.see && sign(sh.vx) === sign(mx - sh.x)) {
       b.seen[sh.sid] = 1; b.seenN++; b.dodgeCd = cfg.react;   // 判断したら、次の判断まで反応時間ぶん空く
       if (R() < cfg.dodge) {
-        if (me.skill === 'parry' && !(me.skCD > 0)) b.parrySid = sh.sid;                        // 反射のスキル：届く直前に構えて撃ち返す
+        if (me.skill === 'parry' && !(me.skCD > 0)) {   // 反射のスキル：届く直前に構えて撃ち返す。合わせられないときは遅れる（当たってから構えて空振り）
+          if (parryHits(cfg, R)) b.parrySid = sh.sid;
+          else if (!b.parryLate) b.parryLate = w.frame + Math.ceil(Math.abs(sh.x - mx) / Math.max(1, Math.abs(sh.vx))) + 1 + Math.floor(R() * 5);
+        }
         else if (me.onGround && cfg.roll && !(me.rollCD > 0) && R() < cfg.roll) b.rollSid = sh.sid;   // ロールでくぐる
         else if (me.onGround) inp.jump = true;
         else if (sh.y < me.y + 12) b.duckT = 14;
@@ -2209,11 +2218,12 @@ function think(b, w, side) {
     if (!b.seenChg && !cfg.boss && op.chg <= 14 && dy < 30 && op.dir === -toOp) {
       b.seenChg = true;
       b.chgDodge = R() < cfg.dodge;
+      if (b.chgDodge && me.skill === 'parry') b.chgLead = parryHits(cfg, R) ? 6 : -1;   // ビームを止める構え：合わせられれば撃つ6フレーム前（外すときは構えない）
       if (b.chgDodge && me.onGround && cfg.smart < 1) inp.jump = true;
     }
     // 賢いCPU（鬼神）：着地の待ちも数えて、ジャンプが間に合う瞬間に跳ぶ（空中なら、着地して跳べるようになるのを待つ）
     if (b.seenChg && b.chgDodge && cfg.smart >= 1 && !cfg.boss && beamHitsAfter(w, me, op, false) && !beamHitsAfter(w, me, op, true)) inp.jump = true;
-    if (b.seenChg && b.chgDodge && me.skill === 'parry' && !(me.skCD > 0) && op.chg <= 6 && dy < 30 && op.dir === -toOp) inp.skill = true;   // 反射でビームを止める
+    if (b.seenChg && b.chgDodge && me.skill === 'parry' && !(me.skCD > 0) && op.chg <= (b.chgLead || 6) && dy < 30 && op.dir === -toOp) inp.skill = true;   // 反射でビームを止める
   } else { b.seenChg = false; b.chgDodge = false; }
   // フォーカスライフルで狙われている：ジャストの弾は速く、見てからでは間に合わない。人と同じく、光る（絞りきる）頃に撃たれると読んで先によける。
   // 絞り始めを見たときに、よけるか（dodge）・転がるか（roll）・合図を読むずれ（賢くないほど大きい）を1回決める。
