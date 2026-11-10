@@ -8878,7 +8878,7 @@ function initOlWorld2(){
     var P=TM.players[s]||{},c=SIM.newChar(s,0,0,1,s===mySlot?(matchLoadout||loadout):(P.loadout||[2,3,1]),s===mySlot?olMySk:P.skill);
     copyServerChar(c,sc);olW.chars[s]=c;
   });
-  olMe=olW.chars[mySlot];olOpp=null;playerSlot=olMe.slot;
+  olMe=olW.chars[mySlot];olOpp=null;playerSlot=olMe.slot;olHist.length=0;
 }
 // サーバーの位置から、今この瞬間の位置を先読みして寄せる（相手・味方どれも同じ）
 function followServer(c,sc,age){
@@ -8904,12 +8904,13 @@ function initOlWorld(){
   if(!olState||!olState.chars||!olState.chars[mySlot])return;
   var os=oppSlotOf();
   olW={plats:platforms,solids:solids,frame:0,sid:1000000,shots:[],chars:{},nav:null,ghost:true};   // ghost：先読みの弾は相手に当てない
-  olMe=SIM.newChar(mySlot,0,0,1,matchLoadout||loadout,olMySk);copyServerChar(olMe,olState.chars[mySlot]);
+  olMe=SIM.newChar(mySlot,0,0,1,matchLoadout||loadout,olMySk);copyServerChar(olMe,olState.chars[mySlot]);olHist.length=0;
   olOpp=SIM.newChar(os,0,0,-1,oppInfo.loadout,oppInfo.skill);copyServerChar(olOpp,olState.chars[os]);
   playerSlot=olMe.slot;
   olW.chars[mySlot]=olMe;olW.chars[os]=olOpp;
 }
 // サーバーの状態でHP/死亡を上書き（チート防止の核心）
+var olHist=[],OL_HIST=45,OL_SYNC_TOL=14;   // 自分の先読みの位置の記録（直近 OL_HIST フレーム＝約0.75秒）と、合っているとみなすずれ（px）
 function syncMeFromServer(sc){
   if(!olMe||!sc)return;
   if(Math.abs(olMe.hp-sc.hp)>0.01){
@@ -8917,9 +8918,16 @@ function syncMeFromServer(sc){
     olMe.hp=sc.hp;olMe.hpFrac=sc.hp;olMe.hit=Math.max(olMe.hit,sc.hit||0);
   }
   if(sc.dead&&!olMe.dead)olMe.dead=true;
-  // 位置は大きくズレたときだけ補正（それ以外は先読みを優先）
-  var dx=Math.abs(olMe.x-sc.x),dy=Math.abs(olMe.y-sc.y);
-  if(dx>80||dy>80){olMe.x+=(sc.x-olMe.x)*.3;olMe.y+=(sc.y-olMe.y)*.3;}
+  // 位置：サーバーの位置は、通信の分だけ少し前の自分。今の位置とくらべると、跳んでいる間などは大きくずれて見え、
+  // 引き戻しが何度も入って上下にガタガタ動いてしまう。そこで、直近の自分の記録（olHist）の中にほぼ同じ位置があれば合っているとみなす。
+  // なければ（吹き飛ばされた・サーバーでは動けなかったなど）、いちばん近い記録とのずれの分を少しずつ寄せる（記録も同じだけずらす）
+  var best=1e9,bi=-1;
+  for(var hi=0;hi<olHist.length;hi++){var hh=olHist[hi],hd=Math.abs(hh.x-sc.x)+Math.abs(hh.y-sc.y);if(hd<best){best=hd;bi=hi;}}
+  if(bi<0||best>240){olMe.x=sc.x;olMe.y=sc.y;olMe.vx=sc.vx||0;olMe.vy=sc.vy||0;olMe.onGround=!!sc.onGround;olHist.length=0;}   // 大きくずれた：サーバーの位置へ
+  else if(best>OL_SYNC_TOL){
+    var cx=(sc.x-olHist[bi].x)*.3,cy=(sc.y-olHist[bi].y)*.3;
+    olMe.x+=cx;olMe.y+=cy;for(var hj=0;hj<olHist.length;hj++){olHist[hj].x+=cx;olHist[hj].y+=cy;}
+  }
   // 弾数とリロードは、しばらく撃っていないときだけサーバーに合わせる（撃っている最中は先読みを優先）
   if(!keys.attack&&olW&&olW.frame-olLastShot>30&&olMe.burst<=0&&olMe.chg<=0&&!(olMe.foc>0)&&sc.am){
     olMe.ammo=sc.am.slice();olMe.rl=sc.rl||0;olMe.rlMax=sc.rlMax||1;
@@ -8936,6 +8944,7 @@ function updateOnline(){
     var ev=[];
     SIM.stepChar(olW,olMe,olOpp,ev,true);
     SIM.stepShots(olW,ev,true,mySlot);
+    olHist.push({x:olMe.x,y:olMe.y});if(olHist.length>OL_HIST)olHist.shift();   // サーバーの位置とくらべるための記録
     for(var i=0;i<ev.length;i++){if(ev[i].t==='pull')olLastShot=olW.frame;if(ev[i].t==='heal')updateHealBtn();}
     handleEvents(ev.filter(function(e){return e.t!=='dead';}),mySlot,onlineStyle);
   }
