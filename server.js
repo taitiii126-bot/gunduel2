@@ -318,7 +318,7 @@ function cpuEnd(u, m, ip) {
   if (!Array.isArray(m.logs) || !Array.isArray(m.loads)) return { ok: false, why: 'bad' };
   // 鬼帝は、神に勝った記録（サーバーのもの）がある人だけ
   if (diff === 'emperor') { const pr = auth.profileOf(u.id); if (!(pr && pr.tierProgress && pr.tierProgress.god && pr.tierProgress.god.beat)) return { ok: false, why: 'locked' }; }
-  const t0 = Date.now(), R = SIM.replayCpu({ seed: t.seed, diff, stage, loads: m.loads, logs: m.logs });
+  const t0 = Date.now(), R = SIM.replayCpu({ seed: t.seed, diff, stage, loads: m.loads, logs: m.logs, skill: auth.skillOf(u.id, m.skill) });   // スキルは持っている物だけ（持っていなければロールで計算し直す）
   const cost = Date.now() - t0;
   if (!R.ok) { log('cpu verify failed', 'discord=' + u.id, diff, stage, R.why, R.round != null ? 'round ' + R.round + ' frame ' + R.frame : '', cost + 'ms'); return { ok: false, why: R.why }; }
   // 実際の時間より速く終わった試合（早送り）は数えない
@@ -1190,6 +1190,7 @@ function handleHttp(req, res) {
     return readJson(req, m => {
       const r = m && m.op === 'claim' ? auth.missionClaim(u.id, m.i) : m && m.op === 'sclaim' ? auth.seasonClaim(u.id, m.i) : m && (m.op === 'gift' || m.op === 'buy' || m.op === 'gem') ? auth.shop(u.id, m) : m && m.op === 'login' ? auth.loginBonus(u.id) : m && m.op === 'evbuy' ? auth.eventBuy(u.id, String(m.id || '')) : m && m.op === 'open' ? auth.crateOpen(u.id, m.kind === 'chaos' ? 'chaos' : 'lucky')
         : m && m.op === 'inbox' ? auth.giftInbox(u.id) : m && m.op === 'gclaim' ? auth.giftClaim(u.id, String(m.id || ''))
+        : m && m.op === 'skill' ? auth.skillPull(u.id) : m && m.op === 'sksel' ? auth.skillSelect(u.id, String(m.id || ''))
         : m && m.op === 'gsend' ? auth.giftSend(u.id, m) : m && m.op === 'gadmin' ? auth.giftAdmin(u.id) : m && m.op === 'gstop' ? auth.giftStop(u.id, m.id) : { error: 'bad' };
       if (m && m.op === 'gsend' && r.ok) {   // 運営からの配布：つないでいる人に「プレゼントが届いた」と知らせる（宛先がある時はその人だけ）
         const msg = JSON.stringify({ type: 'gift' });

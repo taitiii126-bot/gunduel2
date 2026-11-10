@@ -337,6 +337,7 @@ function keepServerOwned(next, old, u) {
   next.login = old && old.login ? old.login : { day: '', streak: 0, best: 0, count: 0, shields: 0, hist: [] };
   if (next.sea && old && old.sea && old.sea.s === next.sea.s) next.sea.got = old.sea.got.slice(); else if (next.sea) next.sea.got = next.sea.got.map(() => '');
   next.pity = old ? old.pity : 0;
+  { const ks = SIM.cleanSkills(old ? old.sk : null); next.sk = SIM.cleanSkills({ own: ks.own, used: ks.used, sel: next.sk && next.sk.sel }); }   // 持っているスキルと使った券はサーバーの値だけ
   next.look = SIM.lookOwned(next.look, next.inv);
   next.emo = SIM.cleanEmotes(next.emo, next.inv);
 }
@@ -1051,6 +1052,29 @@ const auth = {
     SIM.applyCrate(pr, res);
     pr.opened = (pr.opened || 0) + 1;
     return saveServerProfile(u, pr, { kind: 'lucky', r: res.r, n: 1, items: res.items });
+  },
+  // スキルガチャ：スキル券を1枚使って、まだ持っていないスキルを1つ（中身はサーバーが決める）
+  skillPull(uid) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    const pr = serverProfile(u), id = SIM.applySkillPull(pr, () => crypto.randomInt(0, 1 << 30) / (1 << 30));
+    if (!id) return { error: SIM.cleanSkills(pr.sk).own.length >= SIM.SKILL_IDS.length ? 'all' : 'no_ticket' };
+    return saveServerProfile(u, pr, { skill: id });
+  },
+  // 選んでいるスキルを変える（持っている物だけ）
+  skillSelect(uid, id) {
+    const u = db.users[uid];
+    if (!u) return { error: 'not_found' };
+    const pr = serverProfile(u), k = SIM.cleanSkills(pr.sk);
+    if (k.own.indexOf(id) < 0) return { error: 'not_owned' };
+    k.sel = id; pr.sk = SIM.cleanSkills(k);
+    return saveServerProfile(u, pr, { sel: id });
+  },
+  // 対戦に持っていくスキル：持っている物だけ（ゲスト・持っていない物はロール）
+  skillOf(uid, want) {
+    const id = SIM.cleanSkill(want); if (!id || id === 'roll') return 'roll';
+    const u = uid && db.users[uid];
+    return u && u.profile && SIM.cleanSkills(u.profile.sk).own.indexOf(id) >= 0 ? id : 'roll';
   },
   // オンライン対戦で見せる見た目・エモート：持ち物を確かめる（ゲストは宝箱の物を外す）
   // 対戦相手に見せる称号と背景。ブラウザから届いた値は使わず、サーバーの記録で確かめた物だけ

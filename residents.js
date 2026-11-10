@@ -632,13 +632,21 @@ function release(uid) {
 }
 // 部屋に入れる BOT の形（名前・見た目・武器・称号・戦績はその人のもの。思考の強さは cfgRate）
 // cfgRate：相手の人の強さ（思考は bots.aiOnline）。opp：相手の武器（いつもの武器を少し好みつつ、強い組み合わせから相手に強いものを持つ）
+// 住人のスキル：レベルでもらえるスキル券の数だけ持っている（何が出たかは住人ごとに決まった順）。持っていれば、いつも同じお気に入りを使う
+function residentSkill(u) {
+  const n = SIM.skillTicketsEarned(u.profile && u.profile.xp), list = SIM.SKILL_IDS.filter(id => id !== 'roll');
+  if (!n) return 'roll';
+  let h = 2166136261; for (const ch of String(u.id || u.name || '')) { h ^= ch.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; }
+  const r = SIM.rng(h), order = list.slice().sort(() => r() - 0.5).slice(0, n);
+  return r() < 0.8 ? order[0] : 'roll';   // たまにロールのままの住人もいる
+}
 function botFor(uid, cfgRate, two, opp) {
   const u = auth.user(uid);
   if (!u || !u.npc || !u.profile) return null;
   const p = u.profile, st = two ? auth.rating2(uid) : auth.rating(uid), sh = auth.shown(uid), aiRate = cfgRate == null ? st.rate : cfgRate, fav = loadoutOf(u);
   return { name: p.name, discord: u.name, rate: st.rate, tier: st.tier, tierKey: P.TIER_KEYS[st.tier] || '', look: p.look, loadout: bots.pickLoadout(opp, aiRate, Math.random, fav),
     title: sh.title, bio: p.bio || '', bg: sh.bg == null ? SIM.artOfTier(p.bestTier || st.tier) : sh.bg, rec: { w: u.online.w, l: u.online.l },
-    cfg: bots.aiOnline(aiRate), aiRate, fav, npc: uid };
+    cfg: bots.aiOnline(aiRate), aiRate, fav, npc: uid, skill: residentSkill(u) };
 }
 // 人との試合の結果（住人の側）。o = { win, two, ranked, mine, theirs, rw, rl, forfeit, stage, tally }
 function record(uid, o) {

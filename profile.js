@@ -154,6 +154,7 @@ function clean(v, ctx, rtier) {
     chaosOpened: int(v.chaosOpened, 0, 999999, 0),   // 開けたカオスバッジの数
     misChaos: int(v.misChaos, 0, 999999, 0),         // デイリーミッションを全部終えてもらったカオスバッジの数
     pity: int(v.pity, 0, 999, 0),
+    sk: SIM.cleanSkills(v.sk),   // スキル：own（持っている）・used（使ったスキル券）はサーバーが決める。sel（選んでいる）は持っている物だけ
     emo: SIM.cleanEmotes(v.emo, SIM.cleanInv(v.inv)),
     mis: cleanMis(v.mis),
     sea: cleanSea(v.sea), pass: cleanPass(v.pass), coins: int(v.coins, 0, 99999999, 0), gems: int(v.gems, 0, 99999999, 0), login: cleanLogin(v.login), candy: cleanCandy(v.candy),   // シーズン・パス・コイン（パスとコインと sea.got はサーバーが決める）

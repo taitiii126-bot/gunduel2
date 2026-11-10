@@ -143,6 +143,13 @@ function packFx(ev) {
       case 'heal': out.push({ t: 'heal', who: e.who, x: r1(e.x), y: r1(e.y) }); break;
       case 'roll': out.push({ t: 'roll', who: e.who, dir: e.dir }); break;
       case 'rolldodge': out.push({ t: 'rolldodge', who: e.who, by: e.by }); break;
+      // スキル：使った・反射した・分身・巻き戻し（画面の演出用）
+      case 'skill': out.push({ t: 'skill', who: e.who, k: e.k }); break;
+      case 'parry': out.push({ t: 'parry', who: e.who, x: r1(e.x), y: r1(e.y), ref: e.ref ? 1 : 0 }); break;
+      case 'decoy': out.push({ t: 'decoy', who: e.who, id: e.id, x: r1(e.x), y: r1(e.y), dir: e.dir }); break;
+      case 'decoyhit': out.push({ t: 'decoyhit', who: e.who, id: e.id, x: r1(e.x), y: r1(e.y), by: e.by }); break;
+      case 'decoyend': out.push({ t: 'decoyend', who: e.who, id: e.id, x: r1(e.x), y: r1(e.y) }); break;
+      case 'rewind': out.push({ t: 'rewind', who: e.who, fx: r1(e.fx), fy: r1(e.fy), x: r1(e.x), y: r1(e.y) }); break;
     }
   }
   return out;
@@ -188,6 +195,7 @@ class Room {
       // ティアとレートは、ログイン中ならサーバーが持っている本物（ゲストだけ自己申告）
       tier: acc && acc.tierKey ? acc.tierKey : cleanTier(info && info.tier), rate: acc ? acc.rate : 0,
       loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
+      skill: require('./auth').skillOf(acc && acc.uid, info && info.skill),   // スキル：持っている物だけ（ゲストはロール）
       title: cleanTitle(info && info.title, acc), bio: cleanBio(info && info.bio), bg: cleanBg(info && info.bg, acc),
       // 勝率：ログイン済みはサーバーが持っているオンライン戦績、ゲストは本人が送ってきたCPU戦の成績
       rec: acc ? { w: cleanCount(acc.wins), l: cleanCount(acc.losses), kind: 'online' } : null,   // ゲストの成績は確かめられないので見せない
@@ -211,6 +219,7 @@ class Room {
     const lag = BOT_LAG[0] + Math.floor(Math.random() * BOT_LAG[1]);
     p.bot = true; p.brain = SIM.newBrain(Object.assign({}, bot.cfg, { react: bot.cfg.react + lag })); p.rate = bot.rate; p.tier = bot.tierKey;
     p.title = bot.title; p.bg = bot.bg; p.discord = bot.discord || bot.name; p.verified = true;
+    p.skill = SIM.cleanSkill(bot.skill) || 'roll';   // BOT のスキル（bots.js が選ぶ）
     p.npc = bot.npc || null;   // 住人（アカウントのある BOT）なら、その ID（試合の記録を残す）
     p.aiRate = bot.aiRate || bot.rate; p.fav = bot.fav || null;   // 武器の選び直しに使う（強さのもとのレート・住人のいつもの武器）
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
@@ -226,7 +235,7 @@ class Room {
     if (inp.shoot) p.shootReq = true;
     if (inp.heal) p.healReq = true;
     if (inp.reload) p.reloadReq = true;
-    if (inp.roll) p.rollReq = true;
+    if (inp.roll || inp.skill) p.rollReq = true;   // スキルのボタンはロールと同じ（SIM.setInput が選んだスキルに振り分ける）
     p.acts++;
   }
   resetStats(p) {
@@ -240,7 +249,7 @@ class Room {
     // それぞれに相手の名前・ティア・持ってきた武器を伝える
     for (const k of SLOTS) {
       const p = this.players[k], o = this.players[other(k)];
-      if (p && o) this.send(p, { type: 'both_ready', opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, dev: !!o.dev, clan: o.clan || '', loadout: o.loadout, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
+      if (p && o) this.send(p, { type: 'both_ready', me: { skill: p.skill }, opp: { name: o.name, discord: o.discord, tier: o.tier, rate: o.rate, verified: o.verified, dev: !!o.dev, clan: o.clan || '', loadout: o.loadout, skill: o.skill, look: o.look, title: o.title, bio: o.bio, bg: o.bg, rec: o.rec } });
     }
     this.schedulePing();
     this.stagePick = FORCE_STAGE ? null : stageOptions(); this.votes = {};
@@ -386,7 +395,7 @@ class Room {
       for (const s of SLOTS) require('./botchat').onStart(this, s);   // BOTのあいさつ
     }
     const a = this.players.a, b = this.players.b;
-    this.world = SIM.newWorld(this.stage, a ? a.loadout : null, b ? b.loadout : null);
+    this.world = SIM.newWorld(this.stage, a ? a.loadout : null, b ? b.loadout : null, a ? a.skill : null, b ? b.skill : null);
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p) {
@@ -541,6 +550,7 @@ class Room {
     return {
       chars: { a: SIM.packChar(w.chars.a), b: SIM.packChar(w.chars.b) },
       shots: SIM.packShots(w),
+      dc: SIM.packDecoys(w),   // 分身（スキル）
       wins: { ...this.wins },
     };
   }

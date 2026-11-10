@@ -976,6 +976,64 @@ html[lang=en] .settings-section h3>span+span,html[lang=en] .ol-sec h3>span+span{
 .lo-card:hover{border-color:var(--wc);transform:translateY(-1px);box-shadow:0 12px 28px -18px var(--wc);}
 .lo-card.eq{border-color:rgba(255,255,255,.2);background:linear-gradient(180deg,rgba(255,255,255,.055),rgba(255,255,255,0)),var(--panel);}
 .lo-card canvas{width:84px;height:36px;margin-top:4px;}
+/* スキル画面 */
+.sk-top{display:flex;align-items:center;gap:14px;padding:14px 16px;margin:0 0 12px;border-radius:14px;background:linear-gradient(135deg,rgba(157,116,255,.18),rgba(124,240,255,.07)),var(--panel);border:1px solid rgba(157,116,255,.35);}
+.sk-tk{position:relative;width:54px;height:54px;flex:none;display:grid;place-items:center;border-radius:14px;background:linear-gradient(160deg,#B48CFF,#6D4BFF);box-shadow:0 8px 22px -10px #8B5CFF;color:#fff;}
+.sk-tk svg{width:30px;height:30px;}
+.sk-tk b{position:absolute;right:-7px;bottom:-7px;min-width:24px;height:24px;padding:0 6px;border-radius:99px;background:#fff;color:#4B2BD6;font:800 13px/24px var(--f-ui);text-align:center;}
+.sk-tx{flex:1;min-width:0;}
+.sk-tx b{display:block;font-size:16px;font-weight:900;color:var(--tx);}
+.sk-tx small{display:block;margin-top:3px;color:var(--tx-2);font-size:12px;line-height:1.5;}
+.sk-pull{flex:none;padding:12px 18px;border-radius:12px;border:0;background:linear-gradient(180deg,#FFD25C,#FFA41C);color:#3A2300;font-weight:900;font-size:14px;box-shadow:0 8px 20px -10px #FFB020;cursor:pointer;}
+.sk-pull:disabled{background:rgba(255,255,255,.08);color:rgba(255,255,255,.35);box-shadow:none;cursor:default;}
+.sk-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px;}
+.sk-card{position:relative;display:grid;grid-template-columns:52px 1fr;gap:12px;align-items:start;padding:14px;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:14px;color:var(--tx);cursor:pointer;transition:border-color .15s,transform .15s var(--ease),box-shadow .15s;animation:item-in .45s var(--ease) both;animation-delay:calc(var(--i,0)*40ms);}
+.sk-card:hover{border-color:var(--sc);transform:translateY(-1px);}
+.sk-card.sel{border-color:var(--sc);box-shadow:0 0 0 1px var(--sc) inset,0 14px 30px -20px var(--sc);}
+.sk-ic{width:52px;height:52px;border-radius:14px;display:grid;place-items:center;background:var(--sb);color:var(--sc);}
+.sk-ic svg{width:28px;height:28px;}
+.sk-nm{display:flex;align-items:center;flex-wrap:wrap;gap:8px;font-size:16px;font-weight:900;}
+.sk-cd{font-size:11px;font-weight:800;color:rgba(255,255,255,.5);padding:2px 7px;border-radius:99px;background:rgba(255,255,255,.06);}
+.sk-d{display:block;margin-top:5px;font-size:12.5px;line-height:1.55;color:var(--tx-2);}
+.sk-st{margin-top:9px;display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:900;padding:5px 10px;border-radius:99px;background:rgba(255,255,255,.07);color:var(--tx-2);}
+.sk-st svg{width:13px;height:13px;}
+.sk-card.sel .sk-st{background:var(--sc);color:#0B0D14;}
+.sk-card.lock{cursor:default;}
+.sk-card.lock:hover{transform:none;border-color:var(--line);}
+.sk-card.lock .sk-ic{filter:grayscale(1);opacity:.4;}
+.sk-card.lock .sk-nm,.sk-card.lock .sk-d{opacity:.5;}
+.sk-new{position:absolute;top:10px;right:10px;font-size:10px;font-weight:900;padding:2px 7px;border-radius:99px;background:#FF4D5E;color:#fff;}
+@media (max-width:560px){.sk-top{flex-wrap:wrap;}.sk-pull{width:100%;}}
+/* スキルガチャ：カプセルがゆれて、開くとスキルが出る */
+.skg-ov{position:fixed;inset:0;z-index:300;display:none;align-items:center;justify-content:center;overflow:hidden;background:radial-gradient(circle at 50% 42%,rgba(52,30,110,.94),rgba(4,5,10,.97) 70%);}
+.skg-ov.show{display:flex;}
+.skg-stage{position:relative;width:min(420px,92vw);text-align:center;}
+.skg-rays{position:absolute;left:50%;top:70px;width:560px;height:560px;margin:-280px 0 0 -280px;border-radius:50%;background:repeating-conic-gradient(from 0deg,rgba(255,255,255,.16) 0 7deg,transparent 7deg 18deg);-webkit-mask:radial-gradient(circle,#000 18%,transparent 68%);mask:radial-gradient(circle,#000 18%,transparent 68%);opacity:0;transition:opacity .5s;animation:skg-spin 10s linear infinite;pointer-events:none;}
+.skg-ov.reveal .skg-rays{opacity:1;}
+@keyframes skg-spin{to{transform:rotate(360deg);}}
+.skg-cap{position:relative;width:140px;height:140px;margin:0 auto;}
+.skg-cap i{position:absolute;left:0;width:140px;height:70px;transition:transform .55s var(--ease),opacity .55s;}
+.skg-cap .t{top:0;border-radius:70px 70px 0 0;background:linear-gradient(180deg,#D3B6FF,#7B4DFF);box-shadow:inset 0 10px 18px rgba(255,255,255,.35);}
+.skg-cap .b{bottom:0;border-radius:0 0 70px 70px;background:linear-gradient(180deg,#F3F4F8,#AEB5C8);}
+.skg-cap .m{top:62px;height:16px;left:-4px;width:148px;border-radius:8px;background:#2A2440;}
+.skg-cap.shake{animation:skg-shake .45s ease-in-out infinite;}
+@keyframes skg-shake{0%,100%{transform:rotate(0);}25%{transform:rotate(-10deg);}75%{transform:rotate(10deg);}}
+.skg-cap.open .t{transform:translate(-40px,-70px) rotate(-30deg);opacity:0;}
+.skg-cap.open .b{transform:translate(40px,70px) rotate(20deg);opacity:0;}
+.skg-cap.open .m{opacity:0;}
+.skg-res{position:absolute;left:0;right:0;top:0;opacity:0;transform:scale(.7);transition:opacity .45s .15s,transform .55s .15s var(--ease);pointer-events:none;}
+.skg-ov.reveal .skg-res{opacity:1;transform:none;pointer-events:auto;}
+.skg-big{width:120px;height:120px;margin:10px auto 0;border-radius:30px;display:grid;place-items:center;box-shadow:0 0 60px -6px var(--sc);}
+.skg-big svg{width:66px;height:66px;}
+.skg-new{display:inline-block;margin-top:18px;padding:3px 12px;border-radius:99px;background:#FF4D5E;color:#fff;font:900 12px var(--f-ui);letter-spacing:.12em;}
+.skg-nm{display:block;margin-top:8px;font-size:32px;font-weight:900;color:#fff;text-shadow:0 0 24px var(--sc);}
+.skg-d{margin:8px auto 0;max-width:330px;color:rgba(255,255,255,.75);font-size:14px;line-height:1.6;}
+.skg-btns{display:flex;gap:10px;justify-content:center;margin-top:20px;flex-wrap:wrap;}
+.skg-btns button{padding:12px 20px;border-radius:12px;font-weight:900;font-size:14px;cursor:pointer;}
+.skg-use{border:0;background:var(--sc);color:#0B0D14;}
+.skg-close{border:1px solid rgba(255,255,255,.25);background:transparent;color:#fff;}
+.skg-hint{margin-top:26px;color:rgba(255,255,255,.6);font-size:13px;transition:opacity .3s;}
+.skg-ov.reveal .skg-hint{opacity:0;}
 .lc-body{display:flex;flex-direction:column;min-width:0;}
 .lc-name{display:flex;align-items:center;gap:6px;font-size:13.5px;font-weight:900;line-height:1.3;}
 .lc-name small{font-family:var(--f-ui);font-size:9px;font-weight:700;letter-spacing:.14em;color:var(--wc);}
@@ -2793,6 +2851,7 @@ body.mland .home-hero{height:72vh;}
         <button class="side-btn" id="he-misbtn" onclick="openMissions()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M8.5 10l1.5 1.5 3-3M8.5 16l1.5 1.5 3-3M15 11h1.5M15 17h1.5"/></svg><span class="mb-badge" id="he-mis-n" style="display:none;"></span></span><span data-i18n="menu.missions"></span></button>
         <button class="side-btn" id="he-shopbtn" onclick="showShopScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h16l-1.2 10.5a1.5 1.5 0 0 1-1.5 1.5H6.7a1.5 1.5 0 0 1-1.5-1.5z"/><path d="M8.5 9V7a3.5 3.5 0 0 1 7 0v2"/></svg><span class="mb-badge" id="he-shop-n" style="display:none;">!</span></span><span data-i18n="menu.shop"></span></button>
         <button class="side-btn sb-crate" id="he-crate" onclick="openCrateScreen()"><span class="sb-ic"><canvas id="he-crate-cv" width="96" height="96"></canvas><span class="mb-badge" id="he-crate-n" style="display:none;"></span></span><span data-i18n="menu.crate"></span></button>
+        <button class="side-btn" id="he-skbtn" onclick="showSkillScreen()"><span class="sb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M13 2.5 4.5 13.5h6.5l-1 8 8.5-11h-6.5z"/></svg><span class="mb-badge" id="he-sk-n" style="display:none;"></span></span><span data-i18n="menu.skill"></span></button>
       </div>
       <!-- 真ん中：自分のキャラ（押すと見た目の変更へ） -->
       <button class="home-hero" onclick="showProfileScreen();pfTab('look')" data-i18n-title="home.heroHint"><canvas id="home-hero"></canvas><span class="hh-edit" data-i18n="home.heroEdit"></span></button>
@@ -2925,6 +2984,17 @@ body.mland .home-hero{height:72vh;}
       <p class="pill" data-i18n="hist.note"></p>
     </div>
     <div id="hist-body"></div>
+  </div>
+
+  <!-- スキル：1つ選んで対戦に持っていく。レベルでもらえるスキル券でガチャを引いて解放する -->
+  <div id="skill-screen" class="screen menu wide" style="display:none;">
+    <div class="scr-head">
+      <span class="kicker">SKILL</span>
+      <h2 class="scr-title" data-i18n="sk.title"></h2>
+      <p class="scr-sub" data-i18n="sk.sub"></p>
+    </div>
+    <div class="sk-top" id="sk-top"></div>
+    <div class="sk-grid" id="sk-grid"></div>
   </div>
 
   <div id="rank-screen" class="screen menu" style="display:none;">
@@ -3315,6 +3385,7 @@ body.mland .home-hero{height:72vh;}
   <p class="sp-tap">TAP TO START</p>
 </div>
 <div id="crate-ov" class="crate-ov" onclick="if(event.target.id==='crate-cv')crateTap()"><canvas id="crate-cv"></canvas><div id="crate-ui" class="crate-ui"></div></div>
+<div id="skg-ov" class="skg-ov" onclick="skGachaTap()"><div class="skg-stage" id="skg-stage"></div></div>
 <div id="tl-ed" aria-hidden="true"><div id="tl-frame">
   <div id="tl-stickzone" data-i18n="tl.stick"></div>
   <p id="tl-hint" data-i18n="tl.hint"></p>
@@ -3327,8 +3398,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=66"></script>
-<script src="lang.js?v=88"></script>
+<script src="sim.js?v=67"></script>
+<script src="lang.js?v=89"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -4494,6 +4565,7 @@ function ensureProfileShape(){
   if(!profile.pass||typeof profile.pass!=='object')profile.pass={s:0,xp:0};if(!profile.sea||typeof profile.sea!=='object'||!Array.isArray(profile.sea.p))profile.sea={s:0,p:[],got:[]};
   profile.misChaos=Math.max(0,Math.floor(+profile.misChaos||0));
   profile.emo=SIM.cleanEmotes(profile.emo,profile.inv);
+  profile.sk=SIM.cleanSkills(profile.sk);   // スキル（持っている物・使ったスキル券・選んでいる物）
   if(!profile.mis||typeof profile.mis!=='object')profile.mis={};
   if(!Array.isArray(profile.newItems))profile.newItems=[];   // まだ見ていない新しいアイテム（見た目の編集で「NEW」）
   profile.look=SIM.lookOwned(SIM.cleanLook(profile.look||LOOK_DEFAULT,true),profile.inv);
@@ -4627,7 +4699,7 @@ function ecoMarkNew(id){if(profile.newItems.indexOf(id)<0)profile.newItems.push(
 // サーバーの答えで、宝箱まわりの値を合わせる（版も進める）
 function ecoAdopt(r){
   var p=r&&r.profile;if(!p)return;
-  ['xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','gems','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','gems','login','candy','sk'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(r.rev){SYNC.rev=Math.max(SYNC.rev,+r.rev);saveSyncMeta();}
   ensureProfileShape();writeProfileLocal();
 }
@@ -4667,6 +4739,7 @@ function renderHomeEco(){
   var sn=document.getElementById('he-shop-n');if(sn){var onSale=SIM.saleOn(SIM.dayKey());sn.textContent=onSale?'SALE':'!';sn.classList.toggle('sale',onSale);sn.style.display=giftReady()||onSale?'':'none';document.getElementById('he-shopbtn').classList.toggle('has',giftReady()||onSale);}
   var pn=document.getElementById('he-pass-n');if(pn){pn.style.display=sr?'':'none';pn.textContent=sr;document.getElementById('he-passbtn').classList.toggle('has',sr>0);}
   var mc=document.getElementById('mis-crate');mc.style.display=n>0?'':'none';mc.textContent=t('eco.crate')+' '+t('eco.crateN',{n:n});
+  var skn=document.getElementById('he-sk-n');if(skn){var tk=skTickets();skn.style.display=tk>0?'':'none';skn.textContent=tk;document.getElementById('he-skbtn').classList.toggle('has',tk>0);}   // 使えるスキル券
 }
 // ---- ショップ：今日の無料ギフト・今日のおすすめ（6つ・1つはセール）・バッジ ----
 var SHOP={confirm:-1,ct:0,tab:'daily',gk:'all',gnew:true};   // tab：'daily'（ショップ）/ 'gems'（ジェム交換所）。gk＝交換所の種類、gnew＝持っていない物だけ
@@ -5294,7 +5367,82 @@ function showLevelUp(lv,txt,head){
   el.innerHTML=txt?'<b>'+(head||'PASS UP!')+'</b><span>'+esc(txt)+'</span>':'<b>LEVEL UP!</b><span>'+esc(t('eco.lv',{lv:lv}))+'</span>';
   var n=document.querySelectorAll('.lvup').length;if(n)el.style.top=(22+n*14)+'%';   // 同時に出るときは下にずらす
   document.body.appendChild(el);setTimeout(function(){el.remove();},2600);
+  if(!txt&&lv%SIM.SKILL_TICKET_LV===0&&lv/SIM.SKILL_TICKET_LV<=SIM.SKILL_IDS.length-1)setTimeout(function(){showLevelUp(0,t('sk.gotTicket'),'SKILL TICKET!');renderHomeEco();},900);   // スキル券をもらえるレベル
 }
+
+// ============================================================
+// スキル：1つ選んで対戦に持っていく（ボタンはロールと同じ）。最初はロールだけ。
+// レベル SIM.SKILL_TICKET_LV ごとにスキル券1枚 → ガチャで、まだ持っていないスキルが1つ出る（ログイン中はサーバーが決める）
+// ============================================================
+var SKILL_UI={
+  roll:{c:'#7CF0FF',ic:'<path d="M4 16a8 8 0 1 0 3-9.5"/><path d="M4 4v5h5"/>'},
+  pierce:{c:'#FF8A3D',ic:'<path d="M2.5 12h16"/><path d="m14.5 7.5 5 4.5-5 4.5"/><path d="M9 3.5v5M9 15.5v5"/>'},
+  rewind:{c:'#9AA8FF',ic:'<path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v5h5"/><path d="M12 8v4l2.8 1.8"/>'},
+  decoy:{c:'#5CE1A0',ic:'<circle cx="8" cy="7" r="3"/><path d="M3 20.5a5 5 0 0 1 10 0"/><circle cx="16.5" cy="7" r="3" stroke-dasharray="2.2 2"/><path d="M12 20.5a5 5 0 0 1 9 0" stroke-dasharray="2.2 2"/>'},
+  parry:{c:'#FFD54A',ic:'<path d="M12 2.8 5 5.6v5.6c0 4.6 3 8.2 7 10 4-1.8 7-5.4 7-10V5.6z"/><path d="M15.5 9.5 9 12l6.5 2.5"/>'}
+};
+var TICKET_SVG='<svg class="i" viewBox="0 0 24 24"><path d="M3 8a2 2 0 0 0 2-2h14a2 2 0 0 0 2 2v2a2 2 0 0 0 0 4v2a2 2 0 0 0-2 2H5a2 2 0 0 0-2-2v-2a2 2 0 0 0 0-4z"/><path d="M13 8.5 10.3 12.5h3.4L11 16"/></svg>';
+function skUi(id){return SKILL_UI[id]||SKILL_UI.roll;}
+function skIcon(id){return '<svg class="i" viewBox="0 0 24 24">'+skUi(id).ic+'</svg>';}
+function skName(id){return t('sk.'+(SKILL_UI[id]?id:'roll'));}
+function skCdSec(id){var S=SIM.SKILLS[id];return S?Math.round(S.cd/6)/10:0;}
+function skState(){ensureProfileShape();return profile.sk;}
+function skOwn(id){return skState().own.indexOf(id)>=0;}
+function skAllOwned(){return skState().own.length>=SIM.SKILL_IDS.length;}
+function skTickets(){ensureProfileShape();return skAllOwned()?0:SIM.skillTickets(profile);}
+// 対戦に持っていくスキル。オンラインはログイン中だけ（ゲストはロール。サーバーもロールで計算する）
+function mySkill(online){var k=skState().sel;return online&&!(AUTH.user&&AUTH.token)?'roll':k;}
+function hexA(h,a){var n=parseInt(String(h).slice(1),16);return 'rgba('+(n>>16&255)+','+(n>>8&255)+','+(n&255)+','+a+')';}
+var SKS={busy:false,res:null,ph:'',fresh:null,tm:0};
+function showSkillScreen(){showScreen('skill-screen');renderSkills();}
+function renderSkills(){
+  var top=document.getElementById('sk-top'),grid=document.getElementById('sk-grid');if(!top||!grid)return;
+  var n=skTickets(),all=skAllOwned(),lv=ecoLevel().lv,next=(Math.floor(lv/SIM.SKILL_TICKET_LV)+1)*SIM.SKILL_TICKET_LV;
+  var sub=all?t('sk.allOwned'):n>0?t('sk.canPull'):t('sk.nextAt',{lv:next});
+  top.innerHTML='<span class="sk-tk">'+TICKET_SVG+'<b>'+n+'</b></span><span class="sk-tx"><b>'+esc(t('sk.ticket',{n:n}))+'</b><small>'+esc(sub)+'</small></span>'+
+    '<button class="sk-pull" onclick="skillPull()"'+(n>0&&!SKS.busy?'':' disabled')+'>'+esc(t('sk.pull'))+'</button>';
+  var k=skState(),h='';
+  SIM.SKILL_IDS.forEach(function(id,i){
+    var own=k.own.indexOf(id)>=0,sel=k.sel===id,U=skUi(id);
+    h+='<button class="sk-card'+(sel?' sel':'')+(own?'':' lock')+'" style="--i:'+i+';--sc:'+U.c+';--sb:'+hexA(U.c,.14)+'" onclick="skillPick(\''+id+'\')"'+(own?'':' aria-disabled="true"')+'>'+
+      '<span class="sk-ic">'+skIcon(id)+'</span><span><span class="sk-nm">'+esc(skName(id))+'<span class="sk-cd">'+esc(t('sk.cd',{s:skCdSec(id)}))+'</span></span>'+
+      '<span class="sk-d">'+esc(t('sk.'+id+'.d'))+'</span>'+
+      '<span class="sk-st">'+(sel?esc(t('sk.using')):own?esc(t('sk.use')):LOCK_SVG+esc(t('sk.locked')))+'</span></span>'+
+      (SKS.fresh===id?'<span class="sk-new">NEW</span>':'')+'</button>';
+  });
+  grid.innerHTML=h;
+}
+function skillPick(id){
+  if(!skOwn(id)||skState().sel===id)return;
+  profile.sk.sel=id;SFX.switchW();saveProfile();renderSkills();
+}
+// ガチャを引く（ログイン中はサーバーが中身を決める。ゲストは手元で）
+function skillPull(){
+  if(SKS.busy||skTickets()<=0)return;
+  SKS.busy=true;renderSkills();
+  var done=function(id){SKS.busy=false;if(!id){note(t('eco.err'));renderSkills();return;}SKS.fresh=id;skGachaShow(id);renderSkills();renderHomeEco();};
+  if(AUTH.user&&AUTH.token&&STORE_ACC){ecoApi({op:'skill'},function(r){if(r&&!r.error&&r.skill){ecoAdopt(r);done(r.skill);}else done(null);});return;}
+  var id=SIM.applySkillPull(profile,Math.random);if(id)saveProfile();done(id);
+}
+function skGachaShow(id){
+  var ov=document.getElementById('skg-ov'),st=document.getElementById('skg-stage');if(!ov||!st)return;
+  var U=skUi(id);SKS.res=id;SKS.ph='shake';
+  ov.className='skg-ov show';ov.style.setProperty('--sc',U.c);
+  st.innerHTML='<div class="skg-rays"></div><div class="skg-cap shake" id="skg-cap"><i class="t"></i><i class="b"></i><i class="m"></i></div>'+
+    '<div class="skg-res"><div class="skg-big" style="color:'+U.c+';background:'+hexA(U.c,.16)+'">'+skIcon(id)+'</div><span class="skg-new">NEW SKILL!</span><b class="skg-nm">'+esc(skName(id))+'</b><p class="skg-d">'+esc(t('sk.'+id+'.d'))+'</p>'+
+    '<div class="skg-btns"><button class="skg-use" onclick="skGachaUse()">'+esc(t('sk.useNow'))+'</button><button class="skg-close" onclick="skGachaClose()">'+esc(t('sk.close'))+'</button></div></div>'+
+    '<p class="skg-hint">'+esc(t('sk.tap'))+'</p>';
+  SFX.switchW();clearTimeout(SKS.tm);SKS.tm=setTimeout(skGachaOpen,1600);
+}
+function skGachaOpen(){
+  if(SKS.ph!=='shake')return;clearTimeout(SKS.tm);SKS.ph='open';
+  var ov=document.getElementById('skg-ov'),cap=document.getElementById('skg-cap');
+  if(cap){cap.classList.remove('shake');cap.classList.add('open');}
+  if(ov)ov.classList.add('reveal');SFX.levelUp();
+}
+function skGachaTap(){if(SKS.ph==='shake')skGachaOpen();}   // ゆれている間に押すと、すぐ開く
+function skGachaUse(){if(SKS.res&&skOwn(SKS.res)){profile.sk.sel=SKS.res;saveProfile();}skGachaClose();}
+function skGachaClose(){var ov=document.getElementById('skg-ov');if(ov)ov.className='skg-ov';SKS.ph='';clearTimeout(SKS.tm);if(currentScreen==='skill-screen')renderSkills();renderHomeEco();}
 
 // ============================================================
 // バッジを開ける画面：タップするたびに色が 白→青→紫→金→虹 と上がるかもしれない。カオスバッジは分裂することもある
@@ -6548,7 +6696,7 @@ function profileDoc(){
   ensureProfileShape();
   var ed=syncEdits();
   return{edits:ed||undefined,badge:profile.badge==null?null:profile.badge,name:profile.name,bio:profile.bio,title:profile.title,look:profile.look,loadout:loadout,bg:profile.bg,bgVer:SIM.BG_VER,bestTier:profile.bestTier,stats:profile.stats,tierProgress:profile.tierProgress,ach:profile.ach,emperor:profile.emperor,epoch:profile.epoch,
-    xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea,tzo:new Date().getTimezoneOffset()};   // 持ち物・開けた数・試合の記録はサーバーが決める（送っても使われない）
+    xp:profile.xp,emo:profile.emo,mis:profile.mis,sea:profile.sea,sk:profile.sk,tzo:new Date().getTimezoneOffset()};   // 持ち物・開けた数・試合の記録はサーバーが決める（送っても使われない）
 }
 function profileChanged(){if(!STORE_ACC)return;SYNC.dirty=true;SYNC.seq++;saveSyncMeta();pushProfileSoon(1500);}
 function pushProfileSoon(ms){
@@ -6586,7 +6734,7 @@ function pushProfile(){
 // サーバーの内容で手元を置きかえる（送り返さない）
 function adoptProfile(p){
   if(!p||typeof p!=='object')return;
-  ['name','bio','title','look','bg','bgVer','badge','bestTier','tierVer','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['name','bio','title','look','bg','bgVer','badge','bestTier','tierVer','stats','tierProgress','ach','emperor','epoch','xp','inv','opened','misCrates','pity','chaosOpened','misChaos','emo','mis','sea','pass','coins','login','candy','sk'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   if(Array.isArray(p.loadout)){loadout=SIM.cleanLoadout(p.loadout,false);writeLoadoutLocal();}   // 武器セットもサーバーのものに
   ensureProfileShape();writeProfileLocal();setSyncBase();refreshProfileViews();
   if(currentScreen==='profile-screen')renderProfileUI();
@@ -7330,7 +7478,7 @@ function renderPresDot(){
 // ============================================================
 // 画面遷移
 // ============================================================
-var SCREENS=['event-screen','tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen','shop-screen','clan-screen','history-screen'];
+var SCREENS=['event-screen','tos-screen','mode-screen','stage-screen','cpu-screen','room-screen','game-screen','settings-screen','profile-screen','loadout-screen','friends-screen','rank-screen','pass-screen','shop-screen','clan-screen','history-screen','skill-screen'];
 var currentScreen='';
 function showScreen(id){
   if(id!=='settings-screen'&&currentScreen)settingsBack=currentScreen;
@@ -7345,6 +7493,7 @@ function showScreen(id){
     ['login-modal','mis-modal'].forEach(function(m){var el=document.getElementById(m);if(el)el.classList.remove('show');});
     if(typeof CR!=='undefined'&&CR.on){CR.on=false;document.getElementById('crate-ov').classList.remove('show');document.body.classList.remove('crate-open');}   // 開けた中身はもう持ち物に入っている
   }
+  if(id!=='skill-screen'&&typeof SKS!=='undefined'&&SKS.ph)skGachaClose();   // スキル画面を離れたら、ガチャの演出は閉じる（出たスキルはもう持ち物に入っている）
   if(id==='mode-screen'||id==='profile-screen'||id==='shop-screen'||id==='pass-screen')startCardLoop();
   if(id==='cpu-screen'||id==='stage-screen')cvPrefetch();
   bgmSync();
@@ -7680,14 +7829,14 @@ function startQueue2(mode){
   useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
   QUEUE={on:true,mode:mode,waited:0,range:0,n:1,team:true};renderQueue();
   setRoomStatusText('');
-  connectWS(function(){ws.send(JSON.stringify({type:'queue2',mode:mode,party:!!PARTY.id,v:SIM.PROTO,name:profile.name,loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
+  connectWS(function(){ws.send(JSON.stringify({type:'queue2',mode:mode,party:!!PARTY.id,v:SIM.PROTO,name:profile.name,loadout:loadout,skill:mySkill(true),look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
 }
 function createRoom2(){
   if(serverTooOld())return;
   useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
   document.getElementById('create-btn').style.display='none';
   setRoomStatus('room.connecting',true);
-  connectWS(function(){ws.send(JSON.stringify({type:'create_room2',v:SIM.PROTO,name:profile.name,loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
+  connectWS(function(){ws.send(JSON.stringify({type:'create_room2',v:SIM.PROTO,name:profile.name,loadout:loadout,skill:mySkill(true),look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
 }
 // 武器を変えに行くときは、さがしている途中ならやめる（戻ってきたら、同じところから）
 function olLoadout(){if(QUEUE.on)cancelQueue();var keep={fmt:OL.fmt,mode:OL.mode};OL_RESUME=keep;showLoadoutScreen('room');}
@@ -7724,7 +7873,7 @@ function olLeaveMode(){
 // 左上の戻るボタンの行き先（画面ごと。前は各画面の一番下にあったボタンと同じ）。ホーム・ゲーム画面は null（出さない）
 function navBackFn(id){
   switch(id){
-    case 'stage-screen':case 'rank-screen':case 'shop-screen':case 'event-screen':case 'pass-screen':case 'friends-screen':case 'profile-screen':return showModeScreen;
+    case 'skill-screen':case 'stage-screen':case 'rank-screen':case 'shop-screen':case 'event-screen':case 'pass-screen':case 'friends-screen':case 'profile-screen':return showModeScreen;
     case 'cpu-screen':return showStageScreen;
     case 'room-screen':return onlineBack;
     case 'settings-screen':return closeSettings;
@@ -8239,7 +8388,7 @@ function setDiff(d){
 // 演出（弾の光・爆発・破片など。対戦の結果には関係しない）
 // ホームの背景デモも同じ描画を使うので、演出の入れ物をまとめて差し替えられるようにしておく
 // ============================================================
-function newFx(){return{melee:[],heal:[],boom:[],beam:[],muzzle:[],spark:[],shards:[],num:[],shell:[],smoke:[],dust:[],mark:[],ko:[],av:{},ft:{}};}   // ft：キャラごとの足元の前の状態（土ぼこり）   // av：キャラごとの最後に撃った時刻（反動の動き）
+function newFx(){return{melee:[],heal:[],boom:[],beam:[],muzzle:[],spark:[],shards:[],num:[],shell:[],smoke:[],dust:[],mark:[],ko:[],ring:[],rw:[],sktx:[],av:{},ft:{}};}   // ring・rw・sktx：スキルの光の輪・巻き戻しの残像・スキル名   // ft：キャラごとの足元の前の状態（土ぼこり）   // av：キャラごとの最後に撃った時刻（反動の動き）
 var FX=newFx(),GRADS={};
 function clearFx(){FX=newFx();}
 // ---- 手ごたえ：ヒットストップ（止める）・画面の揺れ・とどめのスロー。見た目だけで、対戦の結果には関係しない ----
@@ -8348,6 +8497,7 @@ function updateFx(){
   FX.dust=FX.dust.filter(function(d){d.x+=d.vx;d.y+=d.vy;d.vx*=.92;d.vy*=.9;d.r+=.06;return d.life-->0;});
   FX.mark=FX.mark.filter(function(m){return m.life-->0;});
   FX.num=FX.num.filter(function(n){n.y-=n.life>30?.9:.25;if(n.pop>0)n.pop--;return n.life-->0;});
+  FX.ring=FX.ring.filter(live);FX.rw=FX.rw.filter(live);FX.sktx=FX.sktx.filter(function(n){n.y-=.45;return n.life-->0;});
   FX.melee=FX.melee.filter(live);FX.heal=FX.heal.filter(live);FX.boom=FX.boom.filter(live);FX.beam=FX.beam.filter(live);FX.muzzle=FX.muzzle.filter(live);
   FX.spark=FX.spark.filter(function(s){s.x+=s.vx;s.y+=s.vy;s.vy+=.18;s.vx*=.96;return s.life-->0;});
   FX.shards=FX.shards.filter(function(s){
@@ -8360,8 +8510,83 @@ function updateFx(){
   });
 }
 // sim.js が返した出来事を、音と演出にする。me = 自分の側（'a' など）、styleOf(side) = そのキャラの見た目
+// スキルを使った：キャラのまわりにその色の輪と、頭の上にスキルの名前
+function skillUseFx(e){
+  var c=charBySide(e.who),U=skUi(e.k);if(!c)return;
+  var n=parseInt(U.c.slice(1),16),rgb=(n>>16&255)+','+(n>>8&255)+','+(n&255);
+  SFX.switchW();
+  if(fxOn(1))FX.ring.push({x:c.x+CHAR_W/2,y:c.y+CHAR_H/2,life:20,max:20,rgb:rgb,r:28});
+  FX.sktx.push({x:c.x+CHAR_W/2,y:c.y-30,txt:skName(e.k),col:U.c,life:48});
+}
+// スキルの演出を描く（光の輪・巻き戻しの残像・スキル名）
+function drawSkillFx(){
+  FX.rw.forEach(function(r){
+    var a=r.life/28,x1=wx(r.fx+CHAR_W/2),y1=r.fy+CHAR_H/2,x2=wx(r.x+CHAR_W/2),y2=r.y+CHAR_H/2;
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(154,168,255,'+(.7*a).toFixed(3)+')';ctx.lineWidth=3;ctx.setLineDash([6,6]);ctx.lineDashOffset=frame;
+    ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke();ctx.setLineDash([]);
+    for(var k=0;k<4;k++){var q=k/3;ctx.fillStyle='rgba(154,168,255,'+(.25*a*(1-q*.5)).toFixed(3)+')';ctx.beginPath();ctx.ellipse(x1+(x2-x1)*q,y1+(y2-y1)*q,12,20,0,0,Math.PI*2);ctx.fill();}
+    ctx.restore();
+  });
+  FX.ring.forEach(function(r){
+    var p=1-r.life/r.max;ctx.save();ctx.globalCompositeOperation='lighter';ctx.globalAlpha=(1-p)*.9;ctx.strokeStyle='rgb('+r.rgb+')';ctx.lineWidth=3*(1-p)+1;
+    ctx.beginPath();ctx.arc(wx(r.x),r.y,r.r*(.4+p*.9),0,Math.PI*2);ctx.stroke();ctx.restore();
+  });
+  FX.sktx.forEach(function(n){
+    ctx.save();ctx.globalAlpha=Math.min(1,n.life/14);ctx.font='900 13px '+FONT_UI;ctx.textAlign='center';ctx.lineWidth=3;ctx.strokeStyle='rgba(6,7,12,.85)';
+    ctx.strokeText(n.txt,wx(n.x),n.y);ctx.fillStyle=n.col;ctx.fillText(n.txt,wx(n.x),n.y);ctx.restore();
+  });
+}
+// 反射の構え（前に光る盾）と、貫通弾を構えている（銃口が橙に光る）
+function drawSkillAura(s,cx,d){
+  if(s.parryT>0){
+    var a=Math.min(1,s.parryT/4),cy=s.y+(s.ducking?30:24);
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle='rgba(255,213,74,'+(.95*a).toFixed(3)+')';ctx.lineWidth=3.5;ctx.shadowColor='#FFD54A';ctx.shadowBlur=14;
+    ctx.beginPath();ctx.arc(cx+d*4,cy,26,d>0?-1.15:Math.PI-1.15,d>0?1.15:Math.PI+1.15);ctx.stroke();ctx.restore();
+    glow(cx+d*24,cy,18,'255,213,74',.35*a);
+  }
+  if(s.pierce){
+    var gx=cx+d*22,gy=s.y+(s.ducking?CHAR_H-18:22),pu=(Math.sin(frame*.25)+1)/2;
+    glow(gx,gy,10+pu*6,'255,138,61',.6);
+  }
+}
+// 分身（スキル）：持ち主と同じ見た目で描く。自分の分身だけ少し透かす（どれが本物か、自分には分かるように）
+function drawDecoys(list,charOf,styleOf,isMine){
+  if(!list||!list.length)return;
+  var age=gameMode==='online'&&olStateAt?Math.min(6,Math.max(0,(performance.now()-olStateAt)/FRAME_MS)):0;
+  list.forEach(function(d){
+    var c=charOf(d.own);if(!c)return;
+    var fake=Object.assign({},c,{side:'dc'+d.id,x:d.x+(d.vx||0)*age,y:d.y,vx:d.vx||0,vy:d.vy||0,dir:d.dir,onGround:d.onGround!=null?!!d.onGround:!!d.og,ducking:false,
+      rollT:0,parryT:0,pierce:0,chg:0,foc:0,hit:0,swT:0,recT:0,dead:false}),mine=isMine(d.own);
+    ctx.save();if(mine)ctx.globalAlpha=.5;drawChar(fake,mine,styleOf(d.own));ctx.restore();
+  });
+}
+// 試合のスキル：ボタン（ロールのボタン）に、選んだスキルの名前と絵・待ちのゲージを出す
+function matchSkill(){var c=myChar();return c&&c.skill?c.skill:mySkill(gameMode==='online');}
+function skCdFrac(c){
+  if(!c)return 0;
+  if(c.skill&&c.skill!=='roll'){var S=SIM.SKILLS[c.skill];return S&&c.skCD>0?Math.min(1,c.skCD/S.cd):0;}
+  return c.rollCD>0&&!(c.rollT>0)?c.rollCD/SIM.ROLL_CD:0;
+}
+function skillBtnSync(){
+  var id=matchSkill(),U=skUi(id),b=document.getElementById('w-roll'),tp=document.getElementById('tp-roll');
+  if(b&&b._sk!==id){b._sk=id;b.style.setProperty('--wc',U.c);b.style.borderColor=hexA(U.c,.35);var wn=b.querySelector('.wn');if(wn){wn.style.color=U.c;wn.innerHTML='<span>'+esc(skName(id))+'</span><small>'+(id==='roll'?'ROLL':'SKILL')+'</small>';}}
+  if(tp&&tp._sk!==id){tp._sk=id;tp.style.borderColor=hexA(U.c,.6);var sv=tp.querySelector('svg');if(sv)sv.innerHTML=U.ic;var sm=tp.querySelector('small');if(sm)sm.textContent=skName(id);}
+}
+// キャンバスにスキルの絵を描く（SKILL_UI の線をそのまま使う）
+var SK_P2D={};
+function drawSkillGlyph(id,cx,cy,sz,col){
+  var L=SK_P2D[id];
+  if(!L){L=SK_P2D[id]=[];var re=/<(path|circle)([^>]*)\/>/g,m,ic=skUi(id).ic;
+    while((m=re.exec(ic))){var a=m[2],da=/stroke-dasharray="([^"]+)"/.exec(a),P;
+      if(m[1]==='path')P=new Path2D(/ d="([^"]+)"/.exec(a)[1]);
+      else{P=new Path2D();P.arc(+/cx="([^"]+)"/.exec(a)[1],+/cy="([^"]+)"/.exec(a)[1],+/ r="([^"]+)"/.exec(a)[1],0,Math.PI*2);}
+      L.push({p:P,dash:da?da[1].split(/\s+/).map(Number):null});}}
+  ctx.save();ctx.translate(cx-sz/2,cy-sz/2);ctx.scale(sz/24,sz/24);ctx.strokeStyle=col;ctx.lineWidth=2.2;ctx.lineCap='round';ctx.lineJoin='round';
+  L.forEach(function(q){ctx.setLineDash(q.dash||[]);ctx.stroke(q.p);});ctx.setLineDash([]);ctx.restore();
+}
 // 画面にいるキャラを side（a〜d）から探す
 function charBySide(sd){
+  if(gameMode==='range')return sd==='a'&&RANGE?RANGE.me:null;
   if(gameMode==='ai')return sd==='a'?lp:sd==='b'?lai:null;
   if(gameMode==='online'){if(TEAM2&&olW)return olW.chars[sd]||null;return sd===mySlot?olMe:olOpp;}
   return null;
@@ -8413,6 +8638,13 @@ function evSound(e,me,mine,trk,styleOf){
       case'heal':SFX.heal();FX.heal.push({x:e.x,y:e.y,life:30});if(mine)MST.heals++;break;
       case'jump':if(mine)SFX.jump();break;
       case'roll':SFX.roll();rollDust(e.who);if(trk&&mine)ecoTrack('roll');break;
+      // スキル：使った瞬間は、その色の輪と名前。反射・分身・巻き戻しはそれぞれの演出
+      case'skill':skillUseFx(e);break;
+      case'parry':SFX.switchW();if(fxOn(1))FX.ring.push({x:e.x,y:e.y,life:18,max:18,rgb:'255,213,74',r:e.ref?34:24});addSparks(e.x,e.y,'#FFE27A',e.ref?9:5);break;
+      case'decoy':addSmoke(e.x+CHAR_W/2,e.y+CHAR_H-10,e.dir||1,6);break;
+      case'decoyhit':addSparks(e.x,e.y,'#9EF5C9',6);break;
+      case'decoyend':addSmoke(e.x+CHAR_W/2,e.y+CHAR_H/2,1,5);addSmoke(e.x+CHAR_W/2,e.y+CHAR_H/2,-1,5);break;
+      case'rewind':SFX.roll();FX.rw.push({fx:e.fx,fy:e.fy,x:e.x,y:e.y,life:28});break;
       case'rolldodge':if(mine)MST.dodges++;else if(!TEAM2&&me!=='-')MST.odg++;if(!FX.rd)FX.rd=[];var rcw=charBySide(e.who);if(rcw&&!(FX.rdLast&&FX.rdLast[e.who]>performance.now()-250)){(FX.rdLast||(FX.rdLast={}))[e.who]=performance.now();FX.rd.push({x:rcw.x+CHAR_W/2,y:rcw.y-34,life:40});SFX.rollDodge();}
         if(trk&&mine)ecoTrack('rolldodge');break;
       case'boom':SFX.explode();FX.boom.push({x:e.x,y:e.y,r:e.r||60,life:26});addSparks(e.x,e.y,'#FFB36B',12);if(me!=='-')addShake(Math.max(2,6-Math.abs(wx(e.x)-VW/2)/120));break;
@@ -8503,7 +8735,7 @@ function demoFrame(D,ts){
 // ============================================================
 // AI対戦（ローカル・ラグなし）
 // ============================================================
-var lw=null,lp=null,lai=null,aiBrain=null,cpuLoad=null,cpuLook=null;
+var lw=null,lp=null,lai=null,aiBrain=null,cpuLoad=null,cpuLook=null,lpSkill='roll',cpuSkill='roll',olMySk='roll';   // スキル：CPU戦の自分・CPU、オンラインの自分（サーバーが決めた物）
 function localStyle(side){return side==='a'?{look:RP?RP.R.look:profile.look,team:TEAM.me}:{look:cpuLook,team:isBossFight()?TEAM.boss:TEAM.foe};}
 function onlineStyle(side){if(TEAM2)return teamStyle(side);return side===mySlot?{look:profile.look,team:TEAM.me}:{look:oppInfo.look,team:TEAM.foe};}
 // ---- 2v2（チーム戦）----
@@ -8546,7 +8778,7 @@ var lpWins=0,laWins=0,lRoundOver=false;
 function initLocalRound(){
   achRoundStart();
   useStage(selectedStage);
-  lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;
+  lw=SIM.newWorld(selectedStage,loadout,cpuLoad,lpSkill,cpuSkill);lp=lw.chars.a;lai=lw.chars.b;
   lw.guardOn=true;SIM.guardSave(lw);   // 外から値を書き換えられていないか見張る
   if(AC.watch)SIM.watchRound(AC.watch);
   aiBrain=SIM.newBrain(difficulty);
@@ -8609,7 +8841,7 @@ function doRematch(){
 // ============================================================
 // オンライン対戦（クライアント予測 + サーバー権威）
 // ============================================================
-var olState=null;          // サーバーから受け取った状態
+var olState=null,olDc=[];   // サーバーから受け取った状態・分身（スキル）
 var olW=null;              // 自分の先読み用の小さなワールド（自分の動きと自分の弾だけ動かす）
 var olMe=null,olOpp=null;
 var olRoundOver=false;
@@ -8625,13 +8857,14 @@ function copyServerChar(c,s){
   c.cool=s.cool||0;c.coolMax=s.coolMax||1;c.rl=s.rl||0;c.rlMax=s.rlMax||1;c.chg=s.chg||0;c.foc=s.fo||0;c.healUsed=!!s.heal;
   c.swT=s.sw||0;c.recT=s.rc||0;c.kbT=s.kb||0;c.bx=s.bx||0;c.by=s.by||0;c.bdir=s.bd||0;
   c.rollT=s.ro||0;c.rollCD=s.rcd||0;c.rollDir=s.rd||1;
+  c.skCD=s.sc||0;c.pierce=s.pi?-1:0;c.parryT=s.pa||0;   // スキル：待ち・貫通弾を構えている・反射の構え
 }
 function initOlWorld2(){
   if(!olState||!olState.chars||!olState.chars[mySlot])return;
   olW={plats:platforms,solids:solids,frame:0,sid:1000000,shots:[],chars:{},nav:null,ghost:true,teams:true};
   SIM.TEAM_SLOTS.forEach(function(s){
     var sc=olState.chars[s];if(!sc)return;
-    var P=TM.players[s]||{},c=SIM.newChar(s,0,0,1,s===mySlot?(matchLoadout||loadout):(P.loadout||[2,3,1]));
+    var P=TM.players[s]||{},c=SIM.newChar(s,0,0,1,s===mySlot?(matchLoadout||loadout):(P.loadout||[2,3,1]),s===mySlot?olMySk:P.skill);
     copyServerChar(c,sc);olW.chars[s]=c;
   });
   olMe=olW.chars[mySlot];olOpp=null;playerSlot=olMe.slot;
@@ -8660,8 +8893,8 @@ function initOlWorld(){
   if(!olState||!olState.chars||!olState.chars[mySlot])return;
   var os=oppSlotOf();
   olW={plats:platforms,solids:solids,frame:0,sid:1000000,shots:[],chars:{},nav:null,ghost:true};   // ghost：先読みの弾は相手に当てない
-  olMe=SIM.newChar(mySlot,0,0,1,matchLoadout||loadout);copyServerChar(olMe,olState.chars[mySlot]);
-  olOpp=SIM.newChar(os,0,0,-1,oppInfo.loadout);copyServerChar(olOpp,olState.chars[os]);
+  olMe=SIM.newChar(mySlot,0,0,1,matchLoadout||loadout,olMySk);copyServerChar(olMe,olState.chars[mySlot]);
+  olOpp=SIM.newChar(os,0,0,-1,oppInfo.loadout,oppInfo.skill);copyServerChar(olOpp,olState.chars[os]);
   playerSlot=olMe.slot;
   olW.chars[mySlot]=olMe;olW.chars[os]=olOpp;
 }
@@ -8681,6 +8914,7 @@ function syncMeFromServer(sc){
     olMe.ammo=sc.am.slice();olMe.rl=sc.rl||0;olMe.rlMax=sc.rlMax||1;
   }
   if(sc.heal&&!olMe.healUsed){olMe.healUsed=true;updateHealBtn();}
+  if(sc.sc!=null&&Math.abs((olMe.skCD||0)-sc.sc)>20)olMe.skCD=sc.sc;   // スキルの待ち：大きくずれたら（サーバーで出なかったなど）サーバーに合わせる
 }
 function updateOnline(){
   if(!olW||!olMe||olRoundOver)return;
@@ -8762,7 +8996,7 @@ function handleServerFx(fx){
       return;
     }
     if(e.t==='rolldodge'&&e.who===mySlot)MST.dodges++;      // 自分のロール回避はサーバーだけが決める（リザルトの数）
-    if(e.who===mySlot||(e.t==='spark'&&e.own===mySlot))return;   // 自分の発射などは先読みで出している
+    if((e.who===mySlot&&e.t!=='parry'&&e.t!=='decoyhit'&&e.t!=='decoyend')||(e.t==='spark'&&e.own===mySlot))return;   // 自分の発射などは先読みで出している（反射・分身が撃たれた・消えたはサーバーだけで起きる）
     list.push(e);
   });
   handleEvents(list,mySlot,onlineStyle);
@@ -8800,10 +9034,11 @@ function handleOnlineMsg(msg){
     SIM.TEAM_SLOTS.forEach(function(s){
       var p=msg.players&&msg.players[s];if(!p)return;
       TM.players[s]={clan:cleanTagC(p.clan),dev:!!p.dev,name:String(p.name||'').slice(0,12),discord:p.verified?String(p.discord||'').slice(0,32):'',tier:String(p.tier||'').slice(0,5),
-        loadout:SIM.cleanLoadout(p.loadout,true),look:SIM.cleanLook(p.look,true),title:String(p.title||'rookie'),bio:String(p.bio||'').slice(0,40),
+        loadout:SIM.cleanLoadout(p.loadout,true),skill:SIM.cleanSkill(p.skill)||'roll',look:SIM.cleanLook(p.look,true),title:String(p.title||'rookie'),bio:String(p.bio||'').slice(0,40),
         bg:(p.bg===EMP_BG||p.bg===CHAMP_BG||p.bg==='dev'||p.bg===HW_BG)?p.bg:p.bg>=0&&p.bg<=10?Math.floor(p.bg):null,
         rec:p.rec&&p.rec.w>=0&&p.rec.l>=0?{w:Math.floor(p.rec.w),l:Math.floor(p.rec.l),kind:p.rec.kind==='online'?'online':'cpu'}:null};
     });
+    olMySk=TM.players[mySlot]?TM.players[mySlot].skill:'roll';
     startPingLoop();achMatchStart();
     later(function(){
       showGameScreen('online');startOnlineLoop();
@@ -8816,7 +9051,8 @@ function handleOnlineMsg(msg){
     if(!msg.ended)note(t('c.teamLeft',{name:msg.name||(PL&&PL.name)||'?'}));
   }
   else if(mt==='both_ready'){
-    if(msg.opp)oppInfo={clan:cleanTagC(msg.opp.clan),dev:!!msg.opp.dev,name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),look:SIM.cleanLook(msg.opp.look,true),
+    olMySk=SIM.cleanSkill(msg.me&&msg.me.skill)||'roll';   // 自分のスキル（サーバーが確かめた物）
+    if(msg.opp)oppInfo={clan:cleanTagC(msg.opp.clan),dev:!!msg.opp.dev,name:String(msg.opp.name||'').slice(0,12),discord:msg.opp.verified?String(msg.opp.discord||'').slice(0,32):'',tier:String(msg.opp.tier||'').slice(0,5),loadout:SIM.cleanLoadout(msg.opp.loadout,true),skill:SIM.cleanSkill(msg.opp.skill)||'roll',look:SIM.cleanLook(msg.opp.look,true),
       title:String(msg.opp.title||'rookie'),bio:String(msg.opp.bio||'').slice(0,40),bg:(msg.opp.bg===EMP_BG||msg.opp.bg===CHAMP_BG||msg.opp.bg==='dev'||msg.opp.bg===HW_BG)?msg.opp.bg:msg.opp.bg>=0&&msg.opp.bg<=10?Math.floor(msg.opp.bg):null,
       rec:msg.opp.rec&&msg.opp.rec.w>=0&&msg.opp.rec.l>=0?{w:Math.floor(msg.opp.rec.w),l:Math.floor(msg.opp.rec.l),kind:msg.opp.rec.kind==='online'?'online':'cpu'}:null};
     startPingLoop();achMatchStart();
@@ -8831,13 +9067,13 @@ function handleOnlineMsg(msg){
     if(cont)achRoundStart();else{achMatchStart();TST={};}   // 0-0 なら新しい試合（再戦も）
     lobbyPhase=false;olRoundOver=false;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;killCam=null;endWaitUI();
     tierUp=null;rematchFx=null;stageFx=null;   // 前の試合の演出が残っていたら消す
-    olState=msg.state;olStateAt=performance.now();clearFx();clearPending();
+    olState=msg.state;olStateAt=performance.now();olDc=[];clearFx();clearPending();
     useStage(msg.stage||'classic');if(TEAM2)initOlWorld2();else initOlWorld();startRoundIntro(false);CHEER=null;camX=0;setInGameUI(true);
     if(msg.state&&msg.state.wins)olWinsFrom(msg.state.wins);
     updateWeaponBar();
   }
   else if(mt==='state'){
-    olState=msg.state;olStateAt=performance.now();
+    olState=msg.state;olStateAt=performance.now();olDc=msg.state.dc||[];
     syncMeFromServer(msg.state.chars[mySlot]);
     handleServerFx(msg.fx);
     if(msg.state.wins)olWinsFrom(msg.state.wins);
@@ -8939,8 +9175,8 @@ function cvPrefetch(){
 }
 function cvApply(my,d){
   my.mid=d.mid;my.seed=d.seed>>>0;my.ready=true;
-  cpuLoad=SIM.cpuSeedLoad(my.seed,difficulty);
-  lw=SIM.newWorld(selectedStage,loadout,cpuLoad);lp=lw.chars.a;lai=lw.chars.b;lw.guardOn=true;SIM.guardSave(lw);
+  cpuLoad=SIM.cpuSeedLoad(my.seed,difficulty);cpuSkill=SIM.cpuSeedSkill(my.seed,difficulty);
+  lw=SIM.newWorld(selectedStage,loadout,cpuLoad,lpSkill,cpuSkill);lp=lw.chars.a;lai=lw.chars.b;lw.guardOn=true;SIM.guardSave(lw);
   playerSlot=0;lp.wantSlot=0;updateWeaponBar();
 }
 function cvStart(){
@@ -8959,7 +9195,9 @@ function cvStart(){
 function cvFrame(pin){
   if(!CV)return;
   if(!CV.cur){
-    if(!CV.ready||lw.frame!==0||String(cpuLoad)!==String(SIM.cpuSeedLoad(CV.seed,difficulty))){CV=null;return;}
+    if(!CV.ready||lw.frame!==0||String(cpuLoad)!==String(SIM.cpuSeedLoad(CV.seed,difficulty))||lai.skill!==SIM.cpuSeedSkill(CV.seed,difficulty)){CV=null;return;}
+    if(CV.skill&&CV.skill!==lp.skill){CV=null;return;}
+    CV.skill=lp.skill;
     if(CV.diff&&CV.diff!==difficulty){CV=null;return;}
     CV.diff=difficulty;CV.cur=[];CV.loads.push(loadout.slice());
     aiBrain=SIM.newBrain(difficulty,SIM.roundRng(CV.seed,CV.logs.length));
@@ -8972,7 +9210,7 @@ function cvMatchEnd(){
   setTimeout(cvPrefetch,1500);   // 次の試合（再戦）の種
   if(!my||!my.mid||!AUTH.token||aiTamper||!my.logs.length)return;
   fetch(httpBase()+'/api/cpu/end',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+AUTH.token},
-    body:JSON.stringify({mid:my.mid,diff:my.diff,stage:selectedStage,loads:my.loads,logs:my.logs,emotes:my.emotes})})
+    body:JSON.stringify({mid:my.mid,diff:my.diff,stage:selectedStage,loads:my.loads,logs:my.logs,emotes:my.emotes,skill:my.skill||'roll'})})
     .then(function(r){return r.json();}).then(function(d){
       if(d&&d.ok&&d.profile){srvAdopt(d.profile,d.rev);candyToast(d.candy,d.ev);saleToast(d.sale);return;}
       if(d&&d.why&&d.why!=='suspect')note(t('c.unverified'));
@@ -8983,7 +9221,7 @@ function srvAdopt(p,rev){
   if(!p||typeof p!=='object')return;
   // 手元に送っていない変更がなければ、別の端末で変えた見た目なども含めて、サーバーの内容にそろえる
   if(rev&&STORE_ACC&&!SYNC.dirty){adoptProfile(p);SYNC.rev=Math.max(SYNC.rev,+rev);saveSyncMeta();renderHomeEco();return;}
-  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','tierVer','title','bg','bgVer','inv','opened','pity','chaosOpened','misCrates','misChaos','coins','pass','login','candy'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
+  ['stats','tierProgress','emperor','ach','xp','mis','sea','bestTier','tierVer','title','bg','bgVer','inv','opened','pity','chaosOpened','misCrates','misChaos','coins','pass','login','candy','sk'].forEach(function(k){if(p[k]!==undefined)profile[k]=p[k];});
   // 版の番号は進めない（進めると、別の端末の変更を見ないまま「最新」と思い込み、古い見た目で上書きしてしまう）
   ensureProfileShape();writeProfileLocal();renderHomeEco();
   if(currentScreen==='profile-screen')renderProfileUI();
@@ -8999,7 +9237,7 @@ function rpRecStart(){RPREC=difficulty===EMP?null:{v:1,stage:selectedStage,diff:
 function rpPack(i,c){return SIM.packInput(Object.assign({},i,{slot:i.slot===0||i.slot===1||i.slot===2?i.slot:c.wantSlot}));}
 function rpRecFrame(pin,aiIn){
   if(!RPREC)return;
-  if(lw.frame===0){if(RPREC.rounds.length>=5){RPREC=null;return;}RPREC.cur={load:lp.load.slice(),cpu:lai.load.slice(),a:[],b:[]};RPREC.rounds.push(RPREC.cur);}
+  if(lw.frame===0){if(RPREC.rounds.length>=5){RPREC=null;return;}RPREC.cur={load:lp.load.slice(),cpu:lai.load.slice(),sk:lp.skill,csk:lai.skill,a:[],b:[]};RPREC.rounds.push(RPREC.cur);}
   var R=RPREC.cur;if(!R)return;
   if(R.a.length>=SIM.REPLAY_MAX_FRAMES){RPREC=null;return;}
   SIM.logAdd(R.a,rpPack(pin,lp));SIM.logAdd(R.b,rpPack(aiIn,lai));
@@ -9029,7 +9267,7 @@ function startReplay(){
 function rpRound(){
   var r=RP.R.rounds[RP.round];
   useStage(RP.R.stage);
-  lw=SIM.newWorld(RP.R.stage,r.load,r.cpu);lp=lw.chars.a;lai=lw.chars.b;RP.f=0;
+  lw=SIM.newWorld(RP.R.stage,r.load,r.cpu,r.sk,r.csk);lp=lw.chars.a;lai=lw.chars.b;RP.f=0;
   playerSlot=0;clearPending();lRoundOver=false;clearFx();
   startRoundIntro(true);camX=0;updateWeaponBar();CHEER=null;
 }
@@ -9078,6 +9316,7 @@ function startAI(){
   gameMode='ai';lpWins=0;laWins=0;matchOver=false;killCam=null;tierUp=null;rateFx=null;matchShots=0;matchHits=0;hitSids={};MST=newMst();keys={};
   var boss=difficulty===EMP;
   cpuLoad=boss?SIM.emperorLoadout():SIM.cpuLoadout();cpuLook=boss?EMPEROR_LOOK:SIM.randomLook();
+  lpSkill=mySkill(false);cpuSkill=boss?'roll':SIM.SKILL_IDS[Math.floor(Math.random()*SIM.SKILL_IDS.length)];   // CPU もスキルを1つ持つ（確かめる試合は種で決め直す：cvApply）
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;
   presenceStatus('cpu');achMatchStart();acMatchStart();cvStart();rpRecStart();
   if(INV.cur){INV.queue.unshift(INV.cur);INV.cur=null;hideInviteToast();}   // 表示中の招待は試合のあとで出し直す
@@ -9086,7 +9325,7 @@ function startAI(){
   startLoop();
 }
 function myTierKey(){return TIER_LADDER[computeTierIndex()].key;}
-function resetOnlineState(){AC.sent={};AC.synth=0;TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],look:LOOK_DEFAULT};olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
+function resetOnlineState(){AC.sent={};AC.synth=0;TEAM2=false;TM={players:{},ranked:false};RANKED=false;endWaitUI();matchLoadout=null;pickSel=0;matchOver=false;rematchMine=false;rematchOpp=false;rematchOff=false;myPing=-1;oppPing=-1;killCam=null;oppInfo={name:'',tier:'',loadout:[2,3,1],skill:'roll',look:LOOK_DEFAULT};olMySk='roll';olDc=[];olW=null;olMe=null;olOpp=null;olState=null;keys={};clearPending();}
 function startPingLoop(){
   if(pingTimer)clearInterval(pingTimer);
   pingTimer=setInterval(function(){
@@ -9107,7 +9346,7 @@ function startQueue(mode){
   useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
   QUEUE={on:true,mode:mode,waited:0,range:0,n:1};renderQueue();
   setRoomStatusText('');
-  connectWS(function(){ws.send(JSON.stringify({type:'queue',mode:mode,v:SIM.PROTO,name:profile.name,tier:myTierKey(),loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
+  connectWS(function(){ws.send(JSON.stringify({type:'queue',mode:mode,v:SIM.PROTO,name:profile.name,tier:myTierKey(),loadout:loadout,skill:mySkill(true),look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
 }
 function cancelQueue(){
   if(ws&&ws.readyState===1)ws.send(JSON.stringify({type:'queue_cancel'}));
@@ -9141,14 +9380,14 @@ function createRoom(){
   useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
   document.getElementById('create-btn').style.display='none';
   setRoomStatus('room.connecting',true);
-  connectWS(function(){ws.send(JSON.stringify({type:'create_room',v:SIM.PROTO,name:profile.name,tier:myTierKey(),loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
+  connectWS(function(){ws.send(JSON.stringify({type:'create_room',v:SIM.PROTO,name:profile.name,tier:myTierKey(),loadout:loadout,skill:mySkill(true),look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
 }
 function joinRoom(id){
   var roomId=(typeof id==='string'&&id)||document.getElementById('join-input').value.trim();
   if(roomId.length!==6){alert(t('room.need6'));return;}
   if(serverTooOld())return;
   useStage('classic');gameMode='online';opWins=0;oaWins=0;resetOnlineState();
-  connectWS(function(){ws.send(JSON.stringify({type:'join_room',v:SIM.PROTO,roomId:roomId,name:profile.name,tier:myTierKey(),loadout:loadout,look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
+  connectWS(function(){ws.send(JSON.stringify({type:'join_room',v:SIM.PROTO,roomId:roomId,name:profile.name,tier:myTierKey(),loadout:loadout,skill:mySkill(true),look:profile.look,title:profile.title,bio:profile.bio,bg:bgIndex(),cpu:cpuTotals()}));});
 }
 function startOnlineLoop(){flashMsg='';flashTimer=0;olRoundOver=false;matchOver=false;rateFx=null;olState=null;olW=null;olMe=null;olOpp=null;matchShots=0;matchHits=0;hitSids={};MST=newMst();startLoop();}
 
@@ -14119,6 +14358,7 @@ function drawChar(s,isMe,o){
     ctx.shadowColor=W.color;ctx.shadowBlur=8*wp;
     ctx.beginPath();ctx.arc(cx2+d*8,s.y+20,8+12*wp,d>0?-1.2:Math.PI-1.9,d>0?1.2:Math.PI+1.9);ctx.stroke();ctx.restore();
   }
+  drawSkillAura(s,cx2,d);
   if(o.hud===false)return;
   // ---- 頭上：名札だけ（体力は画面上の大きなバー）。自分には、弾の数とリロードの輪 ----
   var bY=s.ducking?s.y+(CHAR_H-28):s.y,cxm=sx+CHAR_W/2,hy=bY-12;
@@ -14229,6 +14469,12 @@ var BULLET_SZ={
 };
 function drawShot(b,col){
   var bsx=wx(b.x);if(bsx<-40||bsx>VW+40)return;
+  if(b.pr){   // 貫通弾：橙の長い尾と光
+    var pd=b.vx>=0?1:-1,pg=ctx.createLinearGradient(bsx-pd*36,0,bsx,0);pg.addColorStop(0,'rgba(255,138,61,0)');pg.addColorStop(1,'rgba(255,160,80,.9)');
+    ctx.save();ctx.globalCompositeOperation='lighter';ctx.strokeStyle=pg;ctx.lineWidth=4;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(bsx-pd*36,b.y);ctx.lineTo(bsx,b.y);ctx.stroke();ctx.restore();
+    glow(bsx,b.y,10,'255,138,61',.55);
+  }
+  if(b.rf)glow(bsx,b.y,9,'255,213,74',.5);   // 反射で返した弾：金色に光る
   if(b.w===16){   // フォーカスライフル：光の矢。ジャスト（pf）は金色で太く、尾も長い
     var fd=b.vx>=0?1:-1,pf=!!b.pf,L2=pf?46:24,th=pf?2.4:1.5,c1=pf?'255,226,140':'110,232,255';
     ctx.save();ctx.globalCompositeOperation='lighter';
@@ -14266,6 +14512,7 @@ function drawShot(b,col){
   ctx.restore();
 }
 function drawEffects(shotList){
+  drawSkillFx();
   FX.mark.forEach(function(m){
     var a=Math.min(1,m.life/40),x=wx(m.x);
     ctx.globalAlpha=a*.8;ctx.fillStyle='#120C08';ctx.beginPath();ctx.arc(x,m.y,m.r,0,Math.PI*2);ctx.fill();
@@ -15103,12 +15350,12 @@ function drawWeaponStrip(c){
   ctx.fillStyle=used?'rgba(255,255,255,.25)':'#34D399';ctx.fillRect(hx+15,y0+7,4,10);ctx.fillRect(hx+12,y0+10,10,4);
   ctx.font='700 7px '+FONT_UI;ctx.textAlign='left';ctx.fillStyle='rgba(255,255,255,.4)';ctx.fillText(kdn(keybinds.heal)||'',hx+3,y0+6);
   // 回避ロール：使えるまでの時間を下から埋まるゲージで
-  var rx=hx+39,rcd=c.rollCD>0&&!(c.rollT>0)?c.rollCD/SIM.ROLL_CD:0,rok=rcd<=0;
+  // スキル（最初はロール）：使えるまでの時間を下から埋まるゲージで
+  var rx=hx+39,skc=skUi(c.skill||'roll').c,rcd=skCdFrac(c),rok=rcd<=0;
   ctx.fillStyle='rgba(8,10,16,.55)';rrect(rx,y0,34,bh,5);ctx.fill();
-  if(!rok){ctx.fillStyle='rgba(124,240,255,.18)';ctx.fillRect(rx+1,y0+bh*rcd,32,bh*(1-rcd));}
-  ctx.strokeStyle=rok?'rgba(124,240,255,.7)':'rgba(255,255,255,.12)';ctx.lineWidth=1;rrect(rx,y0,34,bh,5);ctx.stroke();
-  ctx.save();ctx.strokeStyle=rok?'#7CF0FF':'rgba(255,255,255,.3)';ctx.lineWidth=1.8;ctx.lineCap='round';ctx.beginPath();ctx.arc(rx+17,y0+13,5.5,-Math.PI*.9,Math.PI*.6);ctx.stroke();
-  ctx.beginPath();ctx.moveTo(rx+11,y0+8);ctx.lineTo(rx+11.3,y0+12.4);ctx.lineTo(rx+15.5,y0+11.6);ctx.stroke();ctx.restore();
+  if(!rok){ctx.fillStyle=hexA(skc,.18);ctx.fillRect(rx+1,y0+bh*rcd,32,bh*(1-rcd));}
+  ctx.strokeStyle=rok?hexA(skc,.7):'rgba(255,255,255,.12)';ctx.lineWidth=1;rrect(rx,y0,34,bh,5);ctx.stroke();
+  drawSkillGlyph(c.skill||'roll',rx+17,y0+bh/2+2,14,rok?skc:'rgba(255,255,255,.3)');
   ctx.font='700 7px '+FONT_UI;ctx.textAlign='left';ctx.fillStyle='rgba(255,255,255,.4)';ctx.fillText(GP.used?'LT':(kdn(keybinds.roll)||'').slice(0,5),rx+3,y0+6);
   ctx.textBaseline='alphabetic';
 }
@@ -15632,7 +15879,7 @@ function startRange(){
   bossIntro=null;unlockFx=null;slayFx=null;rematchFx=null;stageFx=null;keys={};clearPending();clearFx();
   platforms=RANGE_STAGE.platforms;solids=[];stageTheme=STAGE_THEMES.night;
   var tg=RANGE_TARGETS.map(function(d){return SIM.newTarget(d.id,d.x,d.y-SIM.CHAR_H,d.patrol,d.speed);});
-  RANGE={w:SIM.newRangeWorld(RANGE_STAGE,loadout.slice(),tg),stats:{},order:[],sidW:{},sidHit:{},nums:[],flash:{},idle:999,tick:0};
+  RANGE={w:SIM.newRangeWorld(RANGE_STAGE,loadout.slice(),tg,mySkill(false)),stats:{},order:[],sidW:{},sidHit:{},nums:[],flash:{},idle:999,tick:0};
   RANGE.me=RANGE.w.chars.a;playerSlot=0;RANGE.me.wantSlot=0;camX=0;
   presenceStatus('online');
   showGameScreen('range');
@@ -15746,6 +15993,7 @@ function drawRangeScene(){
   drawBackground();
   drawRangeSteps();
   R.w.targets.forEach(drawRangeTarget);
+  drawDecoys(R.w.decoys,function(){return R.me;},function(){return{look:profile.look};},function(){return true;});
   drawChar(R.me,true,{look:profile.look});
   drawEffects(R.w.shots);
   ctx.fillStyle=GRADS.vignette;ctx.fillRect(0,0,VW,VH);
@@ -15921,9 +16169,9 @@ function onlineShots(){
   if(olState&&olState.shots){
     var age=olStateAt?Math.min(6,Math.max(0,(performance.now()-olStateAt)/FRAME_MS)):0;
     olState.shots.forEach(function(b){
-      if(b.own===mySlot)return;
+      if(b.own===mySlot&&!b.rf)return;   // 自分の弾は先読みで出している（反射で返した弾はサーバーにしかない）
       var gg=b.k==='g'?SIM.GREN_G:0,vy=b.vy||0,y=b.y+vy*age+.5*gg*age*age;
-      out.push({k:b.k,w:b.w,x:b.x+b.vx*age,y:y,vx:b.vx,vy:vy+gg*age,col:'#F87171',pf:b.pf});
+      out.push({k:b.k,w:b.w,x:b.x+b.vx*age,y:y,vx:b.vx,vy:vy+gg*age,col:b.own===mySlot?'#C4B5FD':'#F87171',pf:b.pf,pr:b.pr,rf:b.rf});
     });
   }
   return out;
@@ -16119,7 +16367,7 @@ function drawVs(){
   ctx.textAlign='left';ctx.textBaseline='alphabetic';
 }
 function updRollBtn(){
-  var b=document.getElementById('w-roll');if(!b)return;var c=myChar(),cd=c&&c.rollCD>0&&!(c.rollT>0)?c.rollCD/SIM.ROLL_CD:0;
+  var b=document.getElementById('w-roll');if(!b)return;skillBtnSync();var c=myChar(),cd=skCdFrac(c);
   var v=cd>0?Math.round(cd*100):0;if(b._cd!==v){b._cd=v;b.style.setProperty('--cd',v+'%');b.classList.toggle('cd',v>0);var tr=document.getElementById('tp-roll');if(tr)tr.classList.toggle('cd',v>0);}
 }
 function drawScene(){
@@ -16143,18 +16391,23 @@ function drawScene(){
   drawBackground();
   var pw=gameMode==='ai'?lpWins:opWins,aw=gameMode==='ai'?laWins:oaWins,me=null,op=null;
   if(gameMode==='ai'&&lp&&lai){
-    me=lp;op=lai;drawChar(lp,true,{look:RP?RP.R.look:profile.look});drawChar(lai,false,{look:cpuLook,boss:isBossFight()});
+    me=lp;op=lai;
+    drawDecoys(lw&&lw.decoys,function(sd){return sd==='a'?lp:lai;},function(sd){return sd==='a'?{look:RP?RP.R.look:profile.look}:{look:cpuLook,boss:isBossFight()};},function(sd){return sd==='a';});
+    drawChar(lp,true,{look:RP?RP.R.look:profile.look});drawChar(lai,false,{look:cpuLook,boss:isBossFight()});
     drawEffects(lw?lw.shots:[]);drawEmotes([lp,lai]);
   }
   if(gameMode==='online'&&TEAM2&&olW&&olMe){
     me=olMe;op=nearestFoe(olMe)||olMe;
     var ord=SIM.TEAM_SLOTS.filter(function(s){return olW.chars[s]&&s!==mySlot;}).sort(function(x,y){return(slotRole(x)==='ally')-(slotRole(y)==='ally');}).concat([mySlot]);
     ord.forEach(function(s){drawFootMark(olW.chars[s],slotRole(s));});
+    drawDecoys(olDc,function(sd){return olW.chars[sd];},function(sd){var st=teamStyle(sd);return{look:st.look,team:st.team,label:teamLabel(sd)};},function(sd){return sd===mySlot;});
     ord.forEach(function(s){var st=teamStyle(s);drawChar(olW.chars[s],s===mySlot,{look:st.look,team:st.team,label:teamLabel(s)});});
     drawEffects(onlineShots());drawEmotes(ord.map(function(s){return olW.chars[s];}));
   }
   else if(gameMode==='online'&&olMe&&olOpp){
-    me=olMe;op=olOpp;drawChar(olMe,true,{look:profile.look});drawChar(olOpp,false,{look:oppInfo.look});
+    me=olMe;op=olOpp;
+    drawDecoys(olDc,function(sd){return sd===mySlot?olMe:olOpp;},function(sd){return sd===mySlot?{look:profile.look}:{look:oppInfo.look};},function(sd){return sd===mySlot;});
+    drawChar(olMe,true,{look:profile.look});drawChar(olOpp,false,{look:oppInfo.look});
     drawEffects(onlineShots());drawEmotes([olMe,olOpp]);
   }
   if(fxRich()){drawLights();drawForeground(stageTheme||STAGE_THEMES.night);}
@@ -16314,6 +16567,7 @@ function drawBgFx(tm){
  doAttack,attackUp,doDuck,doHeal,doJump,doReload,setKey,setWeapon,setDiff,resetKeybinds,editProfileText,bioFocus,bioDone,lookFilter,lookSort,lookZoomToggle,lookReset,pickTitle,pickBg,pickBadge,pickLookTab,pickLook,hoverLook,passScroll,openLoginBonus,closeLoginBonus,claimLoginBonus,hideSplash,showShopScreen,shopBuy,shopGiftClaim,shopTab,gemKind,gemNewOnly,gemBuy,showPassScreen,ecoSeaClaim,pickBadgeKind,openMissions,closeMissions,pickEmoSlot,pickEmote,doEmote,toggleEmoteMenu,doRoll,openCrateScreen,closeCrateScreen,crateTap,crateAgain,crateEquip,clanGo,clanOpen,clanSearch,clanJoin,clanUnrequest,clanAccept,clanDecline,clanMby,clanForm,clanF,clanSubmit,clanLogMore,clanInvAnswer,showHistory,histFriend,histInvite,openPlayer,closePlayer,pmFriend,pmInvite,pmRowTap,claimMission,claimSea,misTab,openGifts,closeGifts,giftTab,giftClaim,giftF,giftAddItem,giftDelItem,giftTitle,giftAsk,giftAskCancel,giftSend,giftStop,randomizeLook,setLang,setVolume,setFxOpt,testSe,closeSettings,
  selectCpuLevel,selectStage,showModeScreen,showProfileScreen,pfTab,showRoomScreen,showSettingsScreen,showStageScreen,showCpuScreen,
  showLoadoutScreen,closeLoadout,pickLoadoutSlot,pickLoadoutWeapon,stageStep,pickStageIdx,confirmStage,copyFid,
+ showSkillScreen,skillPick,skillPull,skGachaTap,skGachaUse,skGachaClose,
  showFriendsScreen,sendFriendRequest,friendOp,openFriend,closeFriend,inviteFriend,inviteOpenFriend,removeOpenFriend,answerInvite,
  startListen,toggleFullscreen,startRange,rangeReset,rangeSlot,rangeSetWeapon,rangePanelToggle,navBack,gameBack,onlineBack,olLoadout,olStartQueue,pickFormat,pickMode,
  partyInvite,partyLeaveBtn,answerDevAsk,teamSlot,teamStart,inviteToRoom,rankKind,closeGiftFx,stageVote,leaveMatch,titleHint,
