@@ -48,10 +48,10 @@ var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
 // ---- スキル（1人1つ選ぶ。ボタンはロールと同じ。cd＝使ったあとの待ち・フレーム）----
 // roll：回避ロール（最初から持っている。ほかのスキルを選ぶと、ロールは使えない）
 // pierce：次に撃つ弾が壁も人も抜ける（ダメージはそのまま。オートの武器は n 発、バーストは3連射、ショットガンは1回ぶん全部。近接・グレネード・ビームには効かない）
-// rewind：back フレーム（2秒）前の場所に戻る。その間に減った体力は3分の1だけ戻る
+// rewind：back フレーム（2秒）前の場所に戻る。減った体力は hp の割合だけ戻る（0＝戻らない。前は3分の1で、CPU どうしで ロール相手に61%と強すぎた）
 // decoy：分身が走る（life フレーム。相手の弾を1つ受けると消える。CPU はだまされることがある）
 // parry：win フレーム（0.2秒）だけ構え、その間に当たる弾を撃ち返す（ビーム・近接は防ぐだけ。爆風は防げない）
-var SKILLS = { roll: { cd: ROLL_CD }, pierce: { cd: 480, n: 5 }, rewind: { cd: 720, back: 120 }, decoy: { cd: 600, life: 180 }, parry: { cd: 360, win: 12 } };
+var SKILLS = { roll: { cd: ROLL_CD }, pierce: { cd: 480, n: 5 }, rewind: { cd: 720, back: 120, hp: 0 }, decoy: { cd: 600, life: 180 }, parry: { cd: 360, win: 12 } };
 var SKILL_IDS = ['roll', 'pierce', 'rewind', 'decoy', 'parry'];
 function cleanSkill(s) { return typeof s === 'string' && SKILLS.hasOwnProperty(s) ? s : null; }
 // ---- スキルの解放：レベル SKILL_TICKET_LV ごとにスキル券1枚。券でスキルガチャを引くと、まだ持っていないスキルが1つ出る（かぶりなし・コインなどは出ない）----
@@ -1148,7 +1148,7 @@ function useSkill(w, c, ev) {
     var h = c.hist[c.histN < S.back ? 0 : c.histI];  // いちばん古い記録＝ back フレーム前
     ev.push({ t: 'rewind', who: c.side, fx: c.x, fy: c.y, x: h[0], y: h[1] });
     c.x = h[0]; c.y = h[1]; c.vx = 0; c.vy = 0; c.onGround = false; c.groundSince = -1;
-    if (h[2] > c.hp) { c.hp = c.hp + Math.round((h[2] - c.hp) / 3); c.hpFrac = c.hp; }   // 減った体力の3分の1だけ戻る（全部戻すと、CPU 同士で勝率74%と強すぎた）
+    if (h[2] > c.hp && S.hp > 0) { c.hp = c.hp + Math.round((h[2] - c.hp) * S.hp); c.hpFrac = c.hp; }   // 減った体力の hp の割合だけ戻る（全部戻すと、CPU 同士で勝率74%と強すぎた）
     c.rollT = 0; c.kbT = 0; c.burst = 0; c.chg = 0;
     if (c.foc > 0) { c.foc = 0; ev.push({ t: 'focusx', who: c.side }); }
     c.histN = 0; c.histI = 0;                       // 戻ったところから記録し直す
@@ -2046,6 +2046,8 @@ function decoyView(op, d) {
   o.x = d.x; o.y = d.y; o.vx = d.vx; o.vy = d.vy; o.onGround = d.onGround; o.ducking = false; o.rollT = 0; o.parryT = 0;
   return o;
 }
+// CPU のスキルの使い方の上手さ：rwLost/rwP＝巻き戻し（2秒で減った体力がこれ以上のとき、1フレームあたり rwP[0]+rwP[1]×賢さ の率で使う）、dcP＝分身を出す率（1フレームあたり）
+var AI_SK = { rwLost: 35, rwP: [0.1, 0.2], dcP: 0.015 };   // 分身は前 0.05（CPU どうしで ロール相手に57%と強すぎた）
 // CPU の反射：その弾に合わせられるか。合わせられる率は PARRY_ACC（よける上手さで上がる）
 // （前は毎回ぴったり合わせていて、撃った弾がほとんど全部はね返されていた）
 var PARRY_ACC = [0.15, 0.45];   // 合わせられる率 = [0] + [1] × dodge（鬼神 約0.49・ふつう 約0.31）
@@ -2059,12 +2061,12 @@ function aiSkill(b, w, me, op, W, dist, dy, toOp, inp) {
   } else if (k === 'rewind') {
     if (me.hist && me.histN) {
       var past = me.hist[me.histN < SKILLS.rewind.back ? 0 : me.histI][2], lost = past - me.hp;
-      if ((lost >= 35 || (me.hp <= 25 && lost >= 15)) && R() < 0.1 + 0.2 * cfg.smart) inp.skill = true;
+      if ((lost >= AI_SK.rwLost || (me.hp <= 25 && lost >= 15)) && R() < AI_SK.rwP[0] + AI_SK.rwP[1] * cfg.smart) inp.skill = true;
     }
   } else if (k === 'decoy') {
     var opW = WEAPONS[op.load[op.slot]], mineOut = false;
     for (var i = 0; i < (w.decoys || []).length; i++) if (w.decoys[i].own === me.side) mineOut = true;
-    if (!mineOut && op.dir === -toOp && dist < opW.range && canFire(op) && (me.rl > 0 || me.hp <= 55) && R() < 0.05) inp.skill = true;
+    if (!mineOut && op.dir === -toOp && dist < opW.range && canFire(op) && (me.rl > 0 || me.hp <= 55) && R() < AI_SK.dcP) inp.skill = true;
   }
 }
 
