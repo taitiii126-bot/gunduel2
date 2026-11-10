@@ -173,6 +173,13 @@ function pickLoadout(opp, rate, r, fav) {
 
 // レート帯に合った相手を1人作る
 // cfgRate：思考の強さだけ別のレートで作る（見せるレートは rate のまま。人のレートで決める：aiOnline）。opp：相手の武器（武器の組み合わせを選ぶ）
+// BOT のスキル：レートが高いほど、ロール以外のスキルを持っていて使う（低いレートはほとんどロール）
+function botSkill(rate, rnd) {
+  const r = rnd || Math.random, p = Math.max(0.1, Math.min(0.85, (rate - 900) / 1000));
+  if (r() >= p) return 'roll';
+  const list = SIM.SKILL_IDS.filter(id => id !== 'roll');
+  return list[Math.floor(r() * list.length)] || 'roll';
+}
 function makeBot(rate, rnd, cfgRate, opp) {
   const r = rnd || Math.random;
   const rt = Math.max(SIM.RATE_FLOOR, Math.round(rate));
@@ -182,8 +189,8 @@ function makeBot(rate, rnd, cfgRate, opp) {
   return {
     name, rate: rt, tier, tierKey: TIER_KEYS[tier] || '',
     look: botLook(rt, r), loadout: pickLoadout(opp, cfgRate == null ? rt : cfgRate, r), title: botTitle(rt, r), bio: pick(BIOS, r),
-    bg: SIM.artOfTier(tier), rec, cfg: aiOnline(cfgRate == null ? rt : cfgRate),
+    bg: SIM.artOfTier(tier), rec, cfg: aiOnline(cfgRate == null ? rt : cfgRate), skill: botSkill(rt, r),
   };
 }
 
-module.exports = { makeBot, botLook, botLoadout, pickLoadout, inPool, aiOnline, humanLevel, BIOS, ROMA, NUMS };   // 住人（residents.js）も同じ作り方を使う
+module.exports = { makeBot, botSkill, botLook, botLoadout, pickLoadout, inPool, aiOnline, humanLevel, BIOS, ROMA, NUMS };   // 住人（residents.js）も同じ作り方を使う

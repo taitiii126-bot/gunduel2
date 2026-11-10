@@ -84,6 +84,7 @@ class TeamRoom {
       // 2v2 のティアとレートは、ログイン中ならサーバーが持っている本物（ゲストは未ランク）
       tier: acc && acc.tier2Key ? acc.tier2Key : '', rate: acc ? (acc.rate2 || SIM.RATE_START) : SIM.RATE_START,
       loadout: SIM.cleanLoadout(info && info.loadout, false), look: require('./auth').ownedLook(acc && acc.uid, SIM.cleanLook(info && info.look, !!(acc && acc.dev))),   // 持っていない宝箱の物は外す（ゲストは宝箱の物を出さない）
+      skill: require('./auth').skillOf(acc && acc.uid, info && info.skill),   // スキル：持っている物だけ（ゲストはロール）
       title: G.cleanTitle(info && info.title, acc), bio: G.cleanBio(info && info.bio), bg: G.cleanBg(info && info.bg, acc),
       rec: acc ? { w: G.cleanCount(acc.wins), l: G.cleanCount(acc.losses), kind: 'online' } : null,   // ゲストの成績は確かめられないので見せない
       srtt: -1, spingT: 0, rematch: false, acts: 0, suspect: '', left: false, done: false,
@@ -105,6 +106,7 @@ class TeamRoom {
     const p = this.players[s];
     this.makeBot(p, bot.cfg);
     p.rate = bot.rate; p.tier = bot.tierKey; p.title = bot.title; p.bg = bot.bg; p.discord = bot.discord || bot.name; p.verified = true;
+    p.skill = SIM.cleanSkill(bot.skill) || 'roll';   // BOT のスキル（bots.js が選ぶ）
     p.npc = bot.npc || null;   // 住人（アカウントのある BOT）なら、その ID（試合の記録を残す）
     p.aiRate = bot.aiRate || bot.rate; p.fav = bot.fav || null;   // 武器の選び直しに使う
     p.rec = { w: bot.rec.w, l: bot.rec.l, kind: 'online' };
@@ -165,7 +167,7 @@ class TeamRoom {
     const info = {};
     for (const k of SLOTS) {
       const p = this.players[k];
-      if (p) info[k] = { name: p.name, discord: p.discord, tier: p.tier, rate: p.rate, verified: p.verified, dev: !!p.dev, clan: p.clan || '', loadout: p.loadout,
+      if (p) info[k] = { name: p.name, discord: p.discord, tier: p.tier, rate: p.rate, verified: p.verified, dev: !!p.dev, clan: p.clan || '', loadout: p.loadout, skill: p.skill,
         look: p.look, title: p.title, bio: p.bio, bg: p.bg, rec: p.rec };
     }
     for (const k of SLOTS) { const p = this.players[k]; if (p && !p.bot) this.send(p, { type: 'team_ready', slot: k, ranked: this.ranked, players: info }); }
@@ -313,9 +315,9 @@ class TeamRoom {
       for (const s of SLOTS) { const p = this.players[s]; if (p && (!p.bot || p.npc)) { p.tally = SIM.newTally(); p.emotes = 0; } if (p) p.pmax = 0; }   // 称号・ミッションの記録（試合ごと）・いちばん遅かった通信
       for (const s of SLOTS) require('./botchat').onStart(this, s);   // BOTのあいさつ
     }
-    const loads = {};
-    for (const s of SLOTS) { const p = this.players[s]; loads[s] = p ? p.loadout : null; }
-    this.world = SIM.newTeamWorld(this.stage, loads);
+    const loads = {}, skills = {};
+    for (const s of SLOTS) { const p = this.players[s]; loads[s] = p ? p.loadout : null; skills[s] = p ? p.skill : null; }
+    this.world = SIM.newTeamWorld(this.stage, loads, skills);
     for (const s of SLOTS) {
       const p = this.players[s];
       if (p) {
@@ -397,7 +399,7 @@ class TeamRoom {
     if (inp.shoot) p.shootReq = true;
     if (inp.heal) p.healReq = true;
     if (inp.reload) p.reloadReq = true;
-    if (inp.roll) p.rollReq = true;
+    if (inp.roll || inp.skill) p.rollReq = true;   // スキルのボタンはロールと同じ
     p.acts++;
   }
 
@@ -452,7 +454,7 @@ class TeamRoom {
   state() {
     const w = this.world, chars = {};
     for (const s of SLOTS) chars[s] = SIM.packChar(w.chars[s]);
-    return { chars, shots: SIM.packShots(w), wins: this.wins.slice() };
+    return { chars, shots: SIM.packShots(w), dc: SIM.packDecoys(w), wins: this.wins.slice() };
   }
 }
 

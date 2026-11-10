@@ -45,18 +45,47 @@ var FOCUS_TOL = 2;         // オンライン：フォーカスライフルを�
 var LAND_LAG = 14;         // 空中で撃った（攻撃した）跳びの着地から、次に跳べるまで（14フレーム＝約0.23秒）。撃ちながらのジャンプ連打で弾をよけ続けられないように
 // 回避ロール：地上ですばやく転がる。最初の ROLL_IF フレームは弾・攻撃が当たらない。終わってから ROLL_CD フレームは次を出せない
 var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
-// ---- スキル（ロールとは別のボタン。1人1つ選ぶ。cd＝使ったあとの待ち・フレーム）----
+// ---- スキル（1人1つ選ぶ。ボタンはロールと同じ。cd＝使ったあとの待ち・フレーム）----
+// roll：回避ロール（最初から持っている。ほかのスキルを選ぶと、ロールは使えない）
 // pierce：次に撃つ弾が壁も人も抜ける（ダメージはそのまま。オートの武器は n 発、バーストは3連射、ショットガンは1回ぶん全部。近接・グレネード・ビームには効かない）
 // rewind：back フレーム（2秒）前の場所に戻る。その間に減った体力は3分の1だけ戻る
 // decoy：分身が走る（life フレーム。相手の弾を1つ受けると消える。CPU はだまされることがある）
 // parry：win フレーム（0.2秒）だけ構え、その間に当たる弾を撃ち返す（ビーム・近接は防ぐだけ。爆風は防げない）
-var SKILLS = { pierce: { cd: 480, n: 5 }, rewind: { cd: 720, back: 120 }, decoy: { cd: 600, life: 180 }, parry: { cd: 360, win: 12 } };
-var SKILL_IDS = ['pierce', 'rewind', 'decoy', 'parry'];
+var SKILLS = { roll: { cd: ROLL_CD }, pierce: { cd: 480, n: 5 }, rewind: { cd: 720, back: 120 }, decoy: { cd: 600, life: 180 }, parry: { cd: 360, win: 12 } };
+var SKILL_IDS = ['roll', 'pierce', 'rewind', 'decoy', 'parry'];
 function cleanSkill(s) { return typeof s === 'string' && SKILLS.hasOwnProperty(s) ? s : null; }
+// ---- スキルの解放：レベル SKILL_TICKET_LV ごとにスキル券1枚。券でスキルガチャを引くと、まだ持っていないスキルが1つ出る（かぶりなし・コインなどは出ない）----
+var SKILL_TICKET_LV = 5;
+function skillTicketsEarned(xp) { return Math.min(SKILL_IDS.length - 1, Math.floor(levelOf(xp).lv / SKILL_TICKET_LV)); }
+// プロフィールのスキル：own＝持っている（roll は必ず）、used＝使ったスキル券、sel＝選んでいるスキル（持っている物だけ）
+function cleanSkills(v) {
+  v = v && typeof v === 'object' ? v : {};
+  var own = ['roll'], src = Array.isArray(v.own) ? v.own : [];
+  for (var i = 0; i < src.length; i++) if (cleanSkill(src[i]) && own.indexOf(src[i]) < 0) own.push(src[i]);
+  own.sort(function (a, b) { return SKILL_IDS.indexOf(a) - SKILL_IDS.indexOf(b); });
+  var used = Math.max(0, Math.min(SKILL_IDS.length, Math.floor(+v.used) || 0)), sel = own.indexOf(v.sel) >= 0 ? v.sel : 'roll';
+  return { own: own, used: used, sel: sel };
+}
+function skillTickets(pr) { var k = cleanSkills(pr && pr.sk); return Math.max(0, skillTicketsEarned(pr && pr.xp) - k.used); }
+// スキルガチャ：まだ持っていないスキルから同じ確率で1つ（r＝0〜1の乱数）。全部持っていれば null
+function skillPull(r, own) {
+  var left = SKILL_IDS.filter(function (id) { return (own || []).indexOf(id) < 0; });
+  return left.length ? left[Math.min(left.length - 1, Math.floor(r() * left.length))] : null;
+}
+// 券を1枚使って、出たスキルを持ち物に入れる（返り値＝出たスキル。引けなければ null）
+function applySkillPull(pr, r) {
+  var k = cleanSkills(pr.sk);
+  if (skillTicketsEarned(pr.xp) - k.used <= 0) return null;
+  var id = skillPull(r, k.own);
+  if (!id) return null;
+  k.own.push(id); k.used++;
+  pr.sk = cleanSkills(k);
+  return id;
+}
 var LAND_LAG_SOFT = 6;     // 撃たずに跳んだときの着地の待ち（6フレーム＝0.1秒）。ふつうの移動・弾よけはキビキビ動けるように
 var HIT_FRAMES = 14;
 var GREN_G = 0.42, GREN_VY = -6.0, GREN_LIFE = 120;   // グレネード：重力を強めて、遠くには届きにくい弧に
-var PROTO = 13;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール、12＝ランク（8つ×Ⅰ〜Ⅲ・記号が変わった）、13＝バウンドボールをやめてフォーカスライフル
+var PROTO = 14;            // 通信の形式。変えたら上げる（古いページのまま対戦しないように）。5＝2v2 を追加、6＝着地の待ち（LAND_LAG）、7＝レールガン34・LMG20発、8＝撃たない跳びの着地の待ちを短く、9＝回避ロール、10＝弱い武器の強化（グレネード・ピストル・リボルバー・レールガン）、11＝バウンドボール、12＝ランク（8つ×Ⅰ〜Ⅲ・記号が変わった）、13＝バウンドボールをやめてフォーカスライフル、14＝スキル（ロールのボタンが選んだスキルになる）
 
 // ---- 武器 ----
 // kind: melee=近接 / bullet=弾 / pellet=散弾 / grenade=放物線で飛んで爆発 / beam=溜めてから撃つ貫通ビーム / focus=押して狙いを絞り、離した瞬間に撃つ
@@ -618,7 +647,7 @@ function newChar(side, x, y, dir, loadout, skill) {
     inL: false, inR: false, inDuck: false, inFire: false, wantSlot: 0,
     jumpBuf: 0, shootBuf: 0, healReq: false, reloadReq: false,
     rollT: 0, rollCD: 0, rollDir: 1, rollBuf: 0,
-    skill: cleanSkill(skill), skCD: 0, skBuf: 0, pierce: 0, parryT: 0, hist: null, histI: 0, histN: 0
+    skill: cleanSkill(skill) || 'roll', skCD: 0, skBuf: 0, pierce: 0, parryT: 0, hist: null, histI: 0, histN: 0
   };
 }
 function weaponOf(c) { return WEAPONS[c.load[c.slot]]; }
@@ -631,8 +660,7 @@ function setInput(c, i) {
   if (i.shoot) c.shootBuf = BUFFER_FRAMES;
   if (i.heal) c.healReq = true;
   if (i.reload) c.reloadReq = true;
-  if (i.roll) c.rollBuf = BUFFER_FRAMES;
-  if (i.skill) c.skBuf = BUFFER_FRAMES;
+  if (i.roll || i.skill) { if (c.skill === 'roll') c.rollBuf = BUFFER_FRAMES; else c.skBuf = BUFFER_FRAMES; }   // スキルのボタン（ロールのボタンと同じ）
   c.fcl = i.fc > 0 ? i.fc | 0 : 0;   // オンラインで離したときの、手元の絞った長さ（FOCUS_TOL）
 }
 // ロール中の無敵（転がり始めから ROLL_IF フレーム）
@@ -665,11 +693,11 @@ function newTarget(id, x, y, patrol, speed) {
   return { side: id, target: true, x: x, y: y, vx: patrol ? (speed || 1.5) : 0, vy: 0, hp: 1e9, hpFrac: 1e9, hit: 0,
     dead: false, ducking: false, onGround: true, patrol: patrol || null, kbT: 0 };
 }
-function newRangeWorld(stage, load, targets) {
+function newRangeWorld(stage, load, targets, skill) {
   var st = (stage && typeof stage === 'object') ? stage : (STAGES[stage] || STAGES.flat);
   var sp = st.spawn || [{ x: 80, y: GND }];
-  var w = { plats: st.platforms, solids: st.solids || [], frame: 0, sid: 0, shots: [], chars: {}, nav: null, targets: targets || [] };
-  w.chars.a = newChar('a', sp[0].x, sp[0].y - CHAR_H, 1, load);
+  var w = { plats: st.platforms, solids: st.solids || [], frame: 0, sid: 0, shots: [], chars: {}, nav: null, targets: targets || [], decoys: [] };
+  w.chars.a = newChar('a', sp[0].x, sp[0].y - CHAR_H, 1, load, skill);   // 射撃場でもスキルを試せる
   return w;
 }
 function stepRange(w, ev) {
@@ -682,6 +710,7 @@ function stepRange(w, ev) {
   }
   stepChar(w, w.chars.a, null, ev, false);
   stepShots(w, ev, false);
+  stepDecoys(w, ev);
 }
 // ---- 2v2（チーム戦）----
 // 4人：a と c が左のチーム（0）、b と d が右のチーム（1）。味方の弾・近接・爆風は当たらない（すり抜ける）
@@ -895,6 +924,8 @@ function rng(seed) {
   return function () { a = (a + 0x6D2B79F5) >>> 0; var t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
 function cpuSeedLoad(seed, diff) { var r = rng((seed ^ 0x5bd1e995) >>> 0); return diff === 'emperor' ? emperorLoadout(r) : cpuLoadout(r); }
+// CPU戦の CPU のスキル（種で決まる。サーバーの計算し直しと同じ物になる）。鬼帝はロール（使わない）
+function cpuSeedSkill(seed, diff) { if (diff === 'emperor') return 'roll'; var r = rng((seed ^ 0x2c1b3c6d) >>> 0); return SKILL_IDS[Math.floor(r() * SKILL_IDS.length)]; }
 function roundRng(seed, round) { return rng((seed + Math.imul(round + 1, 0x9E3779B1)) >>> 0); }
 // 1フレームの操作を数1つに：左1 右2 しゃがみ4 押しっぱなし8 跳ぶ16 撃つ32 回復64 リロード128 転がる256、武器の番号×512、スキル2048
 function packInput(i) {
@@ -927,7 +958,7 @@ var MIMIC = { ratio: 0.3, minFrames: 600 };   // チートを使っていない�
 function replayCpu(spec) {
   var diff = spec && spec.diff, stage = spec && spec.stage;
   if (!AI_LEVELS[diff] || !STAGES[stage] || !Array.isArray(spec.logs) || !spec.logs.length || spec.logs.length > 5) return { ok: false, why: 'bad' };
-  var seed = spec.seed >>> 0, cpuLoad = cpuSeedLoad(seed, diff), T = newTally(), V = newWatch(), wa = 0, wb = 0, frames = 0, r;
+  var seed = spec.seed >>> 0, cpuLoad = cpuSeedLoad(seed, diff), mySk = cleanSkill(spec.skill) || 'roll', cpuSk = cpuSeedSkill(seed, diff), T = newTally(), V = newWatch(), wa = 0, wb = 0, frames = 0, r;
   // CPUの頭脳と同じ操作をしているか（頭脳にプレイヤーを操作させるチート）。ボタンを押しているフレームだけで数える
   var lvs = Object.keys(AI_LEVELS), same = {}, act = 0, k;
   for (k = 0; k < lvs.length; k++) same[lvs[k]] = 0;
@@ -936,7 +967,7 @@ function replayCpu(spec) {
     var inp = logDecode(spec.logs[r]);
     if (!inp || !inp.length) return { ok: false, why: 'bad_log' };
     var load = cleanLoadout(spec.loads && spec.loads[r], false);
-    var w = newWorld(stage, load, cpuLoad), a = w.chars.a, b = w.chars.b, brain = newBrain(diff, roundRng(seed, r)), shadow = {};
+    var w = newWorld(stage, load, cpuLoad, mySk, cpuSk), a = w.chars.a, b = w.chars.b, brain = newBrain(diff, roundRng(seed, r)), shadow = {};
     for (k = 0; k < lvs.length; k++) shadow[lvs[k]] = newBrain(lvs[k], rng((seed ^ 0x5eed ^ r) >>> 0));
     tallyRoundStart(T); watchRound(V);
     for (var f = 0; f < inp.length; f++) {
@@ -960,7 +991,7 @@ function replayCpu(spec) {
   var mimic = { lv: '', ratio: 0, n: act };
   for (k = 0; k < lvs.length; k++) { var q = act ? same[lvs[k]] / act : 0; if (q > mimic.ratio) { mimic.ratio = q; mimic.lv = lvs[k]; } }
   if (!V.hit && act >= MIMIC.minFrames && mimic.ratio >= MIMIC.ratio) { V.hit = 'mimic'; V.detail = mimic.lv + ' ' + Math.round(mimic.ratio * 100) + '%'; }
-  return { ok: true, win: wa >= 3, straight: wa >= 3 && wb === 0, wins: [wa, wb], frames: frames, tally: T, watch: V.hit ? { code: V.hit, detail: V.detail } : null, cpuLoad: cpuLoad, mimic: mimic };
+  return { ok: true, win: wa >= 3, straight: wa >= 3 && wb === 0, wins: [wa, wb], frames: frames, tally: T, watch: V.hit ? { code: V.hit, detail: V.detail } : null, cpuLoad: cpuLoad, cpuSkill: cpuSk, mimic: mimic };
 }
 
 // vis=true はオンラインの先読み用：見た目だけ動かし、ダメージは与えない（ダメージはサーバーが決める）
@@ -1281,7 +1312,7 @@ function stepShots(w, ev, vis, only) {
       // （古い位置の相手に当てて火花を出すと、「当たったのに効かない」ように見えてしまう）
       if (vis && w.ghost) { out.push(b); continue; }
       if (t.parryT > 0) {                              // 反射の構え：向きを変えて、構えた人の弾として撃ち返す
-        if (!vis) { b.vx = -b.vx; b.vy = -b.vy; b.own = t.side; b.dist = 0; b.age = 0; b.rd = 0; b.hs = null; b.x += b.vx; ev.push({ t: 'parry', who: t.side, x: b.x, y: b.y, sid: b.sid, ref: 1 }); }
+        if (!vis) { b.vx = -b.vx; b.vy = -b.vy; b.own = t.side; b.dist = 0; b.age = 0; b.rd = 0; b.hs = null; b.x += b.vx; b.rf = 1; ev.push({ t: 'parry', who: t.side, x: b.x, y: b.y, sid: b.sid, ref: 1 }); }
         out.push(b); continue;
       }
       var d = b.k === 'p' ? Math.max(1, Math.round(b.dmg * (1 - 0.5 * b.dist / b.range))) : b.dmg;
@@ -1370,10 +1401,15 @@ function packChar(c) {
   return { x: r1(c.x), y: r1(c.y), vx: r1(c.vx), vy: r1(c.vy), dir: c.dir, hp: c.hp, hit: c.hit, dead: c.dead,
     ducking: c.ducking, onGround: c.onGround, slot: c.slot, wid: c.load[c.slot], am: c.ammo.slice(),
     cool: c.cool, coolMax: c.coolMax, rl: c.rl, rlMax: c.rlMax, chg: c.chg, fo: c.foc, heal: c.healUsed,
-    sw: c.swT, rc: c.recT, kb: c.kbT, bx: r1(c.bx), by: r1(c.by), bd: c.bdir, ro: c.rollT, rcd: c.rollCD, rd: c.rollDir };
+    sw: c.swT, rc: c.recT, kb: c.kbT, bx: r1(c.bx), by: r1(c.by), bd: c.bdir, ro: c.rollT, rcd: c.rollCD, rd: c.rollDir,
+    sc: c.skCD, pi: c.pierce ? 1 : 0, pa: c.parryT };
+}
+// 分身（スキル decoy）：見た目に要るものだけ
+function packDecoys(w) {
+  return (w.decoys || []).map(function (d) { return { own: d.own, id: d.id, x: r1(d.x), y: r1(d.y), vx: r1(d.vx), vy: r1(d.vy), dir: d.dir, og: d.onGround ? 1 : 0, t: d.t }; });
 }
 function packShots(w) {
-  return w.shots.map(function (b) { var o = { k: b.k, w: b.w, x: r1(b.x), y: r1(b.y), vx: r1(b.vx), vy: r1(b.vy), own: b.own }; if (b.pf) o.pf = 1; return o; });
+  return w.shots.map(function (b) { var o = { k: b.k, w: b.w, x: r1(b.x), y: r1(b.y), vx: r1(b.vx), vy: r1(b.vy), own: b.own }; if (b.pf) o.pf = 1; if (b.pr) o.pr = 1; if (b.rf) o.rf = 1; return o; });
 }
 
 // ============================================================
@@ -2052,6 +2088,8 @@ function think(b, w, side) {
   if (!op) return { left: false, right: false, duck: false, fire: false, slot: b.wantSlot };
   var inp = { left: false, right: false, duck: false, fire: false, slot: b.wantSlot };
   if (me.dead || op.dead) return inp;
+  // ロール以外のスキルを持っているときは、ロールでよけない（ボタンが別のスキルになっている）
+  if (me.skill && me.skill !== 'roll' && cfg.roll) { if (!b.cfgNR || b.cfgNR0 !== cfg) { b.cfgNR = Object.assign({}, cfg, { roll: 0 }); b.cfgNR0 = cfg; } cfg = b.cfgNR; }
   // 鬼帝：ごくまれに判断が遅れる瞬間がある（その間は新しい判断をせず、それまでの歩きを続けるだけ。撃たない・よけない）
   if (cfg.lapse) {
     if (b.lapseT <= 0 && R() < cfg.lapse) { b.lapseT = cfg.lapseLen; b.lapses++; }
@@ -2647,7 +2685,7 @@ var api = {
   TEAM_SLOTS: deepFreeze(TEAM_SLOTS.slice()), teamOf: teamOf, newTeamWorld: newTeamWorld, stepTeam: stepTeam, teamResult: teamResult, foes: foes, newTarget: newTarget, stepRange: stepRange, newChar: newChar, setInput: setInput, step: step,
   stepChar: stepChar, stepShots: stepShots, physics: physics, canFire: canFire, weaponOf: weaponOf, muzzleY: muzzleY,
   packChar: packChar, packShots: packShots, blockAt: blockAt,
-  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, aiAt: aiAt, SKILLS: deepFreeze(SKILLS), SKILL_IDS: SKILL_IDS, cleanSkill: cleanSkill, decideTactic: decideTactic,
+  newBrain: newBrain, think: think, cpuLoadout: cpuLoadout, emperorLoadout: emperorLoadout, aiForRate: aiForRate, aiAt: aiAt, SKILLS: deepFreeze(SKILLS), SKILL_IDS: SKILL_IDS, cleanSkill: cleanSkill, SKILL_TICKET_LV: SKILL_TICKET_LV, skillTicketsEarned: skillTicketsEarned, cleanSkills: cleanSkills, skillTickets: skillTickets, skillPull: skillPull, applySkillPull: applySkillPull, cpuSeedSkill: cpuSeedSkill, packDecoys: packDecoys, decideTactic: decideTactic,
   RATE_START: RATE_START, RATE_FLOOR: RATE_FLOOR, TIER_MIN: deepFreeze(TIER_MIN), BOT_TIER_CAP: BOT_TIER_CAP,
   RATE_WIN: RATE_WIN, RATE_LOSS: deepFreeze(RATE_LOSS), RATE_TOP: RATE_TOP, RATE_LOSS_MIN: deepFreeze(RATE_LOSS_MIN), RATE_FLOOR_FROM: RATE_FLOOR_FROM, RATE_FLOOR_TO: RATE_FLOOR_TO, RATE_BOOST_TO: RATE_BOOST_TO, RATE_BOOST: RATE_BOOST, SCORE_MULT: deepFreeze(SCORE_MULT), scoreMult: scoreMult, RATE_TOP_GAIN: deepFreeze(RATE_TOP_GAIN), RATE_TOP_LOSS: RATE_TOP_LOSS, SEASON_DROP_N: SEASON_DROP, SEASON_FLOOR_TIER: SEASON_FLOOR_TIER,
   RANKS: deepFreeze(RANKS), RANK_KEYS: deepFreeze(RANK_KEYS), TIER_KEYS: deepFreeze(TIER_KEYS), rankOf: rankOf, RANK_ART: deepFreeze(RANK_ART), artOfTier: artOfTier,
