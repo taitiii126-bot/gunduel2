@@ -30,7 +30,7 @@ const CAN_ACCEPT = ROLE.officer, CAN_EDIT = ROLE.coleader, CAN_MANAGE = ROLE.off
 let db = { clans: {}, member: {} };   // clans: ID → クラン、member: DiscordのユーザーID → クランID
 try {
   const loaded = JSON.parse(fs.readFileSync(FILE, 'utf8'));
-  if (loaded && typeof loaded === 'object') db = { clans: loaded.clans || {}, member: loaded.member || {} };
+  if (loaded && typeof loaded === 'object') db = { clans: loaded.clans || {}, member: loaded.member || {}, w1: loaded.w1 || null };
 } catch (e) { /* 初回は存在しない */ }
 // 前の版で作ったクランには、新しい設定の既定値を入れる（参加自由・条件なし・地域なし）
 let migrated = false;
@@ -57,6 +57,7 @@ function flush() {
   } catch (e) { console.error('clans.json の保存に失敗:', e.message); }
 }
 setInterval(flush, 5000).unref();
+setInterval(() => settleWeeks(), 60 * 1000).unref();   // 週が変わったら、だれも見に来なくても1分以内に1位を決める
 process.on('exit', flush);
 
 // 今週の番号（シンガポール時間の月曜 0 時で切りかわる）
@@ -90,7 +91,24 @@ function newId() {
   do id = String(crypto.randomInt(100000, 1000000)); while (db.clans[id]);
   return id;
 }
-function freshWeek(c) { const wk = weekKey(); if (!c.wk || c.wk.key !== wk) { c.wk = { key: wk, pts: 0, mp: {} }; dirty = true; } return c.wk; }
+function freshWeek(c) { const wk = weekKey(); if (!c.wk || c.wk.key !== wk) { settleWeeks(); c.wk = { key: wk, pts: 0, mp: {} }; dirty = true; } return c.wk; }
+// 週間1位：週が変わったら、どのクランの今週の値も消す前に、終わった週の1位（その週のポイントがいちばん多いクラン。同じなら先に作った方）を決めて数える。
+// c.w1＝1位になった回数。db.w1 = { done: 決め終わった週の番号, hist: [{ k: 週, id, pts }] }
+function settleWeeks() {
+  const cur = weekKey();
+  if (!db.w1) { db.w1 = { done: cur - 1, hist: [] }; dirty = true; }   // 数え始めは今の週から（前の週の値は、もう一部のクランで消えている）
+  if (db.w1.done >= cur - 1) return;
+  const by = {};
+  for (const c of Object.values(db.clans)) if (c.wk && c.wk.key > db.w1.done && c.wk.key < cur && c.wk.pts > 0) (by[c.wk.key] = by[c.wk.key] || []).push(c);
+  for (const k of Object.keys(by).map(Number).sort((a, b) => a - b)) {
+    const win = by[k].sort((a, b) => b.wk.pts - a.wk.pts || a.created - b.created)[0];
+    win.w1 = (win.w1 || 0) + 1;
+    db.w1.hist.push({ k, id: win.id, pts: win.wk.pts });
+    note(win, 'wk1', win.owner, null, win.w1);   // できごと：週間ランキングで1位（r＝何回目）
+  }
+  db.w1.hist = db.w1.hist.slice(-200);
+  db.w1.done = cur - 1; dirty = true;
+}
 
 // できごとを1つ残す。t：'create' | 'join' | 'leave' | 'kick' | 'up' | 'down' | 'lead' | 'rank'。uid＝された人、by＝した人、
 // r＝新しい格（rank は届いた段）、m＝2 なら 2v2 のランク
@@ -302,7 +320,7 @@ function addMatch(uid, win) {
 // 一覧に出す短い形
 function summary(c) {
   const w = freshWeek(c);
-  return { id: c.id, name: c.name, tag: c.tag, pts: c.pts, week: w.pts, n: c.members.length, max: MAX_MEMBERS, type: c.type, minTier: c.minTier, region: c.region, desc: c.desc };
+  return { id: c.id, name: c.name, tag: c.tag, pts: c.pts, week: w.pts, w1: c.w1 || 0, n: c.members.length, max: MAX_MEMBERS, type: c.type, minTier: c.minTier, region: c.region, desc: c.desc };
 }
 // 見せる形。card(uid) はメンバーの名前など（server.js が渡す）。viewer＝見ている人のID：
 // その人の格（myRole、メンバーでなければ -1）を付け、幹部から上なら待っている申請も付ける
@@ -340,7 +358,7 @@ function byId(id) { return db.clans[String(id || '').replace(/\D/g, '')] || null
 function top(by, n) {
   const k = by === 'week' ? c => freshWeek(c).pts : c => c.pts;
   return Object.values(db.clans).sort((a, b) => k(b) - k(a) || a.created - b.created).slice(0, n || 20)
-    .map((c, i) => ({ rank: i + 1, id: c.id, name: c.name, tag: c.tag, pts: k(c), n: c.members.length, max: MAX_MEMBERS, type: c.type, region: c.region }));
+    .map((c, i) => ({ rank: i + 1, id: c.id, name: c.name, tag: c.tag, pts: k(c), w1: c.w1 || 0, n: c.members.length, max: MAX_MEMBERS, type: c.type, region: c.region }));
 }
 
 // ---- 住人（residents.js）のためのもの ----
@@ -376,5 +394,5 @@ function npcPts(uid, n) {
 }
 function all() { return Object.values(db.clans); }
 
-module.exports = { npcCreate, npcAdd, npcPts, all, reqs: freshReq, rankUp, invite, invited, invitesOf, inviteAnswer, clanOf, tagOf, roleOf, managers, create, update, join, unrequest, accept, decline, reqsOf, leave, kick, setRole, transfer, addMatch, view, summary, search, byId, top, weekKey,
+module.exports = { settleWeeks, npcCreate, npcAdd, npcPts, all, reqs: freshReq, rankUp, invite, invited, invitesOf, inviteAnswer, clanOf, tagOf, roleOf, managers, create, update, join, unrequest, accept, decline, reqsOf, leave, kick, setRole, transfer, addMatch, view, summary, search, byId, top, weekKey,
   MAX_MEMBERS, PTS_WIN, PTS_PLAY, TYPES, DESC_MAX, ROLE, ROLE_KEYS };
