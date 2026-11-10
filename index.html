@@ -462,6 +462,12 @@ body:has(#clan-screen:not([style*="none"])) #wrap{max-width:1180px;}
 .cl-score .i{width:22px;height:22px;stroke:var(--gold);}
 .cl-score b{font-family:var(--f-ui);font-size:24px;font-weight:800;color:#fff;}
 .cl-score small{margin-left:4px;padding:2px 8px;border-radius:99px;background:rgba(255,255,255,.08);font-size:11.5px;font-weight:800;color:var(--tx-2);}
+.cl-w1{display:inline-flex;align-items:center;gap:6px;margin-top:8px;padding:5px 12px;border-radius:99px;background:rgba(255,255,255,.06);color:var(--tx-2);font-size:12.5px;font-weight:900;}
+.cl-w1 .i{width:16px;height:16px;stroke:currentColor;}
+.cl-w1.has{background:linear-gradient(180deg,rgba(255,206,84,.22),rgba(255,170,40,.12));color:#FFD86B;box-shadow:inset 0 0 0 1px rgba(255,206,84,.4);}
+.cl-w1s{display:inline-flex;align-items:center;gap:2px;margin-left:7px;padding:1px 7px 1px 5px;border-radius:99px;background:rgba(255,206,84,.16);color:#FFD86B;font-family:var(--f-ui);font-size:11.5px;font-weight:800;vertical-align:2px;}
+.cl-w1s .i{width:13px;height:13px;stroke:currentColor;}
+.cl-lw1{color:#FFD86B;}
 .cl-desc{margin:0;align-self:stretch;padding:10px 12px;border-radius:10px;background:rgba(0,0,0,.25);font-size:12.5px;line-height:1.6;color:#DCE6FF;white-space:pre-wrap;overflow-wrap:anywhere;}
 .cl-desc.none{color:var(--tx-3);text-align:center;}
 .cl-facts{align-self:stretch;display:grid;grid-template-columns:1fr 1fr;gap:6px;}
@@ -3399,7 +3405,7 @@ body.mland .home-hero{height:72vh;}
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
 <script src="sim.js?v=67"></script>
-<script src="lang.js?v=89"></script>
+<script src="lang.js?v=90"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -7015,6 +7021,9 @@ function renderRanking(failed){
 var CLAN={mine:null,top:[],by:'week',loaded:false,busy:false,msg:'',err:false,leaveAt:0,kickAt:{},menu:'',actAt:{},view:'home',cur:null,results:null,q:'',region:'',joinable:false,myReq:[],tier:0,mby:'week',form:null};
 var CL_TYPES=['open','approval','closed'];
 var TROPHY_SVG='<svg class="i" viewBox="0 0 24 24"><path d="M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M7 5H4v2a3 3 0 0 0 3.5 3M17 5h3v2a3 3 0 0 1-3.5 3M12 13v4M8 20h8"/></svg>';
+var CROWN_SVG='<svg class="i" viewBox="0 0 24 24"><path d="M3.5 8.5 8 12l4-6.5 4 6.5 4.5-3.5-1.8 10H5.3z"/><path d="M5.5 21.5h13"/></svg>';
+// 週間1位になった回数（一覧・ランキングは1回以上のときだけ出す）
+function clanW1Chip(n){return n>0?'<span class="cl-w1s" title="'+esc(t('cl.w1',{n:n}))+'">'+CROWN_SVG+n+'</span>':'';}
 var SEARCH_SVG='<svg class="i" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4.5 4.5"/></svg>';
 function clanTag(){return CLAN.mine?CLAN.mine.tag:'';}
 function cleanTagC(v){return String(v||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,4);}
@@ -7157,6 +7166,7 @@ function clanDetailHtml(C,own){
   if(own)h+='<div class="cl-acts"><button onclick="clanGo(\'search\')">'+SEARCH_SVG+'<span>'+esc(t('cl.search'))+'</span></button><button onclick="clanCopy(this)"><svg class="i" viewBox="0 0 24 24"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M16 6l-4-4-4 4M12 2v13"/></svg><span>'+esc(t('cl.invite'))+'</span></button></div>';
   h+='<div class="cl-card"><canvas class="cl-emb" data-emb="'+esc(C.tag)+'" width="150" height="160"></canvas><h3 class="cl-cn">'+esc(C.name)+'</h3>'+
     '<div class="cl-score">'+TROPHY_SVG+'<b>'+C.pts+'</b><small>'+esc(t('cl.weekShort',{n:C.week}))+'</small></div>'+
+    '<div class="cl-w1'+((C.w1|0)>0?' has':'')+'">'+CROWN_SVG+'<span>'+esc(t('cl.w1',{n:C.w1|0}))+'</span></div>'+
     '<p class="cl-desc'+(C.desc?'':' none')+'">'+esc(C.desc||t('cl.noDesc'))+'</p>'+
     '<div class="cl-facts"><div><small>'+esc(t('cl.tagLbl'))+'</small><b>#'+esc(C.id)+'<em>'+esc(C.tag)+'</em></b></div>'+
     '<div><small>'+esc(t('cl.typeLbl'))+'</small><b>'+esc(t('cl.type.'+C.type))+'</b></div>'+
@@ -7201,8 +7211,9 @@ function clanDetailHtml(C,own){
   return h+'</div></section>'+(Array.isArray(C.log)?clanLogHtml(C):'')+'</div></div>';   // できごとはメンバーにだけ届く
 }
 // クランのできごと：新しい順に、はじめは CL_LOG_N 件（「もっと見る」で全部）
-var CL_LOG_N=8,CL_LOG_IC={create:'\u2691',join:'+',leave:'\u2212',kick:'\u00D7',up:'\u25B2',down:'\u25BC',lead:'\u2605',rank:'\u2191'};
+var CL_LOG_N=8,CL_LOG_IC={create:'\u2691',join:'+',leave:'\u2212',kick:'\u00D7',up:'\u25B2',down:'\u25BC',lead:'\u2605',rank:'\u2191',wk1:'\u265B'};
 function clanLogText(e){
+  if(e.t==='wk1')return'<b class="cl-lw1">'+esc(t('cl.log.wk1',{n:Math.max(1,Math.floor(+e.r)||1)}))+'</b>';   // 週間ランキングで1位（r＝何回目）
   if(e.t==='rank'){var tr=Math.max(0,Math.floor(+e.r)||0);   // ランクアップ：届いた段（m＝2 なら 2v2）
     return esc(t(e.m===2?'cl.log.rank2':'cl.log.rank',{name:'\u0001',tier:'\u0004'})).replace('\u0001','<b>'+esc(e.name)+'</b>')
       .replace('\u0004','<b class="cl-ltier rk'+SIM.rankOf(tr).r+'">'+esc(tierName(tr))+'</b>');}
@@ -7248,7 +7259,7 @@ function clanInvAnswer(id,yes){
 function clanResultHtml(c){
   var req=CLAN.myReq.indexOf(c.id)>=0;
   return'<button class="cl-res" onclick="clanOpen(\''+esc(c.id)+'\')"><canvas data-emb="'+esc(c.tag)+'" width="88" height="94"></canvas>'+
-    '<span class="cl-rn"><b>'+esc(c.name)+'</b><small>#'+esc(c.id)+' · '+esc(regionLabel(c.region))+'</small><span class="cl-rd">'+esc(c.desc||'')+'</span></span>'+
+    '<span class="cl-rn"><b>'+esc(c.name)+clanW1Chip(c.w1|0)+'</b><small>#'+esc(c.id)+' · '+esc(regionLabel(c.region))+'</small><span class="cl-rd">'+esc(c.desc||'')+'</span></span>'+
     '<span class="cl-rm">'+clanTypeChip(c.type)+(req?'<span class="cl-type req">'+esc(t('cl.requestedShort'))+'</span>':'')+'<small>'+esc(t('cl.membersN',{n:c.n,m:c.max}))+'</small>'+
     '<small>'+esc(t('cl.minTier'))+'：'+esc(tierReqText(c.minTier))+'</small></span>'+
     '<span class="cl-pt big">'+TROPHY_SVG+c.pts+'</span></button>';
@@ -7313,7 +7324,7 @@ function clanRankHtml(){
   if(!CLAN.top.length)return h+'<div class="rk-empty">'+esc(t('cl.noRank'))+'</div>';
   return h+'<div class="cl-rank2">'+CLAN.top.map(function(c){var mine=CLAN.mine&&CLAN.mine.id===c.id;
     return'<button class="cl-rr'+(c.rank<=3?' top'+c.rank:'')+(mine?' me':'')+'" onclick="showClanScreen(\''+esc(c.id)+'\')"><span class="cl-no">'+c.rank+'</span><canvas data-emb="'+esc(c.tag)+'" width="64" height="68"></canvas>'+
-      '<span class="cl-rn"><b>'+esc(c.name)+'</b><small>'+esc(t('cl.membersN',{n:c.n,m:c.max||20}))+' · '+esc(regionLabel(c.region))+'</small></span><span class="cl-pt big">'+TROPHY_SVG+c.pts+'</span></button>';}).join('')+'</div>';
+      '<span class="cl-rn"><b>'+esc(c.name)+clanW1Chip(c.w1|0)+'</b><small>'+esc(t('cl.membersN',{n:c.n,m:c.max||20}))+' · '+esc(regionLabel(c.region))+'</small></span><span class="cl-pt big">'+TROPHY_SVG+c.pts+'</span></button>';}).join('')+'</div>';
 }
 function showFriendsScreen(){setFrMsg('','');showScreen('friends-screen');renderFriends();loadFriends();}
 function sendFriendRequest(){
