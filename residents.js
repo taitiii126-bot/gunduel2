@@ -55,7 +55,7 @@ const TIME = {
   student: { wd: [[16.3, 18], [20, 22]], we: [[10, 12.5], [14, 21]] },
   afternoon: { wd: [[12, 15.5]], we: [[11, 16]] },
 };
-const STAGE_IDS = Object.keys(SIM.STAGES);
+const STAGE_IDS = SIM.STAGE_POOL.slice();   // 遊べるステージだけ
 const DIFFS = P.DIFFS;
 
 // ---- 決まった乱数（同じ人・同じ日なら、いつ計算しても同じ）----

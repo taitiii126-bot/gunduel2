@@ -122,6 +122,8 @@ var DEFAULT_LOADOUT = [2, 3, 1];
 // ---- ステージの地形 ----
 // platforms: 上から乗れる足場（ground=地面。弾は地面にだけ当たって消える）
 // solids: 遮蔽物（通り抜けできず、弾を止める。上には乗れる）
+// 遊べるステージ（CPU戦・オンライン・住人の試合）。ほかのステージのデータは、前の試合の記録・リプレイ・称号のために残してある
+var STAGE_POOL = ['flat'];
 var STAGES = {
   classic: { platforms: [
     { x: 0, y: GND, w: WORLD_W, h: 60, ground: true },
@@ -2679,7 +2681,7 @@ var api = {
   VW: VW, VH: VH, WORLD_W: WORLD_W, GND: GND, MAX_HP: MAX_HP, CHAR_W: CHAR_W, CHAR_H: CHAR_H, DUCK_H: DUCK_H, HIT_FRAMES: HIT_FRAMES,
   GRAVITY: GRAVITY, JUMP_F: JUMP_F, LAND_LAG: LAND_LAG, LAND_LAG_SOFT: LAND_LAG_SOFT, landLag: landLag, ROLL_T: ROLL_T, ROLL_IF: ROLL_IF, ROLL_CD: ROLL_CD, rollSafe: rollSafe, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
-  STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
+  STAGES: deepFreeze(STAGES), STAGE_POOL: STAGE_POOL, AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
   DAY_SHIFT_MS: DAY_SHIFT_MS, dayEnd: dayEnd,

@@ -3980,7 +3980,7 @@ setInterval(function(){
 // 武器・ステージの表示用データ（数値は sim.js）
 // ============================================================
 var WEAPON_ORDER=SIM.WEAPON_IDS.slice();
-var STAGE_ORDER=['classic','flat','tower','ruins','glacier','temple'];
+var STAGE_ORDER=SIM.STAGE_POOL.slice();   // 遊べるステージ（フラットだけ）
 var NEW_STAGES=['ruins','glacier','temple'];
 // ---- ステージの見た目（テーマ）----
 // 6つのステージは、それぞれ別の景色（night はどれにも合わないときの予備）
@@ -4006,7 +4006,7 @@ var stageTheme=STAGE_THEMES.night;
 
 // 武器カードの小さな英字（英語表示のときは出さない）
 function enShort(id){return SETTINGS.lang==='en'||!LANGS.en?'':(LANGS.en['w.'+id+'.short']||'');}
-var selectedStage='classic';
+var selectedStage=SIM.STAGE_POOL[0];
 var platforms=SIM.STAGES.classic.platforms,solids=[];
 function useStage(id){var st=SIM.STAGES[id]||SIM.STAGES.classic;curStageId=SIM.STAGES[id]?id:'classic';platforms=st.platforms;solids=st.solids||[];stageTheme=themeOf(SIM.STAGES[id]?id:'classic');}
 
@@ -7885,7 +7885,7 @@ function olLeaveMode(){
 function navBackFn(id){
   switch(id){
     case 'skill-screen':case 'stage-screen':case 'rank-screen':case 'shop-screen':case 'event-screen':case 'pass-screen':case 'friends-screen':case 'profile-screen':return showModeScreen;
-    case 'cpu-screen':return showStageScreen;
+    case 'cpu-screen':return STAGE_ORDER.length>1?showStageScreen:showModeScreen;   // ステージが1つなら、選ぶ画面はない
     case 'room-screen':return onlineBack;
     case 'settings-screen':return closeSettings;
     case 'loadout-screen':return closeLoadout;
@@ -7971,7 +7971,7 @@ function showProfileScreen(){showScreen('profile-screen');renderProfileUI();rend
 // 名前・見た目などを変えたら、小さく「保存しました」（続けて変えたときは最後に1回だけ）
 var pfSavedT=null;
 function pfSaved(){if(currentScreen!=='profile-screen')return;clearTimeout(pfSavedT);pfSavedT=setTimeout(function(){note(t(STORE_ACC?'pf.savedSync':'pf.saved'));},700);}
-function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
+function showStageScreen(){if(STAGE_ORDER.length<2){selectedStage=STAGE_ORDER[0];showCpuScreen();return;}stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
 function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();renderReplayBtn();}
 function renderLoadoutNotes(){
   ['cpu-loadout-note','room-loadout-note'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=t('cpu.weapons',{list:loadoutText()});});
@@ -8676,7 +8676,7 @@ function newDemo(canvasId,mode){
 var DEMO=newDemo('bg-demo','cover');           // ホームの背景
 var PREVIEW=newDemo('stage-preview','fit');    // ステージ選択の大きなプレビュー
 function demoNewRound(D){
-  var ids=Object.keys(SIM.STAGES),lv=['hard','pro','god'],id=D.stage||ids[Math.floor(Math.random()*ids.length)];
+  var ids=SIM.STAGE_POOL,lv=['hard','pro','god'],id=D.stage||ids[Math.floor(Math.random()*ids.length)];
   D.w=SIM.newWorld(id,SIM.cpuLoadout(),SIM.cpuLoadout());D.theme=themeOf(id);
   D.ba=SIM.newBrain(lv[Math.floor(Math.random()*3)]);D.bb=SIM.newBrain(lv[Math.floor(Math.random()*3)]);
   D.la=SIM.randomLook();D.lb=SIM.randomLook();D.end=0;D.fx=newFx();D.cam=(WORLD_W-VW)/2;
@@ -9255,7 +9255,7 @@ function rpRecFrame(pin,aiIn){
 }
 function rpRecSave(won){
   var R=RPREC;RPREC=null;if(!R||aiTamper||!R.rounds.length)return;
-  var out={v:1,stage:R.stage,diff:R.diff,look:R.look,cpuLook:R.cpuLook,at:R.at,won:!!won,rounds:R.rounds.map(function(r){return{load:r.load,cpu:r.cpu,a:SIM.logEncode(r.a),b:SIM.logEncode(r.b)};})};
+  var out={v:1,stage:R.stage,diff:R.diff,look:R.look,cpuLook:R.cpuLook,at:R.at,won:!!won,rounds:R.rounds.map(function(r){return{load:r.load,cpu:r.cpu,sk:r.sk,csk:r.csk,a:SIM.logEncode(r.a),b:SIM.logEncode(r.b)};})};
   try{localStorage.setItem(RP_KEY,JSON.stringify(out));}catch(e){}
   renderReplayBtn();
 }

@@ -302,7 +302,7 @@ function secTactics() {
 }
 
 function secStages() {
-  const ids = Object.keys(SIM.STAGES);
+  const ids = SIM.STAGE_POOL.slice();   // 遊べるステージだけ
   const cards = ids.map(id => {
     const S = TXT.stages[id];
     if (!S) throw new Error('guide/text.js にステージの説明がありません: ' + id);
@@ -312,7 +312,7 @@ function secStages() {
     return `<article class="card stage">${img('st-' + id + '.webp', t('stage.' + id + '.name') + 'のステージ', 1152, 576, 'st-img')}
 <div class="st-body"><p class="theme">${esc(t('stage.' + id + '.theme'))}</p><h3>${esc(t('stage.' + id + '.name'))}</h3><p class="st-desc">${esc(t('stage.' + id + '.desc'))}</p><div class="tags">${tags}</div><ul>${pts}</ul>${ws}</div></article>`;
   }).join('');
-  return `<section id="stages">${sectionHead('stages', 'ステージ', `全${ids.length}ステージ。CPU戦では自分で選べ、オンライン対戦では対戦する人どうしの投票で決まる。`)}
+  return `<section id="stages">${sectionHead('stages', 'ステージ', ids.length > 1 ? `全${ids.length}ステージ。CPU戦では自分で選べ、オンライン対戦では対戦する人どうしの投票で決まる。` : `ステージは${t('stage.' + ids[0] + '.name')}の1つだけ。CPU戦もオンライン対戦も、いつもこのステージで戦う。`)}
 <div class="grid g-2">${cards}</div></section>`;
 }
 

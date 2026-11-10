@@ -52,18 +52,14 @@ const REMATCH_GAP = +process.env.REMATCH_RATE_GAP || 200;
 const BOT_SKILL_BOOST = process.env.BOT_SKILL_BOOST != null ? +process.env.BOT_SKILL_BOOST : 500;
 // ランクマッチは、見せているレートより強すぎるとレートの上下が不公平になるので、底上げは控えめ
 const BOT_BOOST_RANKED = process.env.BOT_SKILL_BOOST_RANKED != null ? +process.env.BOT_SKILL_BOOST_RANKED : Math.round(BOT_SKILL_BOOST / 2);
-const STAGE = 'classic';                            // 投票で決まらなかったときの既定
+const STAGE = SIM.STAGE_POOL[0];                    // 投票で決まらなかったときの既定（遊べるステージが1つなら、いつもこれ）
 // ---- ステージ投票 ----
-// 試合前に決まった3つ（タワー・フラット・クラシック）を出して、みんなで1つずつ選ぶ。
+// 遊べるステージ（SIM.STAGE_POOL）が2つ以上あるときだけ、試合前にそれを出して、みんなで1つずつ選ぶ（1つなら投票なし）。
 // いちばん多いものに決まり、同数で割れたときはその中から、誰も選ばなかったときは3つからランダム
-const STAGE_KEYS = Object.keys(SIM.STAGES);
 // ONLINE_STAGE にステージ名を入れると、投票をやめてそのステージに固定できる（不具合が出たステージを外すとき用）
 const FORCE_STAGE = SIM.STAGES[process.env.ONLINE_STAGE] ? process.env.ONLINE_STAGE : '';
-const STAGE_CHOICES = ['tower', 'flat', 'classic'].filter(k => SIM.STAGES[k]);
-function stageOptions() {
-  if (STAGE_CHOICES.length >= 2) return STAGE_CHOICES.slice();
-  return STAGE_KEYS.slice(0, 3);
-}
+const STAGE_CHOICES = SIM.STAGE_POOL.filter(k => SIM.STAGES[k]);
+function stageOptions() { return STAGE_CHOICES.length >= 2 ? STAGE_CHOICES.slice(0, 3) : null; }
 // 票を数える：[各ステージの票数]
 function stageCounts(opts, votes) {
   const n = opts.map(() => 0);
