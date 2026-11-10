@@ -137,14 +137,12 @@ function humanLevel(rate) {
   for (let i = 1; i < HUMAN_T.length; i++) if (r <= HUMAN_T[i][0]) { const p = HUMAN_T[i - 1], q = HUMAN_T[i]; return p[1] + (q[1] - p[1]) * (r - p[0]) / (q[0] - p[0]); }
   return HUMAN_T[HUMAN_T.length - 1][1];
 }
-// オンラインの BOT・住人の思考：弾をよくよけ（ロールも使う・撃たれそうな瞬間を読んで先に跳ぶ）、距離に合う武器へ迷わず持ち替える。
+// オンラインの BOT・住人の思考：よけ方は同じ強さの CPU のまま、距離に合う武器へ迷わず持ち替える。
 // 近すぎる距離では弾をよけられないので、オフラインの CPU より前に出すぎない（攻め気は 4 割）
+// （前はよける率 +0.12・ロール +0.15・先読みの跳び 0.09 を足していたが、「弾を全部よける」と強すぎたので外した）
 function aiOnline(rate) {
   const c = SIM.aiAt(humanLevel(rate));
-  c.dodge = Math.min(0.97, Math.round((c.dodge + 0.12) * 1000) / 1000);
-  c.roll = Math.min(0.6, Math.round(((c.roll || 0) + 0.15) * 1000) / 1000);
   c.smart = Math.max(0.9, c.smart);
-  c.pre = 0.09;
   c.atk = Math.round((c.atk || 0) * 0.4 * 1000) / 1000;
   return c;
 }

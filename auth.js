@@ -225,6 +225,28 @@ if (!db.meta.bestEpoch) {
   }
   db.meta.bestEpoch = 1; dirty = true;
 }
+// ---- 運営による修正（それぞれ1回だけ。本人の申し出による）----
+// fix20261110：11/10 のスキルの更新で BOT が強すぎて下がった、1v1 のレートと勝率を戻す。
+// rate＝1v1 のレート、winPct＝勝率（%）。勝率は負けの数を減らして合わせる（勝ちは増やさない・もっと高ければそのまま）
+const ADMIN_FIXES = [{ key: 'fix20261110', fid: '4J5T4QR6', rate: 1830, winPct: 93 }];
+if (!db.meta.fixes || typeof db.meta.fixes !== 'object') db.meta.fixes = {};
+for (const f of ADMIN_FIXES) {
+  if (db.meta.fixes[f.key]) continue;
+  const u = Object.values(db.users).find(x => !x.npc && String(x.fid || '').toUpperCase() === f.fid);
+  if (!u) continue;   // 見つからなければ、次に起動したときにもう一度
+  const lossFor = w => Math.max(0, Math.round(w * (100 - f.winPct) / f.winPct));
+  if (!u.online) u.online = { w: 0, l: 0 };
+  if (!u.ranked) u.ranked = { w: 0, l: 0 };
+  const before = { rate: u.rate, online: Object.assign({}, u.online), ranked: Object.assign({}, u.ranked) };
+  u.online.l = Math.min(u.online.l, lossFor(u.online.w));
+  u.ranked.l = Math.min(u.ranked.l, lossFor(u.ranked.w));
+  pushRate(stOf(u).rh, typeof u.rate === 'number' ? u.rate : undefined, f.rate);   // レートの動きのグラフにも
+  u.rate = f.rate; u.rtier = SIM.tierOfRate(f.rate); u.rpeak = Math.max(u.rpeak || 0, f.rate); u.rstreak = 0;
+  bestTierOf(u);
+  db.meta.fixes[f.key] = { at: Date.now(), uid: u.id, before };
+  dirty = true;
+  console.log('admin fix', f.key, 'fid=' + f.fid, 'rate', before.rate, '->', f.rate, 'online', JSON.stringify(before.online), '->', JSON.stringify(u.online), 'ranked', JSON.stringify(before.ranked), '->', JSON.stringify(u.ranked));
+}
 // ---- シーズンの切りかわり（シンガポール時間で月が変わったとき）----
 // 最終1位に「天下無双」を贈り（持っていなければ）、全員のレートをティア5つ分下げたところから再開する
 function seasonTop() {

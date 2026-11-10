@@ -41,7 +41,7 @@ const STAGE_MS = process.env.STAGE_MS != null ? +process.env.STAGE_MS : 8000;   
 const STAGE_SHOW_MS = process.env.STAGE_SHOW_MS != null ? +process.env.STAGE_SHOW_MS : 1800;
 // ラウンド間：倒れる演出（ROUND_GAP_MS）のあと、最大 PICK_MS の武器変更。両者が「決定」を押したらすぐ次へ
 const PICK_MS = process.env.PICK_MS != null ? +process.env.PICK_MS : 10000;
-const BOT_LAG = [2, 3];   // BOT の反応に足す遅れ（フレーム）：2〜4（約0.03〜0.07秒）
+const BOT_LAG = [4, 4];   // BOT の反応に足す遅れ（フレーム）：4〜7（約0.07〜0.12秒。人の画面に弾が届くまでの通信の遅れのぶん。前は 2〜4 で、弾をよけすぎた）
 const ROUND_GAP_MS = 2000, MATCH_END_MS = 1800;
 const WAIT_TIMEOUT_MS = 10 * 60 * 1000;            // 相手が来ないまま10分で部屋を閉じる
 // ランクマッチで再戦できるレート差。これを超えたら「新しい相手をさがす」しかできない
@@ -52,18 +52,14 @@ const REMATCH_GAP = +process.env.REMATCH_RATE_GAP || 200;
 const BOT_SKILL_BOOST = process.env.BOT_SKILL_BOOST != null ? +process.env.BOT_SKILL_BOOST : 500;
 // ランクマッチは、見せているレートより強すぎるとレートの上下が不公平になるので、底上げは控えめ
 const BOT_BOOST_RANKED = process.env.BOT_SKILL_BOOST_RANKED != null ? +process.env.BOT_SKILL_BOOST_RANKED : Math.round(BOT_SKILL_BOOST / 2);
-const STAGE = 'classic';                            // 投票で決まらなかったときの既定
+const STAGE = SIM.STAGE_POOL[0];                    // 投票で決まらなかったときの既定（遊べるステージが1つなら、いつもこれ）
 // ---- ステージ投票 ----
-// 試合前に決まった3つ（タワー・フラット・クラシック）を出して、みんなで1つずつ選ぶ。
+// 遊べるステージ（SIM.STAGE_POOL）が2つ以上あるときだけ、試合前にそれを出して、みんなで1つずつ選ぶ（1つなら投票なし）。
 // いちばん多いものに決まり、同数で割れたときはその中から、誰も選ばなかったときは3つからランダム
-const STAGE_KEYS = Object.keys(SIM.STAGES);
 // ONLINE_STAGE にステージ名を入れると、投票をやめてそのステージに固定できる（不具合が出たステージを外すとき用）
 const FORCE_STAGE = SIM.STAGES[process.env.ONLINE_STAGE] ? process.env.ONLINE_STAGE : '';
-const STAGE_CHOICES = ['tower', 'flat', 'classic'].filter(k => SIM.STAGES[k]);
-function stageOptions() {
-  if (STAGE_CHOICES.length >= 2) return STAGE_CHOICES.slice();
-  return STAGE_KEYS.slice(0, 3);
-}
+const STAGE_CHOICES = SIM.STAGE_POOL.filter(k => SIM.STAGES[k]);
+function stageOptions() { return STAGE_CHOICES.length >= 2 ? STAGE_CHOICES.slice(0, 3) : null; }
 // 票を数える：[各ステージの票数]
 function stageCounts(opts, votes) {
   const n = opts.map(() => 0);
@@ -215,7 +211,7 @@ class Room {
     if (!slot) return null;
     const p = this.players[slot];
     // 人は、相手の弾が自分の画面に届くまで通信のぶん遅れる。BOTはサーバーの中で撃たれた瞬間に見えてしまうので、
-    // そのぶんの遅れを反応に足す（BOT_LAG。前は約0.1〜0.15秒で、中くらいの距離の弾をほとんどよけられなかったので短くした）
+    // そのぶんの遅れを反応に足す（BOT_LAG。約0.07〜0.12秒）
     const lag = BOT_LAG[0] + Math.floor(Math.random() * BOT_LAG[1]);
     p.bot = true; p.brain = SIM.newBrain(Object.assign({}, bot.cfg, { react: bot.cfg.react + lag })); p.rate = bot.rate; p.tier = bot.tierKey;
     p.title = bot.title; p.bg = bot.bg; p.discord = bot.discord || bot.name; p.verified = true;

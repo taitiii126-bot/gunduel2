@@ -3404,8 +3404,8 @@ body.mland .home-hero{height:72vh;}
   </div>
   <div id="tl-rot" data-i18n="tl.rotate"></div>
 </div></div>
-<script src="sim.js?v=67"></script>
-<script src="lang.js?v=90"></script>
+<script src="sim.js?v=68"></script>
+<script src="lang.js?v=91"></script>
 <script>
 /*
  * 【GUN DUEL：チート・改造の禁止について】
@@ -3980,7 +3980,7 @@ setInterval(function(){
 // 武器・ステージの表示用データ（数値は sim.js）
 // ============================================================
 var WEAPON_ORDER=SIM.WEAPON_IDS.slice();
-var STAGE_ORDER=['classic','flat','tower','ruins','glacier','temple'];
+var STAGE_ORDER=SIM.STAGE_POOL.slice();   // 遊べるステージ（フラットだけ）
 var NEW_STAGES=['ruins','glacier','temple'];
 // ---- ステージの見た目（テーマ）----
 // 6つのステージは、それぞれ別の景色（night はどれにも合わないときの予備）
@@ -4006,7 +4006,7 @@ var stageTheme=STAGE_THEMES.night;
 
 // 武器カードの小さな英字（英語表示のときは出さない）
 function enShort(id){return SETTINGS.lang==='en'||!LANGS.en?'':(LANGS.en['w.'+id+'.short']||'');}
-var selectedStage='classic';
+var selectedStage=SIM.STAGE_POOL[0];
 var platforms=SIM.STAGES.classic.platforms,solids=[];
 function useStage(id){var st=SIM.STAGES[id]||SIM.STAGES.classic;curStageId=SIM.STAGES[id]?id:'classic';platforms=st.platforms;solids=st.solids||[];stageTheme=themeOf(SIM.STAGES[id]?id:'classic');}
 
@@ -7885,7 +7885,7 @@ function olLeaveMode(){
 function navBackFn(id){
   switch(id){
     case 'skill-screen':case 'stage-screen':case 'rank-screen':case 'shop-screen':case 'event-screen':case 'pass-screen':case 'friends-screen':case 'profile-screen':return showModeScreen;
-    case 'cpu-screen':return showStageScreen;
+    case 'cpu-screen':return STAGE_ORDER.length>1?showStageScreen:showModeScreen;   // ステージが1つなら、選ぶ画面はない
     case 'room-screen':return onlineBack;
     case 'settings-screen':return closeSettings;
     case 'loadout-screen':return closeLoadout;
@@ -7971,7 +7971,7 @@ function showProfileScreen(){showScreen('profile-screen');renderProfileUI();rend
 // 名前・見た目などを変えたら、小さく「保存しました」（続けて変えたときは最後に1回だけ）
 var pfSavedT=null;
 function pfSaved(){if(currentScreen!=='profile-screen')return;clearTimeout(pfSavedT);pfSavedT=setTimeout(function(){note(t(STORE_ACC?'pf.savedSync':'pf.saved'));},700);}
-function showStageScreen(){stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
+function showStageScreen(){if(STAGE_ORDER.length<2){selectedStage=STAGE_ORDER[0];showCpuScreen();return;}stageIdx=Math.max(0,STAGE_ORDER.indexOf(selectedStage));showScreen('stage-screen');renderStageList(0);}
 function showCpuScreen(){showScreen('cpu-screen');renderCpuList();renderLoadoutNotes();renderReplayBtn();}
 function renderLoadoutNotes(){
   ['cpu-loadout-note','room-loadout-note'].forEach(function(id){var el=document.getElementById(id);if(el)el.textContent=t('cpu.weapons',{list:loadoutText()});});
@@ -8676,7 +8676,7 @@ function newDemo(canvasId,mode){
 var DEMO=newDemo('bg-demo','cover');           // ホームの背景
 var PREVIEW=newDemo('stage-preview','fit');    // ステージ選択の大きなプレビュー
 function demoNewRound(D){
-  var ids=Object.keys(SIM.STAGES),lv=['hard','pro','god'],id=D.stage||ids[Math.floor(Math.random()*ids.length)];
+  var ids=SIM.STAGE_POOL,lv=['hard','pro','god'],id=D.stage||ids[Math.floor(Math.random()*ids.length)];
   D.w=SIM.newWorld(id,SIM.cpuLoadout(),SIM.cpuLoadout());D.theme=themeOf(id);
   D.ba=SIM.newBrain(lv[Math.floor(Math.random()*3)]);D.bb=SIM.newBrain(lv[Math.floor(Math.random()*3)]);
   D.la=SIM.randomLook();D.lb=SIM.randomLook();D.end=0;D.fx=newFx();D.cam=(WORLD_W-VW)/2;
@@ -8878,7 +8878,7 @@ function initOlWorld2(){
     var P=TM.players[s]||{},c=SIM.newChar(s,0,0,1,s===mySlot?(matchLoadout||loadout):(P.loadout||[2,3,1]),s===mySlot?olMySk:P.skill);
     copyServerChar(c,sc);olW.chars[s]=c;
   });
-  olMe=olW.chars[mySlot];olOpp=null;playerSlot=olMe.slot;
+  olMe=olW.chars[mySlot];olOpp=null;playerSlot=olMe.slot;olHist.length=0;
 }
 // サーバーの位置から、今この瞬間の位置を先読みして寄せる（相手・味方どれも同じ）
 function followServer(c,sc,age){
@@ -8904,12 +8904,13 @@ function initOlWorld(){
   if(!olState||!olState.chars||!olState.chars[mySlot])return;
   var os=oppSlotOf();
   olW={plats:platforms,solids:solids,frame:0,sid:1000000,shots:[],chars:{},nav:null,ghost:true};   // ghost：先読みの弾は相手に当てない
-  olMe=SIM.newChar(mySlot,0,0,1,matchLoadout||loadout,olMySk);copyServerChar(olMe,olState.chars[mySlot]);
+  olMe=SIM.newChar(mySlot,0,0,1,matchLoadout||loadout,olMySk);copyServerChar(olMe,olState.chars[mySlot]);olHist.length=0;
   olOpp=SIM.newChar(os,0,0,-1,oppInfo.loadout,oppInfo.skill);copyServerChar(olOpp,olState.chars[os]);
   playerSlot=olMe.slot;
   olW.chars[mySlot]=olMe;olW.chars[os]=olOpp;
 }
 // サーバーの状態でHP/死亡を上書き（チート防止の核心）
+var olHist=[],OL_HIST=45,OL_SYNC_TOL=14;   // 自分の先読みの位置の記録（直近 OL_HIST フレーム＝約0.75秒）と、合っているとみなすずれ（px）
 function syncMeFromServer(sc){
   if(!olMe||!sc)return;
   if(Math.abs(olMe.hp-sc.hp)>0.01){
@@ -8917,9 +8918,16 @@ function syncMeFromServer(sc){
     olMe.hp=sc.hp;olMe.hpFrac=sc.hp;olMe.hit=Math.max(olMe.hit,sc.hit||0);
   }
   if(sc.dead&&!olMe.dead)olMe.dead=true;
-  // 位置は大きくズレたときだけ補正（それ以外は先読みを優先）
-  var dx=Math.abs(olMe.x-sc.x),dy=Math.abs(olMe.y-sc.y);
-  if(dx>80||dy>80){olMe.x+=(sc.x-olMe.x)*.3;olMe.y+=(sc.y-olMe.y)*.3;}
+  // 位置：サーバーの位置は、通信の分だけ少し前の自分。今の位置とくらべると、跳んでいる間などは大きくずれて見え、
+  // 引き戻しが何度も入って上下にガタガタ動いてしまう。そこで、直近の自分の記録（olHist）の中にほぼ同じ位置があれば合っているとみなす。
+  // なければ（吹き飛ばされた・サーバーでは動けなかったなど）、いちばん近い記録とのずれの分を少しずつ寄せる（記録も同じだけずらす）
+  var best=1e9,bi=-1;
+  for(var hi=0;hi<olHist.length;hi++){var hh=olHist[hi],hd=Math.abs(hh.x-sc.x)+Math.abs(hh.y-sc.y);if(hd<best){best=hd;bi=hi;}}
+  if(bi<0||best>240){olMe.x=sc.x;olMe.y=sc.y;olMe.vx=sc.vx||0;olMe.vy=sc.vy||0;olMe.onGround=!!sc.onGround;olHist.length=0;}   // 大きくずれた：サーバーの位置へ
+  else if(best>OL_SYNC_TOL){
+    var cx=(sc.x-olHist[bi].x)*.3,cy=(sc.y-olHist[bi].y)*.3;
+    olMe.x+=cx;olMe.y+=cy;for(var hj=0;hj<olHist.length;hj++){olHist[hj].x+=cx;olHist[hj].y+=cy;}
+  }
   // 弾数とリロードは、しばらく撃っていないときだけサーバーに合わせる（撃っている最中は先読みを優先）
   if(!keys.attack&&olW&&olW.frame-olLastShot>30&&olMe.burst<=0&&olMe.chg<=0&&!(olMe.foc>0)&&sc.am){
     olMe.ammo=sc.am.slice();olMe.rl=sc.rl||0;olMe.rlMax=sc.rlMax||1;
@@ -8936,6 +8944,7 @@ function updateOnline(){
     var ev=[];
     SIM.stepChar(olW,olMe,olOpp,ev,true);
     SIM.stepShots(olW,ev,true,mySlot);
+    olHist.push({x:olMe.x,y:olMe.y});if(olHist.length>OL_HIST)olHist.shift();   // サーバーの位置とくらべるための記録
     for(var i=0;i<ev.length;i++){if(ev[i].t==='pull')olLastShot=olW.frame;if(ev[i].t==='heal')updateHealBtn();}
     handleEvents(ev.filter(function(e){return e.t!=='dead';}),mySlot,onlineStyle);
   }
@@ -9255,7 +9264,7 @@ function rpRecFrame(pin,aiIn){
 }
 function rpRecSave(won){
   var R=RPREC;RPREC=null;if(!R||aiTamper||!R.rounds.length)return;
-  var out={v:1,stage:R.stage,diff:R.diff,look:R.look,cpuLook:R.cpuLook,at:R.at,won:!!won,rounds:R.rounds.map(function(r){return{load:r.load,cpu:r.cpu,a:SIM.logEncode(r.a),b:SIM.logEncode(r.b)};})};
+  var out={v:1,stage:R.stage,diff:R.diff,look:R.look,cpuLook:R.cpuLook,at:R.at,won:!!won,rounds:R.rounds.map(function(r){return{load:r.load,cpu:r.cpu,sk:r.sk,csk:r.csk,a:SIM.logEncode(r.a),b:SIM.logEncode(r.b)};})};
   try{localStorage.setItem(RP_KEY,JSON.stringify(out));}catch(e){}
   renderReplayBtn();
 }

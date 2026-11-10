@@ -141,7 +141,7 @@ class TeamRoom {
   // ルールを変える（フレンドの部屋で、開始前に、部屋を作った人だけ）。stage：null＝投票で決める。load：null＝それぞれが選ぶ
   setRules(slot, r) {
     if (!this.private || this.phase !== 'waiting' || slot !== this.hostSlot || !r || typeof r !== 'object') return false;
-    const st = typeof r.stage === 'string' && SIM.STAGES[r.stage] ? r.stage : null;
+    const st = typeof r.stage === 'string' && SIM.STAGE_POOL.indexOf(r.stage) >= 0 ? r.stage : null;   // 遊べるステージだけ
     const load = Array.isArray(r.load) ? SIM.cleanLoadout(r.load, false) : null;
     this.rules = { stage: st, load: load };
     this.sendLobby();

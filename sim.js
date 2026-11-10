@@ -48,10 +48,10 @@ var ROLL_T = 18, ROLL_IF = 13, ROLL_SPD = 1.9, ROLL_CD = 60;
 // ---- スキル（1人1つ選ぶ。ボタンはロールと同じ。cd＝使ったあとの待ち・フレーム）----
 // roll：回避ロール（最初から持っている。ほかのスキルを選ぶと、ロールは使えない）
 // pierce：次に撃つ弾が壁も人も抜ける（ダメージはそのまま。オートの武器は n 発、バーストは3連射、ショットガンは1回ぶん全部。近接・グレネード・ビームには効かない）
-// rewind：back フレーム（2秒）前の場所に戻る。その間に減った体力は3分の1だけ戻る
+// rewind：back フレーム（2秒）前の場所に戻る。減った体力は hp の割合だけ戻る（0＝戻らない。前は3分の1で、CPU どうしで ロール相手に61%と強すぎた）
 // decoy：分身が走る（life フレーム。相手の弾を1つ受けると消える。CPU はだまされることがある）
 // parry：win フレーム（0.2秒）だけ構え、その間に当たる弾を撃ち返す（ビーム・近接は防ぐだけ。爆風は防げない）
-var SKILLS = { roll: { cd: ROLL_CD }, pierce: { cd: 480, n: 5 }, rewind: { cd: 720, back: 120 }, decoy: { cd: 600, life: 180 }, parry: { cd: 360, win: 12 } };
+var SKILLS = { roll: { cd: ROLL_CD }, pierce: { cd: 480, n: 5 }, rewind: { cd: 720, back: 120, hp: 0 }, decoy: { cd: 600, life: 180 }, parry: { cd: 360, win: 12 } };
 var SKILL_IDS = ['roll', 'pierce', 'rewind', 'decoy', 'parry'];
 function cleanSkill(s) { return typeof s === 'string' && SKILLS.hasOwnProperty(s) ? s : null; }
 // ---- スキルの解放：レベル SKILL_TICKET_LV ごとにスキル券1枚。券でスキルガチャを引くと、まだ持っていないスキルが1つ出る（かぶりなし・コインなどは出ない）----
@@ -122,6 +122,8 @@ var DEFAULT_LOADOUT = [2, 3, 1];
 // ---- ステージの地形 ----
 // platforms: 上から乗れる足場（ground=地面。弾は地面にだけ当たって消える）
 // solids: 遮蔽物（通り抜けできず、弾を止める。上には乗れる）
+// 遊べるステージ（CPU戦・オンライン・住人の試合）。ほかのステージのデータは、前の試合の記録・リプレイ・称号のために残してある
+var STAGE_POOL = ['flat'];
 var STAGES = {
   classic: { platforms: [
     { x: 0, y: GND, w: WORLD_W, h: 60, ground: true },
@@ -1148,7 +1150,7 @@ function useSkill(w, c, ev) {
     var h = c.hist[c.histN < S.back ? 0 : c.histI];  // いちばん古い記録＝ back フレーム前
     ev.push({ t: 'rewind', who: c.side, fx: c.x, fy: c.y, x: h[0], y: h[1] });
     c.x = h[0]; c.y = h[1]; c.vx = 0; c.vy = 0; c.onGround = false; c.groundSince = -1;
-    if (h[2] > c.hp) { c.hp = c.hp + Math.round((h[2] - c.hp) / 3); c.hpFrac = c.hp; }   // 減った体力の3分の1だけ戻る（全部戻すと、CPU 同士で勝率74%と強すぎた）
+    if (h[2] > c.hp && S.hp > 0) { c.hp = c.hp + Math.round((h[2] - c.hp) * S.hp); c.hpFrac = c.hp; }   // 減った体力の hp の割合だけ戻る（全部戻すと、CPU 同士で勝率74%と強すぎた）
     c.rollT = 0; c.kbT = 0; c.burst = 0; c.chg = 0;
     if (c.foc > 0) { c.foc = 0; ev.push({ t: 'focusx', who: c.side }); }
     c.histN = 0; c.histI = 0;                       // 戻ったところから記録し直す
@@ -2046,6 +2048,12 @@ function decoyView(op, d) {
   o.x = d.x; o.y = d.y; o.vx = d.vx; o.vy = d.vy; o.onGround = d.onGround; o.ducking = false; o.rollT = 0; o.parryT = 0;
   return o;
 }
+// CPU のスキルの使い方の上手さ：rwLost/rwP＝巻き戻し（2秒で減った体力がこれ以上のとき、1フレームあたり rwP[0]+rwP[1]×賢さ の率で使う）、dcP＝分身を出す率（1フレームあたり）
+var AI_SK = { rwLost: 35, rwP: [0.1, 0.2], dcP: 0.015 };   // 分身は前 0.05（CPU どうしで ロール相手に57%と強すぎた）
+// CPU の反射：その弾に合わせられるか。合わせられる率は PARRY_ACC（よける上手さで上がる）
+// （前は毎回ぴったり合わせていて、撃った弾がほとんど全部はね返されていた）
+var PARRY_ACC = [0.15, 0.45];   // 合わせられる率 = [0] + [1] × dodge（鬼神 約0.49・ふつう 約0.31）
+function parryHits(cfg, R) { return R() < PARRY_ACC[0] + PARRY_ACC[1] * (cfg.dodge || 0); }
 // CPU のスキル：貫通弾は壁の向こうの相手に、巻き戻しは2秒で大きく削られたとき、分身は狙われながらリロード中・体力が少ないとき
 function aiSkill(b, w, me, op, W, dist, dy, toOp, inp) {
   var cfg = b.cfg, R = b.rnd, k = me.skill;
@@ -2055,12 +2063,12 @@ function aiSkill(b, w, me, op, W, dist, dy, toOp, inp) {
   } else if (k === 'rewind') {
     if (me.hist && me.histN) {
       var past = me.hist[me.histN < SKILLS.rewind.back ? 0 : me.histI][2], lost = past - me.hp;
-      if ((lost >= 35 || (me.hp <= 25 && lost >= 15)) && R() < 0.1 + 0.2 * cfg.smart) inp.skill = true;
+      if ((lost >= AI_SK.rwLost || (me.hp <= 25 && lost >= 15)) && R() < AI_SK.rwP[0] + AI_SK.rwP[1] * cfg.smart) inp.skill = true;
     }
   } else if (k === 'decoy') {
     var opW = WEAPONS[op.load[op.slot]], mineOut = false;
     for (var i = 0; i < (w.decoys || []).length; i++) if (w.decoys[i].own === me.side) mineOut = true;
-    if (!mineOut && op.dir === -toOp && dist < opW.range && canFire(op) && (me.rl > 0 || me.hp <= 55) && R() < 0.05) inp.skill = true;
+    if (!mineOut && op.dir === -toOp && dist < opW.range && canFire(op) && (me.rl > 0 || me.hp <= 55) && R() < AI_SK.dcP) inp.skill = true;
   }
 }
 
@@ -2162,6 +2170,8 @@ function think(b, w, side) {
       if (me.onGround && !(me.rollCD > 0) && me.rollT <= 0) inp.roll = true; else if (me.onGround) inp.jump = true;
     }
   }
+  // 反射に遅れた（parryLate）：弾が当たってから構えて、空振りする（待ちも使ってしまう）
+  if (b.parryLate && w.frame >= b.parryLate) { b.parryLate = 0; if (!(me.skCD > 0)) inp.skill = true; }
   // 反射すると決めた弾：届く直前（構えの時間に収まるところ）で構える。使えなければ跳ぶ
   if (b.parrySid) {
     var ps = null;
@@ -2193,7 +2203,10 @@ function think(b, w, side) {
     if (Math.abs(sh.y - (me.y + CHAR_H / 2)) < 30 && Math.abs(sh.x - mx) < cfg.see && sign(sh.vx) === sign(mx - sh.x)) {
       b.seen[sh.sid] = 1; b.seenN++; b.dodgeCd = cfg.react;   // 判断したら、次の判断まで反応時間ぶん空く
       if (R() < cfg.dodge) {
-        if (me.skill === 'parry' && !(me.skCD > 0)) b.parrySid = sh.sid;                        // 反射のスキル：届く直前に構えて撃ち返す
+        if (me.skill === 'parry' && !(me.skCD > 0)) {   // 反射のスキル：届く直前に構えて撃ち返す。合わせられないときは遅れる（当たってから構えて空振り）
+          if (parryHits(cfg, R)) b.parrySid = sh.sid;
+          else if (!b.parryLate) b.parryLate = w.frame + Math.ceil(Math.abs(sh.x - mx) / Math.max(1, Math.abs(sh.vx))) + 1 + Math.floor(R() * 5);
+        }
         else if (me.onGround && cfg.roll && !(me.rollCD > 0) && R() < cfg.roll) b.rollSid = sh.sid;   // ロールでくぐる
         else if (me.onGround) inp.jump = true;
         else if (sh.y < me.y + 12) b.duckT = 14;
@@ -2209,11 +2222,12 @@ function think(b, w, side) {
     if (!b.seenChg && !cfg.boss && op.chg <= 14 && dy < 30 && op.dir === -toOp) {
       b.seenChg = true;
       b.chgDodge = R() < cfg.dodge;
+      if (b.chgDodge && me.skill === 'parry') b.chgLead = parryHits(cfg, R) ? 6 : -1;   // ビームを止める構え：合わせられれば撃つ6フレーム前（外すときは構えない）
       if (b.chgDodge && me.onGround && cfg.smart < 1) inp.jump = true;
     }
     // 賢いCPU（鬼神）：着地の待ちも数えて、ジャンプが間に合う瞬間に跳ぶ（空中なら、着地して跳べるようになるのを待つ）
     if (b.seenChg && b.chgDodge && cfg.smart >= 1 && !cfg.boss && beamHitsAfter(w, me, op, false) && !beamHitsAfter(w, me, op, true)) inp.jump = true;
-    if (b.seenChg && b.chgDodge && me.skill === 'parry' && !(me.skCD > 0) && op.chg <= 6 && dy < 30 && op.dir === -toOp) inp.skill = true;   // 反射でビームを止める
+    if (b.seenChg && b.chgDodge && me.skill === 'parry' && !(me.skCD > 0) && op.chg <= (b.chgLead || 6) && dy < 30 && op.dir === -toOp) inp.skill = true;   // 反射でビームを止める
   } else { b.seenChg = false; b.chgDodge = false; }
   // フォーカスライフルで狙われている：ジャストの弾は速く、見てからでは間に合わない。人と同じく、光る（絞りきる）頃に撃たれると読んで先によける。
   // 絞り始めを見たときに、よけるか（dodge）・転がるか（roll）・合図を読むずれ（賢くないほど大きい）を1回決める。
@@ -2667,7 +2681,7 @@ var api = {
   VW: VW, VH: VH, WORLD_W: WORLD_W, GND: GND, MAX_HP: MAX_HP, CHAR_W: CHAR_W, CHAR_H: CHAR_H, DUCK_H: DUCK_H, HIT_FRAMES: HIT_FRAMES,
   GRAVITY: GRAVITY, JUMP_F: JUMP_F, LAND_LAG: LAND_LAG, LAND_LAG_SOFT: LAND_LAG_SOFT, landLag: landLag, ROLL_T: ROLL_T, ROLL_IF: ROLL_IF, ROLL_CD: ROLL_CD, rollSafe: rollSafe, SPEED: SPEED, SWAP_FRAMES: SWAP_FRAMES, PROTO: PROTO, GREN_G: GREN_G,
   WEAPONS: deepFreeze(WEAPONS), WEAPON_IDS: deepFreeze(WEAPON_IDS), DEFAULT_LOADOUT: deepFreeze(DEFAULT_LOADOUT),
-  STAGES: deepFreeze(STAGES), AI_LEVELS: deepFreeze(AI_LEVELS),
+  STAGES: deepFreeze(STAGES), STAGE_POOL: STAGE_POOL, AI_LEVELS: deepFreeze(AI_LEVELS),
   LOOK_SIZES: deepFreeze(LOOK_SIZES), LOOK_KEYS: deepFreeze(LOOK_KEYS), LOOK_DEV: deepFreeze(LOOK_DEV), cleanLook: cleanLook,
   RARITY_KEYS: deepFreeze(RARITY_KEYS), RARITY_W: deepFreeze(RARITY_W), PITY_AT: PITY_AT, LOOK_BASE: deepFreeze(LOOK_BASE), ITEMS: deepFreeze(ITEMS), ITEM_BY_ID: ITEM_BY_ID,
   DAY_SHIFT_MS: DAY_SHIFT_MS, dayEnd: dayEnd,
