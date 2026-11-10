@@ -8910,13 +8910,22 @@ function initOlWorld(){
   olW.chars[mySlot]=olMe;olW.chars[os]=olOpp;
 }
 // サーバーの状態でHP/死亡を上書き（チート防止の核心）
-var olHist=[],OL_HIST=45,OL_SYNC_TOL=14;   // 自分の先読みの位置の記録（直近 OL_HIST フレーム＝約0.75秒）と、合っているとみなすずれ（px）
+var olHist=[],OL_HIST=45,OL_SYNC_TOL=20;
+// 自分を下へ寄せるとき、立っている床・足元の床を上から通り抜けないようにする（通り抜けると床の下へ落ちて、手元だけ倒れてしまう）
+function olSafeY(c,ny){
+  if(ny<=c.y||!olW)return ny;
+  var feet=c.y+CHAR_H;
+  for(var i=0;i<olW.plats.length;i++){var p=olW.plats[i];if(c.x+CHAR_W>p.x&&c.x<p.x+p.w&&feet<=p.y+.5&&ny+CHAR_H>p.y)ny=p.y-CHAR_H;}
+  return ny;
+}   // 自分の先読みの位置の記録（直近 OL_HIST フレーム＝約0.75秒）と、合っているとみなすずれ（px）
 function syncMeFromServer(sc){
   if(!olMe||!sc)return;
   if(Math.abs(olMe.hp-sc.hp)>0.01){
     if(sc.hp<olMe.hp)SFX.hit();
     olMe.hp=sc.hp;olMe.hpFrac=sc.hp;olMe.hit=Math.max(olMe.hit,sc.hit||0);
   }
+  // 手元だけ倒れている（床の下へ落ちたなど）のに、サーバーでは生きている：サーバーの位置で戻す（姿が消えて当たり判定だけ残るのを防ぐ）
+  if(olMe.dead&&!sc.dead&&sc.hp>0){olMe.dead=false;olMe.x=sc.x;olMe.y=sc.y;olMe.vx=sc.vx||0;olMe.vy=sc.vy||0;olMe.onGround=!!sc.onGround;olHist.length=0;}
   if(sc.dead&&!olMe.dead)olMe.dead=true;
   // 位置：サーバーの位置は、通信の分だけ少し前の自分。今の位置とくらべると、跳んでいる間などは大きくずれて見え、
   // 引き戻しが何度も入って上下にガタガタ動いてしまう。そこで、直近の自分の記録（olHist）の中にほぼ同じ位置があれば合っているとみなす。
@@ -8926,7 +8935,9 @@ function syncMeFromServer(sc){
   if(bi<0||best>240){olMe.x=sc.x;olMe.y=sc.y;olMe.vx=sc.vx||0;olMe.vy=sc.vy||0;olMe.onGround=!!sc.onGround;olHist.length=0;}   // 大きくずれた：サーバーの位置へ
   else if(best>OL_SYNC_TOL){
     var cx=(sc.x-olHist[bi].x)*.3,cy=(sc.y-olHist[bi].y)*.3;
-    olMe.x+=cx;olMe.y+=cy;for(var hj=0;hj<olHist.length;hj++){olHist[hj].x+=cx;olHist[hj].y+=cy;}
+    if(olMe.onGround&&sc.onGround)cy=Math.abs(sc.y-olMe.y)>40?sc.y-olMe.y:0;   // どちらも立っている：高さは同じはず（ちがう床なら、その高さへ）
+    var ny=olSafeY(olMe,olMe.y+cy);cy=ny-olMe.y;
+    olMe.x+=cx;olMe.y=ny;for(var hj=0;hj<olHist.length;hj++){olHist[hj].x+=cx;olHist[hj].y+=cy;}
   }
   // 弾数とリロードは、しばらく撃っていないときだけサーバーに合わせる（撃っている最中は先読みを優先）
   if(!keys.attack&&olW&&olW.frame-olLastShot>30&&olMe.burst<=0&&olMe.chg<=0&&!(olMe.foc>0)&&sc.am){
