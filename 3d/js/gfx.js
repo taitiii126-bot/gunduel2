@@ -118,6 +118,18 @@ export class Gfx {
       this.aoPass.updateGtaoMaterial({ radius: 0.6, distanceExponent: 1.5, thickness: 1.2, scale: 1.0, samples: 12 });
       c.addPass(this.aoPass);
     } else this.aoPass = null;
+    // 一人称の手元（腕と武器）：世界を描いたあと、深さだけ消して上から描く（壁にめりこまない）
+    const self = this;
+    this.vmPass = { enabled: true, needsSwap: false, clear: false, renderToScreen: false, setSize() {}, dispose() {},
+      render(renderer, writeBuffer, readBuffer) {
+        if (!self.vmOn || !self.vmScene) return;
+        const old = renderer.autoClear; renderer.autoClear = false;
+        renderer.setRenderTarget(this.renderToScreen ? null : readBuffer);
+        renderer.clearDepth();
+        renderer.render(self.vmScene, self.vmCam);
+        renderer.autoClear = old;
+      } };
+    c.addPass(this.vmPass);
     if (q.bloom) {
       this.bloom = new UnrealBloomPass(new THREE.Vector2(size.x / 2, size.y / 2), 0.62, 0.48, 0.82);
       c.addPass(this.bloom);
@@ -197,8 +209,11 @@ export class Gfx {
     } else {
       r.setRenderTarget(null);
       r.render(this.scene, this.camera);
+      if (this.vmOn && this.vmScene) { r.autoClear = false; r.clearDepth(); r.render(this.vmScene, this.vmCam); r.autoClear = true; }
     }
   }
+
+  setViewModel(scene, cam) { this.vmScene = scene; this.vmCam = cam; }
 
   // 武器のアイコンなどを作る：小さな場面を絵にして、データURLにする
   snapshot(scene, camera, w, h) {

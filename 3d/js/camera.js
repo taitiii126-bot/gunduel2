@@ -1,4 +1,4 @@
-// 肩ごしのカメラ（TPS）：壁にめりこまない・覗き込み（ズーム）・スナイパーのスコープ・ゆれ・やられたあとの見せ方
+// カメラ：一人称（FPS・目の位置）と肩ごし（TPS）。覗き込み（ズーム）・スナイパーのスコープ・ゆれ・反動・着地・やられたあとの見せ方
 import * as THREE from '../lib/three.js';
 import { BODY, WEAPONS, clamp, damp } from './data.js';
 import { rayCapsule, raySphere } from './collision.js';
@@ -14,11 +14,61 @@ export class TPSCamera {
     this.orbitT = 0; this.orbitCenter = new THREE.Vector3(); this.orbitR = 25; this.orbitH = 8;
     this.target = null; this.lookAtTarget = new THREE.Vector3(); this.aimEnemy = null;
     this.kick = 0; this.shakeT = 0;
+    // 一人称のばね（反動・着地・ゆれ）
+    this.sp = { p: sp(260, 26), y: sp(260, 26), land: sp(130, 14), roll: sp(90, 14) };
+    this.eyeH = BODY.eye; this.smoothY = null; this.bob = 0; this.bobK = 0;
+  }
+
+  onShot(W) { const k = W.recoil || 1; this.sp.p.v += 0.05 + k * 0.03; this.sp.y.v += (Math.random() - 0.5) * k * 0.025; }
+  onLand(k) { this.sp.land.v -= 1.1 * Math.min(1.5, k); }
+  onHurt(amt) { this.sp.p.v -= Math.min(0.25, amt * 0.004); this.sp.roll.v += (Math.random() - 0.5) * Math.min(0.4, amt * 0.008); }
+
+  // 一人称：目の位置から見る。段差や坂ではなめらかに上下し、着地で沈み、歩くと少しゆれる
+  fps(dt, f, game) {
+    const W = f.W, ads = f.adsK;
+    const scopeW = !!W.scope && ads > 0.8;
+    this.scoped = scopeW;
+    for (const k in this.sp) stepSp(this.sp[k], dt);
+    // しゃがみの高さはばねで
+    const eyeT = f.crouching ? BODY.crouchEye : BODY.eye;
+    this.eyeH = damp(this.eyeH, eyeT, 14, dt);
+    const rp = f.rpos || f.pos;
+    const footY = rp[1];
+    if (this.smoothY == null || !f.onGround || Math.abs(footY - this.smoothY) > 0.7) this.smoothY = footY;
+    else this.smoothY += (footY - this.smoothY) * (1 - Math.exp(-30 * dt));
+    // 歩くゆれ
+    const vx = f.vel[0], vz = f.vel[2], spd = Math.hypot(vx, vz);
+    const bobOn = this.settings.bob !== false;
+    this.bobK = damp(this.bobK, f.onGround && spd > 0.5 ? Math.min(1, spd / 6.6) : 0, 8, dt);
+    this.bob += dt * spd / 1.3 * Math.PI;
+    const bk = this.bobK * (1 - ads * 0.85) * (bobOn ? 1 : 0);
+    // 横に動くと少し傾く
+    const right = -vx * Math.cos(this.yaw) + vz * Math.sin(this.yaw);
+    this.sp.roll.t = bobOn ? clamp(-right * 0.0035, -0.03, 0.03) : 0;
+    let y = this.smoothY + this.eyeH + this.sp.land.x * 0.06 - Math.abs(Math.cos(this.bob)) * 0.022 * bk;
+    if (f.rollT > 0) y -= Math.sin((1 - f.rollT / 0.32) * Math.PI) * 0.55;
+    _r.set(-Math.cos(this.yaw), 0, Math.sin(this.yaw));
+    this.cam.position.set(rp[0], y, rp[2]).addScaledVector(_r, Math.sin(this.bob) * 0.012 * bk);
+    // 画角
+    const base = this.settings.fov || 82;
+    let fov = base + (W.ads ? (W.ads - base) : -8) * ads;
+    if (f.rollT > 0) fov += 5;
+    if (!f.onGround && f.padT > 0) fov += 7;
+    this.fov = damp(this.fov, fov, 14, dt);
+    this.cam.fov = this.fov; this.cam.updateProjectionMatrix();
+    // 向き（反動のはね上がり・傾き・ゆれを足す）
+    let p = this.pitch + this.sp.p.x, yw = this.yaw + this.sp.y.x;
+    const s = (game ? game.shakeAmt : 0) * (this.settings.shake === false ? 0.25 : 1);
+    if (s > 0.001) { this.shakeT += dt * 38; p += Math.sin(this.shakeT * 1.3) * 0.009 * s * s * 3; yw += Math.cos(this.shakeT * 0.9) * 0.009 * s * s * 3; }
+    const roll = this.sp.roll.x + Math.sin(this.bob) * 0.003 * bk + (f.rollT > 0 ? Math.sin((1 - f.rollT / 0.32) * Math.PI) * 0.12 : 0);
+    this.cam.rotation.set(p, yw + Math.PI, roll, 'YXZ');
+    this.cam.updateMatrixWorld();
+    this.aim(f, game);
   }
 
   forward(out) { const c = Math.cos(this.pitch); return out.set(Math.sin(this.yaw) * c, Math.sin(this.pitch), Math.cos(this.yaw) * c); }
 
-  snapTo(f) { this.yaw = f.yaw; this.pitch = 0; f.eye(this.pivot); this.dist = 3.2; }
+  snapTo(f) { this.yaw = f.yaw; this.pitch = 0; f.eye(this.pivot); this.dist = 3.2; this.smoothY = null; this.eyeH = BODY.eye; for (const k in this.sp) { this.sp[k].x = this.sp[k].v = 0; } }
 
   // 自分のキャラクターを追う
   follow(dt, f, game) {
@@ -26,7 +76,8 @@ export class TPSCamera {
     const scopeW = !!W.scope && ads > 0.8;
     this.scoped = scopeW;
     // 体の目の高さ（跳んだときは少し遅れてついてくる）
-    f.eye(_t);
+    const rp = f.rpos || f.pos;
+    _t.set(rp[0], rp[1] + (f.crouching ? BODY.crouchEye : BODY.eye), rp[2]);
     this.pivot.x = _t.x; this.pivot.z = _t.z;
     this.pivot.y = damp(this.pivot.y, _t.y, f.onGround ? 18 : 9, dt);
     const shoulder = (this.settings.leftShoulder ? -1 : 1) * (0.62 - ads * 0.18);
@@ -142,4 +193,6 @@ export class TPSCamera {
   }
 }
 
+function sp(k, c) { return { x: 0, v: 0, t: 0, k, c }; }
+function stepSp(s, dt) { const n = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / n; for (let i = 0; i < n; i++) { s.v += (-s.k * (s.x - s.t) - s.c * s.v) * h; s.x += s.v * h; } }
 function angle(a, b) { let d = (b - a) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }

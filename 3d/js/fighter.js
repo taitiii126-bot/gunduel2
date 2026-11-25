@@ -18,6 +18,9 @@ export class Fighter {
     this.loadout = o.loadout.slice(0, 3);
     this.skill = o.skill || 'roll';
     this.pos = [0, 0, 0]; this.vel = [0, 0, 0]; this.onGround = true; this.r = BODY.r; this.h = BODY.h;
+    // 描くときの位置：固定の刻みで進めた前と今の位置のあいだを補間する（画面のなめらかさ）
+    this.prev = [0, 0, 0]; this.rpos = [0, 0, 0]; this.prevYaw = 0; this.ryaw = 0;
+    this.st = { moveLocal: { x: 0, z: 0 }, rollDir: { x: 0, z: 0 }, act: null };
     this.yaw = 0; this.pitch = 0;
     this.input = emptyInput();
     this.aimPoint = new THREE.Vector3(); this.aimDir = new THREE.Vector3(0, 0, 1); this.hasAimPoint = false;
@@ -58,7 +61,10 @@ export class Fighter {
     this.pos[0] = x; this.pos[1] = y; this.pos[2] = z; this.yaw = yaw || 0; this.pitch = 0;
     this.vel[0] = this.vel[1] = this.vel[2] = 0; this.onGround = true;
     this.hist = [];
+    this.snap();
   }
+  // 瞬間移動したとき：補間しない
+  snap() { for (let i = 0; i < 3; i++) this.prev[i] = this.rpos[i] = this.pos[i]; this.prevYaw = this.ryaw = this.yaw; }
 
   update(dt) {
     const g = this.game, inp = this.input;
@@ -127,7 +133,8 @@ export class Fighter {
     } else if (this.onGround) {
       const tx = wx * max, tz = wz * max;
       let dx = tx - v[0], dz = tz - v[2];
-      const d = Math.hypot(dx, dz), acc = (L > 0.01 ? BODY.accel : BODY.friction * max) * dt;
+      // 走り出しは速く、止まるときは少しだけすべる（ぴたっと止まりすぎない）
+      const d = Math.hypot(dx, dz), acc = (L > 0.01 ? BODY.accel : BODY.friction) * dt;
       if (d > acc) { dx *= acc / d; dz *= acc / d; }
       v[0] += dx; v[2] += dz;
     } else if (this.padT <= 0) {
@@ -193,7 +200,7 @@ export class Fighter {
         const back = Math.round(S.back / 0.05);
         const p = this.hist[Math.max(0, this.hist.length - back)];
         const from = this.center(new THREE.Vector3());
-        this.pos[0] = p[0]; this.pos[1] = p[1]; this.pos[2] = p[2];
+        this.pos[0] = p[0]; this.pos[1] = p[1]; this.pos[2] = p[2]; this.snap();
         this.vel[0] = this.vel[1] = this.vel[2] = 0; this.onGround = false; this.padT = 0; this.kbT = 0;
         this.hist = [];
         g.emit('rewind', { f: this, from });
@@ -313,6 +320,7 @@ export class Fighter {
     this.recoil = Math.min(1.6, this.recoil + (W.recoil || 1) * 0.35);
     this.stats.shots++;
     this.lastWeapon = W.id; this.lastShotT = g.time;
+    g.emit('fired', { f: this, W });
     // 貫通弾：構えていれば、この武器で何発ぶん抜けるか決める
     let pierce = false;
     if (this.pierceN && (W.kind === 'hitscan' || W.kind === 'pellet' || W.kind === 'focus')) {
@@ -365,24 +373,23 @@ export class Fighter {
     if (!this.onGround && this.pos[1] > this.game.world.killY - 20) stepCharacter(this.game.world, this, dt);
   }
 
-  // 見た目を動かす
+  // 見た目を動かす（補間した位置・向きで。毎フレーム同じ入れ物を使い回す）
   updateModel(dt, showTag) {
-    const m = this.model, sy = Math.sin(this.yaw), cy = Math.cos(this.yaw);   // 世界の向き → 体の向き（-yaw 回す）
+    const m = this.model, yaw = this.ryaw, sy = Math.sin(yaw), cy = Math.cos(yaw);   // 世界の向き → 体の向き（-yaw 回す）
     const vx = this.vel[0], vz = this.vel[2];
-    const W = this.W;
+    const W = this.W, st = this.st;
     let act = this.act;
-    if (this.meleeT >= 0) act = { type: 'melee', k: clamp(this.meleeT / Math.max(W.rate, W.wind + 0.12), 0, 1), alt: this.meleeAlt };
-    const rollK = this.rollT > 0 ? 1 - this.rollT / SKILLS.roll.dur : 0;
-    m.update(dt, {
-      x: this.pos[0], y: this.pos[1], z: this.pos[2], yaw: this.yaw, pitch: this.pitch,
-      speed: Math.hypot(vx, vz), moveLocal: { x: vx * cy - vz * sy, z: vx * sy + vz * cy },
-      onGround: this.onGround, vy: this.vel[1], crouch: this.crouching, act, recoil: this.recoil, hitK: this.hitK,
-      rollK, rollDir: { x: this.rollDir.x * cy - this.rollDir.z * sy, z: this.rollDir.x * sy + this.rollDir.z * cy },
-      deadK: this.alive ? 0 : this.deadK, dissolve: this.alive ? 0 : this.dissolve, victory: this.victory,
-      charge: this.chargeT > 0 ? 1 - this.chargeT / (W.charge || 1) : (this.focusT >= 0 ? Math.min(1, this.focusT / (W.full || 1)) : 0),
-      showTag: showTag && this.alive, hp: this.hp, maxHp: MAX_HP,
-      ghost: this.protectT > 0 ? 0.35 + 0.25 * Math.sin(this.game.time * 20) : 0,
-      rim: this.parryT > 0 ? 2.5 : this.iframeT > 0 ? 0.9 : undefined,
-    });
+    if (this.meleeT >= 0) { st.mact = st.mact || { type: 'melee', k: 0, alt: false }; st.mact.k = clamp(this.meleeT / Math.max(W.rate, W.wind + 0.12), 0, 1); st.mact.alt = this.meleeAlt; act = st.mact; }
+    st.x = this.rpos[0]; st.y = this.rpos[1]; st.z = this.rpos[2]; st.yaw = yaw; st.pitch = this.pitch;
+    st.speed = Math.hypot(vx, vz); st.moveLocal.x = vx * cy - vz * sy; st.moveLocal.z = vx * sy + vz * cy;
+    st.onGround = this.onGround; st.vy = this.vel[1]; st.crouch = this.crouching; st.act = act; st.recoil = this.recoil; st.hitK = this.hitK;
+    st.rollK = this.rollT > 0 ? 1 - this.rollT / SKILLS.roll.dur : 0;
+    st.rollDir.x = this.rollDir.x * cy - this.rollDir.z * sy; st.rollDir.z = this.rollDir.x * sy + this.rollDir.z * cy;
+    st.deadK = this.alive ? 0 : this.deadK; st.dissolve = this.alive ? 0 : this.dissolve; st.victory = this.victory;
+    st.charge = this.chargeT > 0 ? 1 - this.chargeT / (W.charge || 1) : (this.focusT >= 0 ? Math.min(1, this.focusT / (W.full || 1)) : 0);
+    st.showTag = showTag && this.alive; st.hp = this.hp; st.maxHp = MAX_HP;
+    st.ghost = this.protectT > 0 ? 0.35 + 0.25 * Math.sin(this.game.time * 20) : 0;
+    st.rim = this.parryT > 0 ? 2.5 : this.iframeT > 0 ? 0.9 : undefined;
+    m.update(dt, st);
   }
 }

@@ -2,7 +2,7 @@
 export const DEFAULT_KEYS = {
   fwd: ['KeyW', 'ArrowUp'], back: ['KeyS', 'ArrowDown'], left: ['KeyA', 'ArrowLeft'], right: ['KeyD', 'ArrowRight'],
   jump: ['Space'], crouch: ['ControlLeft', 'KeyC'], skill: ['ShiftLeft', 'ShiftRight'], heal: ['KeyE'], reload: ['KeyR'],
-  s1: ['Digit1'], s2: ['Digit2'], s3: ['Digit3'], quick: ['KeyQ'], board: ['Tab'], pause: ['Escape', 'KeyP'],
+  s1: ['Digit1'], s2: ['Digit2'], s3: ['Digit3'], quick: ['KeyQ'], board: ['Tab'], pause: ['Escape', 'KeyP'], view: ['KeyV'],
 };
 
 export class Input {
@@ -140,6 +140,7 @@ export class Input {
     let skill = this.hit('skill') || T.btn.has('skill'), heal = this.hit('heal') || T.btn.has('heal'), reload = this.hit('reload') || T.btn.has('reload');
     let slot = this.hit('s1') ? 0 : this.hit('s2') ? 1 : this.hit('s3') ? 2 : -1, cycle = this.mouse.wheel;
     if (this.hit('quick')) slot = this.lastSlot;
+    if (this.hit('view')) this.viewToggle = true;
     if (T.btn.has('slot0')) slot = 0; if (T.btn.has('slot1')) slot = 1; if (T.btn.has('slot2')) slot = 2;
     // ゲームパッド
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];

@@ -1,6 +1,6 @@
 // 試合の世界：人・弾・グレネード・分身・当たり判定・ダメージ・やられ。音とエフェクトもここで鳴らす
 import * as THREE from '../lib/three.js';
-import { BODY, WEAPONS, SKILLS, clamp } from './data.js';
+import { BODY, WEAPONS, SKILLS, clamp, angDiff } from './data.js';
 import { rayCapsule, raySphere, stepCharacter } from './collision.js';
 import { Fighter } from './fighter.js';
 import { FighterModel } from './fighter-model.js';
@@ -33,6 +33,21 @@ export class Game {
     for (const d of this.decoys) this.removeDecoy(d);
     for (const p of this.projectiles) this.scene.remove(p.mesh);
     this.fighters = []; this.decoys = []; this.projectiles = [];
+  }
+
+  // 固定の刻みの始め：前の位置を覚える（描くときに前と今のあいだを補間する）
+  beginTick() {
+    for (const f of this.fighters) { f.prev[0] = f.pos[0]; f.prev[1] = f.pos[1]; f.prev[2] = f.pos[2]; f.prevYaw = f.yaw; }
+    for (const d of this.decoys) { d.prev[0] = d.pos[0]; d.prev[1] = d.pos[1]; d.prev[2] = d.pos[2]; }
+    for (const p of this.projectiles) p.prev.copy(p.pos);
+  }
+  interpolate(a) {
+    for (const f of this.fighters) {
+      for (let i = 0; i < 3; i++) f.rpos[i] = f.prev[i] + (f.pos[i] - f.prev[i]) * a;
+      f.ryaw = f.prevYaw + angDiff(f.prevYaw, f.yaw) * a;
+    }
+    for (const d of this.decoys) for (let i = 0; i < 3; i++) d.rpos[i] = d.prev[i] + (d.pos[i] - d.prev[i]) * a;
+    for (const p of this.projectiles) p.mesh.position.lerpVectors(p.prev, p.pos, a);
   }
 
   isEnemy(a, b) { return a !== b && (!this.teamMode || a.team !== b.team); }
@@ -81,10 +96,12 @@ export class Game {
   fire(f, W, o) {
     const fx = this.fx, au = this.audio;
     f.eye(_o);
-    // 狙う向き：カメラの狙いの点があれば、目からそこへ
+    // 狙う向き：カメラの狙いの点があれば、目からそこへ（撃つ瞬間の向きで測り直す。1コマ前の向きを使わない）
+    if (f.refreshAim) f.refreshAim();
     if (f.hasAimPoint && f.aimPoint.distanceToSquared(_o) > 2.5) _d.subVectors(f.aimPoint, _o).normalize();
     else f.lookDir(_d);
-    const muzzle = f.model.muzzleWorld(new THREE.Vector3());
+    // 一人称の自分は、手元の銃口が画面に見える場所から
+    const muzzle = f.muzzleOverride ? f.muzzleOverride(new THREE.Vector3()) : f.model.muzzleWorld(new THREE.Vector3());
     if (muzzle.distanceToSquared(_o) > 4) muzzle.copy(_o);
     const spread = f.spread(W);
     const big = W.id === 3 || W.id === 5 || W.id === 11 || W.id === 10 || W.id === 8;
@@ -302,7 +319,7 @@ export class Game {
     mesh.position.copy(pos); this.scene.add(mesh);
     const v = new THREE.Vector3().copy(dir).multiplyScalar(W.speed);
     v.y += 2.2;
-    this.projectiles.push({ pos: pos.clone(), vel: v, owner: f, W, life: W.fuse, mesh, age: 0 });
+    this.projectiles.push({ pos: pos.clone(), prev: pos.clone(), vel: v, owner: f, W, life: W.fuse, mesh, age: 0 });
   }
   updateProjectiles(dt) {
     const fx = this.fx;
@@ -334,7 +351,6 @@ export class Game {
         continue;
       }
       p.pos.addScaledVector(p.vel, dt);
-      p.mesh.position.copy(p.pos);
       // 光の尾
       const c = new THREE.Color(p.W.color);
       fx.add.emit(fx.time, p.pos.x, p.pos.y, p.pos.z, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, (Math.random() - 0.5) * 0.4, 0.3, 0.22, 0.02, c.r * 1.4, c.g * 1.4, c.b * 1.4, 1.3, 0, 1, 0);
@@ -459,6 +475,7 @@ class Decoy {
     this.model = new FighterModel({ colors: owner.colors, skin: owner.model.o.skin, hair: owner.model.o.hair, eye: owner.model.o.eye, accent: owner.model.o.accent, name: owner.name, showName: !owner.isPlayer });
     this.model.setWeapon(owner.loadout[owner.slot]);
     this.pos = owner.pos.slice(); this.vel = [0, 0, 0]; this.onGround = owner.onGround; this.r = BODY.r; this.h = BODY.h;
+    this.prev = this.pos.slice(); this.rpos = this.pos.slice();
     this.yaw = owner.yaw; this.pitch = owner.pitch;
     const inp = owner.input; let mx = inp.mx, mz = inp.mz;
     if (Math.hypot(mx, mz) < 0.1) { mx = Math.random() < 0.5 ? -1 : 1; mz = 0.4; }
@@ -483,7 +500,7 @@ class Decoy {
   }
   updateModel(dt) {
     const o = this.owner;
-    this.model.update(dt, { x: this.pos[0], y: this.pos[1], z: this.pos[2], yaw: this.yaw, pitch: o.pitch, speed: BODY.run, moveLocal: { x: this.dir.x * Math.cos(this.yaw) - this.dir.z * Math.sin(this.yaw), z: this.dir.x * Math.sin(this.yaw) + this.dir.z * Math.cos(this.yaw) },
+    this.model.update(dt, { x: this.rpos[0], y: this.rpos[1], z: this.rpos[2], yaw: this.yaw, pitch: o.pitch, speed: BODY.run, moveLocal: { x: this.dir.x * Math.cos(this.yaw) - this.dir.z * Math.sin(this.yaw), z: this.dir.x * Math.sin(this.yaw) + this.dir.z * Math.cos(this.yaw) },
       onGround: this.onGround, vy: this.vel[1], crouch: false, act: null, recoil: 0, hitK: 0, showTag: !o.isPlayer && this.game.player && this.game.isEnemy(this.game.player, o), hp: o.hp, maxHp: 100, ghost: o.isPlayer ? 0.25 : 0 });
   }
 }

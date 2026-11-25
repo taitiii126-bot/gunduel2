@@ -133,6 +133,9 @@ export class UI {
         <div class="set-row"><label>${t('set.quality')}</label><div class="seg" id="set-q">${QUALITY_IDS.map(q => `<button class="${S.quality === q ? 'sel' : ''}" data-q="${q}">${t('set.q.' + q)}</button>`).join('')}</div></div>
         <div class="set-row"><label>${t('set.gpu')}</label><span class="gpu-line">${esc(app.gfx.gpu)}</span></div>
         ${range('resScale', 0.5, 1, 0.05, pct)}${tog('dynRes', 'set.dyn')}${range('fov', 60, 100, 1, v => v + '°')}</div>
+      <div class="set-sec"><h3>${t('set.view')}</h3>
+        <div class="set-row"><label>${t('set.view')}</label><div class="seg two" id="set-view"><button class="${S.view !== 'tps' ? 'sel' : ''}" data-view="fps">${t('set.view.fps')}</button><button class="${S.view === 'tps' ? 'sel' : ''}" data-view="tps">${t('set.view.tps')}</button></div></div>
+        ${tog('bob', 'set.bob')}</div>
       <div class="set-sec"><h3>${t('set.controls')}</h3>${range('sens', 0.2, 3, 0.05, v => (+v).toFixed(2))}${range('adsSens', 0.2, 1.5, 0.05, v => (+v).toFixed(2))}${range('touchSens', 0.3, 3, 0.05, v => (+v).toFixed(2))}
         ${tog('invertY', 'set.invert')}${tog('leftShoulder', 'set.shoulder')}</div>
       <div class="set-sec"><h3>${t('set.audio')}</h3>${range('master', 0, 1, 0.05, pct)}${range('sfx', 0, 1, 0.05, pct)}${range('music', 0, 1, 0.05, pct)}</div>
@@ -147,7 +150,8 @@ export class UI {
       app.applySettings(k);
     };
     P.onclick = (e) => {
-      const q = e.target.closest('[data-q]'), tg = e.target.closest('[data-tog]'), l = e.target.closest('[data-l]');
+      const q = e.target.closest('[data-q]'), tg = e.target.closest('[data-tog]'), l = e.target.closest('[data-l]'), vw = e.target.closest('[data-view]');
+      if (vw) { S.view = vw.dataset.view; app.applySettings('view'); this.openSettings(); return; }
       if (q) { S.quality = q.dataset.q; app.applySettings('quality'); this.openSettings(); }
       if (tg) { const k = tg.dataset.tog; S[k] = !S[k]; tg.classList.toggle('on', S[k]); app.applySettings(k); }
       if (l) { S.lang = l.dataset.l; setLang(S.lang); app.applySettings('lang'); this.apply(); this.buildMenu(); this.openSettings(); }
@@ -163,7 +167,7 @@ export class UI {
         <dt>${k('Left click')}</dt><dd>${t('howto.fire')}</dd><dt>${k('Right click')}</dt><dd>${t('howto.ads')}</dd>
         <dt>${k('Space')}</dt><dd>${t('howto.jump')}</dd><dt>${k('Ctrl', 'C')}</dt><dd>${t('howto.crouch')}</dd>
         <dt>${k('Shift')}</dt><dd>${t('howto.skill')}</dd><dt>${k('E')}</dt><dd>${t('howto.heal')}</dd><dt>${k('R')}</dt><dd>${t('howto.reload')}</dd>
-        <dt>${k('1', '2', '3', 'Q', 'Wheel')}</dt><dd>${t('howto.swap')}</dd><dt>${k('Tab')}</dt><dd>${t('howto.board')}</dd><dt>${k('Esc', 'P')}</dt><dd>${t('howto.pause')}</dd>
+        <dt>${k('1', '2', '3', 'Q', 'Wheel')}</dt><dd>${t('howto.swap')}</dd><dt>${k('V')}</dt><dd>${t('howto.view')}</dd><dt>${k('Tab')}</dt><dd>${t('howto.board')}</dd><dt>${k('Esc', 'P')}</dt><dd>${t('howto.pause')}</dd>
       </dl>
       <p class="tipbox">${t('howto.tip')}</p>
       <div class="panel-foot"><button class="start-btn sm" data-act="closeModal"><span>${t('set.close')}</span></button></div>`;
@@ -323,6 +327,9 @@ export class UI {
     cr.classList.toggle('foe', !!cam.aimEnemy && (W.kind !== 'melee' || cam.aimDist < W.reach + 2.5));
     cr.classList.toggle('melee', W.kind === 'melee');
     cr.classList.toggle('scoped', !!cam.scoped);
+    // 一人称で覗いているときは、銃の照準を使うので十字を消す（中心の点だけ残す）
+    cr.classList.toggle('ads', this.app.isFps() && W.kind !== 'melee' && f.adsK > 0.6);
+    cr.classList.toggle('optic', !!(this.app.vm && this.app.vm.cur && this.app.vm.cur.optic && f.adsK > 0.85));
     cr.style.display = f.alive && m.state !== 'end' ? '' : 'none';
     $('#scope').classList.toggle('on', !!(cam.scoped && f.alive));
     // 溜め・しぼり

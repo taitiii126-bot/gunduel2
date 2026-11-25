@@ -216,7 +216,7 @@ export function buildRuins(q) {
   const hemi = new THREE.HemisphereLight(0x8ea4e8, 0x5a3a26, 0.3); G.add(hemi);
   // 太陽：空の太陽の円は明るすぎて画面全体がにじむので消し、明るさを決めた光の円を置く（建物に隠れる）
   if (su.showSunDisc) su.showSunDisc.value = 0;
-  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow(256, 'rgba(255,236,200,1)', 'rgba(255,180,110,0)'), color: new THREE.Color(5, 3.9, 2.8), fog: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending }));
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow(256, 'rgba(255,236,200,1)', 'rgba(255,180,110,0)'), color: new THREE.Color(3, 2.3, 1.6), fog: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending }));
   sunSprite.position.copy(sunDir).multiplyScalar(1500); sunSprite.scale.setScalar(260); sunSprite.renderOrder = -4; G.add(sunSprite);
   const sunHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow(256, 'rgba(255,190,120,1)', 'rgba(255,140,80,0)'), color: new THREE.Color(0.32, 0.2, 0.12), fog: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending }));
   sunHalo.position.copy(sunSprite.position); sunHalo.scale.setScalar(900); sunHalo.renderOrder = -5; G.add(sunHalo);

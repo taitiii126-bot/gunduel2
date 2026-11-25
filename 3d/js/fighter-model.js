@@ -59,6 +59,11 @@ function placeSeg(mesh, P, Q) {
 }
 
 
+function wrap(a) { a %= Math.PI * 2; if (a > Math.PI) a -= Math.PI * 2; if (a < -Math.PI) a += Math.PI * 2; return a; }
+function clamp(v, a, b) { return v < a ? a : v > b ? b : v; }
+// ばね（o[x] を tgt へ、速さ o[v]）
+function stepSpring(o, x, v, tgt, k, c, dt) { const n = Math.max(1, Math.ceil(dt / (1 / 240))), h = dt / n; for (let i = 0; i < n; i++) { o[v] += (-k * (o[x] - tgt) - c * o[v]) * h; o[x] += o[v] * h; } }
+
 // 部品の形を、骨の空間に置いて焼きこむ
 function partGeo(geo, pos, rot, scl) {
   const g = geo.index ? geo.toNonIndexed() : geo.clone();
@@ -200,17 +205,27 @@ export class FighterModel {
     this.hpTex.needsUpdate = true;
   }
 
+  // 画面に出すレイヤー（一人称の自分は 1：画面には出ず、影だけ落とす）
+  setLayer(l) {
+    this.layer = l;
+    this.root.traverse(o => o.layers.set(l));
+    for (const w of Object.values(this.weapons)) w.g.traverse(o => o.layers.set(l));
+    if (this.knL) this.knL.traverse(o => o.layers.set(l));
+  }
+  // 持つ武器を先に作っておく
+  prebuild(ids) { for (const id of ids) if (!this.weapons[id]) { const w = this.weapons[id] = buildWeapon(id, WEAPONS[id].color); w.g.traverse(o => { if (o.isMesh) o.castShadow = true; o.layers.set(this.layer || 0); }); } }
+
   setWeapon(id) {
     if (this.wid === id) return;
     if (this.cur) this.holder.remove(this.cur.g);
     if (this.knL) { this.spine.remove(this.knL); this.knL = null; }
     let w = this.weapons[id];
-    if (!w) { w = this.weapons[id] = buildWeapon(id, WEAPONS[id].color); w.g.traverse(o => { if (o.isMesh) { o.castShadow = true; } }); }
+    if (!w) { w = this.weapons[id] = buildWeapon(id, WEAPONS[id].color); w.g.traverse(o => { if (o.isMesh) { o.castShadow = true; } o.layers.set(this.layer || 0); }); }
     this.cur = w; this.wid = id;
     this.holder.add(w.g);
     if (w.pose === 'fist') {
       // ナックルは両手。左手の分は手に直接つける
-      this.knL = w.g.clone(); this.spine.add(this.knL);
+      this.knL = w.g.clone(); this.spine.add(this.knL); this.knL.traverse(o => o.layers.set(this.layer || 0));
     }
   }
 
@@ -221,28 +236,58 @@ export class FighterModel {
     const root = this.root;
     root.position.set(st.x, st.y, st.z);
     root.rotation.y = st.yaw;
-    // 地面との関係
-    const speed = st.speed, mv = st.moveLocal;
-    this.air += ((st.onGround ? 0 : 1) - this.air) * Math.min(1, dt * 12);
-    this.crouch += ((st.crouch ? 1 : 0) - this.crouch) * Math.min(1, dt * 14);
-    // 下半身の向き（動く向きへ。後ろ歩きは反対向き）
-    let tgt = 0, back = false;
+    if (dt <= 0) { this.updateArms(0, st); return; }
+    // 動きの速さはなめらかにしてから使う（ぶつかったときの小さなゆれで脚がばたつかない）
+    const sv = this.sv || (this.sv = { x: 0, z: 0, px: 0, pz: 0 });
+    const kv = 1 - Math.exp(-dt * 14);
+    sv.x += (st.moveLocal.x - sv.x) * kv; sv.z += (st.moveLocal.z - sv.z) * kv;
+    const ax = (sv.x - sv.px) / dt, az = (sv.z - sv.pz) / dt; sv.px = sv.x; sv.pz = sv.z;
+    const speed = Math.hypot(sv.x, sv.z);
+    // 加速・減速で体が傾く（ばね）
+    const lean = this.leanS || (this.leanS = { x: 0, vx: 0, z: 0, vz: 0 });
+    stepSpring(lean, 'x', 'vx', clamp(az * 0.012, -0.16, 0.16), 90, 13, dt);
+    stepSpring(lean, 'z', 'vz', clamp(-ax * 0.012, -0.14, 0.14), 90, 13, dt);
+    // 着地の沈み込み
+    const dip = this.dipS || (this.dipS = { x: 0, v: 0 });
+    if (st.onGround && this.wasAir && (this.lastVy || 0) < -3) dip.v -= Math.min(2.6, -this.lastVy * 0.2);
+    this.wasAir = !st.onGround; this.lastVy = st.vy;
+    stepSpring(dip, 'x', 'v', 0, 120, 12, dt);
+    this.air += ((st.onGround ? 0 : 1) - this.air) * (1 - Math.exp(-dt * 12));
+    this.crouch += ((st.crouch ? 1 : 0) - this.crouch) * (1 - Math.exp(-dt * 14));
+    // 下半身の向き（世界）。歩くと動く向きへ（後ろ歩きは反対向き）。立ち止まっているときは足をつけたまま上半身だけひねり、ひねりすぎたら足を踏みかえる
+    if (this.lowerYaw == null) this.lowerYaw = st.yaw;
+    let back = false, turning = 0;
     if (speed > 0.4 && st.onGround) {
-      tgt = Math.atan2(mv.x, mv.z);
-      if (Math.abs(tgt) > 1.75) { back = true; tgt = tgt > 0 ? tgt - Math.PI : tgt + Math.PI; }
-      tgt = Math.max(-1.25, Math.min(1.25, tgt));
+      let tg = Math.atan2(sv.x, sv.z);
+      if (Math.abs(tg) > 1.75) { back = true; tg = tg > 0 ? tg - Math.PI : tg + Math.PI; }
+      tg = Math.max(-1.25, Math.min(1.25, tg));
+      this.lowerYaw += wrap(st.yaw + tg - this.lowerYaw) * (1 - Math.exp(-dt * 10));
+      this.turnStep = false;
+    } else if (!st.onGround) {
+      this.lowerYaw += wrap(st.yaw - this.lowerYaw) * (1 - Math.exp(-dt * 6));
+    } else {
+      const d = wrap(this.lowerYaw - st.yaw);
+      if (Math.abs(d) > 0.8) this.turnStep = true;
+      if (this.turnStep) {
+        const step = Math.sign(-d) * Math.min(Math.abs(d), dt * 7);
+        this.lowerYaw += step; turning = Math.abs(step) / dt;
+        if (Math.abs(d) < 0.06) this.turnStep = false;
+      }
     }
-    this.legYaw += (tgt - this.legYaw) * Math.min(1, dt * 10);
-    const run = Math.min(1, speed / 2.5) * (1 - this.air);
-    const stride = 0.12 + Math.min(speed, 7) * 0.075;
-    this.phase += (back ? -1 : 1) * speed * dt / (stride * 2.2 + 0.3);
+    this.legYaw = Math.max(-1.3, Math.min(1.3, wrap(this.lowerYaw - st.yaw)));
+    // 歩幅と足の運び（立っている足は地面にくっついたまま。すべらない）
+    let run = Math.min(1, speed / 1.2) * (1 - this.air);
+    let stride = (0.18 + Math.min(speed, 7) * 0.072) * (1 - this.crouch * 0.25);
+    if (turning > 0.1 && speed < 0.4) { run = Math.max(run, 0.35); stride = 0.1; this.phase += turning * dt * 0.32; }
+    this.phase += (back ? -1 : 1) * speed * dt / (4 * stride);
     // 足音
     const ph2 = Math.floor(this.phase * 2);
-    if (ph2 !== this.lastStep) { this.lastStep = ph2; if (run > 0.5 && this.stepCb) this.stepCb(); }
-    const bob = Math.abs(Math.sin(this.phase * Math.PI * 2)) * 0.05 * run;
+    if (ph2 !== this.lastStep) { this.lastStep = ph2; if (run > 0.5 && speed > 1.5 && this.stepCb) this.stepCb(); }
+    const ph = this.phase * Math.PI * 2;
+    const bob = (1 - Math.cos(ph * 2)) * 0.5 * 0.045 * run * Math.min(1, speed / 4);
     const roll = st.rollK > 0 ? st.rollK : 0;
-    this.hipH = 0.93 - this.crouch * 0.33 - bob + this.air * 0.04 - (roll > 0 ? 0.25 : 0) - (st.deadK ? st.deadK * 0.5 : 0);
-    this.hips.position.set(0, this.hipH, 0);
+    this.hipH = 0.93 - this.crouch * 0.33 - bob + this.air * 0.04 + dip.x * 0.12 - (roll > 0 ? 0.25 : 0) - (st.deadK ? st.deadK * 0.5 : 0);
+    this.hips.position.set(Math.sin(ph) * 0.018 * run, this.hipH, 0);
     // ロール：体ごと転がる
     if (roll > 0) {
       const dir = _d.set(st.rollDir.x, 0, st.rollDir.z);
@@ -252,19 +297,19 @@ export class FighterModel {
       this.tumble.position.set(0, 0.55, 0); this.body.position.set(0, -0.55, 0);
       this.tumble.quaternion.setFromAxisAngle(axis, roll * Math.PI * 2);
     } else { this.tumble.position.set(0, 0, 0); this.body.position.set(0, 0, 0); this.tumble.quaternion.identity(); }
-    // 背骨：前傾・狙いの上下・撃たれたときのゆれ・やられ
+    // 背骨：前傾・加速の傾き・狙いの上下・撃たれたときのゆれ・やられ
     const pitch = st.pitch;
-    const leanF = run * 0.12 + this.crouch * 0.18;
+    const leanF = run * 0.1 * Math.min(1, speed / 5) + this.crouch * 0.18 + lean.x;
     const hitWob = st.hitK > 0 ? Math.sin(t * 40) * 0.08 * st.hitK : 0;
-    this.spine.rotation.set(-pitch * 0.3 + leanF + (st.deadK ? st.deadK * 0.8 : 0), -this.legYaw * 0.15 + Math.sin(this.phase * Math.PI * 2) * 0.05 * run, hitWob);
-    this.hips.rotation.set(0, this.legYaw * 0.55, 0);
-    this.neck.rotation.set(-pitch * 0.35, 0, 0);
+    this.spine.rotation.set(-pitch * 0.3 + leanF + (st.deadK ? st.deadK * 0.8 : 0), -this.legYaw * 0.15 - Math.sin(ph) * 0.06 * run, hitWob + lean.z * 0.8);
+    this.hips.rotation.set(0, this.legYaw * 0.55 + Math.sin(ph) * 0.08 * run, Math.sin(ph) * 0.04 * run + lean.z * 0.4);
+    this.neck.rotation.set(-pitch * 0.35 - leanF * 0.4, Math.sin(ph) * 0.03 * run, -lean.z * 0.5);
     this.head.rotation.set(-pitch * 0.25, 0, 0);
     // 息づかい
     this.spine.position.y = 0.05 + Math.sin(t * 2.2) * 0.006;
     // マフラー
-    this.scarf.rotation.x = 0.35 + run * 0.6 + this.air * 0.5 + Math.sin(t * 5 + this.phase) * 0.08;
-    this.scarf.rotation.z = Math.sin(t * 2.7) * 0.15;
+    this.scarf.rotation.x = 0.35 + run * 0.6 * Math.min(1, speed / 5) + this.air * 0.5 + Math.sin(t * 5 + this.phase) * 0.08 + lean.x;
+    this.scarf.rotation.z = Math.sin(t * 2.7) * 0.15 - lean.z;
 
     this.updateLegs(dt, st, run, stride, back);
     this.updateArms(dt, st);
@@ -295,8 +340,8 @@ export class FighterModel {
       // 足の置き場所（脚の向きの空間）
       const p = ((this.phase + (s > 0 ? 0.5 : 0)) % 1 + 1) % 1;
       let fz, fy;
-      if (p < 0.5) { fz = stride * (1 - p * 4) * 0.5 * 2; fy = 0; }
-      else { const u = (p - 0.5) / 0.5; fz = stride * (-1 + u * 2); fy = Math.sin(u * Math.PI) * (0.1 + run * 0.08); }
+      if (p < 0.5) { fz = stride * (1 - p * 4); fy = 0; }   // 地面についている足：体の速さと同じだけ後ろへ
+      else { const u = (p - 0.5) / 0.5; fz = -stride * Math.cos(u * Math.PI); fy = Math.sin(u * Math.PI) * (0.06 + Math.min(0.14, stride * 0.2)); }   // 浮かせた足：なめらかに前へ
       fz *= run; fy *= run;
       if (back) fz = -fz;
       let fx = s * 0.13;

@@ -8,7 +8,7 @@ export const REGEN = { idle: 2.0, every: 2.0, amt: 20 };   // 2秒撃たず撃�
 // 体の大きさと動き
 export const BODY = {
   r: 0.38, h: 1.78, crouchH: 1.22, eye: 1.58, crouchEye: 1.08,
-  run: 6.6, crouch: 3.4, air: 0.55, accel: 60, airAccel: 14, friction: 12,
+  run: 6.6, crouch: 3.4, air: 0.55, accel: 52, airAccel: 14, friction: 44,
   jump: 8.4, gravity: 23, step: 0.55, maxFall: 40,
   headR: 0.2,
 };

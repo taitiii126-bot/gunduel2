@@ -7,6 +7,9 @@ import { NavGraph } from '../js/nav.js';
 import { stepCharacter } from '../js/collision.js';
 import { BODY, WEAPONS, WEAPON_IDS, SKILLS, SKILL_IDS, BOT_LOADOUTS, DEFAULT_LOADOUT } from '../js/data.js';
 import { QUALITY } from '../js/gfx.js';
+import * as THREE from '../lib/three.js';
+import { ViewModel } from '../js/viewmodel.js';
+import { buildWeapon } from '../js/weapons3d.js';
 
 const out = document.getElementById('out');
 const results = [];
@@ -79,6 +82,37 @@ for (const id of WEAPON_IDS) {
 check('はじめの装備は3つ・すべてちがう武器', DEFAULT_LOADOUT.length === 3 && new Set(DEFAULT_LOADOUT).size === 3);
 check('BOT の装備は3つずつ・すべてある武器', BOT_LOADOUTS.every(l => l.length === 3 && new Set(l).size === 3 && l.every(id => WEAPONS[id])));
 check('スキル5つ', SKILL_IDS.length === 5 && SKILL_IDS.every(s => SKILLS[s] && SKILLS[s].cd > 0));
+
+// 一人称の手元：どの武器でも腕と武器が正しく置かれ、覗くと照準が画面の真ん中に来る
+{
+  const vm = new ViewModel(), cam = new THREE.PerspectiveCamera(80, 16 / 9, 0.05, 500);
+  const f = { alive: true, loadout: [6], slot: 0, colors: { main: '#6d5cff', glow: '#c4b5fd' }, adsK: 0, vel: [0, 0, 0], onGround: true, crouching: false, swapT: 0, reloadT: 0, chargeT: 0, focusT: -1, meleeT: -1, meleeAlt: false, rollT: 0, parryT: 0, act: null };
+  const look = { dyaw: 0, dpitch: 0 }, opt = { show: true, bob: true, env: null, envK: 1 };
+  const bad = [], adsBad = [], gripBad = [];
+  const v = new THREE.Vector3();
+  for (const id of WEAPON_IDS) {
+    f.loadout = [id]; f.adsK = 0;
+    for (let i = 0; i < 90; i++) vm.update(1 / 60, f, look, cam, opt);
+    const nums = [...vm.pivot.position.toArray(), ...vm.arm.R.wr.toArray(), ...vm.arm.L.wr.toArray(), ...vm.muzzleCam(v).toArray()];
+    if (!nums.every(Number.isFinite) || v.z > -0.05) bad.push(id);
+    // 手のひら（手首から指の向きへ少し先）がにぎる所の近くにある
+    for (const A of [vm.arm.R]) { const palm = A.wr.clone().addScaledVector(A.dir, 0.03); if (palm.distanceTo(A.grip) > 0.035) gripBad.push(id + ':' + palm.distanceTo(A.grip).toFixed(3)); }
+    if (vm.cur.sight && WEAPONS[id].kind !== 'melee') {
+      f.adsK = 1;
+      for (let i = 0; i < 90; i++) vm.update(1 / 60, f, look, cam, opt);
+      v.copy(vm.cur.sight).applyMatrix4(vm.inner.matrix).applyMatrix4(vm.pivot.matrix);
+      if (Math.hypot(v.x, v.y) > 0.005 || v.z > -0.08) adsBad.push(`${id}:${v.toArray().map(x => x.toFixed(3))}`);
+    }
+  }
+  check('一人称の手元：すべての武器で腕と武器が置ける', bad.length === 0, bad.join(','));
+  check('一人称の手元：右手が武器のにぎりをつかむ', gripBad.length === 0, gripBad.join(' '));
+  check('一人称の手元：覗くと照準が画面の真ん中に来る', adsBad.length === 0, adsBad.join(' '));
+  const guns = WEAPON_IDS.filter(id => WEAPONS[id].kind !== 'melee');
+  const noSight = guns.filter(id => { const w = buildWeapon(id, WEAPONS[id].color); return !w.sight || !(w.adsD > 0); });
+  check('銃にはすべて覗く場所がある', noSight.length === 0, noSight.join(','));
+  const noRet = guns.filter(id => !WEAPONS[id].scope).filter(id => { const w = buildWeapon(id, WEAPONS[id].color); let r = false; w.g.traverse(o => { if (o.isMesh && o.material.isMeshBasicMaterial) r = true; }); return !r; });
+  check('スコープ以外の銃にはすべて光る照準（点）がある', noRet.length === 0, noRet.join(','));
+}
 
 const ng = results.filter(r => !r.ok);
 out.innerHTML += `\n${results.length - ng.length}/${results.length} OK\n`;

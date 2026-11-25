@@ -207,6 +207,10 @@ kbd{font-family:var(--f-ui);font-weight:700;font-size:10px;padding:1px 5px;borde
 .cross.foe{--col:#ff4d5e;}
 .cross.melee i{opacity:.35;}
 .cross.scoped i,.cross.scoped b{display:none;}
+.cross.ads i{opacity:0;}
+.cross.ads b{width:3px;height:3px;left:-1.5px;top:-1.5px;opacity:.75;}
+.cross.ads.optic b{opacity:0;}
+.cross i{transition:transform .06s,opacity .12s;}
 .cross .ring{position:absolute;left:-34px;top:-34px;width:68px;height:68px;transform:rotate(-90deg);opacity:0;transition:opacity .1s;}
 .cross .ring circle{fill:none;stroke-width:4;}
 .cross .ring .r-bg{stroke:rgba(255,255,255,.18);}
@@ -259,13 +263,13 @@ kbd{font-family:var(--f-ui);font-weight:700;font-size:10px;padding:1px 5px;borde
 .pill .cd{position:absolute;inset:0;background:conic-gradient(rgba(0,0,0,.65) var(--p,0%),transparent 0);pointer-events:none;}
 .pill.armed{border-color:var(--sc);box-shadow:0 0 12px var(--sc);}
 .wpn{position:absolute;right:calc(18px + var(--safe-r));bottom:calc(16px + var(--safe-b));display:flex;flex-direction:column;align-items:flex-end;gap:6px;}
-.wslot{display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:12px;background:rgba(8,10,16,.72);border:1px solid var(--line);opacity:.55;transition:.15s;pointer-events:auto;}
-.wslot img{width:84px;height:28px;object-fit:contain;}
+.wslot{display:flex;align-items:center;gap:8px;padding:4px 9px;border-radius:10px;background:rgba(8,10,16,.55);border:1px solid var(--line);opacity:.55;transition:.15s;pointer-events:auto;}
+.wslot img{width:64px;height:22px;object-fit:contain;}
 .wslot kbd{font-size:10px;}
 .wslot .am{font-family:var(--f-ui);font-weight:700;font-size:13px;color:var(--tx-2);min-width:44px;text-align:right;}
-.wslot.cur{opacity:1;border-color:rgba(255,197,61,.55);background:linear-gradient(120deg,rgba(60,46,14,.82),rgba(8,10,16,.82));padding:10px 14px;}
-.wslot.cur img{width:150px;height:46px;}
-.wslot.cur .am{font-size:30px;color:#fff;min-width:80px;}
+.wslot.cur{opacity:1;border-color:rgba(255,197,61,.55);background:linear-gradient(120deg,rgba(60,46,14,.62),rgba(8,10,16,.62));padding:7px 12px;}
+.wslot.cur img{width:104px;height:32px;}
+.wslot.cur .am{font-size:26px;color:#fff;min-width:64px;}
 .wslot.cur .am small{font-size:14px;color:var(--tx-2);}
 .wslot .am.empty{color:#ff6b7a;}
 .wname{font-size:12px;font-weight:700;color:var(--tx-2);}

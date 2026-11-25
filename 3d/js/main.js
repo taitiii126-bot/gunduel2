@@ -12,10 +12,12 @@ import { setLang, t } from './i18n.js';
 import { WEAPONS, WEAPON_IDS, DEFAULT_LOADOUT, SKILL_IDS, MAP_IDS, DIFF_IDS, MODES, clamp, pick } from './data.js';
 import { weaponIconScene } from './weapons3d.js';
 import { Bot } from './bot.js';
+import { ViewModel } from './viewmodel.js';
 
 const QS = new URLSearchParams(location.search);
 
 const SKEY = 'gd3d_settings', SELKEY = 'gd3d_sel';
+const STEP = 1 / 120;   // 動きの計算の刻み（120回/秒）。描くときは前と今のあいだを補間する
 
 function loadJSON(k, d) { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v && typeof v === 'object' ? v : d; } catch (e) { return d; } }
 function saveJSON(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* 保存できなくても遊べる */ } }
@@ -36,7 +38,7 @@ class App {
     this.state = 'boot';
     const two = this.two = read2D();
     const nav = (navigator.language || 'ja').toLowerCase();
-    this.settings = Object.assign({ quality: null, resScale: 1, dynRes: true, fov: 78, sens: 1, adsSens: 0.75, touchSens: 1, invertY: false, leftShoulder: false,
+    this.settings = Object.assign({ quality: null, view: 'fps', bob: true, resScale: 1, dynRes: true, fov: 82, sens: 1, adsSens: 0.75, touchSens: 1, invertY: false, leftShoulder: false,
       master: 0.8, sfx: 0.9, music: 0.45, shake: true, dmgNum: true, showFps: false, lang: two.lang || (nav.startsWith('ja') ? 'ja' : 'en') }, loadJSON(SKEY, {}));
     setLang(this.settings.lang);
     const p = two.p || {};
@@ -81,6 +83,8 @@ class App {
     this.ui.apply();
     if (this.input.isTouch) document.body.classList.add('touch');
     this.camCtl = new TPSCamera(this.gfx.camera, this.settings);
+    this.vm = new ViewModel();
+    this.gfx.setViewModel(this.vm.scene, this.vm.cam);
     this.input.onPause = () => { if (this.state === 'match' && !this.paused) this.pause(); else if (this.state === 'match' && this.paused && !this.input.isTouch) { /* Esc で閉じない（クリックで戻る） */ } };
     const step = (p, key) => new Promise(r => { this.ui.setBoot(p, key); setTimeout(r, 30); });
     await step(0.1, 'boot.icons');
@@ -117,6 +121,7 @@ class App {
     if (this.arena) unloadArena(this.arena, this.gfx);
     this.arena = loadArena(id, this.gfx);
     if (this.arena.api) this.arena.api.onThunder = () => this.audio.play('thunder');
+    this.arena.sun.shadow.camera.layers.enable(1);   // 一人称の自分の体：画面には出さず、影だけ落とす
     this.camCtl.orbitT = Math.random() * 6;
   }
 
@@ -171,10 +176,32 @@ class App {
     });
     g.on('heal', (d) => { if (d.f === this.match.player) this.healFlash = 1; });
     g.on('shot', (d) => { if (d.f === this.match.player && d.perfect) this.ui.popup(t('hud.just'), 'j'); });
+    g.on('fired', (d) => { if (d.f === this.match.player) { this.vm.onShot(d.W); if (this.isFps()) this.camCtl.onShot(d.W); } });
+    g.on('land', (d) => { if (d.f === this.match.player) { this.vm.onLand(d.k); this.camCtl.onLand(d.k); } });
+    g.on('jump', (d) => { if (d.f === this.match.player) this.vm.onJump(); });
+    g.on('damage', (d) => { if (d.f === this.match.player && this.isFps()) this.camCtl.onHurt(d.amt); });
+    // 一人称：弾の光跡は、手元の銃口が見える場所から
+    const me = this.match.player;
+    me.muzzleOverride = (out) => (this.isFps() && me.alive ? this.vm.muzzleWorld(this.gfx.camera, out) : me.model.muzzleWorld(out));
+    me.refreshAim = () => { if (this.auto) { this.camCtl.yaw = me.yaw; this.camCtl.pitch = me.pitch; } if (this.state === 'match') this.camCtl.aim(me, g); };
+    this.acc = 0; this.ownLayer = -1; this.lastYaw = null;
+    // シェーダーを先に作っておく（初めて撃ったときなどに止まらないように）
+    try {
+      for (const f of g.fighters) f.model.prebuild(f.loadout);
+      this.vm.setColors(me.colors); this.vm.setWeapon(me.loadout[0]);
+      this.gfx.renderer.compile(this.gfx.scene, this.gfx.camera);
+      this.gfx.renderer.compile(this.vm.scene, this.vm.cam);
+    } catch (e) { /* 古いブラウザ */ }
     g.on('parried', (d) => { if (d.by === this.match.player) this.ui.popup(t('hud.parry'), 'p'); });
     // テスト用：自分も BOT に動かしてもらう（?auto=1）
     if (QS.get('auto')) { const me = this.match.player; me.bot = new Bot(g, me, QS.get('autoDiff') || 'hard', {}); this.auto = true; this.input.enabled = false; }
     this.checkRotate();
+  }
+
+  isFps() { return this.settings.view !== 'tps'; }
+  toggleView() {
+    this.settings.view = this.isFps() ? 'tps' : 'fps'; saveJSON(SKEY, this.settings);
+    this.ui.popup(t(this.isFps() ? 'set.view.fps' : 'set.view.tps'), 's');
   }
 
   pause() {
@@ -225,6 +252,7 @@ class App {
     this.time = (this.time || 0) + rdt;
     if (this.state === 'match' && this.match) post = this.tickMatch(rdt);
     else {
+      this.gfx.vmOn = false;
       // タイトル・メニュー・結果：闘技場をゆっくり回って見せる
       const tc = this.arena.title;
       if (this.state !== 'results' || !this.match) this.camCtl.orbit(rdt, tc.center, tc.radius, tc.height, 0.06);
@@ -266,8 +294,15 @@ class App {
     if (this.auto) { cc.yaw = me.yaw; cc.pitch = me.pitch; this.input.clearFrame(); }
     else if (me.alive && m.state !== 'end') this.input.poll(me, cc, dt > 0 ? rdt : 0);
     else this.input.clearFrame();
+    if (this.input.viewToggle) { this.input.viewToggle = false; this.toggleView(); }
+    // 決まった刻み（1/120秒）で進め、余りは補間に使う
     const reps = this.auto ? this.reps : 1;
-    for (let i = 0; i < reps; i++) m.update(dt);
+    this.acc += dt * reps;
+    let n = 0;
+    const maxN = this.auto ? 60 : 12;
+    while (this.acc >= STEP && n < maxN) { g.beginTick(); m.update(STEP); this.acc -= STEP; n++; }
+    if (n >= maxN) this.acc = 0;
+    g.interpolate(this.acc / STEP);
     // カメラ
     this.spectating = false;
     if (m.killcam) cc.killcam(rdt, m.killcam.at, m.killcam.t);
@@ -276,13 +311,31 @@ class App {
       cc.orbit(rdt, tc.center, tc.radius * 0.9, tc.height * 0.8, 0.12);
       if (m.t > 2.2) cc.snapTo(me);
     }
-    else if (me.alive) cc.follow(dt, me, g);
+    else if (me.alive) { if (this.isFps()) cc.fps(rdt, me, g); else cc.follow(rdt, me, g); }
     else {
       const ally = m.o.mode === 'team' ? g.fighters.find(f => f.team === me.team && f !== me && f.alive) : null;
       if (ally && m.deadT > 2.2) { cc.spectate(rdt, ally, g); this.spectating = true; }
       else cc.deathView(rdt, me, me.killedBy, g);
     }
+    // 一人称：自分の体は画面に出さない（影は落とす）。やられたら見える
+    const fpsView = this.isFps() && me.alive && !m.killcam && m.state !== 'intro';
+    const layer = fpsView ? 1 : 0;
+    if (layer !== this.ownLayer) { this.ownLayer = layer; me.model.setLayer(layer); if (!fpsView) me.model.root.visible = me.alive || me.dissolve < 1.05; }
     g.updateModels(dt, cam);
+    // 手元の腕と武器
+    const look = this.lookD || (this.lookD = { dyaw: 0, dpitch: 0 });
+    if (this.lastYaw == null) { this.lastYaw = cc.yaw; this.lastPitch = cc.pitch; }
+    look.dyaw = cc.yaw - this.lastYaw; look.dpitch = cc.pitch - this.lastPitch; this.lastYaw = cc.yaw; this.lastPitch = cc.pitch;
+    this.shadowT = (this.shadowT || 0) - rdt;
+    if (this.shadowT <= 0 && fpsView) {
+      this.shadowT = 0.1;
+      const sd = this.arena.sun.position, L = Math.hypot(sd.x, sd.y, sd.z) || 1, p = cam.position;
+      this.inShadow = !!g.world.raycast(p.x, p.y, p.z, sd.x / L, sd.y / L, sd.z / L, 90);
+    }
+    this.vm.light(this.arena, this.inShadow, rdt);
+    const showVm = fpsView && !cc.scoped && m.state !== 'end';
+    this.vm.update(rdt, me, look, cam, { show: showVm, bob: this.settings.bob !== false, env: this.gfx.scene.environment, envK: this.gfx.scene.environmentIntensity });
+    this.gfx.vmOn = showVm;
     tickArena(this.arena, dt, this.time);
     this.fx.update(dt, cam, this.gfx.renderer.domElement.height);
     this.audio.intensity = clamp(g.fighters.filter(f => f.alive && g.time - (f.lastShotT || -9) < 1).length / 3, 0, 1);
