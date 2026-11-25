@@ -188,7 +188,7 @@ kbd{font-family:var(--f-ui);font-weight:700;font-size:10px;padding:1px 5px;borde
 @keyframes feedIn{from{opacity:0;transform:translateX(20px)}}
 .banner{position:absolute;left:0;right:0;top:21%;display:flex;flex-direction:column;align-items:center;gap:6px;opacity:0;pointer-events:none;}
 .banner b{font-family:var(--f-disp);font-size:clamp(34px,6vw,72px);letter-spacing:.04em;color:#fff;text-shadow:0 4px 30px rgba(0,0,0,.7);}
-.banner small{font-family:var(--f-ui);font-weight:700;font-size:15px;letter-spacing:.16em;color:var(--tx-2);text-shadow:0 2px 10px rgba(0,0,0,.9);}
+.banner small{font-family:var(--f-ui);font-weight:700;font-size:15px;letter-spacing:.16em;color:var(--tx-2);text-shadow:0 2px 10px rgba(0,0,0,.9);white-space:pre-line;text-align:center;line-height:1.7;}
 .banner.show{animation:ban 2.4s var(--ease) both;}
 .banner.win b{background:var(--gold-grad);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 0 24px rgba(255,197,61,.5));}
 .banner.lose b{color:#ff6b7a;}
@@ -342,7 +342,7 @@ body.touch .popup{top:62%;}
 .res-mine small{font-size:11px;color:var(--tx-2);}
 .mvp{font-size:10px;font-weight:700;color:var(--gold-ink);background:var(--gold-grad);padding:1px 6px;border-radius:5px;margin-left:6px;vertical-align:middle;}
 
-#rotate,#nogl{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#07080C;z-index:40;text-align:center;padding:24px;font-weight:700;}
+#rotate,#nogl,#glost{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#07080C;z-index:40;text-align:center;padding:24px;font-weight:700;}
 #rotate svg{width:64px;height:64px;color:var(--gold);animation:rot 1.6s ease-in-out infinite;}
 @keyframes rot{50%{transform:rotate(-90deg)}}
 

@@ -67,7 +67,14 @@ export class Match {
     const g = this.game, ui = this.app.ui;
     if (s === 'intro') {
       g.frozen = true;
-      ui.banner(this.o.mode === 'ffa' ? ui.t('mode.ffa') : ui.t('round.n', { n: this.round }), this.o.mode === 'ffa' ? ui.t('ffa.goal', { n: this.mode.killGoal }) : ui.t('mode.' + this.o.mode) + ' · ' + ui.t('map.' + this.o.map), 'intro');
+      if (this.o.mode !== 'ffa') this.timeLeft = this.mode.roundTime; else if (!this.timeLeft) this.timeLeft = this.mode.time;
+      let sub;
+      if (this.o.mode === 'ffa') sub = ui.t('ffa.goal', { n: this.mode.killGoal }) + ' · ' + ui.t('map.' + this.o.map);
+      else {
+        const names = (t) => g.fighters.filter(f => f.team === t).map(f => f.name).join(' & ');
+        sub = names(0) + '   VS   ' + names(1) + '\n' + ui.t('mode.' + this.o.mode) + ' · ' + ui.t('map.' + this.o.map);
+      }
+      ui.banner(this.o.mode === 'ffa' ? ui.t('mode.ffa') : ui.t('round.n', { n: this.round }), sub, 'intro');
     } else if (s === 'count') {
       g.frozen = true;
     } else if (s === 'fight') {

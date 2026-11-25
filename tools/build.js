@@ -35,5 +35,5 @@ for (const f of fs.readdirSync(root)) if (/\.(png|jpg|jpeg|gif|svg|ico|webp|mp3|
 // 攻略ガイド（dist/guide/）。読みにくくはしない（ゲームの数字は sim.js から作り直すので、いつも今のゲームと同じ）
 require('./guide.js').build(out);
 // 3D版（dist/3d/）。ES モジュールのまま出す（読みにくくはしない。試合はこの端末の中だけで、ランクやレートには関わらない）
-fs.cpSync(path.join(root, '3d'), path.join(out, '3d'), { recursive: true, filter: (src) => !/[\\/]_dev([\\/]|$)/.test(src) });
+fs.cpSync(path.join(root, '3d'), path.join(out, '3d'), { recursive: true, filter: (src) => !/[\\/](_dev|tests)([\\/]|$)/.test(src) });
 console.log('dist/ を作りました（' + seed + '）：', fs.readdirSync(out).join(', '));

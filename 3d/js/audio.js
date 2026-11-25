@@ -215,6 +215,7 @@ export class Sound {
       case 'death': { const d = out(0.7, 0.4); this.osc('sawtooth', 600, 60, t, 0.6, d, 0.2); this.osc('sine', 300, 40, t, 0.7, d, 0.4); break; }
       case 'fall': { const d = out(0.5, 0.3); this.noiseHit(t, 1.2, d, 0.5, 'bandpass', 2000, 200, 1, 0.2); break; }
       case 'spawn': { const d = out(0.5, 0.4); this.osc('sine', 300, 1200, t, 0.35, d, 0.3, 0.02); this.noiseHit(t, 0.35, d, 0.2, 'highpass', 3000, 8000, 1, 0.05); break; }
+      case 'heart': { const d = out(0.5); this.osc('sine', 70, 45, t, 0.12, d, 0.9, 0.006); this.osc('sine', 62, 40, t + 0.16, 0.12, d, 0.6, 0.006); break; }
       case 'whiz': { const d = out(0.4); this.noiseHit(t, 0.09, d, 0.5, 'bandpass', 3500, 1200, 3, 0.01); break; }
     }
   }

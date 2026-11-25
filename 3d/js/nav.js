@@ -58,7 +58,7 @@ export class NavGraph {
           let type = null, cost = d;
           if (Math.abs(dy) <= BODY.step) { if (this.walkable(n, m)) type = 'walk'; }
           else if (dy < 0 && dy >= -8) { if (this.dropable(n, m)) { type = 'drop'; cost = d + 0.6; } }
-          else if (dy > 0 && dy <= 1.25) { if (this.dropable(m, n)) { type = 'jump'; cost = d + 1.5; } }
+          else if (dy > 0 && dy <= 1.45) { if (this.dropable(m, n)) { type = 'jump'; cost = d + 1.5 + (dy > 1.2 ? 1.5 : 0); } }   // 跳んで、足りない分はよじ登る
           if (!type) continue;
           cost *= 1 + m.edge * 2.5;   // 端は遠回りに感じさせる（落ちないように）
           n.edges.push({ to: m.id, cost, type });

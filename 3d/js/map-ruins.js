@@ -1,6 +1,6 @@
 // ステージ1「天空遺跡ソラリア」：雲の海に浮かぶ古い石の闘技場。夕暮れの太陽、遠くの浮島と滝、空にかかる大きな石の輪
 import * as THREE from '../lib/three.js';
-import { Sky, Lensflare, LensflareElement } from '../lib/three.js';
+import { Sky } from '../lib/three.js';
 import { ArenaBuilder, stdMat, glowMat, floatingRock, cloudSea, ambientMotes, windify, U, TEX } from './arena-common.js';
 
 export function buildRuins(q) {
@@ -197,17 +197,6 @@ export function buildRuins(q) {
     B.updaters.push((dt, t) => { g.position.y = y + Math.sin(t * 0.15 + i) * 1.5; });
   });
 
-  // 空にかかる、こわれた大きな石の輪（遠くにかすむ）
-  const ringGrp = new THREE.Group(); ringGrp.position.set(-160, 90, -760); ringGrp.rotation.set(0.22, 0.45, 0.1);
-  const segMat = new THREE.MeshStandardMaterial({ color: 0x4a4650, roughness: 1, flatShading: true }), runeBand = glowMat('#FFB547', 0.5);
-  for (let i = 0; i < 11; i++) {
-    const a0 = i / 11 * Math.PI * 2 + (i % 2) * 0.05, len = Math.PI * 2 / 11 * (0.55 + ((i * 7) % 5) * 0.08);
-    const seg = new THREE.Mesh(new THREE.TorusGeometry(240, 16 + (i % 3) * 3, 7, 18, len), segMat); seg.rotation.z = a0; ringGrp.add(seg);
-    if (i % 2 === 0) { const band = new THREE.Mesh(new THREE.TorusGeometry(240, 16.6, 4, 18, len * 0.7), runeBand); band.rotation.z = a0 + len * 0.15; band.scale.set(1, 1, 0.1); ringGrp.add(band); }
-  }
-  G.add(ringGrp);
-  B.updaters.push((dt, t) => { ringGrp.rotation.z = 0.1 + t * 0.003; });
-
   // 金の光の粒（花粉のようにただよう）
   const motes = ambientMotes({ count: Math.round(700 * q.particles), box: 70, color: '#FFD08A', size: 0.09, fall: -0.05 });
   G.add(motes);
@@ -216,7 +205,7 @@ export function buildRuins(q) {
   const sunDir = new THREE.Vector3().setFromSphericalCoords(1, THREE.MathUtils.degToRad(78), THREE.MathUtils.degToRad(115));
   const sky = new Sky(); sky.scale.setScalar(4500);
   const su = sky.material.uniforms;
-  su.turbidity.value = 6; su.rayleigh.value = 2.2; su.mieCoefficient.value = 0.0035; su.mieDirectionalG.value = 0.8; su.sunPosition.value.copy(sunDir);
+  su.turbidity.value = 3.2; su.rayleigh.value = 1.6; su.mieCoefficient.value = 0.0022; su.mieDirectionalG.value = 0.78; su.sunPosition.value.copy(sunDir);
   if (su.cloudCoverage) { su.cloudCoverage.value = 0.35; su.cloudDensity.value = 0.5; su.cloudElevation.value = 0.5; }
   G.add(sky);
   const sea = cloudSea({ y: -70, lit: '#FFE2C2', shade: '#9C7E9E', fog: '#E8B79A', sunDir, sunCol: '#FFB070', scale: 0.0045 });
@@ -225,17 +214,15 @@ export function buildRuins(q) {
   sun.position.copy(sunDir).multiplyScalar(120); sun.target.position.set(0, 0, 0);
   G.add(sun); G.add(sun.target);
   const hemi = new THREE.HemisphereLight(0x8ea4e8, 0x5a3a26, 0.3); G.add(hemi);
-  // レンズフレア
-  if (q.id !== 'low') {
-    const lf = new Lensflare();
-    const t0 = TEX.glow(256, 'rgba(255,240,210,1)', 'rgba(255,200,120,0)'), t1 = TEX.glow(64, 'rgba(255,190,120,1)', 'rgba(255,150,80,0)');
-    lf.addElement(new LensflareElement(t0, 140, 0, new THREE.Color(0.7, 0.6, 0.45)));
-    lf.addElement(new LensflareElement(t1, 60, 0.6)); lf.addElement(new LensflareElement(t1, 90, 0.7)); lf.addElement(new LensflareElement(t1, 140, 0.9)); lf.addElement(new LensflareElement(t1, 70, 1.0));
-    const lfHolder = new THREE.Object3D(); lfHolder.position.copy(sunDir).multiplyScalar(900); lfHolder.add(lf); G.add(lfHolder);
-  }
+  // 太陽：空の太陽の円は明るすぎて画面全体がにじむので消し、明るさを決めた光の円を置く（建物に隠れる）
+  if (su.showSunDisc) su.showSunDisc.value = 0;
+  const sunSprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow(256, 'rgba(255,236,200,1)', 'rgba(255,180,110,0)'), color: new THREE.Color(5, 3.9, 2.8), fog: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending }));
+  sunSprite.position.copy(sunDir).multiplyScalar(1500); sunSprite.scale.setScalar(260); sunSprite.renderOrder = -4; G.add(sunSprite);
+  const sunHalo = new THREE.Sprite(new THREE.SpriteMaterial({ map: TEX.glow(256, 'rgba(255,190,120,1)', 'rgba(255,140,80,0)'), color: new THREE.Color(0.32, 0.2, 0.12), fog: false, depthWrite: false, transparent: true, blending: THREE.AdditiveBlending }));
+  sunHalo.position.copy(sunSprite.position); sunHalo.scale.setScalar(900); sunHalo.renderOrder = -5; G.add(sunHalo);
   // 環境マップ用の場面（空と雲の海だけ）
   const env = new THREE.Scene();
-  const sky2 = new Sky(); sky2.scale.setScalar(4500); Object.assign(sky2.material.uniforms.sunPosition.value, sunDir);
+  const sky2 = new Sky(); sky2.scale.setScalar(4500); sky2.material.uniforms.sunPosition.value.copy(sunDir); if (sky2.material.uniforms.showSunDisc) sky2.material.uniforms.showSunDisc.value = 0;
   for (const k2 of ['turbidity', 'rayleigh', 'mieCoefficient', 'mieDirectionalG']) sky2.material.uniforms[k2].value = su[k2].value;
   env.add(sky2);
   const envFloor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshBasicMaterial({ color: 0x8a6a62 })); envFloor.rotation.x = -Math.PI / 2; envFloor.position.y = -40; env.add(envFloor);
@@ -243,7 +230,7 @@ export function buildRuins(q) {
   return {
     id: 'ruins', builder: B, group: G, world: W, spawns: B.spawns, sun, sunExtent: 33, envScene: env,
     fog: new THREE.Fog(0xe6b296, 90, 700), background: null,
-    grade: { tint: new THREE.Color(1.04, 1.0, 0.95), sat: 1.12, contrast: 1.08, bloom: 0.3, bloomThreshold: 1.6, bloomRadius: 0.45, exposure: 0.72, vignette: 0.3 }, envIntensity: 0.45,
+    grade: { tint: new THREE.Color(1.04, 1.0, 0.95), sat: 1.12, contrast: 1.08, bloom: 0.24, bloomThreshold: 2.2, bloomRadius: 0.4, exposure: 0.72, vignette: 0.3 }, envIntensity: 0.45,
     dust: 0.7, music: 'battle', ambient: null,
     update(dt, t) { for (const f of B.updaters) f(dt, t); },
     title: { center: new THREE.Vector3(0, 2, 0), radius: 26, height: 9 },

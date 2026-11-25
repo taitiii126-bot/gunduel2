@@ -38,7 +38,8 @@ export class Input {
       if (e.button === 0) { if (this.mouse.left) this.mouse.leftReleased = true; this.mouse.left = false; }
       if (e.button === 2) this.mouse.right = false;
     });
-    window.addEventListener('mousemove', (e) => { if (this.locked) { this.mouse.dx += e.movementX; this.mouse.dy += e.movementY; } });
+    // ロックした直後などに、とても大きな値が1回だけ来ることがあるので捨てる
+    window.addEventListener('mousemove', (e) => { if (this.locked && Math.abs(e.movementX) < 400 && Math.abs(e.movementY) < 400) { this.mouse.dx += e.movementX; this.mouse.dy += e.movementY; } });
     window.addEventListener('wheel', (e) => { if (this.locked) this.mouse.wheel += Math.sign(e.deltaY); }, { passive: true });
     this.canvas.addEventListener('contextmenu', (e) => e.preventDefault());
     document.addEventListener('pointerlockchange', () => {

@@ -95,6 +95,11 @@ class App {
     this.loop();
     document.addEventListener('visibilitychange', () => { if (document.hidden && this.state === 'match' && !this.paused) this.pause(); });
     window.addEventListener('resize', () => this.checkRotate());
+    this.canvas.addEventListener('webglcontextlost', (e) => {
+      e.preventDefault();
+      if (this.state === 'match' && !this.paused) this.pause();
+      this.ui.hide('pause'); document.getElementById('glost').classList.remove('hide');
+    });
     window.__gd3d = this;   // テスト用
   }
 
@@ -221,7 +226,13 @@ class App {
       // タイトル・メニュー・結果：闘技場をゆっくり回って見せる
       const tc = this.arena.title;
       if (this.state !== 'results' || !this.match) this.camCtl.orbit(rdt, tc.center, tc.radius, tc.height, 0.06);
-      else { const m = this.match; m.game.updateModels(rdt, cam); this.camCtl.orbit(rdt, tc.center, tc.radius * 0.8, tc.height, 0.05); }
+      else {
+        const m = this.match, g = m.game;
+        const win = m.o.mode === 'ffa' ? m.standings()[0] : (g.fighters.find(f => f.victory && f.alive) || g.fighters.find(f => f.alive));
+        g.updateModels(rdt, cam);
+        if (win) { const c = new THREE.Vector3(win.pos[0], win.pos[1] + 1.1, win.pos[2]); this.camCtl.orbit(rdt, c, 4.2, 0.5, 0.22); }
+        else this.camCtl.orbit(rdt, tc.center, tc.radius * 0.8, tc.height, 0.05);
+      }
       tickArena(this.arena, rdt, this.time);
       this.fx.update(rdt, cam, gfx.renderer.domElement.height);
     }
@@ -279,6 +290,8 @@ class App {
     this.healFlash = Math.max(0, (this.healFlash || 0) - rdt * 1.6);
     post.damage = this.dmgFlash;
     post.low = me.alive ? clamp((40 - me.hp) / 40, 0, 1) : 0;
+    this.beatT = (this.beatT || 0) - rdt;
+    if (me.alive && me.hp <= 30 && this.beatT <= 0 && m.state === 'fight') { this.audio.play('heart'); this.beatT = 0.55 + me.hp / 60; }
     post.heal = this.healFlash;
     post.chroma = (me.rollT > 0 ? 0.012 : 0) + this.dmgFlash * 0.008 + (m.killcam ? 0.01 : 0) + (me.padT > 0 && !me.onGround ? 0.006 : 0);
     post.flash = me.parryT > 0 ? 0.05 : 0;
