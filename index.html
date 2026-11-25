@@ -163,6 +163,12 @@ kbd{font-family:var(--f-ui);font-weight:700;}
 .play-btn.primary small{color:rgba(26,18,4,.7);}
 .play-btn.online{animation-delay:.06s;}
 .play-btn.online .pb-ic{color:#B9A2FF;border-color:rgba(157,116,255,.35);background:rgba(157,116,255,.1);}
+.play-btn.three-d{grid-column:1/-1;flex-direction:row;justify-content:flex-start;gap:14px;min-height:84px;padding:14px 18px;text-align:left;text-decoration:none;color:var(--tx);
+  background:linear-gradient(110deg,rgba(124,58,237,.42),rgba(14,159,176,.32) 55%,rgba(255,197,61,.22));border-color:rgba(157,116,255,.45);animation-delay:.12s;}
+.play-btn.three-d .pb-ic{color:#7DF9FF;border-color:rgba(125,249,255,.4);background:rgba(125,249,255,.1);}
+.play-btn.three-d .td-tx{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0;}
+.play-btn.three-d small{color:var(--tx-2);}
+.play-btn.three-d .td-new{font-family:var(--f-ui);font-weight:700;font-size:11px;letter-spacing:.12em;color:var(--gold-ink);background:var(--gold-grad);padding:3px 8px;border-radius:6px;flex:none;}
 .sub-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:10px;}
 @media (max-width:560px){.sub-grid{grid-template-columns:1fr 1fr;}}
 .sub-btn{display:flex;align-items:center;justify-content:center;gap:9px;padding:13px 10px;border-radius:13px;background:var(--panel);border:1px solid var(--line);color:var(--tx-2);font-size:14px;font-weight:900;letter-spacing:.04em;transition:.18s var(--ease);animation:item-in .5s var(--ease) both;animation-delay:.12s;}
@@ -2871,6 +2877,11 @@ body.mland .home-hero{height:72vh;}
           <span class="pb-ic"><svg class="i" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></svg></span>
           <b data-i18n="menu.online"></b><small data-i18n="menu.online.sub"></small>
         </button>
+        <!-- 3D版（別のページ。2D版の名前・見た目・スキルを読んで使う） -->
+        <a class="play-btn three-d" href="3d/">
+          <span class="pb-ic"><svg class="i" viewBox="0 0 24 24"><path d="M12 2.5 21 7.5v9L12 21.5 3 16.5v-9z"/><path d="M3 7.5 12 12.5l9-5M12 12.5v9"/></svg></span>
+          <span class="td-tx"><b data-i18n="menu.3d"></b><small data-i18n="menu.3d.sub"></small></span><span class="td-new">NEW</span>
+        </a>
       </div>
       <!-- 準備のボタン（小さめ） -->
       <div class="sub-grid">
