@@ -134,7 +134,7 @@ export class UI {
         <div class="set-row"><label>${t('set.gpu')}</label><span class="gpu-line">${esc(app.gfx.gpu)}</span></div>
         ${range('resScale', 0.5, 1, 0.05, pct)}${tog('dynRes', 'set.dyn')}${range('fov', 60, 100, 1, v => v + '°')}</div>
       <div class="set-sec"><h3>${t('set.view')}</h3>
-        <div class="set-row"><label>${t('set.view')}</label><div class="seg two" id="set-view"><button class="${S.view !== 'tps' ? 'sel' : ''}" data-view="fps">${t('set.view.fps')}</button><button class="${S.view === 'tps' ? 'sel' : ''}" data-view="tps">${t('set.view.tps')}</button></div></div>
+        <div class="set-row"><label>${t('set.view')}</label><div class="seg two wide" id="set-view"><button class="${S.view !== 'tps' ? 'sel' : ''}" data-view="fps">${t('set.view.fps')}</button><button class="${S.view === 'tps' ? 'sel' : ''}" data-view="tps">${t('set.view.tps')}</button></div></div>
         ${tog('bob', 'set.bob')}</div>
       <div class="set-sec"><h3>${t('set.controls')}</h3>${range('sens', 0.2, 3, 0.05, v => (+v).toFixed(2))}${range('adsSens', 0.2, 1.5, 0.05, v => (+v).toFixed(2))}${range('touchSens', 0.3, 3, 0.05, v => (+v).toFixed(2))}
         ${tog('invertY', 'set.invert')}${tog('leftShoulder', 'set.shoulder')}</div>
