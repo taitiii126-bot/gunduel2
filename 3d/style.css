@@ -378,6 +378,15 @@ body.touch .popup{top:62%;}
   .res-mine b{font-size:18px;}
   .lo-grid{grid-template-columns:repeat(auto-fill,minmax(104px,1fr));}
 }
+@media (max-height:640px){
+  .wslot{padding:4px 8px;}
+  .wslot img{width:60px;height:22px;}
+  .wslot.cur{padding:6px 10px;}
+  .wslot.cur img{width:104px;height:32px;}
+  .wslot.cur .am{font-size:22px;min-width:56px;}
+  .hp{width:min(280px,36vw);}
+  .hp-num b{font-size:32px;}
+}
 @media (max-height:520px){
   #menu{padding-top:calc(8px + var(--safe-t));padding-bottom:calc(8px + var(--safe-b));}
   .mn-top{margin-bottom:8px;}

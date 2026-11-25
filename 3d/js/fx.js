@@ -333,6 +333,15 @@ export class Fx {
 
   tracer(a, b, color, width, speed, streak, life) { this.tracers.add(this.time, a, b, this._c.set(color), width, speed, streak, life); }
 
+  // 試合が変わったら、弾痕・光・輪を消す（前のステージの弾痕が宙に残らないように）
+  clear() {
+    const zero = new THREE.Matrix4().makeScale(0, 0, 0);
+    for (let i = 0; i < 300; i++) this.decals.setMatrixAt(i, zero);
+    this.decals.instanceMatrix.needsUpdate = true; this.decalHead = 0;
+    for (const L of this.lights) L.intensity = 0;
+    for (const R of this.rings) R.m.visible = false;
+  }
+
   // 雨・雪のような、ずっと続く物は arenas 側。ここは毎フレームの片付け
   update(dt, camera, viewportH) {
     this.time += dt;

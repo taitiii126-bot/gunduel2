@@ -121,12 +121,12 @@ export function buildHarbor(q) {
   const flick = [];
   for (const [txt, col, p, ry, w, h] of signs) {
     const tex = TEX.neon(txt, col, 1024, Math.round(1024 * h / w));
-    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(1.8, 1.8, 1.8) });
+    const mat = new THREE.MeshBasicMaterial({ map: tex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, color: new THREE.Color(1.3, 1.3, 1.3) });
     const m = new THREE.Mesh(new THREE.PlaneGeometry(w, h), mat); m.position.set(...p); m.rotation.y = ry; G.add(m);
     flick.push({ mat, seed: Math.random() * 100 });
   }
   B.updaters.push((dt, t) => {
-    for (const f of flick) { const n = Math.sin(t * 13 + f.seed) * Math.sin(t * 7.3 + f.seed * 2); f.mat.color.setScalar(n > 0.92 ? 0.3 : 1.8); }
+    for (const f of flick) { const n = Math.sin(t * 13 + f.seed) * Math.sin(t * 7.3 + f.seed * 2); f.mat.color.setScalar(n > 0.92 ? 0.25 : 1.3); }
   });
   // 路地の壁の小さな看板
   for (const [txt, col, x, z, ry] of [['カラオケ', '#FF3DB8', -20, 4.05, Math.PI], ['HOTEL', '#22E5FF', 18, -4.05, 0], ['薬', '#7CFF6B', 0, 4.05, Math.PI], ['DUEL', '#FFD23D', -2, -4.05, 0]]) {

@@ -51,6 +51,7 @@ class App {
     this.canvas = document.getElementById('gl');
     this.timeScale = 1; this.paused = false; this.icons = {};
     this.lastNow = performance.now(); this.noRender = !!QS.get('norender');
+    this.fixedDt = +QS.get('fixedDt') || 0; this.reps = Math.max(1, +(QS.get('speed') || 1));   // テスト用
     this.fpsT = 0; this.fpsN = 0;
   }
 
@@ -148,7 +149,7 @@ class App {
     ['menu', 'results', 'pause', 'loadout', 'settings', 'howto', 'stats'].forEach(id => this.ui.hide(id));
     if (this.match) { this.match.dispose(); this.match = null; }
     this.previewArena(map);
-    this.fx.mult = this.gfx.q.particles;
+    this.fx.mult = this.gfx.q.particles; this.fx.clear();
     this.match = new Match(this, { mode: s.mode, map, diff: s.diff, loadout: s.loadout, skill: s.skill, name: this.profile.name, look: this.profile.look });
     this.state = 'match'; this.paused = false; this.timeScale = 1; this.spectating = false;
     this.camCtl.snapTo(this.match.player);
@@ -214,8 +215,9 @@ class App {
   // ---------------- 毎フレーム ----------------
   loop() {
     requestAnimationFrame(() => this.loop());
+    if (this.manual) { if (!this.stepReq) return; this.stepReq = false; }   // テスト用：1コマずつ進める
     const now = performance.now(); let rdt = Math.min(0.05, (now - this.lastNow) / 1000); this.lastNow = now;
-    if (QS.get('fixedDt')) rdt = +QS.get('fixedDt');
+    if (this.fixedDt) rdt = this.fixedDt;
     if (this.state === 'boot') return;
     this.gfx.adapt(rdt);
     const gfx = this.gfx, cam = gfx.camera;
@@ -264,7 +266,7 @@ class App {
     if (this.auto) { cc.yaw = me.yaw; cc.pitch = me.pitch; this.input.clearFrame(); }
     else if (me.alive && m.state !== 'end') this.input.poll(me, cc, dt > 0 ? rdt : 0);
     else this.input.clearFrame();
-    const reps = this.auto ? Math.max(1, +(QS.get('speed') || 1)) : 1;
+    const reps = this.auto ? this.reps : 1;
     for (let i = 0; i < reps; i++) m.update(dt);
     // カメラ
     this.spectating = false;

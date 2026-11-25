@@ -127,6 +127,18 @@ GitHubのWebでファイルを差し替えるだけです。Railwayが自動で�
 
 ---
 
+## 3D版（`/3d/`）
+
+ホームの「3D版」ボタンから開く、3D の対戦です（1v1・2v2・フリーフォーオール。相手と味方は BOT）。試合はブラウザの中だけで進み、サーバーとは通信しません（ランク・レート・ミッションには影響しません）。GitHub Pages に出すときに `tools/build.js` が `3d/` をそのまま `dist/3d/` にコピーします（`3d/tests/` と `3d/_dev/` は除く）。
+
+- 描画は three.js r187（`3d/lib/three.js`。three.js と使う部品を esbuild で1つにまとめた物。MIT、`3d/lib/LICENSE-three.txt`）。WebGL2 が使えない端末では案内を出します
+- 名前・肌と髪の色・持っているスキル・武器の組み合わせは、2D版のプロフィール（`localStorage`）から読むだけで、書きかえません。3D版の設定と戦績は `gd3d_settings`・`gd3d_sel`・`gd3d_stats` に保存します
+- 主なファイル：`3d/js/data.js`（武器・スキル・モード・CPUの強さの数字）、`map-*.js`（ステージ）、`collision.js`（当たり判定）、`nav.js`（BOT の道案内）、`fighter.js`・`game.js`（動き・撃つ・ダメージ）、`bot.js`（BOT）、`match.js`（ルール）、`ui.js`・`style.css`（画面）
+- 確認：`python3 -m http.server` などでリポジトリを開き、`/3d/tests/` を見ると、ステージ（出てくる場所・道のつながり・ジャンプ台の着地・坂）と武器のデータを確かめた結果が出ます
+- `/3d/?auto=1` で開くと、自分のキャラクターも BOT が動かします（試合を最後まで流して確かめる用）
+
+---
+
 ## チート対策
 
 ### 自動で行われること
