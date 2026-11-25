@@ -6,3 +6,4 @@ errors.log
 errors.log.old
 announced.json
 users.before-rate-reset-*.json
+3d/_dev/

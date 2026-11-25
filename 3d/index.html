@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="theme-color" content="#07080C">
+<meta name="description" content="GUN DUEL 3D：浮かぶ闘技場で撃ち合う 3D 対戦。1v1・2v2・フリーフォーオール。">
+<title>GUN DUEL 3D</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230B0D14'/%3E%3Ccircle cx='32' cy='32' r='15' fill='none' stroke='%23FFC53D' stroke-width='6'/%3E%3Ccircle cx='32' cy='32' r='4.5' fill='%23FFC53D'/%3E%3Cpath d='M32 5v12M32 47v12M5 32h12M47 32h12' stroke='%23FFC53D' stroke-width='6' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:ital,wght@0,500;0,600;0,700;1,600;1,700&family=Dela+Gothic+One&family=Zen+Kaku+Gothic+New:wght@500;700;900&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="gl"></canvas>
+<div id="ui">
+  <!-- 読み込み -->
+  <div id="boot" class="layer">
+    <div class="boot-in">
+      <div class="logo"><span class="lg-gun">GUN</span><span class="lg-duel">DUEL</span><span class="lg-3d">3D</span></div>
+      <div class="boot-bar"><i id="boot-fill"></i></div>
+      <div class="boot-msg" id="boot-msg">Loading</div>
+    </div>
+  </div>
+  <!-- タイトル -->
+  <div id="title" class="layer hide">
+    <div class="title-in">
+      <div class="logo big"><span class="lg-gun">GUN</span><span class="lg-duel">DUEL</span><span class="lg-3d">3D</span></div>
+      <p class="title-sub" data-t="app.sub"></p>
+      <button class="title-go" id="title-go"><span data-t="title.start"></span></button>
+      <div class="title-gpu" id="title-gpu"></div>
+    </div>
+    <a class="back2d" href="../" data-t="title.back2d"></a>
+  </div>
+  <!-- メニュー -->
+  <div id="menu" class="layer hide">
+    <header class="mn-top">
+      <div class="logo sm"><span class="lg-gun">GUN</span><span class="lg-duel">DUEL</span><span class="lg-3d">3D</span></div>
+      <div class="mn-icons">
+        <button class="ic-btn" data-act="howto" data-tt="menu.howto"><svg viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="3"/><path d="M7 10v4M5 12h4M15.5 11h.01M18 13h.01"/></svg></button>
+        <button class="ic-btn" data-act="stats" data-tt="menu.stats"><svg viewBox="0 0 24 24"><path d="M4 20h4v-7H4zM10 20h4V4h-4zM16 20h4v-11h-4z"/></svg></button>
+        <button class="ic-btn" data-act="settings" data-tt="menu.settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+        <a class="ic-btn txt" href="../"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg><span data-t="title.back2d"></span></a>
+      </div>
+    </header>
+    <div class="mn-body">
+      <section class="mn-modes" id="mn-modes"></section>
+      <section class="mn-side">
+        <div class="mn-group"><h3 data-t="menu.map"></h3><div class="maps" id="mn-maps"></div></div>
+        <div class="mn-group"><h3 data-t="menu.diff"></h3><div class="seg" id="mn-diff"></div></div>
+        <div class="mn-group"><h3><span data-t="menu.loadout"></span><button class="link" data-act="loadout" data-t="menu.edit"></button></h3><div class="lo-row" id="mn-lo" data-act="loadout"></div></div>
+        <button class="start-btn" id="mn-start"><span data-t="menu.start"></span><svg viewBox="0 0 24 24"><path d="M8 5l11 7-11 7z"/></svg></button>
+      </section>
+    </div>
+  </div>
+  <!-- 装備 -->
+  <div id="loadout" class="layer hide">
+    <div class="panel lo-panel">
+      <header class="pn-head"><button class="ic-btn" data-act="loBack"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button><div><h2 data-t="lo.title"></h2><p data-t="lo.sub"></p></div></header>
+      <div class="lo-slots" id="lo-slots"></div>
+      <h3 data-t="lo.weapons"></h3>
+      <div class="lo-grid" id="lo-grid"></div>
+      <h3 data-t="lo.skill"></h3>
+      <div class="sk-grid" id="lo-skills"></div>
+      <div class="lo-foot"><span class="lo-warn" id="lo-warn"></span><button class="start-btn sm" data-act="loDone"><span data-t="lo.done"></span></button></div>
+    </div>
+  </div>
+  <!-- 設定 -->
+  <div id="settings" class="layer modal hide"><div class="panel set-panel" id="set-panel"></div></div>
+  <div id="howto" class="layer modal hide"><div class="panel howto-panel" id="howto-panel"></div></div>
+  <div id="stats" class="layer modal hide"><div class="panel stats-panel" id="stats-panel"></div></div>
+  <!-- 試合の画面 -->
+  <div id="hud" class="layer hide">
+    <canvas id="radar" width="160" height="160"></canvas>
+    <div id="score" class="score"></div>
+    <div id="feed" class="feed"></div>
+    <div id="banner" class="banner"><b></b><small></small></div>
+    <div id="count" class="count"></div>
+    <div id="scope" class="scope"></div>
+    <div id="dmgdir" class="dmgdir"></div>
+    <div id="cross" class="cross"><i class="c1"></i><i class="c2"></i><i class="c3"></i><i class="c4"></i><b></b>
+      <svg class="ring" viewBox="0 0 100 100"><circle class="r-bg" cx="50" cy="50" r="40"/><circle class="r-fg" id="ring-fg" cx="50" cy="50" r="40"/></svg>
+      <div class="hitm" id="hitm"><i></i><i></i><i></i><i></i></div>
+    </div>
+    <div id="popup" class="popup"></div>
+    <div id="nums" class="nums"></div>
+    <div id="hp" class="hp"><div class="hp-num"><b id="hp-n">100</b><small>HP</small></div><div class="hp-bar"><i id="hp-fill"></i><s></s></div>
+      <div class="hp-row"><div class="pill" id="hud-heal"><kbd>E</kbd><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg><span></span></div>
+        <div class="pill sk" id="hud-skill"><kbd>Shift</kbd><svg viewBox="0 0 24 24" id="hud-sk-ic"></svg><span></span><i class="cd" id="hud-sk-cd"></i></div></div></div>
+    <div id="wpn" class="wpn"></div>
+    <div id="center-msg" class="center-msg"></div>
+    <div id="board" class="board hide"></div>
+    <div id="fps" class="fps hide"></div>
+  </div>
+  <div id="touch" class="layer hide"></div>
+  <div id="pause" class="layer modal hide">
+    <div class="panel pause-panel"><h2 data-t="pause.title"></h2>
+      <button class="start-btn" data-act="resume"><span data-t="pause.resume"></span></button>
+      <button class="ghost-btn" data-act="settings" data-t="pause.settings"></button>
+      <button class="ghost-btn" data-act="howto" data-t="menu.howto"></button>
+      <button class="ghost-btn danger" data-act="quit" data-t="pause.quit"></button>
+    </div>
+  </div>
+  <div id="results" class="layer hide"><div class="res-in" id="res-in"></div></div>
+  <div id="rotate" class="layer hide"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="2"/><path d="M2 14a10 10 0 0 0 7 7M22 10a10 10 0 0 0-7-7"/></svg><p data-t="rotate"></p></div>
+  <div id="nogl" class="layer hide"><p data-t="boot.nogl"></p><a class="ghost-btn" href="../" data-t="title.back2d"></a></div>
+  <div id="glost" class="layer hide"><p data-t="boot.lost"></p><button class="start-btn sm" onclick="location.reload()"><span data-t="boot.reload"></span></button></div>
+</div>
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
